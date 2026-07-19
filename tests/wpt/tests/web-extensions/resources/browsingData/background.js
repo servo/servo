@@ -16,8 +16,6 @@ browser.test.runTests([
                           'dataRemovalPermitted.cache should be a boolean');
     browser.test.assertEq(typeof result.dataRemovalPermitted.cookies, 'boolean',
                           'dataRemovalPermitted.cookies should be a boolean');
-    browser.test.assertEq(typeof result.dataTypes, 'object',
-                          'result.dataTypes should be an object');
   },
 
   /**

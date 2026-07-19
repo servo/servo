@@ -262,4 +262,268 @@
     assert_equals(candidate.usernameFragment, null, 'usernameFragment');
   }, 'new RTCIceCandidate({ ... }) with invalid sdpMLineIndex');
 
+  // Helpers for the parser-coverage tests below.
+  function makeCandidate(candidateStr) {
+    return new RTCIceCandidate({ candidate: candidateStr, sdpMid: 'audio' });
+  }
+
+  // For a candidate string that fails to parse, the parse-derived
+  // attributes should all be null while the input is preserved verbatim.
+  function assertParseFailed(c) {
+    assert_equals(c.foundation, null, 'foundation');
+    assert_equals(c.component, null, 'component');
+    assert_equals(c.priority, null, 'priority');
+    assert_equals(c.address, null, 'address');
+    assert_equals(c.protocol, null, 'protocol');
+    assert_equals(c.port, null, 'port');
+    assert_equals(c.type, null, 'type');
+    assert_equals(c.tcpType, null, 'tcpType');
+    assert_equals(c.relatedAddress, null, 'relatedAddress');
+    assert_equals(c.relatedPort, null, 'relatedPort');
+  }
+
+  // ---- Positive parsing cases ----
+
+  test(t => {
+    const c = makeCandidate(
+      'candidate:1 1 udp 2113937151 2001:db8::1 58041 typ host');
+    assert_equals(c.address, '2001:db8::1', 'IPv6 compressed');
+    assert_equals(c.type, 'host');
+  }, 'IPv6 connection-address parses');
+
+  test(t => {
+    const c = makeCandidate(
+      'candidate:1 1 udp 2113937151 host.example.com 58041 typ host');
+    assert_equals(c.address, 'host.example.com', 'FQDN address');
+    assert_equals(c.type, 'host');
+  }, 'FQDN connection-address parses');
+
+  test(t => {
+    const c = makeCandidate(
+      'candidate:1 1 udp 2113937151 abcd1234.local 58041 typ host');
+    assert_equals(c.address, 'abcd1234.local', 'mDNS-style FQDN');
+    assert_equals(c.type, 'host');
+  }, 'mDNS-style .local connection-address parses');
+
+  ['srflx', 'prflx', 'relay'].forEach(type => {
+    test(t => {
+      const c = makeCandidate(
+        `candidate:1 1 udp 100 1.2.3.4 5678 typ ${type} raddr 5.6.7.8 rport 9012`);
+      assert_equals(c.type, type, 'type');
+      assert_equals(c.relatedAddress, '5.6.7.8', 'relatedAddress');
+      assert_equals(c.relatedPort, 9012, 'relatedPort');
+    }, `${type} candidate with raddr/rport parses`);
+  });
+
+  ['active', 'passive', 'so'].forEach(tcpType => {
+    test(t => {
+      const c = makeCandidate(
+        `candidate:1 1 tcp 100 1.2.3.4 5678 typ host tcptype ${tcpType}`);
+      assert_equals(c.protocol, 'tcp', 'protocol');
+      assert_equals(c.tcpType, tcpType, 'tcpType');
+    }, `TCP host candidate with tcptype ${tcpType} parses`);
+  });
+
+  test(t => {
+    const c = makeCandidate(
+      'candidate:1 1 udp 100 1.2.3.4 5678 typ host generation 0 ufrag thC8 network-cost 50');
+    assert_equals(c.type, 'host', 'type still parses');
+    assert_equals(c.foundation, '1', 'foundation');
+  }, 'trailing extension attributes are ignored');
+
+  // ---- Negative parsing cases ----
+
+  test(t => {
+    assertParseFailed(makeCandidate('foobar'));
+  }, '"foobar" fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate('candidate'));
+  }, 'bare "candidate" fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate('candidate:'));
+  }, 'bare "candidate:" fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 100 1.2.3.4 5678 host'));
+  }, 'missing "typ" keyword fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate('candidate:1 1 udp'));
+  }, 'truncated candidate (after transport) fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate('candidate:1 1 udp 100 1.2.3.4 5678'));
+  }, 'truncated candidate (before type) fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 abc udp 100 1.2.3.4 5678 typ host'));
+  }, 'non-numeric component-id fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp abc 1.2.3.4 5678 typ host'));
+  }, 'non-numeric priority fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 100 1.2.3.4 abc typ host'));
+  }, 'non-numeric port fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 0 udp 100 1.2.3.4 5678 typ host'));
+  }, 'component-id of 0 fails to parse (prose requires >= 1)');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 257 udp 100 1.2.3.4 5678 typ host'));
+  }, 'component-id of 257 fails to parse (prose requires <= 256)');
+
+  ['srflx', 'prflx', 'relay'].forEach(type => {
+    test(t => {
+      // Per RFC 8839, raddr/rport are required for non-host candidates.
+      assertParseFailed(makeCandidate(
+        `candidate:1 1 udp 100 1.2.3.4 5678 typ ${type}`));
+    }, `${type} candidate without raddr/rport fails to parse`);
+  });
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 100 1.2.3.4 5678 typ srflx raddr 5.6.7.8'));
+  }, 'raddr without rport fails to parse');
+
+  // ---- Case normalization on enum-typed fields ----
+
+  test(t => {
+    const c = makeCandidate(
+      'candidate:1 1 UDP 100 1.2.3.4 5678 typ HOST');
+    assert_equals(c.protocol, 'udp', 'protocol lowercased');
+    assert_equals(c.type, 'host', 'type lowercased');
+    assert_equals(c.component, 'rtp', 'component normalized');
+  }, 'enum-typed fields are lowercased regardless of input case');
+
+  test(t => {
+    const c = makeCandidate(
+      'candidate:1 1 TCP 100 1.2.3.4 5678 typ HOST tcptype ACTIVE');
+    assert_equals(c.protocol, 'tcp', 'protocol lowercased');
+    assert_equals(c.tcpType, 'active', 'tcpType lowercased');
+  }, 'tcpType is lowercased regardless of input case');
+
+  // ---- Numeric tokens reject trailing garbage ----
+  // RFC 8839's grammar uses 1*DIGIT for each of these fields; "100abc"
+  // is not a valid numeric token.
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1abc udp 100 1.2.3.4 5678 typ host'));
+  }, 'component with trailing non-digit fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 100abc 1.2.3.4 5678 typ host'));
+  }, 'priority with trailing non-digit fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 100 1.2.3.4 5678abc typ host'));
+  }, 'port with trailing non-digit fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 100 1.2.3.4 5678 typ srflx ' +
+      'raddr 5.6.7.8 rport 9012abc'));
+  }, 'rport with trailing non-digit fails to parse');
+
+  // ---- Priority out of range ----
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 0 1.2.3.4 5678 typ host'));
+  }, 'priority of 0 fails to parse (prose requires >= 1)');
+
+  test(t => {
+    // More than 10 digits; max uint32 is 10 digits.
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 99999999999 1.2.3.4 5678 typ host'));
+  }, 'priority with > 10 digits fails to parse');
+
+  test(t => {
+    // 10 digits but above 2^31-1 (2147483647) -- prose limits to 2^31-1.
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 udp 2147483648 1.2.3.4 5678 typ host'));
+  }, 'priority above 2^31-1 fails to parse (prose limits to 2^31-1)');
+
+  // ---- Foundation: length and char-class ----
+
+  test(t => {
+    // 33 ice-chars; spec ice-char production limits to 32.
+    const foundation33 = 'a'.repeat(33);
+    assertParseFailed(makeCandidate(
+      `candidate:${foundation33} 1 udp 100 1.2.3.4 5678 typ host`));
+  }, 'foundation longer than 32 chars fails to parse');
+
+  test(t => {
+    // Single test cycling through chars that aren't ice-char
+    // (ice-char = ALPHA / DIGIT / "+" / "/").
+    const badChars = ['-', '_', '.', ':', '@', '#', '!', '(', ')', '*', '='];
+    for (const ch of badChars) {
+      const c = makeCandidate(
+        `candidate:foo${ch}bar 1 udp 100 1.2.3.4 5678 typ host`);
+      assert_equals(c.foundation, null, `foundation with '${ch}' fails`);
+    }
+  }, 'foundation with non-ice-char characters fails to parse');
+
+  // ---- Framing / whitespace ----
+
+  test(t => {
+    // The candidate-attribute production in RFC 8839 does not include "a=";
+    // that's added by the SDP framing.
+    assertParseFailed(makeCandidate(
+      'a=candidate:1 1 udp 100 1.2.3.4 5678 typ host'));
+  }, 'leading "a=" prefix fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      ' candidate:1 1 udp 100 1.2.3.4 5678 typ host'));
+  }, 'leading whitespace fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate :1 1 udp 100 1.2.3.4 5678 typ host'));
+  }, 'whitespace before ":" in candidate keyword fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate: 1 1 udp 100 1.2.3.4 5678 typ host'));
+  }, 'whitespace after ":" before foundation fails to parse');
+
+  // ---- TCP candidate failures ----
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 tcp 100 1.2.3.4 5678 typ host'));
+  }, 'TCP non-relay candidate without tcptype fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 tcp 100 1.2.3.4 5678 typ host tcptype'));
+  }, 'TCP candidate with tcptype keyword but no value fails to parse');
+
+  test(t => {
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 tcp 100 1.2.3.4 5678 typ host tcptype connect'));
+  }, 'TCP candidate with unknown tcptype value fails to parse');
+
+  test(t => {
+    // RFC 6544 BNF places tcp-type-ext before generic extensions, so a
+    // TCP candidate with another extension before "tcptype" doesn't conform.
+    // This might be a spec bug.
+    assertParseFailed(makeCandidate(
+      'candidate:1 1 tcp 100 1.2.3.4 5678 typ host generation 0 tcptype active'));
+  }, 'TCP candidate with extension before tcptype fails to parse');
+
 </script>

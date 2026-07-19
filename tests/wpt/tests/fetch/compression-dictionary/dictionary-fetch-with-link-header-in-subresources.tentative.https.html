@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<link rel="help" href="https://github.com/whatwg/html/issues/11619">
+<link rel="help" href="https://github.com/whatwg/fetch/pull/1409">
+</head>
+<body>
+
+<script>
+  let fetchedDictionaries = [];
+  const observer = new PerformanceObserver((list) => {
+    list.getEntries().forEach(entry => {
+      const url = new URL(entry.name);
+      if (url.pathname.endsWith("register-dictionary.py")) {
+        fetchedDictionaries.push(url.search);
+      }
+    });
+  });
+  observer.observe({ type: "resource", buffered: true});
+
+  function createSubresourceURL(base_page_url, subresource) {
+    const dict_url = new URL(
+      `${kRegisterDictionaryPath}?${subresource}`, location.href);
+    return `${base_page_url}?pipe=header(link,<${encodeURIComponent(dict_url.href)}>; rel="compression-dictionary")`;
+  }
+
+  compression_dictionary_promise_test(async t => {
+    const subresource = "image";
+    const url = createSubresourceURL("/common/square.png", subresource);
+    let element = document.createElement("img");
+    element.src = url;
+    t.add_cleanup(() => element.remove());
+    await new Promise(resolve => {
+      element.onload = resolve;
+      element.onerror = resolve;
+      document.body.appendChild(element);
+    });
+    await registerAltDictionaryAndWait(t);
+    assert_false(fetchedDictionaries.includes(`?${subresource}`), `dictionary ${kRegisterDictionaryPath}?${subresource} not fetched`);
+  }, `Link rel=compression-dictionary headers on <img> subresource do not trigger any fetch request.`);
+
+  compression_dictionary_promise_test(async t => {
+    const subresource = "script";
+    const url = createSubresourceURL("/common/empty.js", subresource);
+    let element = document.createElement("script");
+    element.src = url;
+    t.add_cleanup(() => element.remove());
+    await new Promise(resolve => {
+      element.onload = resolve;
+      element.onerror = resolve;
+      document.head.appendChild(element);
+    });
+    await registerAltDictionaryAndWait(t);
+    assert_false(fetchedDictionaries.includes(`?${subresource}`), `dictionary ${kRegisterDictionaryPath}?${subresource} not fetched`);
+  }, `Link rel=compression-dictionary headers on <script> subresource do not trigger any fetch request.`);
+
+  compression_dictionary_promise_test(async t => {
+    const subresource = "stylesheet";
+    const url = createSubresourceURL("/common/empty.css", subresource);
+    let element = document.createElement("link");
+    element.rel = "stylesheet";
+    element.href = url;
+    t.add_cleanup(() => element.remove());
+    await new Promise(resolve => {
+      element.onload = resolve;
+      element.onerror = resolve;
+      document.head.appendChild(element);
+    });
+    await registerAltDictionaryAndWait(t);
+    assert_false(fetchedDictionaries.includes(`?${subresource}`), `dictionary ${kRegisterDictionaryPath}?${subresource} not fetched`);
+  }, `Link rel=compression-dictionary headers on <link rel="stylesheet"> subresource do not trigger any fetch request.`);
+
+  compression_dictionary_promise_test(async t => {
+    const subresource = "font";
+    const url = createSubresourceURL("/fonts/Ahem.ttf", subresource);
+    const font = new FontFace("my-font", `url('${url}')`);
+    document.fonts.add(font);
+    await font.load();
+    await registerAltDictionaryAndWait(t);
+    assert_false(fetchedDictionaries.includes(`?${subresource}`), `dictionary ${kRegisterDictionaryPath}?${subresource} not fetched`);
+  }, `Link rel=compression-dictionary headers on FontFace subresource do not trigger any fetch request.`);
+</script>
+</body>

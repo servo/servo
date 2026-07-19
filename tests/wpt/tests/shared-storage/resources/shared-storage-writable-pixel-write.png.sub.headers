@@ -1,3 +1,0 @@
-Timing-Allow-Origin: *
-Access-Control-Allow-Origin: *
-Shared-Storage-Write: {{GET[write]}}

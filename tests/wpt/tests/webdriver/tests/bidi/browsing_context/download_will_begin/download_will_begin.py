@@ -97,6 +97,7 @@ async def test_download_attribute(
     recursive_compare(
         {
             "context": new_tab["context"],
+            "download": any_string,
             # downloadWillBegin events created via a link with a download
             # attribute should have a `null` navigation id.
             "navigation": None,
@@ -169,6 +170,7 @@ async def test_content_disposition_header(
     recursive_compare(
         {
             "context": new_tab["context"],
+            "download": any_string,
             "navigation": any_string,
             "suggestedFilename": content_disposition_filename,
             "timestamp": any_int,
@@ -234,6 +236,7 @@ async def test_redirect_to_content_disposition_header(
     recursive_compare(
         {
             "context": new_tab["context"],
+            "download": any_string,
             "navigation": any_string,
             "suggestedFilename": redirect_filename,
             "timestamp": any_int,

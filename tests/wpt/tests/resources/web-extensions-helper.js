@@ -28,10 +28,16 @@ globalThis.runTestsWithWebExtension = function(extensionPath) {
     test.done();
 
     if (data.remainingTests) {
+      // There are still tests to perform, don't do any cleanup yet.
       return;
     }
 
-    cleanupListeners();
+    // Tests have now completed so cleanup.
+
+    browser.test.onTestStarted.removeListener(onTestStartedListener);
+    browser.test.onTestFinished.removeListener(onTestFinishedListener);
+
+    // Uninstall the extension before marking the test suite as done.
     installPromise
         .then((extension_id) => {
           return test_driver.uninstall_web_extension(extension_id);
@@ -41,22 +47,13 @@ globalThis.runTestsWithWebExtension = function(extensionPath) {
         });
   }
 
-  function cleanupListeners() {
-    browser.test.onTestStarted.removeListener(onTestStartedListener);
-    browser.test.onTestFinished.removeListener(onTestFinishedListener);
-  }
-
-  // Attach event listeners synchronously before calling `install_web_extension`
-  // to prevent a possible race condition for some browsers where the extension
-  // could install and run tests before `installPromise` resolves.
-  browser.test.onTestStarted.addListener(onTestStartedListener);
-  browser.test.onTestFinished.addListener(onTestFinishedListener);
-
   installPromise =
       test_driver.install_web_extension({type: 'path', path: extensionPath});
 
-  return installPromise.catch((error) => {
-    cleanupListeners();
-    throw error;
+  return installPromise.then(() => {
+    // Add the test listeners *after* extension install to ensure all browser's will
+    // fire test events successfully.
+    browser.test.onTestStarted.addListener(onTestStartedListener);
+    browser.test.onTestFinished.addListener(onTestFinishedListener);
   });
 }

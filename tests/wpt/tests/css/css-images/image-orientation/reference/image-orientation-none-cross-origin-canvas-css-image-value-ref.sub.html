@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: image-orientation: none for a cross-origin CSSImageValue drawn to canvas (reference)</title>
+<style>
+  #target { image-orientation: none; }
+</style>
+</head>
+<body>
+  <canvas id="target" width="100" height="50"></canvas>
+  <div id="loader"></div>
+  <img id="probe" style="display:none">
+</body>
+<script>
+  const probe = document.getElementById('probe');
+  probe.onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const ctx = document.getElementById('target').getContext('2d');
+      ctx.drawImage(probe, 0, 0);
+      document.documentElement.classList.remove('reftest-wait');
+    }));
+  };
+  probe.src = "http://{{hosts[][]}}:{{ports[http][1]}}/css/css-images/image-orientation/support/exif-orientation-6-ru.jpg";
+</script>
+</html>

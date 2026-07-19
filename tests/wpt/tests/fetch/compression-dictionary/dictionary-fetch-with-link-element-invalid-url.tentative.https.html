@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  let fetchedEntries = [];
+  const observer = new PerformanceObserver((list) => {
+    list.getEntries().forEach(entry => {
+      // Ignore favicon.ico and testharness resources.
+      if (!entry.name.match(/testharness|favicon/g)) {
+        fetchedEntries.push(entry.name);
+      }
+    });
+  });
+  observer.observe({ type: "resource", buffered: true});
+  const link = document.createElement('link');
+  t.add_cleanup(_ => {
+    observer.disconnect();
+    link.remove();
+  });
+  link.rel = 'compression-dictionary';
+  link.href = "https://make:invalid/";
+  link.addEventListener("error", t.unreached_func("error event should not be dispatched"));
+  link.addEventListener("load", t.unreached_func("load event should not be dispatched"));
+  document.head.appendChild(link);
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+  assert_equals(fetchedEntries.length, 0);
+}, 'link with rel=compression-dictionary and invalid href neither trigger any load/error event nor any fetch request.');
+</script>

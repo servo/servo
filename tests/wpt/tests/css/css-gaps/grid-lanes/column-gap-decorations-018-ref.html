@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 86px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+    text-align: center;
+  }
+  .lanes > div.alt { background: #8a6df0; }
+  .lanes > div.hi { background: #1f9d6b; }
+  .lanes > div.i1 { height: 150px; }
+  .lanes > div.i2 { grid-column: span 2; height: 90px; }
+  .lanes > div.i3 { grid-column: 3; height: 130px; }
+  .lanes > div.i4 { height: 80px; }
+  .lanes > div.i5 { height: 90px; }
+  .col-rule { position: absolute; width: 0; border-left: 4px solid blue; }
+  .row-rule { position: absolute; height: 0; border-top: 4px solid gold; }
+</style>
+<div class="lanes">
+  <div class="i1">1</div>
+  <div class="i2 alt">2 (span 2)</div>
+  <div class="i3 hi">3 (placed)</div>
+  <div class="i4">4</div>
+  <div class="i5">5</div>
+</div>
+<div class="col-rule" style="left: 89px; top: 0; height: 250px;"></div>
+<div class="col-rule" style="left: 185px; top: 100px; height: 150px;"></div>
+<div class="row-rule" style="top: 153px; left: 0; width: 86px;"></div>
+<div class="row-rule" style="top: 93px; left: 96px; width: 182px;"></div>

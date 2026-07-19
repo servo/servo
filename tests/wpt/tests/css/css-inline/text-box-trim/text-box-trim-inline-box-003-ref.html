@@ -3,16 +3,15 @@
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
 <meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
 <style>
-@import "support/MetricsTestFont.css";
-
 .spacer {
   block-size: 100px;
   background: lightgray;
 }
 
 .container {
-  font: 100px/1 MetricsTestFont;
+  font: 100px/1 BaselineDiagnosticAlphabeticZero;
 }
 
 .target {
@@ -22,17 +21,20 @@
 .target::before {
   content: '';
   position: absolute;
-  inset: 0.2em 0;
+  top: calc(var(--baseline-diagnostic-alphabetic-zero-cap-height) * 1em);
+  right: 0;
+  bottom: calc((1 - var(--baseline-diagnostic-alphabetic-zero-alphabetic)) * 1em);
+  left: 0;
   z-index: -1;
   background: green;
 }
 </style>
 <div class="spacer"></div>
 <div class="container">
-  <span class="target">ApÉx</span>
+  <span class="target">█BxIF</span>
   <br>
-  <span class="target">ApÉx</span>
+  <span class="target">█BxIF</span>
   <br>
-  <span class="target">ApÉx</span>
+  <span class="target">█BxIF</span>
 </div>
 <div class="spacer"></div>

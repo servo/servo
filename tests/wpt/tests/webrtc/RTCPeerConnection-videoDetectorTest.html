@@ -49,11 +49,16 @@ promise_test(async t => {
   t.add_cleanup(() => track1.stop());
 
   const sender = pc1.addTrack(track1);
+  const parameters = sender.getParameters();
+  parameters.degradationPreference = "maintain-resolution";
+  sender.setParameters(parameters);
+
   const haveTrackEvent = new Promise(r => pc2.ontrack = r);
   exchangeIceCandidates(pc1, pc2);
   await exchangeOfferAnswer(pc1, pc2);
   v.srcObject = new MediaStream([(await haveTrackEvent).track]);
-  await new Promise(r => v.onloadedmetadata = r);
+  v.play();
+  await new Promise(r => v.requestVideoFrameCallback(r));
   // The basic signal is a track with signal 100. We replace this
   // with tracks with signal from 0 to 255 and see if they are all
   // reliably detected.

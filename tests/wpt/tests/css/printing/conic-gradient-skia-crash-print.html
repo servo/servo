@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#conic-gradients">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+  * {
+    border-image-source: conic-gradient(black, currentColor 0, transparent);
+    border-top-style: double;
+  }
+  [class] {
+    border-left-style: outset;
+  }
+</style>
+<body class="x">

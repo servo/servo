@@ -149,29 +149,32 @@ test_shorthand_contraction('view-timeline', {
 // is the timeline name. If a coordinating list property has too few
 // values specified, its value list is repeated to add more used values.
 // If it has too many values, the list will be truncated to match the
-// base property's length.
+// base property's length. However, the computed style for the shorthand
+// property should serialized to an empty string since round-tripping
+// wouldn't work otherwise.
+// https://github.com/w3c/csswg-drafts/issues/13500
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b, --c',
   'view-timeline-axis': 'inline, inline',
   'view-timeline-inset': 'auto, auto',
-}, '--a inline, --b inline, --c inline');
+}, '');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b, --c, --d, --e, --f',
   'view-timeline-axis': 'inline, x',
   'view-timeline-inset': 'auto, 1px',
-}, '--a inline, --b x 1px, --c inline, --d x 1px, --e inline, --f x 1px');
+}, '');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b',
   'view-timeline-axis': 'inline, inline, inline',
   'view-timeline-inset': 'auto, auto, auto',
-}, '--a inline, --b inline');
+}, '');
 
 test_shorthand_contraction('view-timeline', {
   'view-timeline-name': '--a, --b',
   'view-timeline-axis': 'inline, inline',
   'view-timeline-inset': 'auto, auto, auto',
-}, '--a inline, --b inline');
+}, '');
 </script>

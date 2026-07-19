@@ -1,0 +1,38 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<script>
+"use strict";
+
+addEventListener("load", async () => {
+  const iframe = document.querySelector("iframe");
+  iframe.focus();
+  for (let i = 0; i < 20; i++) {
+    iframe.srcdoc = "";
+    const waitForLoad = new Promise(resolve => {
+      iframe.addEventListener("load", () => {
+        iframe.contentDocument.designMode = "on";
+        iframe.contentWindow.getSelection().selectAllChildren(
+          iframe.contentDocument.body
+        );
+        requestAnimationFrame(() => {
+          iframe.contentWindow.getSelection().modify("extend", "backward", "lineboundary");
+          requestAnimationFrame(
+            () => requestAnimationFrame(resolve)
+          );
+        });
+      }, {once: true});
+    });
+    iframe.srcdoc = "<details>\n</details>";
+    await waitForLoad;
+  }
+  document.documentElement.removeAttribute("class");
+}, {once: true});
+</script>
+</head>
+<body>
+<iframe></iframe>
+</body>
+</html>

@@ -220,6 +220,7 @@ SET TIMEOUT: html/canvas/resources/draw-element-image-utils.js
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/intersection-observer-visibility.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-css-animation.tentative.html
+SET TIMEOUT: html/canvas/element/manual/draw-element-image/onpaint-post-tree-order.tentative.html
 SET TIMEOUT: html/canvas/element/manual/draw-element-image/requestPaint.tentative.html
 SET TIMEOUT: html/cross-origin-opener-policy/resources/fully-loaded.js
 SET TIMEOUT: html/editing/dnd/*

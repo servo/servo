@@ -18,9 +18,8 @@
 
     const range = element.createValueRange(0, value.length);
 
-    // Opaque range: containers are null.
-    assert_equals(range.startContainer, null, 'startContainer should be null');
-    assert_equals(range.endContainer, null, 'endContainer should be null');
+    assert_equals(range.startContainer, undefined, 'startContainer should be undefined');
+    assert_equals(range.endContainer, undefined, 'endContainer should be undefined');
     assert_equals(range.startOffset, 0);
     assert_equals(range.endOffset, value.length);
     assert_false(range.collapsed);

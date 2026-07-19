@@ -93,6 +93,23 @@ function volumechange_test(tagName) {
 
   async_test(function(t) {
     var e = document.createElement(tagName);
+    document.body.appendChild(e);
+    t.add_cleanup(function() { e.remove(); });
+    e.onvolumechange = t.unreached_func();
+    assert_false(e.muted);
+    e.setAttribute('muted', '');
+    assert_true(e.muted);
+    e.removeAttribute('muted');
+    assert_false(e.muted);
+    // muted changed twice, but content-attribute changes never fire
+    // volumechange, even when the element is connected to a document.
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  }, "adding/removing " + tagName + " muted content attribute on a connected element will not fire volumechange");
+
+  async_test(function(t) {
+    var e = document.createElement(tagName);
     e.onvolumechange = t.unreached_func();
     // This changes the internal muted state from default to false, but the IDL
     // attribute value doesn't change, so no volumechange event.

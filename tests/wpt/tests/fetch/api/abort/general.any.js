@@ -47,16 +47,6 @@ promise_test(async t => {
 promise_test(async t => {
   const controller = new AbortController();
   const signal = controller.signal;
-
-  const fetchPromise = fetch('../resources/data.json', { signal });
-  controller.abort(error1);
-
-  await promise_rejects_exactly(t, error1, fetchPromise, 'fetch() should reject with abort reason when aborted after fetch() called');
-}, "Aborting rejects with abort reason when aborted after fetch() called");
-
-promise_test(async t => {
-  const controller = new AbortController();
-  const signal = controller.signal;
   controller.abort();
 
   const url = new URL('../resources/data.json', location);
@@ -248,20 +238,6 @@ for (const bodyMethod of BODY_METHODS) {
 
     assert_array_equals(log, [`${bodyMethod}-reject`, 'next-microtask']);
   }, `response.${bodyMethod}() rejects if already aborted`);
-
-  promise_test(async t => {
-    const controller = new AbortController();
-    const signal = controller.signal;
-
-    const response = await fetch('../resources/data.json', { signal });
-
-    controller.abort(error1);
-
-    const bodyPromise = response[bodyMethod]();
-
-    await promise_rejects_exactly(t, error1, bodyPromise,
-      `${bodyMethod}() should reject with abort reason`);
-  }, `response.${bodyMethod}() rejects with abort reason if already aborted`);
 }
 
 promise_test(async (t) => {
@@ -472,33 +448,6 @@ promise_test(async t => {
     if (afterAbortResult == 'closed') break;
   }
 }, "Stream errors once aborted. Underlying connection closed.");
-
-promise_test(async t => {
-  await abortRequests();
-
-  const controller = new AbortController();
-  const signal = controller.signal;
-  const stateKey = token();
-  const abortKey = token();
-  requestAbortKeys.push(abortKey);
-
-  const response = await fetch(`../resources/infinite-slow-response.py?stateKey=${stateKey}&abortKey=${abortKey}`, { signal });
-  const reader = response.body.getReader();
-
-  controller.abort(error1);
-
-  await promise_rejects_exactly(t, error1, reader.read());
-  await promise_rejects_exactly(t, error1, reader.closed);
-
-  // The connection won't close immediately, but it should close at some point:
-  const start = Date.now();
-
-  await t.step_wait(async () => {
-    const response = await fetch(`../resources/stash-take.py?key=${stateKey}`);
-    const json = await response.json();
-    return json == 'closed';
-  }, "underlying connection should close");
-}, "Stream errors once aborted with abort reason. Underlying connection closed.");
 
 promise_test(async t => {
   await abortRequests();

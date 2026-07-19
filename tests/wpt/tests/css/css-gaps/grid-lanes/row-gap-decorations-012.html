@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row and column rules with asymmetric row-gap and column-gap axis mapping in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-012-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 86px);
+    column-gap: 10px;
+    row-gap: 24px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    width: 44px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.w2 { width: 70px; }
+  .lanes > div.w3 { width: 54px; }
+  .lanes > div.w4 { width: 84px; }
+</style>
+<div class="lanes">
+  <div class="w2">1</div>
+  <div class="w3">2</div>
+  <div>3</div>
+  <div class="w4">4</div>
+  <div>5</div>
+  <div class="w2">6</div>
+  <div>7</div>
+</div>

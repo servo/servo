@@ -27,10 +27,10 @@
           }
         }
       }
-      @mixin --missing-argument-list {
+      @mixin --no-parameter-list {
         @result {
           .cls {
-            color: red;
+            border: 1px solid green;
           }
         }
       }
@@ -47,7 +47,7 @@
       div {
         @apply --m1;
         @apply invalid-name;
-        @apply --missing-argument-list;
+        @apply --no-parameter-list;
         @apply --missing-result1;
         @apply --missing-result2;
         @apply --empty1;
@@ -56,11 +56,14 @@
     </style>
   </head>
   <body>
-    <div><div class="cls" id="target">This text should be green.</div></div>
+    <div><div class="cls" id="target">This text should be green with a green border.</div></div>
   <script>
     test(() => {
       let target = document.getElementById('target');
       assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
+      assert_equals(getComputedStyle(target).borderTopColor, 'rgb(0, 128, 0)');
+      assert_equals(getComputedStyle(target).borderTopWidth, '1px');
+      assert_equals(getComputedStyle(target).borderTopStyle, 'solid');
     });
   </script>
   </body>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A zero-height snap area can be snapped to</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-scope">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#choosing">
+<meta name="assert" content="A snap area with zero extent along the scroll axis is still a valid snap target.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#scroller {
+  width: 300px;
+  height: 400px;
+  overflow: scroll;
+  scroll-snap-type: y mandatory;
+}
+
+#scroller > div {
+  width: 100%;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+.block {
+  height: 400px;
+}
+
+.spacer {
+  height: 200px;
+}
+
+.marker {
+  height: 0;
+}
+</style>
+
+<div id="scroller">
+  <div class="snap-start block"></div>
+  <div class="spacer"></div>
+  <div class="snap-start marker"></div>
+  <div class="spacer"></div>
+  <div class="snap-start block"></div>
+</div>
+
+<script>
+const scroller = document.getElementById("scroller");
+
+[
+  [600, 600],  // exact: the empty area is itself a valid resting position
+  [550, 600],  // approaching from above: 600 is the nearest snap offset
+  [650, 600],  // approaching from below: 600 is the nearest snap offset
+].forEach(([destination, expected]) => {
+  test(() => {
+    scroller.scrollTo(0, 0);
+    assert_equals(scroller.scrollTop, 0, "reset to top");
+
+    scroller.scrollTop = destination;
+    assert_equals(scroller.scrollTop, expected);
+  }, `scrollTop = ${destination} snaps to the zero-height area at ${expected}`);
+});
+</script>

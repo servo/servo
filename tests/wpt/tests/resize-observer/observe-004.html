@@ -1,0 +1,42 @@
+<!doctype html>
+<title>ResizeObserver test: disconnect stops all notifications</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  let t1 = createAndAppendElement("div");
+  let t2 = createAndAppendElement("div");
+  t1.style.width = "100px";
+  t2.style.width = "100px";
+
+  let helper = new ResizeTestHelper(
+    "disconnect stops all notifications", [
+    {
+      setup: observer => {
+        observer.observe(t1);
+        observer.observe(t2);
+        observer.disconnect();
+        t1.style.width = "30px";
+      },
+      notify: entries => {
+         assert_unreached("no entries should be observed");
+      },
+      timeout: () => {
+        // expected
+      }
+    }
+  ]);
+  return helper.start(() => {
+    t1.remove();
+    t2.remove();
+  });
+}
+
+(async () => await test())();
+</script>

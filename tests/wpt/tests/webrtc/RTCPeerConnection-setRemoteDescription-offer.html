@@ -328,14 +328,20 @@ if (rest) {
     const timeoutPromise = new Promise(
     (resolve, reject) => t.step_timeout(reject, 1000));
     try {
-      await Promise.any(statePromise, timeoutPromise);
+      await Promise.race([statePromise, timeoutPromise]);
     } catch (error) {
       assert_unreached('State should have changed');
     }
     assert_equals(pc1.signalingState, 'stable');
     assert_equals(pc1.pendingLocalDescription, null);
     assert_equals(pc1.pendingRemoteDescription, null);
-    await promise_rejects_dom(t, 'RTCError', p);
+    try {
+      await p;
+      assert_unreached('setRemoteDescription with invalid SDP should reject');
+    } catch (err) {
+      assert_true(err instanceof RTCError, 'Expect err to be instance of RTCError');
+      assert_equals(err.name, 'OperationError');
+    }
   }, 'setRemoteDescription(invalidOffer) from have-local-offer does not undo rollback');
 
   promise_test(async t => {

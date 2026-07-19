@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<title>CSSOM View - getBoxQuads() options</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<link rel="help" href="https://hacks.mozilla.org/2014/03/introducing-the-getboxquads-api/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #target {
+    position: absolute;
+    left: 40px;
+    top: 30px;
+    width: 200px;
+    height: 160px;
+    margin: 11px 13px 17px 19px;
+    border: solid;
+    border-width: 2px 4px 6px 8px;
+    padding: 3px 5px 7px 9px;
+    box-sizing: content-box;
+    background: lightblue;
+  }
+
+  #relative {
+    position: absolute;
+    left: 20px;
+    top: 15px;
+    width: 300px;
+    height: 220px;
+    border: 10px solid gray;
+    padding: 12px;
+  }
+
+  #child {
+    position: absolute;
+    left: 50px;
+    top: 45px;
+    width: 80px;
+    height: 40px;
+    margin: 10px 14px 18px 22px;
+    border: solid;
+    border-width: 1px 3px 5px 7px;
+    padding: 2px 4px 6px 8px;
+    box-sizing: content-box;
+    background: gold;
+  }
+
+  #rtl {
+    position: absolute;
+    left: 320px;
+    top: 30px;
+    width: 60px;
+    height: 25px;
+    direction: rtl;
+    writing-mode: vertical-rl;
+    border: 4px solid black;
+    padding: 6px;
+  }
+</style>
+<div id="target"></div>
+<div id="relative">
+  <div id="child"></div>
+</div>
+<div id="rtl"></div>
+<script>
+const boxes = ["margin", "border", "padding", "content"];
+const target = document.getElementById("target");
+const relative = document.getElementById("relative");
+const child = document.getElementById("child");
+const rtl = document.getElementById("rtl");
+
+test(() => {
+  assert_geometry_utils_exist();
+}, "GeometryUtils APIs exist on Element");
+
+for (const box of boxes) {
+  test(() => {
+    const quad = target.getBoxQuads({box})[0];
+    const expected = local_box_rect(target, box);
+    const borderRect = target.getBoundingClientRect();
+    assert_point_approx_equals(quad.p1,
+                               new DOMPoint(borderRect.left + expected.x,
+                                            borderRect.top + expected.y),
+                               `${box} p1`);
+    assert_point_approx_equals(quad.p3,
+                               new DOMPoint(borderRect.left + expected.x +
+                                              expected.width,
+                                            borderRect.top + expected.y +
+                                              expected.height),
+                               `${box} p3`);
+    assert_approx_equals(quad.getBounds().width, expected.width,
+                         GEOMETRY_UTILS_EPSILON, `${box} width`);
+    assert_approx_equals(quad.getBounds().height, expected.height,
+                         GEOMETRY_UTILS_EPSILON, `${box} height`);
+  }, `getBoxQuads({box: "${box}"}) returns the requested CSS box`);
+}
+
+test(() => {
+  const defaultQuad = target.getBoxQuads()[0];
+  const borderQuad = target.getBoxQuads({box: "border"})[0];
+  assert_quad_approx_equals(defaultQuad, borderQuad,
+                            "default getBoxQuads() border box");
+}, "getBoxQuads() defaults to the border box");
+
+test(() => {
+  const quad = child.getBoxQuads({relativeTo: relative})[0];
+  const childRect = child.getBoundingClientRect();
+  const relativeRect = relative.getBoundingClientRect();
+  assert_point_approx_equals(quad.p1,
+                             new DOMPoint(childRect.left - relativeRect.left,
+                                          childRect.top - relativeRect.top),
+                             "child border p1 relative to relative border box");
+  assert_point_approx_equals(quad.p3,
+                             new DOMPoint(childRect.right - relativeRect.left,
+                                          childRect.bottom - relativeRect.top),
+                             "child border p3 relative to relative border box");
+}, "getBoxQuads({relativeTo}) uses the relative element border-box origin");
+
+test(() => {
+  const quad = child.getBoxQuads({box: "content", relativeTo: relative})[0];
+  const childRect = child.getBoundingClientRect();
+  const relativeRect = relative.getBoundingClientRect();
+  const contentRect = local_box_rect(child, "content");
+  assert_point_approx_equals(quad.p1,
+                             new DOMPoint(childRect.left - relativeRect.left +
+                                            contentRect.x,
+                                          childRect.top - relativeRect.top +
+                                            contentRect.y),
+                             "child content p1 relative to relative");
+  assert_point_approx_equals(quad.p3,
+                             new DOMPoint(childRect.left - relativeRect.left +
+                                            contentRect.x + contentRect.width,
+                                          childRect.top - relativeRect.top +
+                                            contentRect.y + contentRect.height),
+                             "child content p3 relative to relative");
+}, "getBoxQuads() combines box and relativeTo options");
+
+test(() => {
+  const quad = rtl.getBoxQuads()[0];
+  assert_true(quad.p1.x < quad.p2.x, "p1 remains the physical left corner");
+  assert_true(quad.p1.y < quad.p4.y, "p1 remains the physical top corner");
+}, "getBoxQuads() point order is physical for bidi and writing-mode");
+
+test(() => {
+  const quad = document.getBoxQuads()[0];
+  assert_point_approx_equals(quad.p1, new DOMPoint(0, 0),
+                             "document quad origin");
+  assert_approx_equals(quad.getBounds().width, document.documentElement.clientWidth,
+                       GEOMETRY_UTILS_EPSILON, "document quad width");
+  assert_approx_equals(quad.getBounds().height, document.documentElement.clientHeight,
+                       GEOMETRY_UTILS_EPSILON, "document quad height");
+}, "Document.getBoxQuads() returns the viewport quad");
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Grid item minimum contribution when preferred size is fit-content.</title>
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<link rel="help" href="https://www.w3.org/TR/css-grid-2/#algo-single-span-items">
+<meta name="assert" content="A grid item whose preferred size is fit-content neither behaves as auto nor depends on the size of its containing block in the relevant axis, so its minimum contribution is its min-content contribution, not its automatic minimum size, even when that exceeds the fixed max track sizing function.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.inline-grid {
+    grid-template-columns: minmax(auto, 50px);
+}
+.content {
+    width: 100px;
+    height: 25px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.inline-grid')">
+<div id="log"></div>
+
+<div class="inline-grid" data-expected-width="100">
+    <div class="item" style="width: fit-content;"><div class="content"></div></div>
+</div>
+
+</body>

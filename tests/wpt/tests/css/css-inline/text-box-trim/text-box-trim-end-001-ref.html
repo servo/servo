@@ -1,33 +1,31 @@
 <!DOCTYPE html>
 <script src="support/variant-class.js"></script>
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<meta charset="utf-8">
 <style>
-@import "support/MetricsTestFont.css";
-
 .spacer {
   background: lightgray;
   block-size: 100px;
 }
 .target {
-  font: 100px/2 MetricsTestFont;
+  font: 100px/2 BaselineDiagnosticAlphabeticZero;
 }
 .offset {
   position: relative;
 }
 .vrl { writing-mode: vertical-rl; }
 .vlr { writing-mode: vertical-lr; }
-.auto .target, .text .target { line-height: 150px; }
-.auto .offset, .text .offset { inset-block-start: 25px; }
-.alphabetic .target { line-height: 130px; }
-.alphabetic .offset { inset-block-start: 35px;}
-.cap .target { line-height: 130px; }
-.cap .offset { inset-block-start: -35px; }
-.ex .target { line-height: 90px; }
-.ex .offset { inset-block-start: -55px; }
-.vlr.cap .offset { inset-block-start: 35px; }
-.vlr.ex .offset { inset-block-start: 55px; }
+.auto .target, .text .target { block-size: calc(0.5em + 1em); }
+.alphabetic .target { block-size: calc(0.5em + 1em * var(--baseline-diagnostic-alphabetic-zero-alphabetic)); }
+.ideographic .target { block-size: calc(0.5em + 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-under)); }
+.ideographic-ink .target { block-size: calc(0.5em + 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-face-under)); }
+.vlr.cap .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-cap-height)); }
+.vlr.ex .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-x-height)); }
+.vlr.ideographic .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-over)); }
+.vlr.ideographic-ink .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-face-over)); }
 </style>
 <div class="spacer"></div>
 <div class="target">
-  <span class="offset">ApÉx</span>
+  <span class="offset">█BxIF</span>
 </div>
 <div class="spacer"></div>

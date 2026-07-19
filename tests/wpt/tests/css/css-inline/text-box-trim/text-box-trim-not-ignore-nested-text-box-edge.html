@@ -3,7 +3,8 @@
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
 <link rel="match" href="text-box-trim-not-ignore-nested-text-box-edge-ref.html">
-<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<meta charset="utf-8">
 <!-- https://github.com/w3c/csswg-drafts/issues/10904 -->
 <style>
 .spacer {
@@ -11,7 +12,7 @@
   block-size: 100px;
 }
 .target {
-  font: 50px/2 Ahem;
+  font: 50px/2 BaselineDiagnosticAlphabeticZero;
   text-box-trim: trim-both;
   text-box-edge: ex alphabetic;
 }
@@ -23,6 +24,6 @@
 </style>
 <div class="spacer"></div>
 <div class="target">
-  <div class="inner">ABC</div>
+  <div class="inner">█BxIF</div>
 </div>
 <div class="spacer"></div>

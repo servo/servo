@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row and column rules with align-self on grid-lanes items (row direction)</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-003-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 86px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    width: 76px;
+    height: 86px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.hi { background: #1f9d6b; }
+  .lanes > div.short { height: 50px; }
+  .lanes > div.w2 { width: 104px; }
+  .lanes > div.w3 { width: 60px; }
+  .lanes > div.as-center { align-self: center; }
+  .lanes > div.as-end { align-self: end; }
+</style>
+<div class="lanes">
+  <div class="w3">1</div>
+  <div>2</div>
+  <div class="short as-center hi">3</div>
+  <div>4</div>
+  <div class="w2">5</div>
+  <div class="short as-end hi">6</div>
+  <div class="w3">7</div>
+  <div>8</div>
+</div>

@@ -57,40 +57,8 @@ async function runTest(api1,
 }
 
 promise_test(async () => {
-    return runTest('fledge', [320, 50], [320, 50],
-                   'fledge', [728, 90], [728, 90]); },
-                   "FLEDGE->FLEDGE");
-promise_test(async () => {
-    return runTest('sharedstorage', [321, 51], [729, 91],
-                   'sharedstorage', [729, 91], [971, 251]); },
-                   "sharedStorage->sharedStorage");
-promise_test(async () => {
     return runTest('default', [321, 51], [729, 91],
                    'default', [729, 91], [971, 251]); },
                    "default->default");
-promise_test(async () => {
-    return runTest('default', [321, 51], [729, 91],
-                   'fledge', [728, 90], [728, 90]); },
-                   "default->FLEDGE");
-promise_test(async () => {
-    return runTest('default', [321, 51], [729, 91],
-                   'sharedStorage', [729, 91], [971, 251]); },
-                   "default->sharedStorage");
-promise_test(async () => {
-    return runTest('fledge', [320, 50], [320, 50],
-                   'default', [729, 91], [971, 251]); },
-                   "FLEDGE->default");
-promise_test(async () => {
-    return runTest('sharedstorage', [321, 51], [729, 91],
-                   'default', [729, 91], [971, 251]); },
-                   "sharedStorage->default");
-promise_test(async () => {
-    return runTest('sharedstorage', [321, 51], [729, 91],
-                   'fledge', [728, 90], [728, 90]); },
-                   "sharedStorage->FLEDGE");
-promise_test(async () => {
-    return runTest('fledge', [320, 50], [320, 50],
-                   'sharedstorage', [729, 91], [971, 251]); },
-                   "FLEDGE->sharedStorage");
 </script>
 </body>

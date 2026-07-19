@@ -71,17 +71,29 @@
   }, `Function constructor with mixed plain and trusted strings, mask #${arg_max}`);
 
   // Similarly wrap all args in TrustedScript objects, but forges the toString()
-  // method at one index so that it adds extra leading/trailing space compared
-  // to the trusted data. This string mismatch also lead to isTrusted=false in
-  // EnsureCSPDoesNotBlockStringCompilation.
+  // method at one index. Trust is derived from HostGetCodeForEval reading the
+  // real internal data, not from ToString(), so the forged toString() has no
+  // effect and the function is built from the real trusted text. The forged
+  // values are chosen to produce a different, observable result if they were
+  // ever mistakenly used, so a regression would make this test fail.
+  // A call counter also directly verifies toString() is never invoked at all.
+  const forgedArgs = ["a2", "b2", "c = 50", "return (a+b)*c+1;"];
   args.forEach((_, index) => {
     test(t => {
+      let toStringCallCount = 0;
       let mixed_args = args.map((arg_value, arg_index) => {
         let obj = policy.createScript(arg_value);
         return arg_index == index ?
-          Object.assign(obj, { toString: () => ` ${arg_value} ` }) : obj;
+          Object.assign(obj, { toString: () => {
+            toStringCallCount++;
+            return forgedArgs[arg_index];
+          }}) : obj;
       });
-      assert_throws_js(EvalError, _ => new Function(...mixed_args));
+      const f = new Function(...mixed_args);
+      assert_equals(toStringCallCount, 0,
+        "toString() should never be called on a TrustedScript argument");
+      assert_equals(f(1,2,3), 9);
+      assert_equals(f(1,2), 15);
     }, `Function constructor with trusted strings, and a forged toString() for the one at index ${index}`);
   });
 </script>

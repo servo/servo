@@ -272,6 +272,66 @@
     }, 'AudioBufferSourceNode ran successfully with zero delta and ' +
     'playbackRate 0');
 
+    // Negative playback rate with constraint violation:
+    // loopStart > loopEnd (expects fallback)
+    promise_test(async () => {
+      await runSourceNodeTest(
+        8, 4,
+        (source, sampleRate) => {
+          source.loop = true;
+          source.loopStart = 3 / sampleRate;
+          source.loopEnd = 1 / sampleRate;
+          source.playbackRate.value = -1.0;
+          source.start(0, 3 / sampleRate);
+        },
+        (renderedData) => {
+          const expected = [4.0, 3.0, 2.0, 1.0, 4.0, 3.0, 2.0, 1.0];
+          assert_array_equals(renderedData, expected);
+        }
+      );
+    }, 'AudioBufferSourceNode loops backwards using entire buffer when ' +
+       'loopStart > loopEnd');
+
+    // Negative playback rate with constraint violation:
+    // loopStart < 0 (expects clamping)
+    promise_test(async () => {
+      await runSourceNodeTest(
+        8, 4,
+        (source, sampleRate) => {
+          source.loop = true;
+          source.loopStart = -1 / sampleRate;
+          source.loopEnd = 2 / sampleRate;
+          source.playbackRate.value = -1.0;
+          source.start(0, 3 / sampleRate);
+        },
+        (renderedData) => {
+          const expected = [4.0, 3.0, 2.0, 1.0, 2.0, 1.0, 2.0, 1.0];
+          assert_array_equals(renderedData, expected);
+        }
+      );
+    }, 'AudioBufferSourceNode loops backwards using clamped loopStart when ' +
+       'loopStart < 0');
+
+    // Negative playback rate with constraint violation:
+    // loopEnd < 0 (expects fallback)
+    promise_test(async () => {
+      await runSourceNodeTest(
+        8, 4,
+        (source, sampleRate) => {
+          source.loop = true;
+          source.loopStart = 1 / sampleRate;
+          source.loopEnd = -2 / sampleRate;
+          source.playbackRate.value = -1.0;
+          source.start(0, 3 / sampleRate);
+        },
+        (renderedData) => {
+          const expected = [4.0, 3.0, 2.0, 1.0, 4.0, 3.0, 2.0, 1.0];
+          assert_array_equals(renderedData, expected);
+        }
+      );
+    }, 'AudioBufferSourceNode loops backwards using entire buffer when ' +
+       'loopEnd < 0');
+
   </script>
 </body>
 

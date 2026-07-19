@@ -1,9 +1,8 @@
-
 Copyright (c) 2026, Sajid Anwar.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
-https\://openfontlicense.org
+https://openfontlicense.org
 &nbsp;
 
 \----------------------------------------------------------------------

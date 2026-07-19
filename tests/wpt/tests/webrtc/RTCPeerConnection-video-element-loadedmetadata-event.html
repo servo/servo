@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
+</head>
+<body>
+<canvas id=canvas></canvas>
+<video controls id=video autoplay playsinline></video>
+<script>
+'use strict';
+
+promise_test(async t => {
+    const v = document.createElement('video');
+    v.autoplay = true;
+    const pc1 = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    t.add_cleanup(() => pc2.close());
+    const stream1 = await getNoiseStream({video: {signal: 100}});
+    const [track1] = stream1.getTracks();
+    t.add_cleanup(() => track1.stop());
+
+    const sender = pc1.addTrack(track1);
+    const parameters = sender.getParameters();
+    parameters.degradationPreference = "maintain-resolution";
+    sender.setParameters(parameters);
+
+    const haveTrackEvent = new Promise(r => pc2.ontrack = r);
+    exchangeIceCandidates(pc1, pc2);
+    await exchangeOfferAnswer(pc1, pc2);
+    v.srcObject = new MediaStream([(await haveTrackEvent).track]);
+    v.play();
+
+    await new Promise(resolve => v.onloadedmetadata = resolve);
+    assert_equals(v.videoWidth, 640, "width");
+    assert_equals(v.videoHeight, 480, "height");
+});
+</script>
+</body>
+</html>

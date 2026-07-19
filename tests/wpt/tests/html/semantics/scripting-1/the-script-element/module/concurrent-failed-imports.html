@@ -1,0 +1,131 @@
+<!doctype html>
+<head>
+  <meta charset="utf-8">
+  <title>Concurrent failed module script loads</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/common/utils.js"></script>
+</head>
+
+<body>
+<script>
+  // Static <script type=module> variant of
+  // module/dynamic-import/concurrent-failed-imports.any.js, providing additional
+  // coverage for "Don't cache HTTP errors in the module map"
+  // (https://github.com/whatwg/html/pull/10327).
+  //
+  // These exercise the same concurrency guarantees of the module map's
+  // "list of callbacks" mechanism, but driven by inserted <script type=module>
+  // elements rather than dynamic import():
+  //  1. Concurrent module script loads of a failing module are joined into a
+  //     single fetch, and every joined load fails.
+  //  2. Each joined load is notified with the result of *its own* fetch, even if
+  //     a sibling's error handler synchronously inserts a new module script for
+  //     the same specifier (which, because failures are not cached, performs a
+  //     fresh fetch). A joined load must never observe the internal
+  //     placeholder/list value nor another fetch's result.
+
+  const testerUrl = (key, params = '') => `../module-fetch-tester.py?key=${key}${params}`;
+
+  async function getStat(key) {
+    const response = await fetch(testerUrl(key, '&action=stat'), { cache: 'no-cache' });
+    const stat = await response.text();
+    return stat.trim();
+  }
+
+  // Inserts a <script type=module> for `src` and resolves with "load" or "error"
+  // depending on which event fires.
+  function loadModuleScript(src) {
+    return new Promise(resolve => {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = src;
+      script.onload = () => resolve("load");
+      script.onerror = () => resolve("error");
+      document.body.appendChild(script);
+    });
+  }
+</script>
+
+<script type="module">
+  promise_test(async t => {
+    const key = token();
+
+    // module-fetch-tester.py with mode=always-fail responds with an HTTP 404 to
+    // every request, and counts how many requests reached the server.
+    const src = testerUrl(key, '&mode=always-fail');
+
+    // Insert several module scripts for the same specifier at once. They should
+    // be joined into a single fetch via the module map, and all must fail.
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => loadModuleScript(src)));
+    for (let i = 0; i < results.length; i++) {
+      assert_equals(results[i], "error",
+        `concurrent module script #${i + 1} of a failing module must fire error`);
+    }
+
+    // Despite five concurrent loads, the module must only have been fetched once.
+    assert_equals(await getStat(key), "1",
+      "concurrent module script loads of a failing module should be joined into a single fetch");
+  }, "Multiple concurrent <script type=module> loads of a failing module should all fail but only fetch once");
+</script>
+
+<script type="module">
+  promise_test(async t => {
+    const key = token();
+
+    // module-fetch-tester.py (default mode=fail-first) fails the first request
+    // for a given key and succeeds on every subsequent request, so script #3 can
+    // be inserted directly from script #1's error handler with no intervening
+    // configuration fetch. This reproduces the module map callback race
+    // discussed in whatwg/html#10327.
+    const url = testerUrl(key);
+
+    let script3Result = null;
+
+    // script #1 and script #2 point at the same specifier and are inserted
+    // together, so they are joined into a single fetch. That fetch is the first
+    // request for this key, so it fails:
+    //  - Both script #1 and script #2 must fire error.
+    //  - script #1's error handler synchronously inserts script #3 for the same
+    //    specifier. Because the failed fetch was not cached, script #3 performs
+    //    a fresh fetch, which (being the second request) succeeds and loads.
+    //  - script #2 must still fire error: it is tied to the first (failed) fetch
+    //    and must not observe the module map's list placeholder nor script #3's
+    //    successful result.
+    const script1 = document.createElement('script');
+    script1.type = 'module';
+    const script2 = document.createElement('script');
+    script2.type = 'module';
+
+    const script1Done = new Promise((resolve, reject) => {
+      script1.onload = () => reject(new Error("script #1 must not load; the first fetch failed"));
+      script1.onerror = () => {
+        // Insert script #3 for the same specifier directly. This must trigger a
+        // fresh fetch, since the failed fetch was not cached.
+        const script3 = document.createElement('script');
+        script3.type = 'module';
+        script3.src = url;
+        script3.onload = () => { script3Result = "load"; resolve(); };
+        script3.onerror = () => { script3Result = "error"; resolve(); };
+        document.body.appendChild(script3);
+      };
+    });
+
+    const script2Done = new Promise((resolve, reject) => {
+      script2.onload = () => reject(new Error("script #2 must not load; it is tied to the failed fetch"));
+      script2.onerror = () => resolve(); // expected
+    });
+
+    script1.src = url;
+    script2.src = url;
+    document.body.appendChild(script1);
+    document.body.appendChild(script2);
+
+    await Promise.all([script1Done, script2Done]);
+    assert_equals(script3Result, "load",
+      "script #3 should perform a fresh fetch and load, since the failed fetch was not cached");
+  }, "A joined <script type=module> load is notified with its own fetch result even if a " +
+     "sibling's error handler re-inserts a script for the same specifier");
+</script>
+</body>

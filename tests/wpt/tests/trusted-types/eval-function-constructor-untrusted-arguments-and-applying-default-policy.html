@@ -17,45 +17,65 @@
     createScript: s => renameVariableXtoY(s)
   });
 
-  // As in eval-function-constructor.html we consider two kind of untrusted
-  // arguments: plain string or TrustedScript with a forged toString().
-  const untrusted_argument_factory = {
-    "plain string": arg_value => arg_value,
-    "TrustedScript with forged toString()": arg_value => Object.assign(
-      policy.createScript(arg_value), { toString: () => ` ${arg_value} ` })
-  };
+  // A plain string is still untrusted, so it still triggers the default
+  // policy's variable-renaming behavior.
+  const args = ["X1", "X2", "X3 = 5", "return (X1+X2)*X3;"];
+  // Wrap the function arguments into TrustedTypes, except for the one at the
+  // specified index. That argument will cause isTrusted=false in
+  // EnsureCSPDoesNotBlockStringCompilation and so "Get Trusted Type
+  // compliant string" will be executed on the function text, which use Xn
+  // variables. Consequently, the default policy will modify the function text
+  // which will cause an EvalError to be thrown.
+  args.forEach((_, index) => {
+    test(t => {
+      let mixed_args = args.map((arg_value, arg_index) =>
+        arg_index == index ? arg_value : policy.createScript(arg_value));
+      assert_throws_js(EvalError, _ => new Function(...mixed_args));
+    }, `plain string at index ${index} (default policy modifying the function text).`);
+  });
 
-  for (const [untrusted_argument_name, untrusted_argument_builder] of
-       Object.entries(untrusted_argument_factory)) {
-    const args = ["X1", "X2", "X3 = 5", "return (X1+X2)*X3;"];
-    // Wrap the function arguments into TrustedTypes, except for the one at the
-    // specified index. That argument will cause isTrusted=false in
-    // EnsureCSPDoesNotBlockStringCompilation and so "Get Trusted Type
-    // compliant string" will be executed on the function text, which use Xn
-    // variables. Consequently, the default policy will modify the function text
-    // which will cause an EvalError to be thrown.
-    args.forEach((_, index) => {
-      test(t => {
-        let mixed_args = args.map((arg_value, arg_index) =>
-          arg_index == index ? untrusted_argument_builder(arg_value)
-                             : policy.createScript(arg_value));
-        assert_throws_js(EvalError, _ => new Function(...mixed_args));
-      }, `${untrusted_argument_name} at index ${index} (default policy modifying the function text).`);
-    });
+  // Do the same but apply the variable renaming before building the function,
+  // so that the default policy won't modify the function text anymore. In
+  // that case, the function is built without error.
+  const argsWithY = args.map(renameVariableXtoY);
+  argsWithY.forEach((_, index) => {
+    test(t => {
+      let mixed_args = argsWithY.map((arg_value, arg_index) =>
+        arg_index == index ? arg_value : policy.createScript(arg_value));
+      const f = new Function(...mixed_args);
+      assert_equals(f(1,2,3), 9);
+      assert_equals(f(1,2), 15);
+    }, `plain string at index ${index} (default policy leaving the function text unchanged).`);
+  });
 
-    // Do the same but apply the variable renaming before building the function,
-    // so that the default policy won't modify the function text anymore. In
-    // that case, the function is built without error.
-    const argsWithY = args.map(renameVariableXtoY);
-    argsWithY.forEach((_, index) => {
-      test(t => {
-        let mixed_args = argsWithY.map((arg_value, arg_index) =>
-          arg_index == index ? untrusted_argument_builder(arg_value)
-                             : policy.createScript(arg_value));
-        const f = new Function(...mixed_args);
-        assert_equals(f(1,2,3), 9);
-        assert_equals(f(1,2), 15);
-      }, `${untrusted_argument_name} at index ${index} (default policy leaving the function text unchanged).`);
-    });
-  }
+  // A TrustedScript with a forged toString() is still genuinely trusted:
+  // trust is derived from HostGetCodeForEval reading the real internal data,
+  // not from ToString(). So isTrusted is always true here, the default
+  // policy is never invoked, and the function is always built from the
+  // real trusted text. The forged toString() values below are chosen to
+  // produce a different, observable result (a ReferenceError or a wrong
+  // number) if they were ever mistakenly used instead of the real trusted
+  // data, so a regression to the old toString()-based behavior would make
+  // this test fail. A call counter also verifies toString() is never invoked
+  // at all
+  const trustedArgs = ["a", "b", "c = 5", "return (a+b)*c;"];
+  const forgedArgs = ["a2", "b2", "c = 50", "return (a+b)*c+1;"];
+  trustedArgs.forEach((_, index) => {
+    test(t => {
+      let toStringCallCount = 0;
+      let mixed_args = trustedArgs.map((arg_value, arg_index) => {
+        let obj = policy.createScript(arg_value);
+        return arg_index == index ?
+          Object.assign(obj, { toString: () => {
+            toStringCallCount++;
+            return forgedArgs[arg_index];
+          }}) : obj;
+      });
+      const f = new Function(...mixed_args);
+      assert_equals(toStringCallCount, 0,
+        "toString() should never be called on a TrustedScript argument");
+      assert_equals(f(1,2,3), 9);
+      assert_equals(f(1,2), 15);
+    }, `TrustedScript with forged toString() at index ${index} (default policy not invoked).`);
+  });
 </script>

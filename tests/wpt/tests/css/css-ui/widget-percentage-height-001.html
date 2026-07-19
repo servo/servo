@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: widget percentage height in auto-height container</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<meta name="assert" content="Form controls with percentage height in an auto-height container should use their intrinsic size, since the unresolvable percentage behaves as auto.">
+<link rel="match" href="widget-percentage-height-001-ref.html">
+<style>
+input {
+    height: 100%;
+}
+</style>
+<p>There should be a checkbox and a radio button below, both at their normal intrinsic size.</p>
+<div><input type="checkbox"></div>
+<div><input type="radio"></div>

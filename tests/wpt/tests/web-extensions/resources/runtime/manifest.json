@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "BrowserRuntimeTestExtension",
     "description": "browser.runtime test extension",
-    "version": "1.0",
+    "version": "1.01",
     "background": {
         "scripts": [ "background.js" ],
         "service_worker": "background.js",

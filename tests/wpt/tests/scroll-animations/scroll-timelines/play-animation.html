@@ -225,9 +225,6 @@ promise_test(async t => {
   // Set pending playback rate to the opposite direction
   animation.updatePlaybackRate(-1);
   assert_true(animation.pending);
-  // Note: Updating the playback rate calls play without rewind. For a
-  // scroll-timeline, this will immediately apply the playback rate.
-  // TODO: Determine if we should defer applying the new playback rate.
   assert_equals(animation.playbackRate, 1);
 
   // When we play, we should align to the target end, NOT to zero (which

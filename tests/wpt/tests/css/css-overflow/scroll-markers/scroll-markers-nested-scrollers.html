@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: scroll tracking for ::scroll-marker in nested scrollers</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-container-scroll">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  #a,
+  #b,
+  #b0 {
+    overflow: scroll;
+    height: 100px;
+    width: 100px;
+  }
+
+  #a,
+  #b {
+    scroll-marker-group: after;
+  }
+
+  #a::scroll-marker-group,
+  #b::scroll-marker-group {
+    border: 1px solid black;
+    display: flex;
+    height: 20px;
+  }
+
+  .marker-source {
+    height: 100px;
+    width: 100px;
+  }
+
+  #b::scroll-marker,
+  #b0::scroll-marker,
+  #c::scroll-marker,
+  #c0::scroll-marker {
+    content: '';
+    background-color: red;
+    display: inline-flex;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  #b::scroll-marker:target-current,
+  #b0::scroll-marker:target-current,
+  #c::scroll-marker:target-current,
+  #c0::scroll-marker:target-current {
+    background-color: green;
+  }
+</style>
+<div id="a">
+  <div id="b0" class="marker-source"></div>
+  <div id="b" class="marker-source">
+    <div id="c0" class="marker-source"></div>
+    <div id="c" class="marker-source"></div>
+  </div>
+</div>
+<script>
+  const GREEN = "rgb(0, 128, 0)";
+  const RED = "rgb(255, 0, 0)";
+
+  function assertPseudoElementProperty(originatingElement, pseudoType, backgroundColor) {
+    const pseudoStyle = getComputedStyle(originatingElement, pseudoType);
+    const pseudoBackgroundColor = pseudoStyle.getPropertyValue('background-color');
+    assert_equals(pseudoBackgroundColor, backgroundColor, pseudoType +
+      " background-color for #" + originatingElement.id + " should be " + backgroundColor.toString() +
+      " but was " + pseudoBackgroundColor.toString());
+  }
+
+  promise_test(async (t) => {
+    await waitForAnimationFrames(2);
+    assertPseudoElementProperty(b0, "::scroll-marker", GREEN);
+    assertPseudoElementProperty(b, "::scroll-marker", RED);
+    assertPseudoElementProperty(c0, "::scroll-marker", GREEN);
+    assertPseudoElementProperty(c, "::scroll-marker", RED);
+
+    c.scrollIntoView();
+    await waitForAnimationFrames(2);
+
+    assertPseudoElementProperty(b0, "::scroll-marker", RED);
+    assertPseudoElementProperty(b, "::scroll-marker", GREEN);
+    assertPseudoElementProperty(c0, "::scroll-marker", RED);
+    assertPseudoElementProperty(c, "::scroll-marker", GREEN);
+  }, "scrollIntoView in nested scrollers selects correct ::scroll-marker in both ancestor groups");
+</script>

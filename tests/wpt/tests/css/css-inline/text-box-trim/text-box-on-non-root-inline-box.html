@@ -2,12 +2,13 @@
 <title>text-box on non-root inline box does not affect layout bounds only the box's size.</title>
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<meta charset="utf-8">
 <style>
-@import "support/MetricsTestFont.css";
-
 .test {
-  font: 20px/1 MetricsTestFont;
+  font: 100px/1 BaselineDiagnosticAlphabeticZero;
   position: relative;
+  white-space: nowrap;
 }
 .aqua {
   background-color: aqua;
@@ -18,12 +19,12 @@
 <script src="/resources/check-layout-th.js"></script>
 <body>
 <div class="test">
-  <span class=aqua style="text-box: ex alphabetic;" data-offset-y=12 data-expected-height=4>ApÉx</span>
-  <span class=aqua style="text-box: trim-start cap alphabetic;" data-offset-y=4 data-expected-height=16>ApÉx</span>
-  <span class=aqua style="text-box: trim-end text alphabetic;" data-offset-y=0 data-expected-height=16>ApÉx</span>
+  <span class=aqua style="text-box: ex alphabetic;" data-offset-y=55 data-expected-height=25>█BxIF</span>
+  <span class=aqua style="text-box: trim-start cap alphabetic;" data-offset-y=25 data-expected-height=75>█BxIF</span>
+  <span class=aqua style="text-box: trim-end text alphabetic;" data-offset-y=0 data-expected-height=80>█BxIF</span>
 </div>
-<div class="test aqua" data-expected-height=30>
-  <span style="font-size: 30px; text-box: ex alphabetic;">ApÉx</span>
+<div class="test aqua" data-expected-height=150>
+  <span style="font-size: 150px; text-box: ex alphabetic;">█BxIF</span>
 </div>
 <script>
   document.fonts.ready.then(() => checkLayout('.aqua'));

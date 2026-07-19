@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8" />
+<body></body>
+<script>
+  const params = new URL(location.href).searchParams;
+  const id = params.get("id");
+  const depth = parseInt(params.get("depth") || "0", 10);
+  const nextSrc =
+    depth > 0
+      ? "/digital-credentials/support/dc-nest.html?id=" +
+        encodeURIComponent(id) +
+        "&depth=" +
+        (depth - 1)
+      : "/digital-credentials/support/dc-report-get.html?id=" +
+        encodeURIComponent(id);
+  const frame = document.createElement("iframe");
+  frame.allow = "digital-credentials-get";
+  frame.src = nextSrc;
+  document.body.appendChild(frame);
+</script>

@@ -101,7 +101,7 @@
         await loadPromise(iframe);
 
         assert_equals(getParamValue(iframe, 'n1'), callRequestSubmit ? 'v2' : 'v1');
-        if (callSubmit || !passSubmitter) {
+        if ((callSubmit && preventDefault) || !passSubmitter) {
           assert_equals(getParamValue(iframe, 'n2'), null);
         } else {
           assert_equals(getParamValue(iframe, 'n2'), 'v3')

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Test HRTF panning at negative elevation</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/audit.js"></script>
+  </head>
+
+  <body>
+    <script>
+      // Many HRTF databases are sampled at 44100 Hz. Use that rate so an
+      // implementation does not have to resample its impulse responses, which
+      // keeps the two renders below comparable.
+      const sampleRate = 44100;
+      const renderFrames = 1024;
+
+      const audit = Audit.createTaskRunner();
+
+      // Render an impulse through an HRTF panner positioned at |x, y, z|.
+      // The rendered stereo buffer is essentially the pair of head-related
+      // impulse responses selected for that direction, so it is sensitive to
+      // which elevation of the database is used.
+      function renderImpulseAtPosition(x, y, z) {
+        const context = new OfflineAudioContext(2, renderFrames, sampleRate);
+
+        const impulse = new AudioBuffer(
+            {numberOfChannels: 1, length: renderFrames, sampleRate});
+        impulse.getChannelData(0)[0] = 1;
+
+        const source = new AudioBufferSourceNode(context, {buffer: impulse});
+
+        const panner = new PannerNode(context, {
+          panningModel: 'HRTF',
+          // Neutralize the distance gain so only the HRTF kernels can affect
+          // the output.
+          rolloffFactor: 0,
+          positionX: x,
+          positionY: y,
+          positionZ: z,
+        });
+
+        source.connect(panner).connect(context.destination);
+        source.start();
+
+        return context.startRendering();
+      }
+
+      audit.define(
+          {
+            label: 'negative-elevation',
+            description:
+                'A below-horizon source must not collapse onto the overhead response'
+          },
+          (task, should) => {
+            // Both positions are the same distance (sqrt(2)) from the listener
+            // and resolve to azimuth 0, so azimuth and distance gain are
+            // identical. They differ only in elevation: +90 (straight overhead)
+            // versus -45 (below the horizon, in front). A correct HRTF panner
+            // must select a different elevation response for each direction, so
+            // the two renders must not be identical.
+            Promise
+                .all([
+                  renderImpulseAtPosition(0, Math.SQRT2, 0),   // elevation +90
+                  renderImpulseAtPosition(0, -1, -1),          // elevation -45
+                ])
+                .then(([overhead, below]) => {
+                  let maxDifference = 0;
+                  let overheadPeak = 0;
+                  for (let channel = 0; channel < 2; ++channel) {
+                    const a = overhead.getChannelData(channel);
+                    const b = below.getChannelData(channel);
+                    for (let i = 0; i < renderFrames; ++i) {
+                      maxDifference =
+                          Math.max(maxDifference, Math.abs(a[i] - b[i]));
+                      overheadPeak = Math.max(overheadPeak, Math.abs(a[i]));
+                    }
+                  }
+
+                  // Sanity check: the overhead response is not silence, so a
+                  // difference is meaningful.
+                  should(overheadPeak, 'Peak of the overhead (+90) response')
+                      .beGreaterThan(0);
+
+                  // The two directions must produce audibly different responses.
+                  // Require the difference to be a non-trivial fraction of the
+                  // overhead peak rather than merely non-zero, so floating-point
+                  // noise cannot satisfy the test.
+                  should(
+                      maxDifference / overheadPeak,
+                      'Relative max difference between +90 and -45 responses')
+                      .beGreaterThanOrEqualTo(0.01);
+                })
+                .then(() => task.done());
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

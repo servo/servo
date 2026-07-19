@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow applies visually to bidi and selectable.</title>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#text-overflow">
+<link rel="match" href="text-overflow-with-selection-ref.html">
+<meta name="fuzzy" content="maxDifference=0-128; totalPixels=0-59" />
+<style>
+div {
+  font-family: monospace;
+  width: 10ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+</style>
+
+<p>The test passes if the following text is visible and fully selected below: …56 FEDCBA</p>
+<div id=container dir=rtl><bdo dir=rtl>ABCDEF</bdo> 123456</div>
+<script>
+  let range = new Range();
+  range.setStart(container, 0);
+  range.setEnd(container, 2);
+  document.getSelection().addRange(range);
+</script>

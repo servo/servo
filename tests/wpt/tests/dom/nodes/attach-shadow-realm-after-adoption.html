@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>attachShadow() creates the shadow root in the host's node document realm</title>
+<link rel=help href="https://dom.spec.whatwg.org/#concept-attach-a-shadow-root">
+<link rel=help href="https://github.com/whatwg/dom/issues/977">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<iframe></iframe>
+<script>
+// See https://github.com/whatwg/dom/issues/977. attachShadow() creates the
+// shadow root in the realm of the host's node document, not in whatever realm
+// happens to be running the algorithm (e.g., the host's relevant realm, or the
+// realm that owns the attachShadow() method that was invoked).
+
+const inner = document.querySelector("iframe").contentWindow;
+
+// A custom element host defined only in the inner realm.
+inner.customElements.define("x-host", class extends inner.HTMLElement {});
+
+// Each host is created in the inner realm and adopted into the top-level
+// document, so its relevant realm (inner) differs from its node document
+// (top-level). Both a built-in and a custom-element host are covered because
+// engines have been observed to treat the two cases differently.
+for (const localName of ["div", "x-host"]) {
+  const label = localName === "div" ? "built-in host" : "custom element host";
+
+  test(() => {
+    const host = inner.document.createElement(localName);
+    document.body.appendChild(host); // adopts into the top-level document
+    assert_equals(host.ownerDocument, document,
+                  "host's node document is the top-level document");
+    assert_true(host instanceof inner.HTMLElement,
+                "host's relevant realm remains the inner realm after adoption");
+  }, `Precondition (${label}): node document and relevant realm differ after adoption`);
+
+  test(() => {
+    const host = inner.document.createElement(localName);
+    document.body.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    assert_true(shadow instanceof ShadowRoot,
+                "shadow root is from the node document's (top-level) realm");
+  }, `attachShadow() on an adopted ${label}: shadow root uses the node document realm`);
+}
+
+// Isolate the running realm: a host that lives entirely in the top-level
+// document, but with attachShadow() invoked via the inner realm's method. The
+// shadow root must still be created in the node document (top-level) realm.
+test(() => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const shadow = inner.Element.prototype.attachShadow.call(host, { mode: "open" });
+  assert_true(shadow instanceof ShadowRoot,
+              "shadow root is from the node document's (top-level) realm");
+}, "attachShadow() invoked via another realm's method uses the node document realm");
+</script>

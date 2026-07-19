@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Digital Credentials: a top-level sandboxed page with allow-same-origin is not
+  treated as opaque
+</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    // Served with `Content-Security-Policy: sandbox allow-scripts allow-same-origin`
+    // (see the .headers file): the page is sandboxed for hardening but keeps its real
+    // origin, so it is NOT opaque and the opaque-origin check does not fire. The call
+    // then fails later for an unrelated reason (no requests) — which is what proves it
+    // was not rejected as opaque.
+    promise_test((t) => {
+      return promise_rejects_js(
+        t,
+        TypeError,
+        navigator.credentials.get({ digital: { requests: [] } }),
+      );
+    }, "get() from a top-level sandboxed page with allow-same-origin is not rejected as opaque");
+  </script>
+</body>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scroll offset is clamped when a transform animation shrinks scrollable overflow</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-1/#transform-rendering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #clip { position: relative; width: 240px; height: 240px; overflow: hidden; }
+  #real { width: 240px; height: 240px; }
+  #phantom { position: absolute; top: 0; left: 0; width: 240px; height: 240px;
+             transform: translateY(240px); will-change: transform; }
+</style>
+<div id="clip"><div id="real"></div><div id="phantom"></div></div>
+<script>
+const H = 240;
+const clip = document.getElementById('clip');
+const phantom = document.getElementById('phantom');
+
+promise_test(async function(t) {
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    // The transform extends scrollable overflow to 2H; scroll to that (transform-extended) max.
+    assert_equals(clip.scrollHeight, 2 * H, 'precondition: transform extends scrollable overflow to 2H');
+    clip.scrollTop = clip.scrollHeight;
+    assert_greater_than(clip.scrollTop, 0, 'precondition: scrolled into the transform-extended region');
+
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    const transitionEnd = new Promise(resolve => {
+        phantom.addEventListener('transitionend', resolve, { once: true });
+    });
+    const timeout = new Promise((resolve, reject) => {
+        t.step_timeout(() => reject(new Error('transitionend did not fire within the timeout')), 4000);
+    });
+
+    phantom.style.transition = 'transform 300ms linear';
+    phantom.style.transform = 'translateY(0px)';
+
+    await Promise.race([transitionEnd, timeout]);
+
+    // The transform is identity again, so the real overflow is H. The scroll offset, which was only valid
+    // because of the transform, must be clamped back to the valid range. Assert the settled state.
+    await new Promise(resolve => t.step_timeout(resolve, 150));
+    assert_equals(clip.scrollHeight, H, 'scrollable overflow recomputed after the transform shrinks');
+    assert_equals(clip.scrollTop, 0, 'scroll offset clamped after scrollable overflow shrinks');
+}, 'Scroll offset is clamped when a transform animation shrinks scrollable overflow');
+</script>

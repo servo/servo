@@ -150,6 +150,44 @@
   <button id="button4" data-next>button 4</button>
 </template>
 
+<template data-description="Focus navigation starting point should be maintained when ancestor of slotted focused element is removed.">
+  <div data-shadow>
+    <template><slot name="a"
+      ></slot><slot name="b"
+      ></slot><slot name="c"
+      ></slot><slot name="d"
+      ></slot><slot name="e"
+      ></slot></template>
+    <button slot="a">button 1</button>
+    <div slot="c" data-remove>
+      <button data-focus>focus</button>
+    </div>
+    <button slot="e">button 5</button>
+    <button data-prev slot="b">button 2</button>
+    <button data-next slot="d">button 4</button>
+  </div>
+</template>
+
+<template data-description="Focus navigation starting point should be maintained when slotted shadow host is removed.">
+  <div data-shadow>
+    <template><slot name="a"
+      ></slot><slot name="b"
+      ></slot><slot name="c"
+      ></slot><slot name="d"
+      ></slot><slot name="e"
+      ></slot></template>
+    <button slot="a">button 1</button>
+    <div slot="c" data-remove data-shadow>
+      <template>
+        <button data-focus>focus</button>
+      </template>
+    </div>
+    <button slot="e">button 5</button>
+    <button data-prev slot="b">button 2</button>
+    <button data-next slot="d">button 4</button>
+  </div>
+</template>
+
 <script>
 "use strict";
 

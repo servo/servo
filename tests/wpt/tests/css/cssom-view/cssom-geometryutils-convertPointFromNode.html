@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>CSSOM View - convertPointFromNode()</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #target {
+    position: absolute;
+    left: 20px;
+    top: 25px;
+    width: 260px;
+    height: 180px;
+    margin: 7px 11px 13px 17px;
+    border: solid;
+    border-width: 3px 5px 7px 9px;
+    padding: 2px 4px 6px 8px;
+  }
+
+  #source {
+    position: absolute;
+    left: 70px;
+    top: 55px;
+    width: 90px;
+    height: 45px;
+    margin: 10px 14px 18px 22px;
+    border: solid;
+    border-width: 1px 3px 5px 7px;
+    padding: 2px 4px 6px 8px;
+    transform: translate(12px, 9px) rotate(12deg) scale(1.15, 0.85);
+    transform-origin: 15px 20px;
+  }
+</style>
+<div id="target">
+  <div id="source"></div>
+</div>
+<script>
+const source = document.getElementById("source");
+const target = document.getElementById("target");
+const boxes = ["margin", "border", "padding", "content"];
+
+for (const fromBox of boxes) {
+  for (const toBox of boxes) {
+    test(() => {
+      const actual = target.convertPointFromNode(
+        {x: 0, y: 0},
+        source,
+        {fromBox, toBox}
+      );
+      const expected = expected_point_in_target_box(source, target, fromBox,
+                                                    toBox, "p1");
+      assert_point_approx_equals(actual, expected,
+                                 `${fromBox} origin to ${toBox} origin`);
+    }, `convertPointFromNode() maps ${fromBox} origin to ${toBox} coordinates`);
+  }
+}
+
+test(() => {
+  const point = {x: 10, y: 20};
+  const targetPoint = target.convertPointFromNode(point, source);
+  const roundTripped = source.convertPointFromNode(targetPoint, target);
+  assert_point_approx_equals(roundTripped, point,
+                             "point after round-trip conversion");
+}, "convertPointFromNode() round-trips between two elements");
+
+test(() => {
+  const actual = document.convertPointFromNode({x: 0, y: 0}, source);
+  const expected = source.getBoxQuads()[0].p1;
+  assert_point_approx_equals(actual, expected,
+                             "source border origin in document coordinates");
+}, "Document.convertPointFromNode() converts to viewport coordinates");
+</script>

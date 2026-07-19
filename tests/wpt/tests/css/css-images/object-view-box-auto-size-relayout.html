@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Changing object-view-box on an auto-sized element triggers relayout</title>
+<link rel="match" href="object-view-box-auto-size-relayout-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<style>
+  canvas {
+    display: block;
+    width: 100px;
+    height: auto;
+  }
+</style>
+<body>
+<canvas id="canvas" width="100" height="100"></canvas>
+<script>
+  var ctx = document.getElementById("canvas").getContext("2d");
+  ctx.fillStyle = "red";
+  ctx.fillRect(0, 0, 100, 100);
+
+  function afterFrame(callback)
+  {
+    requestAnimationFrame(() => requestAnimationFrame(callback));
+  }
+
+  // Let the canvas lay out and paint at its natural 100x100 (1:1) size first,
+  // then crop away the bottom half. Since height is auto and there's no
+  // explicit aspect-ratio, the used height is derived from the cropped
+  // (2:1) intrinsic ratio, so this must trigger a relayout, not just a repaint.
+  window.onload = () => {
+    afterFrame(() => {
+      canvas.style.objectViewBox = "inset(0px 0px 50px 0px)";
+      afterFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
+  };
+</script>
+</body>
+</html>

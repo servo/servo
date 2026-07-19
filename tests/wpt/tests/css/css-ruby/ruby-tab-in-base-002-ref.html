@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Ruby Reference: multiple tabulations across ruby nesting levels</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div.test {
+  font: 25px/1 Ahem;
+  width: max-content;
+}
+span.tab1 {
+  /* First tab starts at 50px  -> 100px stop -> 50px. */
+  padding-left: 50px;
+}
+span.tab2 {
+  /* Second tab starts at 125px -> 200px stop -> 75px. */
+  padding-left: 75px;
+}
+</style>
+<body>
+<div class="test">Z<ruby>M<ruby><span class="tab1"></span>N<rt>p</rt></ruby><span class="tab2"></span>O<rt>q</rt></ruby></div>
+</body>

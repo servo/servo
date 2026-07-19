@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row and column rules with dense packing in a grid-lanes row layout</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-005-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 46px);
+    grid-lanes-pack: dense;
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    width: 40px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.alt { background: #8a6df0; }
+  .lanes > div.hi { background: #1f9d6b; }
+  .lanes > div.span2 { grid-row: 1 / span 2; }
+  .lanes > div.wide { width: 110px; }
+  .lanes > div.fill { width: 60px; }
+</style>
+<div class="lanes">
+  <div class="wide">1</div>
+  <div>2</div>
+  <div>3</div>
+  <div class="span2 alt">4 (span 2)</div>
+  <div class="fill">5</div>
+  <div class="hi">6</div>
+  <div>7</div>
+</div>

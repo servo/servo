@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-overview">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6356#issuecomment-862800005">
+<meta name="assert" content="Tests the min-content contribution is re-resolved during a 2nd pass when the grid items use explicit row placement.">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="display: grid; width: 0; grid-template: auto / auto auto;">
+  <div style="grid-row: 1 / 2; background: green;">
+    <canvas width="10" height="10" style="height: 100%;">
+  </div>
+  <div style="grid-row: 1 / 2;">
+    <div style="height: 100px;"></div>
+  </div>
+</div>

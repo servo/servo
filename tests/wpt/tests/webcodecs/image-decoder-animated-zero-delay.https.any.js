@@ -38,6 +38,7 @@ promise_test(async t => {
   let buffer = await response.arrayBuffer();
   let decoder = new ImageDecoder({data: buffer, type: 'image/gif'});
 
+  await decoder.tracks.ready;
   await decoder.completed;
 
   let track = decoder.tracks.selectedTrack;

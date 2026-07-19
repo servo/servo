@@ -1,0 +1,29 @@
+// https://github.com/whatwg/html/pull/12011
+
+[Exposed=Window]
+interface HTMLMenuBarElement : HTMLElement {
+  [HTMLConstructor] constructor();
+};
+
+[Exposed=Window]
+interface HTMLMenuListElement : HTMLElement {
+  [HTMLConstructor] constructor();
+};
+
+[Exposed=Window]
+interface HTMLSubMenuElement : HTMLElement {
+  [HTMLConstructor] constructor();
+};
+
+[Exposed=Window]
+interface HTMLMenuItemElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions, Reflect] attribute boolean disabled;
+  [CEReactions] attribute boolean checked;
+  [CEReactions, Reflect] attribute boolean defaultChecked;
+};
+
+partial interface HTMLFieldSetElement {
+  [CEReactions, Reflect] attribute DOMString? checkable;
+};

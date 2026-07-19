@@ -150,6 +150,67 @@
 |   <body>
 
 #data
+<svg><title><![CDATA[x]]>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       <svg title>
+|         "x"
+
+#data
+<svg><foreignobject><![CDATA[x]]>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       <svg foreignObject>
+|         "x"
+
+#data
+<svg><foreignobject><p><![CDATA[x]]>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       <svg foreignObject>
+|         <p>
+|           <!-- [CDATA[x]] -->
+
+#data
+<math><![CDATA[x]]>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <math math>
+|       "x"
+
+#data
+<math><mtext><![CDATA[x]]>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <math math>
+|       <math mtext>
+|         "x"
+
+#data
+<math><mtext><i><![CDATA[x]]>
+#document
+| <html>
+|   <head>
+|   <body>
+|     <math math>
+|       <math mtext>
+|         <i>
+|           <!-- [CDATA[x]] -->
+
+#data
 <![CDATA[x]]>
 #errors
 (1,2): expected-dashes-or-doctype

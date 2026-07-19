@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Changing CSS filter does not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=72723">
+<style>
+.first { filter: hue-rotate(90deg); }
+.second { filter: blur(3px); }
+</style>
+<img id="test" class="first" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==">
+<script>
+  document.body.offsetTop;
+  document.getElementById("test").className = 'second';
+</script>

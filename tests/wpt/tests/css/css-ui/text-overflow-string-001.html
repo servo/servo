@@ -8,10 +8,13 @@
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
   div {
+    font-family: monospace;
     font-size: 10px;
     overflow: hidden;
     text-overflow: "123";
-    width: 150px;
+    /* 120px for four Ahem glyphs + 3ch for the ellipsis string "123" which is
+       monospace. */
+    width: calc(120px + 3.1ch);
   }
   span {
     font-family: Ahem;

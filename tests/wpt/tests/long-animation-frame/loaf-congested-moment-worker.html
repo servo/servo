@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: congested moments in a dedicated worker</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<h1>Long Animation Frame: worker congested moment</h1>
+<div id="log"></div>
+<script>
+// This test exercises the Long Animation Frame extension to Web Workers: a
+// worker whose event loop stays saturated past the congestion threshold emits
+// a "long-animation-frame" entry. It requires
+// the LongAnimationFrameWorker feature to be enabled, e.g. run with
+// --enable-blink-features=LongAnimationFrameWorker.
+
+promise_test(async (t) => {
+  const worker = new Worker(
+      "resources/loaf-congested-moment-worker.js");
+  t.add_cleanup(() => worker.terminate());
+
+  const message = new Promise((resolve) => {
+    worker.onmessage = (e) => resolve(e.data);
+  });
+
+  worker.postMessage("start");
+  const entry = await message;
+
+  assert_equals(entry.entryType, "long-animation-frame");
+  assert_greater_than_equal(entry.duration, 200,
+      "congested moment spans at least the threshold");
+
+  // The blocking onmessage handler should be attributed to the worker script.
+  const workerScripts = entry.scripts.filter(
+      (s) => s.sourceURL &&
+          s.sourceURL.includes("loaf-congested-moment-worker.js"));
+  assert_greater_than_equal(workerScripts.length, 1,
+      "a blocking script is attributed to the worker script");
+}, "A saturated worker event loop reports a congested-moment LoAF entry");
+</script>
+</body>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inserting text into a flexbox with absolute positioned children does not crash</title>
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=70793">
+<style>
+#el2 { display: flex; border: 1px solid red; }
+#el3 { position: absolute; border: 1px solid green; }
+</style>
+<body contenteditable="true">
+<div id="el2"><div id="el3">AA </div></div>
+</body>
+<script>
+  document.execCommand('selectall');
+  document.execCommand('inserttext', ''); // no text value — the crash triggers regardless
+</script>

@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8" />
+<body></body>
+<script>
+  // Creates a blob: child from this (sandboxed, opaque) context; the blob inherits the opaque origin.
+  const id = new URL(location.href).searchParams.get("id");
+  const inner = `<!doctype html><meta charset=utf-8><body><script>
+(async () => {
+  const report = { id: ${JSON.stringify("__ID__")}, origin: String(self.origin), secure: self.isSecureContext, result: "resolved" };
+  try {
+    if (!(navigator.credentials && navigator.credentials.get)) throw new TypeError("navigator.credentials.get is unavailable");
+    await navigator.credentials.get({ digital: { requests: [] } });
+  } catch (error) { report.result = error.name; }
+  (window.top || window.parent).postMessage(report, "*");
+})();
+<\/script>`.replace("__ID__", id);
+  const frame = document.createElement("iframe");
+  frame.allow = "digital-credentials-get";
+  frame.src = URL.createObjectURL(new Blob([inner], { type: "text/html" }));
+  document.body.appendChild(frame);
+</script>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: img becomes exposed by id when a name is added, invalidating a cached list</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<object id="foo"></object>
+<object id="foo"></object>
+<img id="foo">
+<script>
+test(function() {
+  let img = document.querySelector("img#foo");
+  let collection = document.foo;
+  assert_equals(collection.length, 2, "before adding a name");
+  assert_false([...collection].includes(img), "before adding a name does not contain img");
+
+  img.setAttribute("name", "x");
+
+  assert_equals(document.foo.length, 3, "after adding a name");
+  assert_in_array(img, [...document.foo], "after adding a name contains img");
+}, "An img with an id gets exposed by its id, invalidating an already-cached named item collection, once a name attribute is added.");
+</script>

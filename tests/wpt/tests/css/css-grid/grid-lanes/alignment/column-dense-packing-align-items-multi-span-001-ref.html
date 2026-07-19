@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 50px);
+      grid-template-rows: 70px 20px;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <item style="grid-column: 1; grid-row: 1; height: 70px; align-self: start; background: salmon;">1</item>
+  <item style="grid-column: 4; grid-row: 1; height: 20px; align-self: start; background: salmon;">2</item>
+  <item style="grid-column: 3 / span 2; grid-row: 1; height: 20px; margin-top: 20px; align-self: start; background: salmon;">3</item>
+  <item style="grid-column: 1 / span 4; grid-row: 2; height: 20px; background: salmon;">4</item>
+  <item style="grid-column: 2 / span 2; grid-row: 1; height: 10px; align-self: start; background: green;">5</item>
+</div>
+
+<div class="grid">
+  <item style="grid-column: 1; grid-row: 1; height: 70px; align-self: start; background: salmon;">1</item>
+  <item style="grid-column: 4; grid-row: 1; height: 20px; align-self: start; background: salmon;">2</item>
+  <item style="grid-column: 3 / span 2; grid-row: 1; height: 20px; margin-top: 50px; align-self: start; background: salmon;">3</item>
+  <item style="grid-column: 1 / span 4; grid-row: 2; height: 20px; background: salmon;">4</item>
+  <item style="grid-column: 2 / span 2; grid-row: 1; height: 10px; margin-top: 10px; align-self: start; background: green;">5</item>
+</div>
+
+</body>
+</html>

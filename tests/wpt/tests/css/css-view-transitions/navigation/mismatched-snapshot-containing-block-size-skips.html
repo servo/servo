@@ -9,6 +9,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/utils.js"></script>
+<script src="/web-animations/testcommon.js"></script>
 <script src="resources/common.js"></script>
 <style>
 @view-transition {
@@ -29,15 +30,15 @@ const uuid = token();
 const popup_old_size = 300;
 const popup_new_size = 200;
 
+const popup_old_url = `${location.href.split('?')[0]}?popup=old`;
+const popup_new_url = `${location.href.split('?')[0]}?popup=new`;
+
 // This test opens a popup to its own URL but using a param to execute different
 // script between the initial "harness" and popup. It then navigates the popup
 // to a new page to start a view transition. Popup script is below.
 
 if (is_harness_page) {
   // ========= Test Harness Script =============
-
-  const popup_old_url = `${location.href.split('?')[0]}?popup=old`;
-  const popup_new_url = `${location.href.split('?')[0]}?popup=new`;
 
   async function popupEventPromise(event_name) {
     return new Promise(resolve => {
@@ -60,24 +61,18 @@ if (is_harness_page) {
 
     let popup = null;
 
-    const load_event_in_popup = popupEventPromise('load');
+    // The popup will automatically navigate itself to the new page.
+    const pagereveal_in_popup = popupEventPromise('pagereveal');
     await test_driver.bless('Open a popup in a new window', () => {
         const features = `width=${popup_old_size},height=${popup_old_size}`;
         popup = window.open(popup_old_url, 'popup', features);
     });
-    await load_event_in_popup;
-
     t.add_cleanup(() => popup.close());
-
-    // Pagehide is fired after capturing the outgoing state.
-    popup.onpagehide = () => popup.resizeTo(popup_new_size, popup_new_size);
-
-    // Navigate the popup to the new page and wait for pagereveal.
-    const pagereveal_in_popup = popupEventPromise('pagereveal');
-    popup.location = popup_new_url;
     await pagereveal_in_popup;
 
     // Ensure the transition is skipped and `ready` rejected.
+    assert_not_equals(popup.viewTransition, null,
+        'pagereveal must provide a ViewTransition.');
     let did_finish = false;
     popup.viewTransition.finished.then(() => { did_finish = true; });
 
@@ -91,7 +86,14 @@ if (is_harness_page) {
   // ========= Popup Script =============
 
   if (is_old_page) {
-    addEventListener('load', () => window.opener.postMessage('load'));
+    // Pagehide is fired after capturing the outgoing state.
+    window.onpagehide = () => window.resizeTo(popup_new_size, popup_new_size);
+
+    // Wait for compositor ready, then navigate the popup to the new page.
+    addEventListener('load', async () => {
+      await waitForCompositorReady();
+      location = popup_new_url;
+    });
   } else  if (is_new_page) {
     function errorHandler(e) {
       window.opener.postMessage(`FAIL: ${e}`);

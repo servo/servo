@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 60px);
+    grid-lanes-pack: dense;
+    flow-tolerance: 0;
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.tall { height: 100px; }
+  .lanes > div.last-track { grid-column: 3; height: 40px; }
+  .lanes > div.full-span { grid-column: 1 / -1; height: 40px; }
+  .lanes > div.dense-spanner {
+    grid-column: span 2;
+    height: 20px;
+    background: #8a6df0;
+  }
+  .col-rule { position: absolute; width: 0; border-left: 4px solid blue; }
+</style>
+<div class="lanes">
+  <div class="tall">1</div>
+  <div class="last-track">2</div>
+  <div class="full-span">3 (span 3)</div>
+  <div class="dense-spanner">4 (dense span 2)</div>
+</div>
+<div class="col-rule" style="left: 63px; top: 0; height: 100px;"></div>
+<div class="col-rule" style="left: 133px; top: 0; height: 40px;"></div>
+<div class="col-rule" style="left: 133px; top: 80px; height: 20px;"></div>

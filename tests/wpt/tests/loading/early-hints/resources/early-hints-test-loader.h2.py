@@ -28,6 +28,10 @@ def handle_headers(frame, request, response):
             fetchpriority = preload["fetchpriority_attr"]
             if fetchpriority:
                 header += "; fetchpriority={}".format(fetchpriority)
+        if "integrity_attr" in preload:
+            integrity = preload["integrity_attr"]
+            if integrity:
+                header += "; integrity=\"{}\"".format(integrity)
         preload_headers.append(header.encode())
 
     preconnect_headers = []

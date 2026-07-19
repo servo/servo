@@ -29,6 +29,43 @@ class IceStateLogger extends StateLogger {
   }
 }
 
+// Asserts that |cand| looks like a host candidate gathered locally over
+// UDP, with fields populated from parsing the candidate-attribute string.
+function assertHostLocalUdp(cand) {
+  assert_not_equals(cand.candidate, '', 'local candidate string is non-empty');
+  assert_equals(cand.type, 'host', 'local type');
+  assert_not_equals(cand.foundation, null, 'local foundation');
+  assert_equals(cand.component, 'rtp', 'local component');
+  assert_not_equals(cand.priority, null, 'local priority');
+  assert_not_equals(cand.address, null, 'local address');
+  assert_equals(cand.protocol, 'udp', 'local protocol');
+  assert_not_equals(cand.port, null, 'local port');
+  assert_equals(cand.tcpType, null, 'local tcpType');
+  assert_equals(cand.relatedAddress, null, 'local relatedAddress');
+  assert_equals(cand.relatedPort, null, 'local relatedPort');
+}
+
+// Asserts that |cand| represents a peer-reflexive remote candidate whose
+// address has not been previously surfaced via addIceCandidate. Per
+// webrtc-pc, the candidate-attribute string is empty for prflx remote, and
+// the address/port stay null by default for any exposed remote candidate
+// whose address has not been learned via addIceCandidate. The other
+// parse-derived attributes (foundation, component, priority, protocol,
+// type, tcpType) reflect what the UA learned about the pair.
+function assertPrflxRemoteHiddenAddress(cand) {
+  assert_equals(cand.candidate, '', 'remote candidate string is empty');
+  assert_equals(cand.type, 'prflx', 'remote type');
+  assert_equals(cand.address, null, 'remote address hidden');
+  assert_not_equals(cand.port, null, 'remote port not hidden');
+  assert_not_equals(cand.foundation, null, 'remote foundation');
+  assert_equals(cand.component, 'rtp', 'remote component');
+  assert_not_equals(cand.priority, null, 'remote priority');
+  assert_equals(cand.protocol, 'udp', 'remote protocol');
+  assert_equals(cand.tcpType, null, 'remote tcpType');
+  assert_equals(cand.relatedAddress, null, 'remote relatedAddress');
+  assert_not_equals(cand.relatedPort, null, 'remote relatedPort');
+}
+
 if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
@@ -46,6 +83,33 @@ promise_test(async t => {
   assert_array_equals(pc1IceStates.events, ['new', 'checking', 'connected']);
   assert_array_equals(pc2IceStates.events, ['new', 'checking', 'connected']);
 }, 'Two way ICE exchange works');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.createDataChannel('datachannel');
+  pc1.onicecandidate = e => {
+    pc2.addIceCandidate(e.candidate);
+  }
+
+  // Candidates from |pc1| are not delivered to |pc2|, either via
+  // addIceCandidate or setRemoteDescription. |pc2| will use peer-reflexive
+  // candidates.
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  const noCandidatesAnswer =
+    pc2.localDescription.sdp.replace(/^a=candidate:/mg, "a=unknownattr:");
+  await pc1.setRemoteDescription({type: "answer", sdp: noCandidatesAnswer});
+
+  await Promise.all([waitForIceStateChange(pc1, ['connected', 'completed']),
+                     waitForIceStateChange(pc2, ['connected', 'completed'])]);
+  const candidate_pair = pc1.sctp.transport.iceTransport.getSelectedCandidatePair();
+  assertHostLocalUdp(candidate_pair.local);
+  assertPrflxRemoteHiddenAddress(candidate_pair.remote);
+}, 'Selected candidate pair exposes local host fields and hides remote prflx fields');
 }
 
 if (interop2026) {

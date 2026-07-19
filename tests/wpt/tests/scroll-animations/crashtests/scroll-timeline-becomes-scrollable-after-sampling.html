@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>This test passes if it does not crash when a scroll-driven animation's
+timeline becomes scrollable after it was sampled as inactive this frame</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2053281">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scrolltimeline-interface">
+<script src="/web-animations/testcommon.js"></script>
+<div style="height: 80vh"></div>
+<script>
+async function run() {
+  document.body.animate(
+    [{ transform: "rotate(45deg)" }, { transform: "scale3d(1, 2, 0.5)" }],
+    { duration: 100000 });
+
+  document.body.animate(
+    { transform: ["scale(1)", "perspective(500px) rotateX(45deg)"] },
+    { timeline: new ScrollTimeline({}) });
+
+  await waitForAnimationFrames(5);
+  document.documentElement.className = "";
+}
+document.addEventListener("DOMContentLoaded", run);
+</script>

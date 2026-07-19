@@ -1,0 +1,55 @@
+<!doctype html>
+<title>ResizeObserver test: observe img</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  const img = new Image();
+  img.style.width = "15px";
+  img.style.height = "15px";
+  img.src = "resources/image.png";
+
+  return img.decode().then(() => {
+    return new Promise(resolve => {
+      requestAnimationFrame(() => {
+        document.body.appendChild(img);
+        resolve();
+      });
+    });
+  }).then(() => {
+    let helper = new ResizeTestHelper("observe img",[
+      {
+        setup: observer => {
+          observer.observe(img);
+        },
+        notify: entries => {
+          return true;
+        }
+      },
+      {
+        setup: observer => {
+          img.style.width = "15.5px";
+        },
+        notify: entries => {
+          assert_equals(entries.length, 1);
+          assert_equals(entries[0].contentRect.width, 15.5);
+        }
+      }
+    ]);
+    return helper.start(() => img.remove());
+  }, () => {
+    // dummy test for dumping the error message.
+    test(_ => {
+      assert_unreached("decode image failed");
+    }, "observe img");
+  });
+}
+
+(async () => await test())();
+</script>

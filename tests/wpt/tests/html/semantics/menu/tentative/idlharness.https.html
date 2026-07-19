@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTML menu elements IDL tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<h1>HTML menu elements IDL tests</h1>
+<div id=log></div>
+
+<script>
+"use strict";
+
+idl_test(
+  ['html-menu-elements.tentative'],
+  ['html', 'dom'],
+  async idlArray => {
+    idlArray.add_objects({
+      HTMLMenuBarElement: ['document.createElement("menubar")'],
+      HTMLMenuItemElement: ['document.createElement("menuitem")'],
+      HTMLMenuListElement: ['document.createElement("menulist")'],
+      HTMLSubMenuElement: ['document.createElement("submenu")'],
+    });
+  }
+);
+
+</script>

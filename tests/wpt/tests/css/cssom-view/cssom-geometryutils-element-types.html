@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils on HTML, SVG and MathML elements</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#svg-layout-box">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+  }
+
+  #html-box {
+    position: absolute;
+    left: 40px;
+    top: 35px;
+    width: 90px;
+    height: 50px;
+    border: 5px solid black;
+    padding: 8px;
+    transform: rotate(17deg) scale(1.1, 0.8);
+    transform-origin: 12px 18px;
+    background: gold;
+  }
+
+  #svg-root {
+    position: absolute;
+    left: 220px;
+    top: 35px;
+    width: 260px;
+    height: 170px;
+    overflow: visible;
+    transform: rotate(-11deg);
+    transform-origin: 30px 40px;
+    border: 3px solid gray;
+  }
+
+  #svg-rect {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(18deg);
+  }
+
+  #math-wrap {
+    position: absolute;
+    left: 60px;
+    top: 280px;
+    transform: rotate(12deg) scale(1.2);
+    transform-origin: left top;
+  }
+
+  #math-root {
+    font-size: 32px;
+    border: 2px solid purple;
+    padding: 6px;
+  }
+
+  #pseudo-host {
+    position: absolute;
+    left: 360px;
+    top: 260px;
+    padding: 12px 24px;
+    transform: rotate(-8deg);
+  }
+
+  #pseudo-host::before {
+    content: "before";
+    display: inline-block;
+    width: 48px;
+    height: 18px;
+    margin-right: 8px;
+    background: deepskyblue;
+  }
+
+  #pseudo-host::after {
+    content: "after";
+    position: absolute;
+    right: -18px;
+    top: -12px;
+    padding: 2px 6px;
+    background: red;
+  }
+</style>
+<div id="html-box"></div>
+<svg id="svg-root" viewBox="0 0 260 170">
+  <g id="svg-group" transform="translate(25 20) rotate(10)">
+    <rect id="svg-rect" x="10" y="15" width="90" height="45"
+          fill="lime"></rect>
+    <circle id="svg-circle" cx="160" cy="65" r="30" fill="tomato"></circle>
+    <text id="svg-text" x="15" y="135" font-size="24">svg text</text>
+  </g>
+</svg>
+<div id="math-wrap">
+  <math id="math-root" xmlns="http://www.w3.org/1998/Math/MathML">
+    <msup>
+      <mrow>
+        <mo>(</mo>
+        <mfrac id="math-frac">
+          <mrow><mn>1</mn><mo>+</mo><mn>2</mn></mrow>
+          <mn>3</mn>
+        </mfrac>
+        <mo>)</mo>
+      </mrow>
+      <mn>4</mn>
+    </msup>
+  </math>
+</div>
+<button id="pseudo-host">Pseudo host</button>
+<script>
+const elementCases = [
+  ["html-box", "HTML element"],
+  ["svg-root", "outer SVG element"],
+  ["svg-group", "SVG group element"],
+  ["svg-rect", "SVG rect element"],
+  ["svg-circle", "SVG circle element"],
+  ["svg-text", "SVG text element"],
+  ["math-root", "MathML root element"],
+  ["math-frac", "MathML fraction element"],
+];
+
+for (const [id, description] of elementCases) {
+  test(() => {
+    const element = document.getElementById(id);
+    assert_quad_bounds_match_bounding_rect(
+      element,
+      {box: "border"},
+      `${description} border quad bounds`
+    );
+  }, `getBoxQuads() bounds match getBoundingClientRect() for ${description}`);
+
+  test(() => {
+    const element = document.getElementById(id);
+    const localQuad = element.getBoxQuads({relativeTo: element})[0];
+    const convertedQuad = document.convertQuadFromNode(localQuad, element);
+    assert_quad_approx_equals(convertedQuad, element.getBoxQuads()[0],
+                              `${description} converted local quad`);
+  }, `convertQuadFromNode() maps a local ${description} quad to the viewport`);
+
+  test(() => {
+    const element = document.getElementById(id);
+    const localPoint = element.getBoxQuads({relativeTo: element})[0].p1;
+    const convertedPoint = document.convertPointFromNode(localPoint, element);
+    assert_point_approx_equals(convertedPoint, element.getBoxQuads()[0].p1,
+                               `${description} converted local p1`);
+  }, `convertPointFromNode() maps a local ${description} point to the viewport`);
+
+  test(() => {
+    const element = document.getElementById(id);
+    const localBounds = element.getBoxQuads({relativeTo: element})[0]
+      .getBounds();
+    const convertedRect = document.convertRectFromNode(localBounds, element);
+    const convertedQuad = document.convertQuadFromNode(quad_from_rect(localBounds),
+                                                       element);
+    assert_quad_approx_equals(convertedRect, convertedQuad,
+                              `${description} converted local rect`);
+  }, `convertRectFromNode() maps a local ${description} rect as a DOMQuad`);
+}
+
+test(() => {
+  const host = document.getElementById("pseudo-host");
+  if (typeof host.pseudo !== "function" || !("CSSPseudoElement" in window)) {
+    return;
+  }
+
+  for (const type of ["::before", "::after"]) {
+    const pseudo = host.pseudo(type);
+    assert_true(pseudo instanceof CSSPseudoElement, `${type} pseudo`);
+    assert_equals(typeof pseudo.getBoxQuads, "function",
+                  `${type} getBoxQuads`);
+    const quad = pseudo.getBoxQuads()[0];
+    assert_true(quad instanceof DOMQuad, `${type} quad`);
+    assert_greater_than(quad.getBounds().width, 0, `${type} width`);
+    assert_greater_than(quad.getBounds().height, 0, `${type} height`);
+  }
+}, "getBoxQuads() returns quads for exposed CSSPseudoElement objects");
+</script>

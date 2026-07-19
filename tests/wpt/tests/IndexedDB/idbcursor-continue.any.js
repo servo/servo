@@ -231,3 +231,86 @@ indexeddb_test(upgrade_func, function(t, db) {
   });
   rq.onerror = t.unreached_func('unexpected error1');
 }, 'IDBCursor.continue() - within single key range, with several results');
+
+const storePrev = [
+  { value: 'taco', key: 2 },
+  { value: 'pie', key: 4 },
+  { value: 'pie', key: 1 },
+  { value: 'pancake', key: 3 },
+  { value: 'cupcake', key: 5 }
+];
+
+indexeddb_test(upgrade_func, function(t, db) {
+  let count = 0;
+  const rq = db.transaction('test', 'readonly')
+                 .objectStore('test')
+                 .index('index')
+                 .openCursor(null, 'prev');
+
+  rq.onsuccess = t.step_func((e) => {
+    if (!e.target.result) {
+      assert_equals(count, 5, 'count');
+      t.done();
+      return;
+    }
+    const cursor = e.target.result;
+
+    assert_equals(cursor.value, storePrev[count].value);
+    assert_equals(cursor.primaryKey, storePrev[count].key);
+
+    cursor.continue();
+
+    count++;
+  });
+  rq.onerror = t.unreached_func('unexpected error');
+}, 'IDBCursor.continue() - continues in prev direction');
+
+
+indexeddb_test(upgrade_func, function(t, db) {
+  let count = 0;
+  const rq = db.transaction('test', 'readonly')
+                 .objectStore('test')
+                 .index('index')
+                 .openCursor(null, 'prev');
+
+  rq.onsuccess = t.step_func((e) => {
+    if (!e.target.result) {
+      assert_equals(count, 4, 'count');
+      t.done();
+      return;
+    }
+    const cursor = e.target.result;
+
+    switch (count) {
+      case 0:
+        assert_equals(cursor.value, 'taco');
+        assert_equals(cursor.primaryKey, 2);
+        cursor.continue('pie');
+        break;
+
+      case 1:
+        assert_equals(cursor.value, 'pie');
+        assert_equals(cursor.primaryKey, 4);
+        cursor.continue('pancake');
+        break;
+
+      case 2:
+        assert_equals(cursor.value, 'pancake');
+        assert_equals(cursor.primaryKey, 3);
+        cursor.continue('cupcake');
+        break;
+
+      case 3:
+        assert_equals(cursor.value, 'cupcake');
+        assert_equals(cursor.primaryKey, 5);
+        cursor.continue();
+        break;
+
+      default:
+        assert_unreached('Unexpected count: ' + count);
+    }
+
+    count++;
+  });
+  rq.onerror = t.unreached_func('unexpected error');
+}, 'IDBCursor.continue() - with given key in prev direction');

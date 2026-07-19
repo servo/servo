@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage confines a rounded backdrop-filter to its rounded border box</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+  <link rel="match" href="backdrop-filter-rounded-bounds-ref.html">
+  <meta name="assert" value="A backdrop-filter element with a border-radius clips the filtered backdrop to its rounded border box.">
+  <meta name="fuzzy" content="0-10;0-500">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="../../../../../html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    #wrapper {
+      width: 200px;
+      height: 200px;
+      background-color: blue;
+    }
+    .filtered {
+      width: 100%;
+      height: 100%;
+      border-radius: 100px;
+      backdrop-filter: invert(1);
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="200" height="200" layoutsubtree>
+    <div id="wrapper">
+      <div class="filtered"></div>
+    </div>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      canvas.getContext("2d").drawElementImage(wrapper, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

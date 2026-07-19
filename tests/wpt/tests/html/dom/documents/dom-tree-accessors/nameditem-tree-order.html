@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: collection is in tree order after name mutation</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<img id=s1 name="a">
+<img id=s2 name="a">
+<img id=s3 name="a">
+<script>
+test(function() {
+  var collection = document.a;
+  assert_equals(collection.length, 3);
+  assert_array_equals([collection[0], collection[1], collection[2]],
+                      [s1, s2, s3], "initial order");
+  assert_equals(document.a, collection, "collection is stable");
+
+  s2.name = "b";
+  assert_equals(document.a, collection, "collection is stable after removing name");
+  assert_array_equals([collection[0], collection[1]],
+                      [s1, s3], "order after removing name");
+
+  s2.name = "a";
+  assert_equals(document.a, collection, "collection is stable after restoring name");
+  assert_array_equals([collection[0], collection[1], collection[2]],
+                      [s1, s2, s3], "order after restoring name");
+}, "A named item collection is in tree order even after an element's name is mutated.");
+</script>

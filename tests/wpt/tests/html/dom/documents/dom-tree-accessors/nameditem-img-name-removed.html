@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Named items: img exposed by id stops being exposed when its name is removed</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-document-nameditem">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<img id="foo" name="x">
+<object id="foo"></object>
+<object id="foo"></object>
+<script>
+test(function() {
+  let img = document.querySelector("img#foo");
+  assert_equals(document.foo.length, 3, "before removal");
+  assert_in_array(img, [...document.foo], "before removal contains img");
+
+  img.removeAttribute("name");
+
+  assert_equals(document.foo.length, 2, "after removal");
+  assert_false([...document.foo].includes(img), "after removal does not contain img");
+}, "An img exposed by its id (id + name) is no longer exposed by id after its name attribute is removed.");
+</script>

@@ -52,9 +52,10 @@ promise_test(async function(t) {
 }, 'navigator.install(url, undefined) rejects with TypeError for undefined ' +
    'manifest ID.');
 
-// Dictionary form: navigator.install({manifest, id}).
-// Note: unlike the positional form above, {id: null} and {id: undefined} are
-// treated as "id omitted" and do NOT reject here.
+// Dictionary form: navigator.install({manifest, manifestId}).
+// Note: unlike the positional form above, {manifestId: null} and
+// {manifestId: undefined} are
+// treated as "manifestId omitted" and do NOT reject here.
 
 promise_test(async function(t) {
   await test_driver.bless('install with missing required manifest');
@@ -83,21 +84,21 @@ promise_test(async function(t) {
   return promise_rejects_js(t, TypeError,
       navigator.install({
         manifest: 'https://example.com/manifest.json',
-        id: '',
+        manifestId: '',
       }),
       'Empty id should reject with TypeError');
-}, 'navigator.install({manifest, id: ""}) rejects with TypeError for empty ' +
-   'id.');
+}, 'navigator.install({manifest, manifestId: ""}) rejects with TypeError for ' +
+   'empty manifestId.');
 
 promise_test(async function(t) {
   await test_driver.bless('install with invalid id in dict');
   return promise_rejects_js(t, TypeError,
       navigator.install({
         manifest: 'https://example.com/manifest.json',
-        id: '://invalid',
+        manifestId: '://invalid',
       }),
       'Invalid id should reject with TypeError');
-}, 'navigator.install({manifest, id: "://invalid"}) rejects with TypeError ' +
-   'for invalid id.');
+}, 'navigator.install({manifest, manifestId: "://invalid"}) rejects with ' +
+   'TypeError for invalid manifestId.');
 </script>
 </body>
