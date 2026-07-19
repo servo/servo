@@ -988,11 +988,11 @@ impl FlexContainer {
             let make_flex_only_values_directional_for_absolutes =
                 |value: AlignFlags, reversed: bool| match (value.value(), reversed) {
                     (AlignFlags::NORMAL | AlignFlags::AUTO | AlignFlags::STRETCH, true) => {
-                        AlignFlags::END | AlignFlags::SAFE
+                        AlignFlags::END
                     },
-                    (AlignFlags::STRETCH, false) => AlignFlags::START | AlignFlags::SAFE,
-                    (AlignFlags::SPACE_BETWEEN, false) => AlignFlags::START | AlignFlags::SAFE,
-                    (AlignFlags::SPACE_BETWEEN, true) => AlignFlags::END | AlignFlags::SAFE,
+                    (AlignFlags::STRETCH, false) => AlignFlags::START,
+                    (AlignFlags::SPACE_BETWEEN, false) => AlignFlags::START,
+                    (AlignFlags::SPACE_BETWEEN, true) => AlignFlags::END,
                     _ => value,
                 };
             let cross = make_flex_only_values_directional_for_absolutes(
