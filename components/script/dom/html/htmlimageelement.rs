@@ -14,7 +14,6 @@ use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::JSContext;
-use js::realm::AutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_status::HttpStatus;
@@ -80,7 +79,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::script_thread::ScriptThread;
@@ -1226,7 +1225,7 @@ impl HTMLImageElement {
             generation: self.generation.get(),
         };
 
-        ScriptThread::await_stable_state(cx, Microtask::ImageElement(task));
+        ScriptThread::await_stable_state(cx, Box::new(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
@@ -1237,7 +1236,7 @@ impl HTMLImageElement {
             generation: self.generation.get(),
         };
 
-        ScriptThread::await_stable_state(cx, Microtask::ImageElement(task));
+        ScriptThread::await_stable_state(cx, Box::new(task));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
@@ -1648,6 +1647,12 @@ pub(crate) enum ImageElementMicrotask {
 
 impl MicrotaskRunnable for ImageElementMicrotask {
     fn handler(&self, cx: &mut js::context::JSContext) {
+        let mut realm = match self {
+            &ImageElementMicrotask::UpdateImageData { ref elem, .. } |
+            &ImageElementMicrotask::EnvironmentChanges { ref elem, .. } |
+            &ImageElementMicrotask::Decode { ref elem, .. } => enter_auto_realm(cx, &**elem),
+        };
+        let cx = &mut realm;
         match *self {
             ImageElementMicrotask::UpdateImageData {
                 ref elem,
@@ -1672,14 +1677,6 @@ impl MicrotaskRunnable for ImageElementMicrotask {
             } => {
                 elem.react_to_decode_image_sync_steps(cx, promise.clone());
             },
-        }
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx> {
-        match self {
-            &ImageElementMicrotask::UpdateImageData { ref elem, .. } |
-            &ImageElementMicrotask::EnvironmentChanges { ref elem, .. } |
-            &ImageElementMicrotask::Decode { ref elem, .. } => enter_auto_realm(cx, &**elem),
         }
     }
 }
@@ -1947,7 +1944,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             promise: promise.clone(),
         };
 
-        ScriptThread::await_stable_state(cx, Microtask::ImageElement(task));
+        ScriptThread::await_stable_state(cx, Box::new(task));
 
         // Step 3. Return promise.
         promise

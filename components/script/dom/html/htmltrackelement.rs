@@ -8,7 +8,6 @@ use content_security_policy::Destination;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
-use js::realm::AutoRealm;
 use js::rust::HandleObject;
 use net_traits::request::{CorsSettings, RequestId};
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
@@ -44,7 +43,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webvtt::vttcue::VTTCue;
 use crate::dom::{AttributeMutation, cors_setting_for_element};
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::{ScriptThread, network_listener};
@@ -166,7 +165,7 @@ impl HTMLTrackElement {
         };
         self.is_running_processing_model_algorithm.set(true);
 
-        ScriptThread::await_stable_state(cx, Microtask::TrackElement(task));
+        ScriptThread::await_stable_state(cx, Box::new(task));
     }
 
     fn check_if_track_parent_element_changed(&self, cx: &mut JSContext) {
@@ -359,7 +358,10 @@ pub(crate) enum TrackElementMicrotask {
 }
 
 impl MicrotaskRunnable for TrackElementMicrotask {
-    fn handler(&self, _cx: &mut JSContext) {
+    fn handler(&self, cx: &mut JSContext) {
+        let _realm = match self {
+            TrackElementMicrotask::ProcessingModel { elem, .. } => enter_auto_realm(cx, &**elem),
+        };
         match self {
             // https://html.spec.whatwg.org/multipage/#start-the-track-processing-model
             TrackElementMicrotask::ProcessingModel {
@@ -408,12 +410,6 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                 // Step 13. Jump to the step labeled top.
                 // TODO
             },
-        }
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx> {
-        match self {
-            TrackElementMicrotask::ProcessingModel { elem, .. } => enter_auto_realm(cx, &**elem),
         }
     }
 }

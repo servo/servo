@@ -150,7 +150,7 @@ use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
 };
-use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::microtask::{MicrotaskQueue, MicrotaskRunnable};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::network_listener::{FetchResponseListener, submit_timing};
@@ -606,7 +606,7 @@ impl ScriptThread {
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
-    pub(crate) fn await_stable_state(cx: &JSContext, task: Microtask) {
+    pub(crate) fn await_stable_state(cx: &JSContext, task: Box<dyn MicrotaskRunnable>) {
         with_script_thread(|script_thread| {
             script_thread.microtask_queue.enqueue(cx, task);
         });
@@ -4331,7 +4331,7 @@ impl ScriptThread {
         };
     }
 
-    pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Microtask) {
+    pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
         with_script_thread(|script_thread| {
             script_thread.microtask_queue.enqueue(cx, job);
         });
@@ -4347,11 +4347,7 @@ impl ScriptThread {
                 .map(|(_id, document)| DomRoot::from_ref(document.window().upcast()))
                 .collect();
 
-            self.microtask_queue.checkpoint(
-                cx,
-                |id| self.documents.borrow().find_global(id),
-                globals,
-            )
+            self.microtask_queue.checkpoint(cx, globals)
         }
     }
 

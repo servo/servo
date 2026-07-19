@@ -95,7 +95,7 @@ use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
+use crate::microtask::{EnqueuedPromiseCallback, MicrotaskQueue};
 use crate::realms::enter_auto_realm;
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
@@ -322,8 +322,8 @@ unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSCont
     wrap_panic(&mut || {
         let microtask_queue = unsafe { &*(microtask_queue as *const MicrotaskQueue) };
         // TODO: run Promise- and User-variant Microtasks, and do #notify-about-rejected-promises.
-        // Those will require real `target_provider` and `globalscopes` values.
-        microtask_queue.checkpoint(&mut cx, |_| None, vec![]);
+        // Those will require real `globalscopes` values.
+        microtask_queue.checkpoint(&mut cx, vec![]);
     });
 }
 
@@ -408,7 +408,6 @@ unsafe extern "C" fn enqueue_promise_job(
             let mut realm = CurrentRealm::assert(cx);
             GlobalScope::from_current_realm(&mut realm)
         };
-        let pipeline = global.pipeline_id();
         let interaction = if promise.get().is_null() {
             PromiseUserInputEventHandlingState::DontCare
         } else {
@@ -418,9 +417,9 @@ unsafe extern "C" fn enqueue_promise_job(
             interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
         microtask_queue.enqueue(
             cx,
-            Microtask::Promise(EnqueuedPromiseCallback {
+            Box::new(EnqueuedPromiseCallback {
                 callback: unsafe { PromiseJobCallback::new(cx, job.get()) },
-                pipeline,
+                global: global.as_traced(),
                 is_user_interacting,
             }),
         );

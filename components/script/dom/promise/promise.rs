@@ -25,7 +25,7 @@ use js::jsapi::{
     SetFunctionNativeReserved,
 };
 use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::realm::{AutoRealm, CurrentRealm};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     AddPromiseReactions, AddRawValueRoot, CallOriginalPromiseReject, CallOriginalPromiseResolve,
     GetPromiseIsHandled, GetPromiseState, IsPromiseObject, JS_ClearPendingException,
@@ -44,7 +44,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 use crate::realms::enter_auto_realm;
 use crate::script_thread::ScriptThread;
 
@@ -496,11 +496,8 @@ pub(crate) struct WaitForAllSuccessStepsMicrotask {
 
 impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
     fn handler(&self, cx: &mut JSContext) {
-        (self.success_steps)(cx, vec![]);
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx> {
-        enter_auto_realm(cx, &*self.global)
+        let mut realm = enter_auto_realm(cx, &*self.global);
+        (self.success_steps)(&mut realm, vec![]);
     }
 }
 
@@ -537,7 +534,7 @@ fn wait_for_all(
         // Queue a microtask to perform successSteps given « ».
         global.enqueue_microtask(
             cx,
-            Microtask::WaitForAllSuccessSteps(WaitForAllSuccessStepsMicrotask {
+            Box::new(WaitForAllSuccessStepsMicrotask {
                 global: DomRoot::from_ref(global),
                 success_steps,
             }),

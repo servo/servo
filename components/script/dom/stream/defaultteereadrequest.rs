@@ -9,7 +9,6 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use js::realm::AutoRealm;
 use js::rust::HandleValue as SafeHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
@@ -22,7 +21,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::microtask::{Microtask, MicrotaskRunnable};
+use crate::microtask::MicrotaskRunnable;
 use crate::realms::enter_auto_realm;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -35,11 +34,8 @@ pub(crate) struct DefaultTeeReadRequestMicrotask {
 
 impl MicrotaskRunnable for DefaultTeeReadRequestMicrotask {
     fn handler(&self, cx: &mut JSContext) {
-        self.tee_read_request.chunk_steps(cx, &self.chunk);
-    }
-
-    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx> {
-        enter_auto_realm(cx, &*self.tee_read_request)
+        let mut realm = enter_auto_realm(cx, &*self.tee_read_request);
+        self.tee_read_request.chunk_steps(&mut realm, &self.chunk);
     }
 }
 
@@ -119,10 +115,9 @@ impl DefaultTeeReadRequest {
             chunk: Heap::boxed(*chunk.handle()),
             tee_read_request: Dom::from_ref(self),
         };
-        self.stream.global().enqueue_microtask(
-            cx,
-            Microtask::ReadableStreamTeeReadRequest(tee_read_request_chunk),
-        );
+        self.stream
+            .global()
+            .enqueue_microtask(cx, Box::new(tee_read_request_chunk));
     }
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
     #[expect(clippy::borrowed_box)]

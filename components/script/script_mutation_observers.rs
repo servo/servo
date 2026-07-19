@@ -12,7 +12,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
-use crate::microtask::{Microtask, MicrotaskQueue};
+use crate::microtask::{MicrotaskQueue, NotifyMutationObserversMicrotask};
 
 /// A helper struct for mutation observers used in `ScriptThread`
 /// Since the Rc is always stored in ScriptThread, it's always reachable by the GC.
@@ -99,7 +99,7 @@ impl ScriptMutationObservers {
         self.mutation_observer_microtask_queued.set(true);
 
         // Step 3. Queue a microtask to notify mutation observers.
-        microtask_queue.enqueue(cx, Microtask::NotifyMutationObservers);
+        microtask_queue.enqueue(cx, Box::new(NotifyMutationObserversMicrotask::new()));
     }
 
     pub(crate) fn add_signal_slot(&self, observer: &HTMLSlotElement) {

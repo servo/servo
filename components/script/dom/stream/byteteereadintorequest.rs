@@ -22,7 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::microtask::Microtask;
+use crate::microtask::MicrotaskRunnable;
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ByteTeeReadIntoRequestMicrotask {
@@ -31,8 +31,8 @@ pub(crate) struct ByteTeeReadIntoRequestMicrotask {
     tee_read_request: Trusted<ByteTeeReadIntoRequest>,
 }
 
-impl ByteTeeReadIntoRequestMicrotask {
-    pub(crate) fn microtask_chunk_steps(&self, cx: &mut JSContext) {
+impl MicrotaskRunnable for ByteTeeReadIntoRequestMicrotask {
+    fn handler(&self, cx: &mut JSContext) {
         self.tee_read_request
             .root()
             .chunk_steps(&self.chunk, cx)
@@ -109,10 +109,8 @@ impl ByteTeeReadIntoRequest {
             tee_read_request: Trusted::new(self),
         };
 
-        self.global().enqueue_microtask(
-            cx,
-            Microtask::ReadableStreamByteTeeReadIntoRequest(byte_tee_read_request_chunk),
-        );
+        self.global()
+            .enqueue_microtask(cx, Box::new(byte_tee_read_request_chunk));
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-into-request-chunk-steps%E2%91%A0>
