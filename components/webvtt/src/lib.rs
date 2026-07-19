@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
 use std::iter::Peekable;
 use std::marker::PhantomData;
+use std::mem;
 use std::str::Chars;
 use std::sync::LazyLock;
 
@@ -177,20 +177,20 @@ pub struct IncrementalWebVTTParser<Context, Sink: WebVttParserSink<Context>> {
     buffer: BufferQueue,
 
     // Checkpoint values
-    seen_cue: Cell<bool>,
-    seen_eof: Cell<bool>,
-    seen_arrow: Cell<bool>,
+    seen_cue: bool,
+    seen_eof: bool,
+    seen_arrow: bool,
 
     // State values
-    in_header: Cell<bool>,
-    line_count: Cell<u32>,
-    state: Cell<ParserState>,
+    in_header: bool,
+    line_count: u32,
+    state: ParserState,
 
     // Storage values
-    current_line_in_block: RefCell<StrTendril>,
-    current_buffer_in_block: RefCell<String>,
+    current_line_in_block: StrTendril,
+    current_buffer_in_block: String,
 
-    current_cue_in_block: RefCell<Option<WebVttCue>>,
+    current_cue_in_block: Option<WebVttCue>,
 }
 
 pub type ParserUpdate = Result<(), WebVttParserError>;
@@ -217,18 +217,18 @@ where
         }
     }
 
-    pub fn end(&self, cx: &mut Context) -> ParserUpdate {
-        self.seen_eof.set(true);
+    pub fn end(&mut self, cx: &mut Context) -> ParserUpdate {
+        self.seen_eof = true;
         self.step(cx)
     }
 
-    pub fn parse_sync(&self, cx: &mut Context, input: &str) -> ParserUpdate {
-        self.seen_eof.set(true);
+    pub fn parse_sync(&mut self, cx: &mut Context, input: &str) -> ParserUpdate {
+        self.seen_eof = true;
         self.parse(cx, input)
     }
 
     /// <https://w3c.github.io/webvtt/#webvtt-parser-algorithm>
-    pub fn parse(&self, cx: &mut Context, input: &str) -> ParserUpdate {
+    pub fn parse(&mut self, cx: &mut Context, input: &str) -> ParserUpdate {
         // Step 1. Let input be the string being parsed, after conversion to Unicode,
         // and with the following transformations applied:
         // > Replace all U+0000 NULL characters by U+FFFD REPLACEMENT CHARACTERs.
@@ -248,9 +248,9 @@ where
         self.step(cx)
     }
 
-    fn step(&self, cx: &mut Context) -> ParserUpdate {
+    fn step(&mut self, cx: &mut Context) -> ParserUpdate {
         loop {
-            let current_state = self.state.get();
+            let current_state = self.state;
             match current_state {
                 // https://w3c.github.io/webvtt/#webvtt-parser-algorithm
                 ParserState::FileTag => {
@@ -263,7 +263,7 @@ where
                         // Step 4. If input is less than six characters long, then abort these steps.
                         // The file does not start with the correct WebVTT file signature
                         // and was therefore not successfully processed.
-                        if self.seen_eof.get() {
+                        if self.seen_eof {
                             return Err(WebVttParserError::InvalidHeader);
                         }
                         return Ok(());
@@ -281,15 +281,15 @@ where
                     if !input {
                         return Err(WebVttParserError::InvalidHeader);
                     }
-                    self.state.set(ParserState::WhitespaceAfterFileTag);
+                    self.state = ParserState::WhitespaceAfterFileTag;
                     continue;
                 },
                 // https://w3c.github.io/webvtt/#webvtt-parser-algorithm
                 ParserState::WhitespaceAfterFileTag => {
                     let Some(seventh) = self.buffer.peek() else {
                         // Input is exactly six characters and is a valid header
-                        if self.seen_eof.get() {
-                            self.state.set(ParserState::Finished);
+                        if self.seen_eof {
+                            self.state = ParserState::Finished;
                             continue;
                         }
                         return Ok(());
@@ -304,7 +304,7 @@ where
                     if !matches!(seventh, '\u{0020}' | '\u{0009}' | '\u{000A}') {
                         return Err(WebVttParserError::InvalidHeader);
                     }
-                    self.state.set(ParserState::BeforeNewlineAfterFileTag);
+                    self.state = ParserState::BeforeNewlineAfterFileTag;
                     continue;
                 },
                 // https://w3c.github.io/webvtt/#webvtt-parser-algorithm
@@ -314,8 +314,8 @@ where
                         // Step 8. If position is past the end of input, then abort these steps.
                         // The file was successfully processed, but it contains no useful data and so
                         // no WebVTT cues were added to output.
-                        if self.seen_eof.get() {
-                            self.state.set(ParserState::Finished);
+                        if self.seen_eof {
+                            self.state = ParserState::Finished;
                             continue;
                         }
                         return Ok(());
@@ -323,7 +323,7 @@ where
                     // Step 9. The character indicated by position is a U+000A LINE FEED (LF) character.
                     // Advance position to the next character in input.
                     if current_char == '\u{000A}' {
-                        self.state.set(ParserState::BeforeHeader);
+                        self.state = ParserState::BeforeHeader;
                     }
                 },
                 // https://w3c.github.io/webvtt/#webvtt-parser-algorithm
@@ -332,8 +332,8 @@ where
                         // Step 10. If position is past the end of input, then abort these steps.
                         // The file was successfully processed, but it contains no useful data and
                         // so no WebVTT cues were added to output.
-                        if self.seen_eof.get() {
-                            self.state.set(ParserState::Finished);
+                        if self.seen_eof {
+                            self.state = ParserState::Finished;
                             continue;
                         }
                         return Ok(());
@@ -343,11 +343,11 @@ where
                     // then collect a WebVTT block with the in header flag set.
                     // Otherwise, advance position to the next character in input.
                     if current_char != '\u{000A}' {
-                        self.in_header.set(true);
+                        self.in_header = true;
                         self.start_collecting_webvtt_block();
                     } else {
                         self.buffer.next();
-                        self.state.set(ParserState::Region);
+                        self.state = ParserState::Region;
                     }
                 },
                 // https://w3c.github.io/webvtt/#collect-a-webvtt-block
@@ -361,20 +361,19 @@ where
                         //
                         // We check the first part of this step here
                         // Step 11.7. If seen EOF is true, break out of loop.
-                        if self.seen_eof.get() {
+                        if self.seen_eof {
                             // It depends when we see the EOF whether there is still content in the buffer or not.
                             // In the case that the EOF is at the end of a line (e.g. no `\n` in between), we
                             // should copy the current line to the buffer. The buffer is then populated with the
                             // line as usual, so that the last line of a file can still be the cue text.
-                            let current_line = self.current_line_in_block.borrow();
-                            if !current_line.is_empty() {
-                                let mut existing_buffer = self.current_buffer_in_block.borrow_mut();
-                                if !existing_buffer.is_empty() {
-                                    existing_buffer.push('\n');
+                            if !self.current_line_in_block.is_empty() {
+                                if !self.current_buffer_in_block.is_empty() {
+                                    self.current_buffer_in_block.push('\n');
                                 }
-                                existing_buffer.push_str(&current_line);
+                                self.current_buffer_in_block
+                                    .push_str(&self.current_line_in_block);
                             }
-                            self.state.set(ParserState::AfterBlockLoop);
+                            self.state = ParserState::AfterBlockLoop;
                             continue;
                         }
                         return Ok(());
@@ -387,68 +386,67 @@ where
                         // We check the second part of this step here
                         SetResult::FromSet('\u{000A}') => {
                             // Step 11.2. Increment line count by 1.
-                            self.line_count.set(self.line_count.get() + 1);
-                            if self.in_header.get() {
-                                self.state.set(ParserState::AfterBlockLoop);
+                            self.line_count += 1;
+                            if self.in_header {
+                                self.state = ParserState::AfterBlockLoop;
                             } else {
                                 // Step 11.4. If line contains the three-character substring "-->"
                                 // (U+002D HYPHEN-MINUS, U+002D HYPHEN-MINUS, U+003E GREATER-THAN SIGN),
                                 // then run these substeps:
-                                let line = { self.current_line_in_block.borrow().clone() };
-                                if line.contains("-->") {
+                                if self.current_line_in_block.contains("-->") {
                                     // Step 11.4.1. If in header is not set and at least
                                     // one of the following conditions are true:
                                     //
                                     // We already checked for the header set after step 11.2.
                                     if
                                     // line count is 1
-                                    self.line_count.get() == 1
+                                    self.line_count == 1
                                         // line count is 2 and seen arrow is false
-                                        || (self.line_count.get() == 2 && !self.seen_arrow.get())
+                                        || (self.line_count == 2 && !self.seen_arrow)
                                     {
                                         // Step 11.4.1.1. Let seen arrow be true.
-                                        self.seen_arrow.set(true);
+                                        self.seen_arrow = true;
                                         // Step 11.4.1.2. Let previous position be position.
                                         // TODO
                                         // Step 11.4.1.3. Cue creation: Let cue be a new WebVTT cue and initialize it as follows:
                                         // Step 11.4.1.3.1. Let cue’s text track cue identifier be buffer.
-                                        let identifier =
-                                            self.current_buffer_in_block.borrow().clone();
+                                        let identifier = self.current_buffer_in_block.clone();
                                         // Step 11.4.1.4. Collect WebVTT cue timings and settings from line using regions for cue.
                                         // If that fails, let cue be null.
                                         // Otherwise, let buffer be the empty string and let seen cue be true.
                                         let cue = collect_webvtt_cue_timings_and_settings(
-                                            identifier, &line,
+                                            identifier,
+                                            &self.current_line_in_block,
                                         );
                                         let has_cue = cue.is_some();
-                                        *self.current_cue_in_block.borrow_mut() = cue;
+                                        self.current_cue_in_block = cue;
                                         if has_cue {
-                                            self.current_buffer_in_block.borrow_mut().clear();
-                                            self.current_line_in_block.borrow_mut().clear();
-                                            self.seen_cue.set(true);
+                                            self.current_buffer_in_block.clear();
+                                            self.current_line_in_block.clear();
+                                            self.seen_cue = true;
                                         }
                                     } else {
                                         // Otherwise, let position be previous position and break out of loop.
-                                        self.state.set(ParserState::AfterBlockLoop);
+                                        self.state = ParserState::AfterBlockLoop;
                                     }
                                     continue;
-                                } else if line.is_empty() {
+                                } else if self.current_line_in_block.is_empty() {
                                     // Step 11.5. Otherwise, if line is the empty string, break out of loop.
-                                    self.state.set(ParserState::AfterBlockLoop);
+                                    self.state = ParserState::AfterBlockLoop;
                                 } else {
                                     // Step 11.6. Otherwise, run these substeps:
                                     // Step 11.6.1. If in header is not set and line count is 2, run these substeps:
                                     // TODO
                                     // Step 11.6.2. If buffer is not the empty string,
                                     // append a U+000A LINE FEED (LF) character to buffer.
-                                    let mut buffer = self.current_buffer_in_block.borrow_mut();
-                                    if !buffer.is_empty() {
-                                        buffer.push('\u{000A}');
+                                    if !self.current_buffer_in_block.is_empty() {
+                                        self.current_buffer_in_block.push('\u{000A}');
                                     }
                                     // Step 11.6.3. Append line to buffer.
-                                    buffer.push_str(&line);
+                                    self.current_buffer_in_block
+                                        .push_str(&self.current_line_in_block);
                                     // Step 11.6.4. Let previous position be position.
-                                    *self.current_line_in_block.borrow_mut() = Default::default();
+                                    self.current_line_in_block.clear();
                                 }
                             }
                             continue;
@@ -456,10 +454,8 @@ where
                         // Step 11.1. collect a sequence of code points that are not U+000A LINE FEED (LF) characters.
                         // Let line be those characters, if any.
                         SetResult::NotFromSet(current_tendril) => {
-                            if !self.in_header.get() {
-                                self.current_line_in_block
-                                    .borrow_mut()
-                                    .push_tendril(&current_tendril);
+                            if !self.in_header {
+                                self.current_line_in_block.push_tendril(&current_tendril);
                             }
                         },
                         _ => {
@@ -472,8 +468,8 @@ where
                     // Step 12. If cue is not null, let the cue text of cue be buffer, and return cue.
                     // https://w3c.github.io/webvtt/#webvtt-parser-algorithm
                     // Step 14.2. If block is a WebVTT cue, add block to the text track list of cues output.
-                    if let Some(mut cue) = self.current_cue_in_block.borrow_mut().take() {
-                        cue.text = self.current_buffer_in_block.borrow().clone();
+                    if let Some(mut cue) = self.current_cue_in_block.take() {
+                        cue.text = self.current_buffer_in_block.clone();
                         self.sink.consume_cue(cx, cue);
                     }
                     // Step 14.3. Otherwise, if block is a CSS style sheet, add block to stylesheets.
@@ -482,8 +478,8 @@ where
                     // TODO
                     // Step 14.5. collect a sequence of code points that are U+000A LINE FEED (LF) characters.
                     let Some(current_char) = self.buffer.peek() else {
-                        if self.seen_eof.get() {
-                            self.state.set(ParserState::Finished);
+                        if self.seen_eof {
+                            self.state = ParserState::Finished;
                             continue;
                         }
                         return Ok(());
@@ -497,8 +493,9 @@ where
                         // If we were in the header block, then we should proceed with the next step
                         // which is collecting a region in step 12. Otherwise, we are in the general loop of
                         // step 14.
-                        if self.in_header.replace(false) {
-                            self.state.set(ParserState::Region);
+
+                        if mem::take(&mut self.in_header) {
+                            self.state = ParserState::Region;
                         } else {
                             self.start_collecting_webvtt_block();
                         }
@@ -520,18 +517,18 @@ where
     }
 
     /// <https://w3c.github.io/webvtt/#collect-a-webvtt-block>
-    fn start_collecting_webvtt_block(&self) {
+    fn start_collecting_webvtt_block(&mut self) {
         // Step 2. Let line count be zero.
-        self.line_count.set(0);
+        self.line_count = 0;
         // Step 4. Let line be the empty string.
-        self.current_line_in_block.borrow_mut().clear();
+        self.current_line_in_block.clear();
         // Step 5. Let buffer be the empty string.
-        self.current_buffer_in_block.borrow_mut().clear();
+        self.current_buffer_in_block.clear();
         // Step 7. Let seen arrow be false.
-        self.seen_arrow.set(false);
+        self.seen_arrow = false;
         // Step 8. Let cue be null.
-        *self.current_cue_in_block.borrow_mut() = Default::default();
-        self.state.set(ParserState::InBlockLoop);
+        self.current_cue_in_block = None;
+        self.state = ParserState::InBlockLoop;
     }
 }
 
@@ -986,7 +983,7 @@ mod tests {
 
     #[test]
     fn test_header_in_two_chunks() {
-        let parser = parser_with_dummy_sink();
+        let mut parser = parser_with_dummy_sink();
         assert_eq!(parser.parse(&mut (), "WEB"), Ok(()));
         assert_eq!(parser.parse(&mut (), "VTT"), Ok(()));
         assert_eq!(parser.end(&mut ()), Ok(()));
@@ -994,7 +991,7 @@ mod tests {
 
     #[test]
     fn test_invalid_header_in_two_chunks() {
-        let parser = parser_with_dummy_sink();
+        let mut parser = parser_with_dummy_sink();
         assert_eq!(parser.parse(&mut (), "WEB"), Ok(()));
         assert_eq!(
             parser.parse(&mut (), "NOT"),
@@ -1004,13 +1001,13 @@ mod tests {
 
     #[test]
     fn test_valid_space_character_after_header() {
-        let parser = parser_with_dummy_sink();
+        let mut parser = parser_with_dummy_sink();
         assert_eq!(parser.parse_sync(&mut (), "WEBVTT "), Ok(()));
     }
 
     #[test]
     fn test_no_space_character_after_header_multiple_chunks() {
-        let parser = parser_with_dummy_sink();
+        let mut parser = parser_with_dummy_sink();
         assert_eq!(parser.parse(&mut (), "WEB"), Ok(()));
         assert_eq!(parser.parse(&mut (), "VTT"), Ok(()));
         assert_eq!(
