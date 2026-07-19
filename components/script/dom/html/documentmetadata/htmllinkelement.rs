@@ -644,7 +644,6 @@ impl HTMLLinkElement {
         let fetch_context = LinkFetchContext {
             url,
             link: Some(Trusted::new(self)),
-            document: Trusted::new(&document),
             global: Trusted::new(&document.global()),
             type_: LinkFetchContextType::Prefetch,
             response_body: vec![],
