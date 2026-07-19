@@ -33,6 +33,7 @@ use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
 use crate::dom::execcommand::commands::inserthorizontalrule::execute_insert_horizontal_rule_command;
 use crate::dom::execcommand::commands::insertimage::execute_insert_image_command;
 use crate::dom::execcommand::commands::insertparagraph::execute_insert_paragraph_command;
+use crate::dom::execcommand::commands::inserttext::execute_insert_text_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
 use crate::dom::execcommand::commands::removeformat::execute_removeformat_command;
 use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
@@ -553,7 +554,7 @@ impl CommandName {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#record-current-overrides>
-    fn record_current_overrides(document: &Document) -> Vec<RecordedStateOfCommand> {
+    pub(crate) fn record_current_overrides(document: &Document) -> Vec<RecordedStateOfCommand> {
         // Step 1. Let overrides be a list of (string, string or boolean) ordered pairs, initially empty.
         let mut overrides = vec![];
         // Step 2. If there is a value override for "createLink",
@@ -754,6 +755,7 @@ impl CommandName {
             CommandName::InsertParagraph => {
                 execute_insert_paragraph_command(cx, document, selection)
             },
+            CommandName::InsertText => execute_insert_text_command(cx, document, selection, value),
             CommandName::Italic => execute_italic_command(cx, document, selection),
             CommandName::RemoveFormat => execute_removeformat_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),

@@ -133,6 +133,7 @@ impl Document {
             "inserthorizontalrule" => CommandName::InsertHorizontalRule,
             "insertimage" => CommandName::InsertImage,
             "insertparagraph" => CommandName::InsertParagraph,
+            "inserttext" => CommandName::InsertText,
             "italic" => CommandName::Italic,
             "removeformat" => CommandName::RemoveFormat,
             "strikethrough" => CommandName::Strikethrough,
