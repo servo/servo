@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: flex gap decorations with a fragmented, skipped interior line</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+
+  .multi-column {
+    position: relative;
+    column-count: 2;
+    height: 60px;
+    gap: 10px;
+    width: 350px
+  }
+
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 170px;
+    height: 100px;
+    row-gap: 3px;
+    column-gap: 3px;
+    border: 1px dashed;
+  }
+
+  #flexbox > div {
+    width: 40px;
+  }
+
+  #flexbox > .l0 { background: #5b9bd5; }
+  #flexbox > .l1 { background: #9b59b6; }
+  #flexbox > .l2 { background: #c0504d; }
+  #flexbox > .l3 { background: #6aa84f; }
+
+  .row-rule {
+    position: absolute;
+    width: 40px;
+    height: 3px;
+    background: gold;
+  }
+
+  .column-rule {
+    position: absolute;
+    width: 3px;
+    height: 50px;
+    background: blue;
+  }
+</style>
+
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="l0" style="height: 120px;"></div>
+    <div class="l1" style="height: 15px;"></div>
+    <div class="l2" style="height: 85px;"></div>
+    <div class="l2" style="height: 12px;"></div>
+    <div class="l3" style="height: 85px;"></div>
+    <div class="l3" style="height: 12px;"></div>
+  </div>
+</div>
+
+<div class="column-rule" style="left: 41px; top: 1px;"></div>
+<div class="column-rule" style="left: 85px; top: 1px;"></div>
+<div class="column-rule" style="left: 128px; top: 1px;"></div>
+
+<div class="column-rule" style="left: 221px; top: 0px;"></div>
+<div class="column-rule" style="left: 265px; top: 0px;"></div>
+<div class="column-rule" style="left: 308px; top: 0px;"></div>
+<div class="row-rule" style="left: 268px; top: 35px;"></div>
+<div class="row-rule" style="left: 311px; top: 35px;"></div>

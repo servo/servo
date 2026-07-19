@@ -116,5 +116,25 @@
 }`);
       }, 'serialization of @mixin with parameters');
     </script>
+
+
+    <style id=style7>
+      @mixin --m4 {
+        @result {
+          color: green;
+        }
+      }
+    </style>
+    <script>
+      test(() => {
+        let ss = style7.sheet;
+        assert_equals(ss.cssRules[0].cssText,
+`@mixin --m4() {
+  @result {
+  color: green;
+}
+}`);
+      }, 'serialization of @mixin defined without a parameter list');
+    </script>
   </body>
 </html>

@@ -1,0 +1,36 @@
+<!-- Quirks mode -->
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2053288">
+<style>
+* {
+  column-width: 5em;
+  white-space: pre;
+  position: sticky;
+}
+#b {
+  position: absolute;
+}
+font {
+  border-left-style: solid;
+}
+</style>
+<script>
+function go() {
+  a.appendChild(c)
+}
+</script>
+<body onload=go()>
+<font size="22">
+<hr id="b">
+<table>
+<keygen id="c">
+<li dir="rtl"></li>
+<menu></menu>
+<br id="a"></br>
+<dir>
+<!-- blank line required to reproduce the bug -->
+<li>
+<!-- blank line required to reproduce the bug -->
+<small></small>
+<!-- blank line required to reproduce the bug -->
+</li>

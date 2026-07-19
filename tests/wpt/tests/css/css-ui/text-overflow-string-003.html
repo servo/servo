@@ -7,11 +7,21 @@
 <meta name="assert" content="Test checks that emoji string are shown instead of overflowing textual content">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
+  @font-face {
+    /* A subset of Noto Color Emoji (only the code points used below) so the
+       emoji ellipsis has known advance widths regardless of the platform's
+       emoji font. Every emoji glyph advances 12.45px and "🤷‍♂️" is a single
+       ZWJ cluster, so "🟢😀🤷‍♂️" is 3 glyphs wide. */
+    font-family: "emoji-test";
+    src: url("/fonts/noto/color-emoji/NotoColorEmoji-subset.ttf");
+  }
   div {
+    font-family: "emoji-test";
     font-size: 10px;
     overflow: hidden;
     text-overflow: "🟢😀🤷‍♂️";
-    width: 150px;
+    /* 90px for Ahem glyphs + 38px for the ellipsis string + 1px margin. */
+    width: calc(90px + 38px + 1px);
   }
   span {
     font-family: Ahem;

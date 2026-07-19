@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column and row rules across a collapsed auto-fit track in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-020-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(auto-fit, 86px);
+    gap: 10px;
+    width: 278px;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+</style>
+<div class="lanes">
+  <div style="grid-column: 1; height: 50px;">1</div>
+  <div style="grid-column: 1; height: 50px;">2</div>
+  <div style="grid-column: 3; height: 70px;">3</div>
+</div>

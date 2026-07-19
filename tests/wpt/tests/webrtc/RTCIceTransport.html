@@ -151,10 +151,10 @@ if (rest) {
           const candidatePair2 = iceTransport2.getSelectedCandidatePair();
 
           assert_equals(candidatePair1.local.candidate, candidatePair2.remote.candidate,
-              'Expect selected local candidate of one pc is the selected remote candidate or another');
+              'Expect selected local candidate of offerer is the selected remote candidate of answerer');
 
           assert_equals(candidatePair1.remote.candidate, candidatePair2.local.candidate,
-              'Expect selected local candidate of one pc is the selected remote candidate or another');
+              'Expect selected local candidate of answerer is the selected remote candidate of offerer');
 
           assert_true(pc1Candidates.has(candidatePair1.local.candidate), "pc1 selected local candidate in pc1 candidates");
           assert_true(pc1Candidates.has(candidatePair2.remote.candidate), "pc2 selected remote candidate in pc1 candidates");

@@ -1,31 +1,39 @@
 <!DOCTYPE html>
 <script src="support/variant-class.js"></script>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
 <style>
-@import "support/MetricsTestFont.css";
-
 .spacer {
   background: lightgray;
   block-size: 100px;
 }
 .target {
-  font: 100px/2 MetricsTestFont;
+  font: 100px/2 BaselineDiagnosticAlphabeticZero;
 }
 .offset {
   position: relative;
 }
 .vrl { writing-mode: vertical-rl; }
 .vlr { writing-mode: vertical-lr; }
-.auto .target, .text .target { line-height: 150px; }
-.auto .offset, .text .offset { inset-block-start: -25px; }
-.cap .target { line-height: 130px; }
-.cap .offset { inset-block-start: -35px; }
-.ex .target { line-height: 90px; }
-.ex .offset { inset-block-start: -55px; }
-.vlr.alphabetic .target { line-height: 130px; }
-.vlr.alphabetic .offset { inset-block-start: -35px;}
+.auto .target, .text .target { block-size: calc(2em - 0.5em); }
+.auto .offset, .text .offset { inset-block-start: calc(-0.5em); }
+.cap .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-cap-height)); }
+.cap .offset { inset-block-start: calc(-0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-cap-height)); }
+.ex .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-x-height)); }
+.ex .offset { inset-block-start: calc(-0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-x-height)); }
+.ideographic .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-over)); }
+.ideographic .offset { inset-block-start: calc(-0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-over)); }
+.ideographic-ink .target { block-size: calc(2em - 0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-face-over)); }
+.ideographic-ink .offset { inset-block-start: calc(-0.5em - 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-face-over)); }
+.vlr.alphabetic .target { block-size: calc(0.5em + 1em * var(--baseline-diagnostic-alphabetic-zero-alphabetic)); }
+.vlr.alphabetic .offset { inset-block-start: calc(-0.5em - 1em * (1 - var(--baseline-diagnostic-alphabetic-zero-alphabetic))); }
+.vlr.ideographic .target { block-size: calc(0.5em + 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-under)); }
+.vlr.ideographic .offset { inset-block-start: calc(-0.5em - 1em * (1 - var(--baseline-diagnostic-alphabetic-zero-ideographic-under))); }
+.vlr.ideographic-ink .target { block-size: calc(0.5em + 1em * var(--baseline-diagnostic-alphabetic-zero-ideographic-face-under)); }
+.vlr.ideographic-ink .offset { inset-block-start: calc(-0.5em - 1em * (1 - var(--baseline-diagnostic-alphabetic-zero-ideographic-face-under))); }
 </style>
 <div class="spacer"></div>
 <div class="target">
-  <span class="offset">ApÉx</span>
+  <span class="offset">█BxIF</span>
 </div>
 <div class="spacer"></div>

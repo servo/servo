@@ -229,6 +229,7 @@ const testCreateConstantTensor = (testName, descriptor) => {
  */
 const testCreateConstantTensorFails = (testName, descriptor) => {
   let mlContext;
+  let isConstantTensorSupported = false;
 
   promise_setup(async () => {
     try {
@@ -237,9 +238,28 @@ const testCreateConstantTensorFails = (testName, descriptor) => {
       throw new AssertionError(
           `Unable to create context for ${variant} variant. ${error}`);
     }
+
+    // Check if WebNN has constant tensor support.
+    try {
+      await mlContext.createConstantTensor(
+          {
+            dataType: 'float32',
+            shape: [1],
+          },
+          new Float32Array([0xAA]));
+      isConstantTensorSupported = true;
+    } catch (error) {
+      if (error.name !== 'NotSupportedError') {
+        throw error;
+      }
+    }
   });
 
   promise_test(async t => {
+    if (!isConstantTensorSupported) {
+      return;
+    }
+
     await promise_rejects_js(
         t, TypeError,
         mlContext.createConstantTensor(

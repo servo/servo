@@ -4,17 +4,21 @@
 <link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
-  div {
-    font-size: 10px;
+  @font-face {
+    font-family: "emoji-test";
+    src: url("/fonts/noto/color-emoji/NotoColorEmoji-subset.ttf");
   }
-  span {
+  div {
+    font-family: "emoji-test";
+    font-size: 10px;
+    width: calc(90px + 38px + 1px);  /* matches the test */
+  }
+  span.ahem {
     font-family: Ahem;
     font-size: 30px;
   }
 </style>
 <body>
   <p>Test passes if there is an 🟢😀🤷‍♂️ after a black rectangle below.</p>
-  <div>
-    <span>Tes</span>🟢😀🤷‍♂️
-  </div>
+  <div><span class="ahem">Tes</span>🟢😀🤷‍♂️</div>
 </body>

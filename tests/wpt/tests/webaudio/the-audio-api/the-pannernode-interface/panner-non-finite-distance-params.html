@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>PannerNode must not produce non-finite samples for edge-case distance parameters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// Linear distance model: gain = 1 - rolloff * (d - ref) / (max - ref).
+// When refDistance == maxDistance the denominator is 0, producing NaN/Inf
+// gain that bleeds into the rendered audio.
+promise_test(async () => {
+  const sampleRate = 48000;
+  const frames = 1024;
+  const ctx = new OfflineAudioContext(2, frames, sampleRate);
+
+  const buf = ctx.createBuffer(1, frames, sampleRate);
+  buf.getChannelData(0).fill(0.25);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+
+  const panner = ctx.createPanner();
+  panner.distanceModel = "linear";
+  panner.refDistance = 1;
+  panner.maxDistance = 1;
+  panner.rolloffFactor = 1;
+  panner.positionX.value = 10;
+
+  src.connect(panner).connect(ctx.destination);
+  src.start();
+
+  const rendered = await ctx.startRendering();
+  for (let ch = 0; ch < rendered.numberOfChannels; ++ch) {
+    const data = rendered.getChannelData(ch);
+    for (let i = 0; i < data.length; ++i) {
+      assert_true(Number.isFinite(data[i]),
+        `channel ${ch} frame ${i} is ${data[i]} (expected finite)`);
+    }
+  }
+}, "linear distance model with refDistance == maxDistance must not produce NaN/Inf samples");
+
+// Exponential distance model: gain = (distance / refDistance)^(-rolloff).
+// When refDistance == 0 the division produces Inf, and when distance is also
+// 0 the result is NaN.
+promise_test(async () => {
+  const ctx = new OfflineAudioContext(2, 1024, 48000);
+  const buf = ctx.createBuffer(1, 1024, 48000);
+  buf.getChannelData(0).fill(0.25);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+
+  const panner = ctx.createPanner();
+  panner.distanceModel = "exponential";
+  panner.refDistance = 0;
+  panner.rolloffFactor = 1;
+
+  src.connect(panner).connect(ctx.destination);
+  src.start();
+
+  const rendered = await ctx.startRendering();
+  for (let ch = 0; ch < rendered.numberOfChannels; ++ch) {
+    const data = rendered.getChannelData(ch);
+    for (let i = 0; i < data.length; ++i) {
+      assert_true(Number.isFinite(data[i]),
+        `channel ${ch} frame ${i} is ${data[i]} (expected finite)`);
+    }
+  }
+}, "exponential distance model with refDistance == 0 must not produce NaN/Inf samples");
+</script>
+</body>
+</html>

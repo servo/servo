@@ -742,15 +742,15 @@
   test_if_with_custom_properties(`if(style(--x) and invalid: true_value;
           else: false_value)`,
         [['--x', '3']],
-        '');
+    'false_value');
   test_if_with_custom_properties(`if(invalid or style(--x): true_value;
           else: false_value)`,
         [['--x', '3']],
-        '');
+    'false_value');
   test_if_with_custom_properties(`if(style(not (--x: 5) or (--z: 10px)): true_value;
           else: false_value;)`,
         [['--x', '3'], ['--y', 'green'], ['--z', '11px']],
-        '');
+    'false_value');
 
   // IACVT
   test_if_with_custom_properties('if(style(--x: 0): true_value;)', [['--x', '3']], '');

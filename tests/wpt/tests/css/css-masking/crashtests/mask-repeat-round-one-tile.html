@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when mask-repeat is round with mask-size larger than element</title>
+<link rel="help" href="https://crbug.com/40336161">
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  mask-image: url("../resources/green-20.png");
+  mask-repeat: round;
+  /* mask-size is at least twice as big as the element */
+  mask-size: 201px 201px;
+  background-color: green;
+}
+</style>
+<div id="target"></div>

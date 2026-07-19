@@ -7,15 +7,23 @@
 <meta name="assert" content="Test checks text-overflow ellipsis takes their bidi direction from the paragraph. With unicode-bidi: plaintext, this is the bidi paragraph's determined direction, not the value of the `direction` property.">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
+  @font-face {
+    /* Pin a bundled font covering Hebrew so the bidi content is laid out with
+       known, platform-independent advances. */
+    font-family: "mplus-test";
+    src: url("/fonts/mplus-1p-regular.woff");
+  }
   div {
-    font-family: monospace;
+    font-family: "mplus-test";
     font-size: 10px;
     overflow: hidden;
     /* This custom ellipsis string has mixed LTR/RTL characters
      * ("A" and "ום"), but its base direction (determined by the first strong
      * char 'ו') is RTL. */
     text-overflow: "ום A";
-    width: calc(90px + 4.1ch);
+    /* 90px for three Ahem glyphs + 20px for the ellipsis string "ום A" + 1px
+       margin. */
+    width: calc(90px + 20px + 1px);
     /* Even though the div has dir="rtl" (and therefore `direction: rtl`), its
      * actual bidi direction is determined by its content, which is LTR. */
     unicode-bidi: plaintext;

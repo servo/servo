@@ -1,23 +1,25 @@
 <!DOCTYPE html>
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<meta charset="utf-8">
 <style>
-@import "support/MetricsTestFont.css";
-
 body {
-  font: 100px/1 MetricsTestFont;
+  font: 100px/1 BaselineDiagnosticAlphabeticZero;
 }
 .spacer {
   background: lightgray;
   block-size: 100px;
 }
 .target-first {
-  margin-block: -60px 50px;
+  margin-block-start: calc(-1em * var(--baseline-diagnostic-alphabetic-zero-x-height));
+  margin-block-end: 50px;
 }
 .target-second {
-  margin-block: 50px 0px;
+  margin-block-start: 50px;
+  margin-block-end: 0px;
 }
 </style>
 <div class="spacer"></div>
-<div class="target-first">ApÉx</div>
+<div class="target-first">█BxIF</div>
 <div class="spacer"></div>
-<div class="target-second">ApÉx</div>
+<div class="target-second">█BxIF</div>
 <div class="spacer"></div>

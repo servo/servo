@@ -1,4 +1,4 @@
 // META: script=/common/utils.js
 // META: script=resources/early-hints-helpers.sub.js
 
-test(() => testReferrerPolicy("no-referrer"));
+fetch_tests_from_window(testReferrerPolicy("no-referrer"));

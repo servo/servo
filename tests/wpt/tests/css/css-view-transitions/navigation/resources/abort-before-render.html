@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+  <style>
+  @view-transition {
+    navigation: auto;
+  }
+</style>
+<script id="blocker" async src="common.js?pipe=trickle(d10)" blocking="render"></script>
+<script src="/resources/testharness.js"></script>
+<script>
+const params = new URLSearchParams(location.search);
+const bc_channel = new BroadcastChannel(params.get("channel"));
+
+window.addEventListener("pagereveal", e => {
+  bc_channel.postMessage(`did reveal original page ${e.viewTransition ? "with" : "without"} transition`);
+});
+
+if (params.get("phase") !== "aborted") {
+  // While still render-blocked (before the first rendering opportunity), start a
+  // cross-document navigation and then let it be aborted: the destination responds
+  // with 204 No Content, which keeps this (the original) document. The original
+  // document must still be revealed, and no view transition should have started.
+  step_timeout(() => {
+    location.href = `?phase=aborted&channel=${bc_channel.name}&pipe=status(204)`;
+  }, 100);
+}
+</script>
+</head>
+
+<body>
+  Content
+</body>

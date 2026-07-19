@@ -13,8 +13,8 @@ test(() => {
   assert_equals(range.startOffset, 0, "startOffset resets to 0");
   assert_equals(range.endOffset, 0, "endOffset resets to 0");
   assert_true(range.collapsed, "range is collapsed");
-  assert_equals(range.startContainer, null, "startContainer remains null");
-  assert_equals(range.endContainer, null, "endContainer remains null");
+  assert_equals(range.startContainer, undefined, "startContainer remains undefined");
+  assert_equals(range.endContainer, undefined, "endContainer remains undefined");
   assert_equals(range.getClientRects().length, 0, "no client rects");
   assert_equals(range.getBoundingClientRect().width, 0, "bounding rect width is 0");
   assert_equals(range.getBoundingClientRect().height, 0, "bounding rect height is 0");

@@ -27,15 +27,16 @@ result.called = true;
 ({ p, result });
 `);
 
-  // The global becomes not-fully-active before the next microtask checkpoint.
+  // The global becomes not-fully-active before the next microtask checkpoint,
+  // but the reaction job still runs.
   iframe.remove();
 
   // Verify the result after the next microtask checkpoint.
   t.step_timeout(() => {
-    assert_equals(result.called, false);
+    assert_equals(result.called, true);
     t.done();
   }, 0);
-}, "Reaction job should be skipped if onFulfilled handler belongs to detached iframe");
+}, "Reaction job should run even if onFulfilled handler belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   // A promise reaction job is created with the iframe's realm, retrieved
@@ -48,14 +49,15 @@ result.called = true;
 ({ p, result });
 `);
 
-  // The global becomes not-fully-active before the next microtask checkpoint.
+  // The global becomes not-fully-active before the next microtask checkpoint,
+  // but the reaction job still runs.
   iframe.remove();
 
   t.step_timeout(() => {
-    assert_equals(result.called, false);
+    assert_equals(result.called, true);
     t.done();
   }, 0);
-}, "Reaction job should be skipped if onRejected handler belongs to detached iframe");
+}, "Reaction job should run even if onRejected handler belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
@@ -111,10 +113,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job for fulfilled promise should be skipped if it belongs to detached iframe");
+}, "Thenable job for fulfilled promise should run even if it belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.reject(1);`);
@@ -132,10 +134,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job for rejected promise should be skipped if it belongs to detached iframe");
+}, "Thenable job for rejected promise should run even if it belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
@@ -196,10 +198,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job created by reaction job for fulfillment should be skipped if it belongs to detached iframe");
+}, "Thenable job created by reaction job for fulfillment should run even if it belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
@@ -218,10 +220,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job created by reaction job for rejection should be skipped if it belongs to detached iframe");
+}, "Thenable job created by reaction job for rejection should run even if it belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
@@ -239,10 +241,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job created by Promise.all should be skipped if it belongs to detached iframe");
+}, "Thenable job created by Promise.all should run even if it belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
@@ -260,10 +262,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job created by Promise.allSettled should be skipped if it belongs to detached iframe");
+}, "Thenable job created by Promise.allSettled should run even if it belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
@@ -281,10 +283,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job created by Promise.any should be skipped if it belongs to detached iframe");
+}, "Thenable job created by Promise.any should run even if it belongs to detached iframe");
 
 async_iframe_test((t, iframe) => {
   const p = iframe.contentWindow.eval(`Promise.resolve(1);`);
@@ -302,9 +304,10 @@ async_iframe_test((t, iframe) => {
   });
 
   t.step_timeout(() => {
-    assert_equals(called, false);
+    assert_equals(called, true);
     t.done();
   }, 0);
-}, "Thenable job created by Promise.race should be skipped if it belongs to detached iframe");
+}, "Thenable job created by Promise.race should run even if it belongs to detached iframe");
 </script>
 </body>
+</html>

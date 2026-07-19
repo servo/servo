@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: right float with shape-outside ellipse, margin-box and negative margin-right in RTL</title>
+    <link rel="help" href="https://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+    <link rel="help" href="https://www.w3.org/TR/css-shapes-1/#funcdef-ellipse">
+    <link rel="match" href="reference/shape-outside-ellipse-053-ref.html">
+    <meta name="flags" content="ahem">
+    <meta name="assert" content="The test verifies that text wraps correctly around
+                                 a right float with shape-outside: ellipse() margin-box
+                                 in an RTL container with negative margin-right.">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+    <style>
+    body {
+        margin: 0;
+    }
+    .container {
+        width: 200px;
+        direction: rtl;
+        font: 20px/1 Ahem;
+        color: green;
+        overflow: hidden;
+    }
+    .float {
+        float: right;
+        width: 100px;
+        height: 100px;
+        margin-right: -50px;
+        shape-outside: ellipse(50% 50%) margin-box;
+    }
+    </style>
+</head>
+<body>
+    <p>Test passes if both renderings match.</p>
+    <div class="container">
+        <div class="float"></div>
+        X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
+    </div>
+</body>
+</html>

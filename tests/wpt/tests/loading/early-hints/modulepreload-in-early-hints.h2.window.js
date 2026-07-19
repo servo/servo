@@ -9,12 +9,10 @@
 //
 // [1]: resources/modulepreload-in-early-hints.h2.py
 // [2]: resources/modulepreload-in-early-hints.h2.html
-test(() => {
-    const params = new URLSearchParams();
-    params.set("description", "Modulepreload works in early hints");
-    params.set("resource-url",
-        SAME_ORIGIN_RESOURCES_URL + "/empty.js?" + token());
-    params.set("should-preload", true);
-    const test_url = "resources/modulepreload-in-early-hints.h2.py?" + params.toString();
-    window.location.replace(new URL(test_url, window.location));
-});
+const params = new URLSearchParams();
+params.set("description", "Modulepreload works in early hints");
+params.set("resource-url",
+    SAME_ORIGIN_RESOURCES_URL + "/empty.js?" + token());
+params.set("should-preload", true);
+const test_url = "resources/modulepreload-in-early-hints.h2.py?" + params.toString();
+fetch_tests_from_window(openWindow(new URL(test_url, window.location)));

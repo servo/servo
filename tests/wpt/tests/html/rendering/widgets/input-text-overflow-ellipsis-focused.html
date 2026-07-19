@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>text-overflow: ellipsis has no effect on input when scrolled</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element-as-a-text-entry-widget">
+<link rel="match" href="input-text-overflow-ellipsis-focused-ref.html">
+<style>
+input {
+  text-overflow: ellipsis;
+}
+</style>
+<input autofocus value="something very very very very long">

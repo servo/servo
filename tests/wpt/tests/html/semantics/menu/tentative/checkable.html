@@ -210,6 +210,124 @@ test(() => {
 }, "fieldset multiple => single; all but the first checked menuitem gets " +
    "reset");
 
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+  const item2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  assert_false(item1.checked, "item1 is unchecked");
+  assert_false(item2.checked, "item2 is unchecked");
+  item1.checked = true;
+  item2.checked = true;
+  assert_true(item1.checked, "item1 is checked");
+  assert_true(item2.checked, "item2 is checked");
+}, "fieldset with checkable=\"\" allows multiple menuitems to be checked");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "unknownvalue");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+  const item2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  assert_false(item1.checked, "item1 is unchecked");
+  assert_false(item2.checked, "item2 is unchecked");
+  item1.checked = true;
+  item2.checked = true;
+  assert_true(item1.checked, "item1 is checked");
+  assert_true(item2.checked, "item2 is checked");
+}, "fieldset with checkable=unknownvalue allows multiple menuitems to be checked");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "multiple");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+  const item2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  item1.checked = true;
+  item2.checked = true;
+  fieldset.setAttribute("checkable", "");
+  assert_true(item1.checked, "first menuitem stays checked");
+  assert_true(item2.checked, "second menuitem stays checked");
+}, "fieldset multiple => ''; menuitems stay checked");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "multiple");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+  const item2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  item1.checked = true;
+  item2.checked = true;
+  fieldset.setAttribute("checkable", "unknownvalue");
+  assert_true(item1.checked, "first menuitem stays checked");
+  assert_true(item2.checked, "second menuitem stays checked");
+}, "fieldset multiple => unknownvalue; menuitems stay checked");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+  const item2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  item1.checked = true;
+  item2.checked = true;
+  fieldset.setAttribute("checkable", "single");
+  assert_true(item1.checked, "first menuitem stays checked");
+  assert_false(item2.checked, "second menuitem becomes unchecked");
+}, "fieldset '' => single; all but the first checked menuitem gets reset");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "unknownvalue");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+  const item2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  item1.checked = true;
+  item2.checked = true;
+  fieldset.setAttribute("checkable", "single");
+  assert_true(item1.checked, "first menuitem stays checked");
+  assert_false(item2.checked, "second menuitem becomes unchecked");
+}, "fieldset unknownvalue => single; all but the first checked menuitem gets reset");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+
+  item1.checked = true;
+  assert_true(item1.checked, true);
+  fieldset.removeAttribute("checkable");
+  assert_false(item1.checked,
+      "menuitem gets unchecked after fieldset becomes uncheckable");
+  item1.checked = true;
+  assert_false(item1.checked,
+      "menuitem cannot become checked after fieldset becomes uncheckable");
+}, "when fieldset with checkable='' becomes uncheckable, so do its menuitems");
+
+test(() => {
+  const menulist = document.createElement('menulist');
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute("checkable", "unknownvalue");
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+
+  item1.checked = true;
+  assert_true(item1.checked, true);
+  fieldset.removeAttribute("checkable");
+  assert_false(item1.checked,
+      "menuitem gets unchecked after fieldset becomes uncheckable");
+  item1.checked = true;
+  assert_false(item1.checked,
+      "menuitem cannot become checked after fieldset becomes uncheckable");
+}, "when fieldset with checkable=unknownvalue becomes uncheckable, so do its menuitems");
+
 // Testing the `defaultchecked` content attribute and `defaultChecked` IDL
 // attribute.
 test(() => {

@@ -142,6 +142,9 @@ for f in \
   copy_if_exists "$JXL_RS_TESTDATA/$f" "$SCRIPT_DIR/$f"
 done
 
+copy_if_exists "$JXL_RS_TESTDATA/small_grayscale_patches_modular_with_icc.jxl" \
+  "$SCRIPT_DIR/gray-with-icc.jxl"
+
 copy_if_exists "$JXL_RS_CONF/alpha_nonpremultiplied.jxl" \
   "$SCRIPT_DIR/conformance_alpha_nonpremultiplied.jxl"
 copy_if_exists "$JXL_RS_CONF/sunset_logo.jxl" \
@@ -202,6 +205,9 @@ decode_png_ref_if_exists \
 decode_png_ref_if_exists \
   "$SCRIPT_DIR/8x8_noise.jxl" \
   "$SCRIPT_DIR/8x8_noise.png"
+decode_png_ref_if_exists \
+  "$SCRIPT_DIR/gray-with-icc.jxl" \
+  "$SCRIPT_DIR/gray-with-icc.png"
 
 # --- Part 3: Hand-crafted edge case bitstreams ---
 

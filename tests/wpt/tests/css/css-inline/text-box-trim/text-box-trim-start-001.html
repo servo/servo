@@ -4,26 +4,32 @@
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
 <link rel="match" href="text-box-trim-start-001-ref.html">
 <script src="support/variant-class.js"></script>
+<meta charset="utf-8">
 <meta name="variant" content="?class=auto">
 <meta name="variant" content="?class=text">
 <meta name="variant" content="?class=cap">
 <meta name="variant" content="?class=ex">
+<meta name="variant" content="?class=ideographic">
+<meta name="variant" content="?class=ideographic-ink">
 <meta name="variant" content="?class=vrl,auto">
 <meta name="variant" content="?class=vrl,text">
 <meta name="variant" content="?class=vrl,cap">
 <meta name="variant" content="?class=vrl,ex">
+<meta name="variant" content="?class=vrl,ideographic">
+<meta name="variant" content="?class=vrl,ideographic-ink">
 <meta name="variant" content="?class=vlr,auto">
 <meta name="variant" content="?class=vlr,text">
 <meta name="variant" content="?class=vlr,alphabetic">
+<meta name="variant" content="?class=vlr,ideographic">
+<meta name="variant" content="?class=vlr,ideographic-ink">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
 <style>
-@import "support/MetricsTestFont.css";
-
 .spacer {
   background: lightgray;
   block-size: 100px;
 }
 .target {
-  font: 100px/2 MetricsTestFont;
+  font: 100px/2 BaselineDiagnosticAlphabeticZero;
   text-box-trim: trim-start;
 }
 .vrl { writing-mode: vertical-rl; }
@@ -32,9 +38,13 @@
 .text .target { text-box-edge: text; }
 .cap  .target { text-box-edge: cap text; }
 .ex   .target { text-box-edge: ex text; }
+.ideographic
+      .target { text-box-edge: ideographic; }
+.ideographic-ink
+      .target { text-box-edge: ideographic-ink; }
 .vlr.alphabetic
       .target { text-box-edge: text alphabetic; }
 </style>
 <div class="spacer"></div>
-<div class="target">ApÉx</div>
+<div class="target">█BxIF</div>
 <div class="spacer"></div>

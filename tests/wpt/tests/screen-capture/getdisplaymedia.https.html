@@ -240,6 +240,7 @@ promise_test(async t => {
  {windowAudio: "exclude"},
  {windowAudio: "window"},
  {windowAudio: "system"},
+ {audioSelection: "preferred"},
 ].forEach(constraints => promise_test(async t => {
   const stream = await getDisplayMedia(constraints);
   t.add_cleanup(() => stopTracks(stream));
@@ -251,6 +252,7 @@ promise_test(async t => {
  {systemAudio: "invalid"},
  {windowAudio: "invalid"},
  {monitorTypeSurfaces: "invalid"},
+ {audioSelection: "invalid"},
 ].forEach(constraints => promise_test(async t => {
   await test_driver.bless('getDisplayMedia()');
   const p = navigator.mediaDevices.getDisplayMedia(constraints);

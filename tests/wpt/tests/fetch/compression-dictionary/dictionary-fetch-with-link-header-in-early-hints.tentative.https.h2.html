@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<script>
+  const dict_token = token();
+  const url = new URL(
+      `${kRegisterDictionaryHttp2Path}?save_header=${dict_token}`, location.href);
+  navigateToTestWithCompressionDictionaryEarlyHints("resources/dictionary-fetch-with-link-header-in-early-hints.tentative.https.h2.html", url.href);
+</script>

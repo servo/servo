@@ -8,6 +8,22 @@ const SAME_ORIGIN_RESOURCES_URL = SAME_ORIGIN + RESOURCES_PATH;
 const CROSS_ORIGIN_RESOURCES_URL = CROSS_ORIGIN + RESOURCES_PATH;
 
 /**
+ * Opens `url` in an auxiliary top-level browsing context (popup) and registers
+ * cleanup. The returned window runs the test page and reports its subtests back
+ * to the opener via `fetch_tests_from_window()`, so the test runner's top-level
+ * window is never navigated away (which is racy for navigation tests).
+ *
+ * @param {string|URL} url
+ * @returns {Window}
+ */
+function openWindow(url) {
+    const win = window.open(url, "_blank");
+    assert_not_equals(win, null, "window.open() should open a popup");
+    add_completion_callback(() => win.close());
+    return win;
+}
+
+/**
  * Navigate to a test page with an Early Hints response.
  *
  * @typedef {Object} Preload
@@ -18,6 +34,8 @@ const CROSS_ORIGIN_RESOURCES_URL = CROSS_ORIGIN + RESOURCES_PATH;
  *     preload.
  * @property {string} [fetchpriority_attr] - `fetchpriority` attribute of this
  *     preload.
+ * @property {string} [integrity_attr] - `integrity` attribute (subresource
+ *     integrity metadata) of this preload.
  *
  * @param {string} test_url - URL of a test after the Early Hints response.
  * @param {Array<Preload>} preloads  - Preloads included in the Early Hints response.
@@ -32,7 +50,7 @@ function navigateToTestWithEarlyHints(test_url, preloads, exclude_preloads_from_
         params.append("preloads", JSON.stringify(preload));
     }
     const url = RESOURCES_PATH +"/early-hints-test-loader.h2.py?" + params.toString();
-    window.location.replace(new URL(url, window.location));
+    return openWindow(new URL(url, window.location));
 }
 
 /**
@@ -72,7 +90,7 @@ function navigateToTestWithEarlyHintsPreconnects(test_url, preconnects) {
     }
     const url = RESOURCES_PATH + "/early-hints-test-loader.h2.py?" +
         params.toString();
-    window.location.replace(new URL(url, window.location));
+    return openWindow(new URL(url, window.location));
 }
 
 /**
@@ -152,7 +170,7 @@ function testReferrerPolicy(referrer_policy) {
 
     const path = "resources/referrer-policy-test-loader.h2.py?" + params.toString();
     const url = new URL(path, window.location);
-    window.location.replace(url);
+    return openWindow(url);
 }
 
 /**
@@ -177,7 +195,7 @@ function navigateToContentSecurityPolicyBasicTest(
     params.set("final-policy", final_policy);
 
     const url = "resources/csp-basic-loader.h2.py?" + params.toString();
-    window.location.replace(new URL(url, window.location));
+    return openWindow(new URL(url, window.location));
 }
 
 /**
@@ -201,7 +219,7 @@ function navigateToContentSecurityPolicyDocumentDisallowTest(early_hints_policy)
     params.set("early-hints-policy", early_hints_policy);
 
     const url = "resources/csp-document-disallow-loader.h2.py?" + params.toString();
-    window.location.replace(new URL(url, window.location));
+    return openWindow(new URL(url, window.location));
 }
 
 /**
@@ -220,5 +238,5 @@ function navigateToCrossOriginEmbedderPolicyMismatchTest(
     params.set("final-policy", final_policy);
 
     const url = "resources/coep-mismatch.h2.py?" + params.toString();
-    window.location.replace(new URL(url, window.location));
+    return openWindow(new URL(url, window.location));
 }

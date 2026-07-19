@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="When a grid's inline size changes so that a grid item's content block size changes (here a min-content-width grid where 'XXX XXX' wraps onto two lines, then widened to max-content where it fits on one line), the item's intrinsic (auto) row must reflect the item's content block size at the new inline size rather than a stale block size from the previous layout.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+<style>
+#grid {
+  display: grid;
+  width: min-content;
+  grid: auto / auto;
+  font: 10px/1 Ahem;
+}
+</style>
+
+<div id="grid"><div style="grid-row: 1 / 2;">XXX XXX</div></div>
+
+<script>
+test(() => {
+  const grid = document.getElementById("grid");
+
+  // At min-content width, "XXX XXX" wraps onto two lines, so the row is 20px tall.
+  assert_equals(grid.offsetHeight, 20, "grid is two lines tall at min-content width");
+
+  // Widening to max-content lets "XXX XXX" fit on one line, so the row must shrink
+  // to that one-line content block size (10px), not stay at the previous 20px.
+  grid.style.width = "max-content";
+  assert_equals(grid.offsetHeight, 10, "grid is one line tall at max-content width");
+}, "An intrinsic grid row uses the item's content block size, not a stale block size from a previous layout");
+</script>

@@ -1,0 +1,196 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Digital Credentials: get() and opaque origins across framing combinations
+</title>
+<link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    const SUPPORT = "/digital-credentials/support/";
+
+    // Inline reporter for the srcdoc / data: / blob: cases, which can neither load an
+    // external page nor carry an id in a URL. Mirrors support/dc-report-get.js: it calls
+    // get() and posts { origin, secure, result } to the top-level test so even deeply
+    // nested / opaque frames can report back.
+    const reportDoc = (
+      id,
+    ) => `<!DOCTYPE html><meta charset=utf-8><body></body><script>
+(async () => {
+  const report = { id: ${JSON.stringify(id)}, origin: String(self.origin), secure: self.isSecureContext, result: "resolved" };
+  try {
+    if (!(navigator.credentials && navigator.credentials.get)) throw new TypeError("navigator.credentials.get is unavailable");
+    await navigator.credentials.get({ digital: { requests: [] } });
+  } catch (error) { report.result = error.name; }
+  (window.top || window.parent).postMessage(report, "*");
+})();
+<\/script>`;
+
+    function awaitReport(id) {
+      return new Promise((resolve) => {
+        addEventListener("message", function handler(event) {
+          if (event.data && event.data.id === id) {
+            removeEventListener("message", handler);
+            resolve(event.data);
+          }
+        });
+      });
+    }
+
+    function runInFrame(id, configure) {
+      const frame = document.createElement("iframe");
+      frame.allow = "digital-credentials-get";
+      configure(frame, id);
+      document.body.appendChild(frame);
+      return awaitReport(id).finally(() => {
+        if (frame.src.startsWith("blob:")) URL.revokeObjectURL(frame.src);
+      });
+    }
+
+    // Opaque calling document -> the opaque-origin guard fires -> SecurityError.
+    const OPAQUE = [
+      [
+        "sandboxed iframe",
+        (frame, id) => {
+          frame.sandbox = "allow-scripts";
+          frame.src = SUPPORT + "dc-report-get.html?id=" + id;
+        },
+      ],
+      [
+        "sandboxed srcdoc iframe",
+        (frame, id) => {
+          frame.sandbox = "allow-scripts";
+          frame.srcdoc = reportDoc(id);
+        },
+      ],
+      [
+        "iframe whose document has a Content-Security-Policy: sandbox header",
+        (frame, id) => {
+          frame.src = SUPPORT + "dc-report-get-csp-sandbox.html?id=" + id;
+        },
+      ],
+      [
+        "plain iframe nested inside a sandboxed iframe (2 levels)",
+        (frame, id) => {
+          frame.sandbox = "allow-scripts";
+          frame.src = SUPPORT + "dc-nest.html?id=" + id + "&depth=0";
+        },
+      ],
+      [
+        "plain iframes nested two deep inside a sandboxed iframe (3 levels)",
+        (frame, id) => {
+          frame.sandbox = "allow-scripts";
+          frame.src = SUPPORT + "dc-nest.html?id=" + id + "&depth=1";
+        },
+      ],
+      [
+        "allow-same-origin iframe nested inside a sandboxed iframe",
+        (frame, id) => {
+          frame.sandbox = "allow-scripts";
+          frame.srcdoc = `<!DOCTYPE html><body><script>
+            const inner = document.createElement("iframe");
+            inner.sandbox = "allow-scripts allow-same-origin";
+            inner.allow = "digital-credentials-get";
+            inner.src = ${JSON.stringify(SUPPORT + "dc-report-get.html?id=" + id)};
+            document.body.appendChild(inner);
+          <\/script>`;
+        },
+      ],
+    ];
+    OPAQUE.forEach(([label, configure], index) => {
+      promise_test(
+        async () => {
+          const report = await runInFrame("opaque-" + index, configure);
+          assert_equals(report.origin, "null", "expected an opaque origin");
+          assert_equals(
+            report.result,
+            "SecurityError",
+            "an opaque origin must reject with SecurityError",
+          );
+        },
+        "get() from an opaque origin (" +
+          label +
+          ") rejects with SecurityError",
+      );
+    });
+
+    // Non-opaque calling document -> the opaque-origin guard must NOT fire.
+    const NON_OPAQUE = [
+      [
+        "sandboxed iframe with allow-same-origin",
+        (frame, id) => {
+          frame.sandbox = "allow-scripts allow-same-origin";
+          frame.src = SUPPORT + "dc-report-get.html?id=" + id;
+        },
+      ],
+      [
+        "srcdoc iframe without sandbox (inherits the parent origin)",
+        (frame, id) => {
+          frame.srcdoc = reportDoc(id);
+        },
+      ],
+      [
+        "blob: iframe (inherits the creator origin)",
+        (frame, id) => {
+          frame.src = URL.createObjectURL(
+            new Blob([reportDoc(id)], { type: "text/html" }),
+          );
+        },
+      ],
+    ];
+    NON_OPAQUE.forEach(([label, configure], index) => {
+      promise_test(
+        async () => {
+          const report = await runInFrame("nonopaque-" + index, configure);
+          assert_not_equals(
+            report.origin,
+            "null",
+            "expected a normal (non-opaque) origin",
+          );
+          assert_not_equals(
+            report.result,
+            "SecurityError",
+            "a non-opaque origin must not be rejected by the opaque-origin check",
+          );
+        },
+        "get() from a non-opaque origin (" +
+          label +
+          ") is not rejected as opaque",
+      );
+    });
+
+    promise_test(async () => {
+      const report = await runInFrame("data", (frame, id) => {
+        frame.src = "data:text/html," + encodeURIComponent(reportDoc(id));
+      });
+      assert_false(report.secure, "a data: document is not a secure context");
+      assert_equals(
+        report.result,
+        "TypeError",
+        "the API is unavailable, so it is a TypeError, not a SecurityError",
+      );
+    }, "get() in a data: iframe is unavailable (not a secure context) and never reaches the opaque-origin check");
+
+    promise_test(async () => {
+      const report = await runInFrame("blob-in-sandbox", (frame, id) => {
+        frame.sandbox = "allow-scripts";
+        frame.src = SUPPORT + "dc-report-get-blob-in-sandbox.html?id=" + id;
+      });
+      assert_equals(
+        report.origin,
+        "null",
+        "the blob inherits the opaque creator origin",
+      );
+      assert_false(
+        report.secure,
+        "a blob: document created in an opaque frame is not a secure context",
+      );
+      assert_equals(
+        report.result,
+        "TypeError",
+        "the API is unavailable, so it is a TypeError, not a SecurityError",
+      );
+    }, "get() in a blob: iframe created inside a sandboxed frame inherits the opaque origin and is unavailable");
+  </script>
+</body>

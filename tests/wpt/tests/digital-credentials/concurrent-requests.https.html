@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
+<!doctype html>
+<meta charset="utf-8" />
 <title>Digital Credential concurrent request rejection tests</title>
 <link rel="help" href="https://w3c-fedid.github.io/digital-credentials/" />
 <script src="/resources/testharness.js"></script>
@@ -37,7 +37,7 @@
       t,
       "NotAllowedError",
       secondRequest,
-      "Second concurrent request should be rejected with NotAllowedError"
+      "Second concurrent request should be rejected with NotAllowedError",
     );
 
     abortController.abort();
@@ -45,7 +45,42 @@
       t,
       "AbortError",
       firstRequest,
-      "First request should be aborted"
+      "First request should be aborted",
     );
   }, "A second get() call while another is pending should reject with NotAllowedError.");
+
+  promise_test(async (t) => {
+    // The concurrency rejection must be queued as a global task on the DOM
+    // manipulation task source (per "prepare credential requests"), not settled
+    // synchronously. A synchronous rejection would settle the promise within
+    // the get() call, scheduling its rejection reaction ahead of a microtask
+    // queued in the same tick; a task-queued rejection lets the microtask run
+    // first.
+    await test_driver.set_virtual_wallet_behavior("wait");
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+
+    const abortController = new AbortController();
+    await test_driver.bless("user activation for first request");
+    const firstRequest = navigator.credentials.get(
+      makeGetOptions({ signal: abortController.signal }),
+    );
+
+    const order = [];
+    let secondRequest;
+    await test_driver.bless("user activation for second request", () => {
+      secondRequest = navigator.credentials.get(makeGetOptions());
+      secondRequest.catch(() => order.push("rejection"));
+      Promise.resolve().then(() => order.push("microtask"));
+    });
+
+    await promise_rejects_dom(t, "NotAllowedError", secondRequest);
+    assert_array_equals(
+      order,
+      ["microtask", "rejection"],
+      "The concurrent-request rejection must be queued as a task, not settled synchronously.",
+    );
+
+    abortController.abort();
+    await promise_rejects_dom(t, "AbortError", firstRequest);
+  }, "A concurrent get() rejection is queued on the DOM manipulation task source, not settled synchronously.");
 </script>

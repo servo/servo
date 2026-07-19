@@ -1,0 +1,42 @@
+<!doctype html>
+<title>ResizeObserver test: unobserve target stops notification, unobserve non-observed does nothing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  let t1 = createAndAppendElement("div");
+  let t2 = createAndAppendElement("div");
+  t1.style.width = "100px";
+  t2.style.width = "100px";
+
+  let helper = new ResizeTestHelper(
+    "unobserve target stops notifications, unobserve non-observed does nothing", [
+    {
+      setup: observer => {
+        observer.observe(t1);
+        observer.observe(t2);
+        observer.unobserve(t1);
+        observer.unobserve(document.body);
+        t1.style.width = "40px";
+        t2.style.width = "40px";
+      },
+      notify: entries => {
+        assert_equals(entries.length, 1, "only t2");
+        assert_equals(entries[0].target, t2, "t2 was observed");
+      }
+    }
+  ]);
+  return helper.start(() => {
+    t1.remove();
+    t2.remove();
+  });
+}
+
+(async () => await test())();
+</script>

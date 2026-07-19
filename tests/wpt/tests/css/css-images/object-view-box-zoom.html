@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<title>object-view-box resolves insets correctly under non-1 zoom</title>
+<link rel="match" href="object-view-box-zoom-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#the-object-view-box">
+
+<style>
+  canvas {
+    display: block;
+    zoom: 2;
+    width: 40px;
+    height: 40px;
+    image-rendering: pixelated;
+    object-view-box: inset(0px 50px 50px 0px);
+  }
+</style>
+<body>
+<canvas id="canvas" width="100" height="100"></canvas>
+<script>
+  var ctx = document.getElementById("canvas").getContext("2d");
+  // Four solid quadrants; object-view-box selects only the top-left (red) one.
+  ctx.fillStyle = "red";
+  ctx.fillRect(0, 0, 50, 50);
+  ctx.fillStyle = "blue";
+  ctx.fillRect(50, 0, 50, 50);
+  ctx.fillStyle = "green";
+  ctx.fillRect(0, 50, 50, 50);
+  ctx.fillStyle = "yellow";
+  ctx.fillRect(50, 50, 50, 50);
+</script>
+</body>
+</html>

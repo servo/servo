@@ -28,4 +28,11 @@ test(() => {
   assert_equals(divElement.customElementRegistry, null);
   assert_equals(divElement.shadowRoot.customElementRegistry, window.customElements);
 }, "Built-in element inside 'shadowrootcustomelementregistry' declarative shadow root should use document's registry as attachShadow default registry");
+
+test(() => {
+  const container = document.createElement("div");
+  container.setHTMLUnsafe('<div><template shadowrootmode="open" shadowrootcustomelementregistry><div></div></template></div>');
+  const divElement = container.firstElementChild.shadowRoot.firstElementChild;
+  assert_equals(divElement.customElementRegistry, null);
+}, "Built-in element inside 'shadowrootcustomelementregistry' shadow root parsed via setHTMLUnsafe should use null registry");
 </script>

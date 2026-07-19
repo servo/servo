@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>use elements should work within reference documents</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SymbolElement"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#UseElement"/>
+    <h:link rel="match" href="reference/use-external-use-ref.svg"/>
+  </metadata>
+  <use href="reference/use-external-use-ref.svg#anchor"/>
+</svg>
+

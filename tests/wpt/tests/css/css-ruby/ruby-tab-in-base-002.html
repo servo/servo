@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Ruby Test: multiple tabulations across ruby nesting levels</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#line-breaks">
+<link rel="match" href="ruby-tab-in-base-002-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div.test {
+  font: 25px/1 Ahem;
+  white-space: pre;
+  tab-size: 100px;
+  width: max-content;
+}
+</style>
+<body>
+<div class="test">Z<ruby>M<ruby>&#9;N<rt>p</rt></ruby>&#9;O<rt>q</rt></ruby></div>
+</body>

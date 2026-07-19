@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>text-overflow: ellipsis has no effect on input when scrolled</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element-as-a-text-entry-widget">
+<link rel="match" href="input-text-overflow-ellipsis-scrolled-ref.html">
+<style>
+input {
+  text-overflow: ellipsis;
+}
+</style>
+<input value="something very very very very long">
+<script>
+  document.querySelector("input").scrollLeft = 10;
+</script>

@@ -1,0 +1,61 @@
+<!doctype html>
+<title>ResizeObserver test: iframe notifications</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/resizeTestHelper.js"></script>
+<body>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+function test() {
+  let iframe = createAndAppendElement("iframe");
+  iframe.width = "300px";
+  iframe.height = "100px";
+  iframe.style.display = "block";
+
+  let resolvePromise;
+  let promise = new Promise((resolve) => {
+    resolvePromise = resolve;
+  });
+  let test = async_test('iframe notifications');
+  let testRequested = false;
+  test.add_cleanup(() => iframe.remove());
+
+  window.addEventListener('message', event => {
+    switch(event.data) {
+    case 'readyToTest':
+      if (!testRequested) {
+        iframe.contentWindow.postMessage('startTest', '*');
+        testRequested = true;
+      }
+    break;
+    case 'success':
+    case 'fail':
+      window.requestAnimationFrame(() => {
+        resolvePromise();
+        test.step(() => {
+          assert_equals(event.data, 'success');
+          test.done();
+        });
+      });
+    break;
+    }
+  }, false);
+
+  iframe.src = "./resources/iframe.html";
+  return new Promise(function(resolve, reject) {
+    iframe.onload = () => resolve();
+    iframe.onerror = () => reject();
+  }).then(() => {
+    return promise;
+  }).catch(error => {
+    test.step(() => {
+      assert_unreached("loading iframe is error");
+    });
+  });
+}
+
+(async () => await test())();
+</script>

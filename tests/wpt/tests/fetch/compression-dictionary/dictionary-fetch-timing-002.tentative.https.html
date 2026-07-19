@@ -15,13 +15,17 @@
 <link id="hrefDynamicallySet" rel="compression-dictionary"></link>
 <link id="hrefDynamicallyChanged" rel="compression-dictionary" href="./resources/register-dictionary.py?hrefDynamicallyChanged"></link>
 <link id="relDynamicallySet" href="./resources/register-dictionary.py?relDynamicallySet">
+<!-- Fetching this resources will be tried immediately, use a 404 response so fetching will be attempted again after mutating crossorigin attribute. -->
+<link id="crossOriginDynamicallySet" rel="compression-dictionary" href="./resources/404NotFound/register-dictionary.py?crossOriginDynamicallySet">
+<link id="crossOriginDynamicallyChanged" rel="compression-dictionary" crossorigin="use-credentials" href="./resources/404NotFound/register-dictionary.py?crossOriginDynamicallyChanged">
+<link id="crossOriginDynamicallyRemoved" rel="compression-dictionary" crossorigin="use-credentials" href="./resources/404NotFound/register-dictionary.py?crossOriginDynamicallyRemoved">
 <body>
   <script>
     let fetchedDictionaries = [];
     const observer = new PerformanceObserver((list) => {
       list.getEntries().forEach(entry => {
         const url = new URL(entry.name);
-        if (url.pathname == "/fetch/compression-dictionary/resources/register-dictionary.py") {
+        if (url.pathname.endsWith("register-dictionary.py")) {
           fetchedDictionaries.push(url.search);
         }
       });
@@ -32,6 +36,9 @@
       // Initially fetched dictionaries.
       let expectedEntries = [
         "?alreadyBrowsingContextConnected",
+        "?crossOriginDynamicallyChanged",
+        "?crossOriginDynamicallyRemoved",
+        "?crossOriginDynamicallySet",
         "?hrefDynamicallyChanged",
       ];
       await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, "initially browsing-context connected <link> should trigger fetch", 5000);
@@ -68,6 +75,18 @@
       await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, "setting rel should trigger fetch", 5000);
       assert_array_equals(fetchedDictionaries.toSorted(), expectedEntries, "dictionary fetched after setting the rel attribute.");
       fetchedDictionaries = [];
+
+      // Dynamic changes to crossorigin.
+      expectedEntries = [
+        "?crossOriginDynamicallyChanged",
+        "?crossOriginDynamicallyRemoved",
+        "?crossOriginDynamicallySet",
+      ];
+      crossOriginDynamicallySet.setAttribute("crossorigin", "use-credentials");
+      crossOriginDynamicallyChanged.setAttribute("crossorigin", "anonymous");
+      crossOriginDynamicallyRemoved.removeAttribute("crossorigin");
+      await t.step_wait(_ => fetchedDictionaries.length >= expectedEntries.length, "modifying crossorigin should trigger fetch", 5000);
+      assert_array_equals(fetchedDictionaries.toSorted(), expectedEntries, "fetched dictionaries after dynamic changes to crossorigin attribute.");
     }, "<link rel=compression-dictionary> are fetched after DOM operations.");
   </script>
 </body>

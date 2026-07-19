@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>innerHTML on html element</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/11023">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  const html = document.createElement('html');
+  html.innerHTML = '<head></head><body></body><!-- comment -->';
+  assert_equals(html.childNodes.length, 3);
+  assert_equals(html.childNodes[0].nodeName, 'HEAD');
+  assert_equals(html.childNodes[1].nodeName, 'BODY');
+  assert_equals(html.childNodes[2].nodeType, Node.COMMENT_NODE);
+  assert_equals(html.childNodes[2].data, ' comment ');
+}, "innerHTML on html element with trailing comment")
+
+test(function() {
+  const html = document.createElement('html');
+  html.innerHTML = '<body></body><!-- comment -->';
+  assert_equals(html.childNodes.length, 3);
+  assert_equals(html.childNodes[0].nodeName, 'HEAD');
+  assert_equals(html.childNodes[1].nodeName, 'BODY');
+  assert_equals(html.childNodes[2].nodeType, Node.COMMENT_NODE);
+  assert_equals(html.childNodes[2].data, ' comment ');
+}, "innerHTML on html element with trailing comment (no explicit head)")
+</script>

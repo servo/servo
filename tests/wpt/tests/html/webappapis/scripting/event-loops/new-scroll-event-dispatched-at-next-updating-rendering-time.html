@@ -39,13 +39,13 @@ promise_test(async function() {
   // Set up a MQL change event listener to receive the event in between
   // scroll and transitionrun events.
   let timeOnMQLChange = null;
-  iframe.width = "400";
   const mqlChangeEvent = new Promise(resolve => {
     mql.addEventListener("change", () => {
       timeOnMQLChange = performance.now();
       resolve();
     }, { once: true });
   });
+  iframe.width = "400";
 
   // There are two scroll containers, setup a scroll event listener for one
   // of them.
@@ -71,7 +71,7 @@ promise_test(async function() {
   scrollers[1].scrollTop = 10;
 
   assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event should not yet have been dispatched");
+    "The new scroll event is not dispatched with the scrollTop update");
 
   // Trigger a CSS transition.
   let timeOnTransitionRun = null;
@@ -87,30 +87,30 @@ promise_test(async function() {
   // Now it's time to receive the MQL change event.
   await mqlChangeEvent;
   assert_less_than_equal(timeOnScrollEvent, timeOnMQLChange,
-    "The MQL change event should have been dispatched after the first scroll event");
+    "The MQL change event is dispatched after the first scroll event");
   assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event should not yet have been dispatched");
+    "The new scroll event is not dispatched right after the MQL change event");
 
   // Await the transitionrun event.
   await transitionrunEventPromise;
 
   assert_less_than(timeOnScrollEvent, timeOnTransitionRun,
-    "The transitionrun event should have been dispatched after the first scroll event");
+    "The transitionrun event is dispatched after the first scroll event");
   assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event should not yet have been dispatched");
+    "The new scroll event is not dispatched right after the transitionrun event");
 
   // Await a requestAnimationFrame callback.
   await new Promise(resolve => requestAnimationFrame(resolve));
 
   assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event should not yet have been dispatched");
+    "The new scroll event is not dispatched one frame after the transitionrun event");
 
   // Await one more requestAnimationFrame callback.
   await new Promise(resolve => requestAnimationFrame(resolve));
 
   assert_not_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event should now have been dispatched");
+    "The new scroll event is dispatched two frames after the transitionrun event");
   assert_less_than(timeOnTransitionRun, timeOnScrollEventOnAnotherScroller,
-    "The new scroll event should have been dispatched after the transitionrun event");
+    "The new scroll event is dispatched after the transitionrun event");
 });
 </script>

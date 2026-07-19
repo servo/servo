@@ -240,4 +240,56 @@ async_test(function(t) {
     assert_true(unmuteFirst.muted);
   }, 'defaultMuted does not affect ' + tagName + '.muted after the setter');
 });
+
+// The muted content attribute is a live fallback while the muted state is
+// "default", independent of whether the element is inserted in a document; the
+// spec's "muted" concept has no connectedness condition.
+// https://html.spec.whatwg.org/multipage/media.html#concept-media-muted
+['audio', 'video'].forEach(function(tagName) {
+  function attach(t) {
+    var m = document.createElement(tagName);
+    document.body.appendChild(m);
+    t.add_cleanup(function() { m.remove(); });
+    return m;
+  }
+
+  test(function() {
+    var m = attach(this);
+    assert_false(m.muted);
+    m.setAttribute('muted', '');
+    assert_true(m.muted);
+  }, 'adding muted="" at runtime on a connected ' + tagName + ' affects muted');
+
+  test(function() {
+    var m = attach(this);
+    m.setAttribute('muted', '');
+    assert_true(m.muted);
+    m.removeAttribute('muted');
+    assert_false(m.muted);
+  }, 'adding/removing muted attribute at runtime on a connected ' + tagName + ' affects muted');
+
+  test(function() {
+    var m = document.createElement(tagName);
+    m.setAttribute('muted', '');
+    assert_true(m.muted);
+    document.body.appendChild(m);
+    this.add_cleanup(function() { m.remove(); });
+    assert_true(m.muted);
+  }, tagName + ' muted="" is honored regardless of connectedness');
+
+  test(function() {
+    var m = attach(this);
+    m.muted = false;
+    m.setAttribute('muted', '');
+    assert_false(m.muted);
+  }, 'adding muted attribute has no effect on a connected ' + tagName + ' after the setter');
+
+  test(function() {
+    var m = attach(this);
+    m.setAttribute('muted', '');
+    m.muted = true;
+    m.removeAttribute('muted');
+    assert_true(m.muted);
+  }, 'removing muted attribute has no effect on a connected ' + tagName + ' after the setter');
+});
 </script>

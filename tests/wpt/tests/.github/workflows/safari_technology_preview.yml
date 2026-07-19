@@ -35,6 +35,6 @@ jobs:
       artifact-name: safari-technology-preview-results
       safari-technology-preview: true
       safaridriver-diagnose: false
-      matrix: '{"current-chunk": [1, 2, 3, 4, 5, 6, 7, 8], "total-chunks": [8]}'
+      matrix: '{"current-chunk": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "total-chunks": [12]}'
       extra-options: --no-fail-on-unexpected
       fetch-ref: ${{ fromJSON(needs.check-workflow-run.outputs.updated-refs || '{}')['refs/heads/epochs/three_hourly'] }}

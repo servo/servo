@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: align-items start and end in column direction with dense-packed multi-spanning item</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-dense-packing">
+  <link rel="match" href="column-dense-packing-align-items-multi-span-001-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-template-columns: repeat(4, 50px);
+      grid-lanes-pack: dense;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes" style="align-items: start;">
+  <item style="height: 70px; background: salmon;">1</item>
+  <item style="height: 20px; background: salmon; grid-column: 4;">2</item>
+  <item style="height: 20px; background: salmon; grid-column: 3 / span 2;">3</item>
+  <item style="height: 20px; background: salmon; grid-column: span 4;">4</item>
+  <item style="height: 10px; background: green; grid-column: span 2;">5</item>
+</div>
+
+<div class="grid-lanes" style="align-items: end;">
+  <item style="height: 70px; background: salmon;">1</item>
+  <item style="height: 20px; background: salmon; grid-column: 4;">2</item>
+  <item style="height: 20px; background: salmon; grid-column: 3 / span 2;">3</item>
+  <item style="height: 20px; background: salmon; grid-column: span 4;">4</item>
+  <item style="height: 10px; background: green; grid-column: span 2;">5</item>
+</div>
+
+</body>
+</html>

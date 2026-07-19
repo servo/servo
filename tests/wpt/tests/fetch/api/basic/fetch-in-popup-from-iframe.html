@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fetch in initial empty document popup created from iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  const popup = iframe.contentWindow.open();
+  t.add_cleanup(() => {
+    if (popup && !popup.closed) {
+      popup.close();
+    }
+  });
+
+  const response = await popup.fetch('../resources/top.txt');
+  assert_true(response.ok, 'fetch in popup should succeed');
+  const text = await response.text();
+  assert_not_equals(text, '', 'response body should not be empty');
+}, 'Fetch from initial empty document in popup opened from iframe');
+</script>
+</body>

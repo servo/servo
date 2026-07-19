@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>A node's realm across adoption when creation realm, node document, and adopting realm all differ</title>
+<link rel=help href="https://dom.spec.whatwg.org/#concept-create-node">
+<link rel=help href="https://dom.spec.whatwg.org/#concept-node-adopt">
+<link rel=help href="https://github.com/whatwg/dom/issues/977">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<iframe id=a></iframe>
+<iframe id=b></iframe>
+<script>
+// A node is created in its node document's realm, not the realm of its ancestors
+// or the realm it is later adopted into. In particular an element parsed into a
+// container created in a different realm takes the container's node-document
+// realm, not the container's creation realm.
+
+const innerA = document.getElementById("a").contentWindow;
+const innerB = document.getElementById("b").contentWindow;
+
+test(() => {
+  const container = innerA.document.createElement("div");
+  document.body.appendChild(container);
+  assert_true(container instanceof innerA.HTMLDivElement, "precondition: container keeps realm A after adoption");
+
+  container.innerHTML = "<p></p>"; // <p>'s node document is the top-level document
+  innerB.document.body.appendChild(container); // move to realm B without wrapping <p>
+
+  const p = container.querySelector("p");
+  assert_equals(p.ownerDocument, innerB.document, "moved into realm B's document");
+  assert_true(p instanceof window.HTMLParagraphElement, "realm is the top-level document it was parsed into");
+}, "Element parsed into an adopted container takes the node-document realm, not the container's creation realm");
+
+test(() => {
+  const container = innerA.document.createElement("div");
+  document.body.appendChild(container);
+  container.innerHTML = "text";
+  innerB.document.body.appendChild(container);
+  const text = container.firstChild;
+  assert_true(text instanceof window.Text, "realm is the top-level document it was parsed into");
+}, "Text parsed into an adopted container takes the node-document realm, not the container's creation realm");
+
+test(() => {
+  const container = innerA.document.createElement("div");
+  innerA.document.body.appendChild(container);
+  container.innerHTML = "<p></p>"; // <p>'s node document is realm A's document
+  innerB.document.body.appendChild(container); // hop through B
+  document.body.appendChild(container); // then to the top-level document
+  const p = container.querySelector("p");
+  assert_equals(p.ownerDocument, document, "ended up in the top-level document");
+  assert_true(p instanceof innerA.HTMLParagraphElement, "keeps its creation realm A across multiple adoptions");
+}, "Never-wrapped node keeps its creation realm across multiple adoptions");
+
+test(() => {
+  innerA.customElements.define("x-mixed", class extends innerA.HTMLElement {});
+  window.customElements.define("x-mixed", class extends HTMLElement {});
+
+  const container = innerA.document.createElement("div");
+  document.body.appendChild(container);
+  container.innerHTML = "<x-mixed></x-mixed>"; // upgraded with the top-level registry
+  innerB.document.body.appendChild(container);
+
+  const el = container.querySelector("x-mixed");
+  assert_true(el instanceof window.customElements.get("x-mixed"), "uses the node-document (top-level) realm and registry");
+}, "Custom element parsed into an adopted container uses the node-document realm and registry");
+</script>

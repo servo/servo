@@ -1,0 +1,29 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: duration clamping</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<body>
+<h1>Test</h1>
+<script>
+promise_test(async t => {
+  const loaf_promise = new Promise(resolve => new PerformanceObserver(entries => {
+      resolve(entries.getEntries()[0]);
+  }).observe({type: "long-animation-frame"}));
+
+  // Block the main thread for 60ms without triggering a render
+  t.step_timeout(() => {
+    busy_wait(60);
+  }, 0);
+
+  const entry = await loaf_promise;
+
+  const COARSE_RESOLUTION = 0.005;
+  const FLOATING_POINT_ERROR_EPSILON = 0.01;
+  const coarse_duration = Math.round(entry.duration / COARSE_RESOLUTION) * COARSE_RESOLUTION;
+  assert_approx_equals(entry.duration, coarse_duration, FLOATING_POINT_ERROR_EPSILON,
+      "duration should be coarsened");
+}, "LoAF duration should be clamped even when there is no render");
+</script>
+</body>

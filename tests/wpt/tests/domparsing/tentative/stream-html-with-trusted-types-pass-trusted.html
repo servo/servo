@@ -33,20 +33,14 @@
       }
 
       const methods = [
-        "streamHTML",
         "streamHTMLUnsafe",
-        "streamAppendHTML",
         "streamAppendHTMLUnsafe",
-        "streamPrependHTML",
         "streamPrependHTMLUnsafe",
-        "streamBeforeHTML",
         "streamBeforeHTMLUnsafe",
-        "streamAfterHTML",
         "streamAfterHTMLUnsafe",
       ];
 
       for (const method of methods) {
-        const safe = !method.endsWith("Unsafe");
         promise_test(
           async (t) => {
             t.add_cleanup(cleanup);
@@ -67,13 +61,10 @@
             window.did_run = false;
             await writer.write("<script>window.did_run = true;<" + "/script>");
             await writer.close();
-            assert_equals(
-              container.querySelectorAll("script").length,
-              safe ? 0 : 1,
-            );
-            assert_equals(window.did_run, !safe);
+            assert_equals(container.querySelectorAll("script").length, 1);
+            assert_equals(window.did_run, true);
           },
-          `A given TrustedParserOptions can${safe ? " not" : ""} override default policy's runScript/safety for ${method}`,
+          `A given TrustedParserOptions can override default policy's runScript/safety for ${method}`,
         );
       }
 
@@ -94,7 +85,7 @@
           const writer = d[method](trusted_options).getWriter();
           window.did_run = false;
           await writer.write(
-            "<div id=allowed><span id=forbidden></span<</div>",
+            "<div id=allowed><span id=forbidden></span></div>",
           );
           await writer.close();
           assert_equals(

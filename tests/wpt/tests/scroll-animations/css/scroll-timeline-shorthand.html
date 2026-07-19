@@ -102,20 +102,23 @@ test_shorthand_contraction('scroll-timeline', {
 // is the timeline name. If a coordinating list property has too few
 // values specified, its value list is repeated to add more used values.
 // If it has too many values, the list will be truncated to match the
-// base property's length.
+// base property's length. However, the computed style for the shorthand
+// property should serialized to an empty string since round-tripping
+// wouldn't work otherwise.
+// https://github.com/w3c/csswg-drafts/issues/13500
 
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': '--a, --b, --c',
   'scroll-timeline-axis': 'inline, inline',
-}, '--a inline, --b inline, --c inline');
+}, '');
 
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': '--a, --b, --c, --d, --e, --f',
   'scroll-timeline-axis': 'inline, x',
-}, '--a inline, --b x, --c inline, --d x, --e inline, --f x');
+}, '');
 
 test_shorthand_contraction('scroll-timeline', {
   'scroll-timeline-name': '--a, --b',
   'scroll-timeline-axis': 'inline, inline, inline',
-}, '--a inline, --b inline');
+}, '');
 </script>

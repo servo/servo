@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-rows: repeat(4, 50px);
+      grid-template-columns: 20px 70px;
+      padding: 2px;
+      margin: 5px 5px 30px auto;
+      width: fit-content;
+    }
+
+    .grid-fill {
+      display: grid;
+      grid-template-rows: repeat(4, 50px);
+      grid-template-columns: 1fr 70px;
+      padding: 2px;
+      margin: 5px 5px 30px 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid">
+  <item style="grid-row: 1 / span 4; grid-column: 1; width: 20px; height: 200px; background: salmon; position: absolute; left: 7px; top: 7px;">4</item>
+  <item style="grid-row: 1; grid-column: 2; width: 70px; justify-self: start; background: salmon;">1</item>
+  <item style="grid-row: 3 / span 2; grid-column: 2; width: 20px; justify-self: start; background: salmon;">3</item>
+  <item style="grid-row: 4; grid-column: 2; width: 20px; margin-left: 50px; justify-self: start; background: salmon;">2</item>
+  <item style="grid-row: 2 / span 2; grid-column: 2; width: 10px; margin-left: 50px; justify-self: start; background: green;">5</item>
+</div>
+
+<div class="grid">
+  <item style="grid-row: 1 / span 4; grid-column: 1; width: 20px; background: salmon;">4</item>
+  <item style="grid-row: 1; grid-column: 2; width: 70px; justify-self: start; background: salmon;">1</item>
+  <item style="grid-row: 3 / span 2; grid-column: 2; width: 20px; margin-left: 30px; justify-self: start; background: salmon;">3</item>
+  <item style="grid-row: 4; grid-column: 2; width: 20px; margin-left: 50px; justify-self: start; background: salmon;">2</item>
+  <item style="grid-row: 2 / span 2; grid-column: 2; width: 10px; margin-left: 60px; justify-self: start; background: green;">5</item>
+</div>
+
+<div class="grid-fill">
+  <item style="grid-row: 1 / span 4; grid-column: 1; background: salmon;">4</item>
+  <item style="grid-row: 1; grid-column: 2; width: 70px; justify-self: start; background: salmon;">1</item>
+  <item style="grid-row: 3 / span 2; grid-column: 2; width: 50px; justify-self: start; background: salmon;">3</item>
+  <item style="grid-row: 4; grid-column: 2; width: 20px; margin-left: 50px; justify-self: start; background: salmon;">2</item>
+  <item style="grid-row: 2 / span 2; grid-column: 2; width: 20px; margin-left: 50px; justify-self: start; background: green;">5</item>
+</div>
+
+<div class="grid-fill">
+  <item style="grid-row: 1 / span 4; grid-column: 1; width: 20px; justify-self: center; background: salmon;">4</item>
+  <item style="grid-row: 1; grid-column: 2; width: 70px; justify-self: start; background: salmon;">1</item>
+  <item style="grid-row: 3 / span 2; grid-column: 2; width: 20px; margin-left: 15px; justify-self: start; background: salmon;">3</item>
+  <item style="grid-row: 4; grid-column: 2; width: 20px; margin-left: 50px; justify-self: start; background: salmon;">2</item>
+  <item style="grid-row: 2 / span 2; grid-column: 2; width: 10px; margin-left: 55px; justify-self: start; background: green;">5</item>
+</div>
+
+</body>
+</html>

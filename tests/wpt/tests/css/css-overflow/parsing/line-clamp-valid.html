@@ -18,7 +18,7 @@ test_valid_value("line-clamp", '6');
 test_valid_value("line-clamp", 'auto');
 
 test_valid_value("line-clamp", 'ellipsis', 'auto');
-test_valid_value("line-clamp", '" etc., etc. "');
+test_valid_value("line-clamp", '" etc., etc. "', 'auto " etc., etc. "');
 
 test_valid_value("line-clamp", '7 no-ellipsis');
 test_valid_value("line-clamp", '8 auto');
@@ -32,7 +32,8 @@ test_valid_value("line-clamp", '" etc., etc. " 12', '12 " etc., etc. "');
 
 test_valid_value("line-clamp", '1 -webkit-legacy');
 test_valid_value("line-clamp", 'auto -webkit-legacy');
-test_valid_value("line-clamp", 'no-ellipsis -webkit-legacy');
+test_valid_value("line-clamp", 'no-ellipsis -webkit-legacy',
+                 'auto no-ellipsis -webkit-legacy');
 test_valid_value("line-clamp", '3 auto -webkit-legacy');
 </script>
 </body>

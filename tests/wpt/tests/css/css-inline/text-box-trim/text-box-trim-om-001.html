@@ -1,28 +1,22 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
-@font-face {
-  font-family: test-font;
-  src: url(support/cap-x-height.ttf);
-}
 .spacer {
   background: lightgray;
-  block-size: 100px;
+  block-size: 200px;
 }
 #target {
-  font-family: test-font;
-  font-size: 100px;
-  line-height: 2;
-  text-box-trim: both;
-  text-box-edge: ex alphabetic;
+  font: 200px/2 BaselineDiagnosticAlphabeticZero;
+  text-box: trim-both ex alphabetic;
 }
 </style>
 <div id="container">
   <div class="spacer"></div>
-  <div id="target">A</div>
+  <div id="target">X</div>
   <div class="spacer"></div>
 </div>
 <script>
@@ -34,10 +28,10 @@ function run_tests(test_names) {
 
   // Test `getBoundingClientRect()` returns the trimmed box size.
   test(() => {
-    assert_equals(target_bounds.top - container_bounds.top, 100);
+    assert_equals(target_bounds.top - container_bounds.top, 200);
   }, "getBoundingClientRect.top");
   test(() => {
-    assert_equals(target_bounds.height, 20);
+    assert_equals(target_bounds.height, 50);
   }, "getBoundingClientRect.height");
 
   // Test `elementFromPoint()` hits `target` even if the point is above/below

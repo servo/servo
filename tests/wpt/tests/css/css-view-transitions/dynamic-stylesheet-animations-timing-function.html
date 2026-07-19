@@ -59,7 +59,7 @@ promise_test(async t => {
     "The default timing function"
   );
 
-  assert_equals(
+  assert_matrix_equals(
     getComputedStyle(document.documentElement,
       "::view-transition-group(target)").transform,
     getComputedStyle(ref).transform,

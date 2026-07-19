@@ -259,7 +259,7 @@ promise_test(t => {
   }));
 }, "Test that decodingInfo with type webrtc rejects key system configuration.");
 
-promise_test(async t => {
+async function runEncryptionSchemeTest(t, scheme, expectedSupported) {
   const config = {
     type: 'file',
     video: minimalVideoConfiguration,
@@ -268,36 +268,54 @@ promise_test(async t => {
       keySystem: 'org.w3.clearkey',
       video: {
         robustness: '',
-        encryptionScheme: 'cenc'  // <- New field being tested
+        encryptionScheme: scheme
       }
     }
   };
 
-  const result = await navigator.mediaCapabilities.decodingInfo(config);
+  const info = await navigator.mediaCapabilities.decodingInfo(config);
+  assert_equals(info.supported, expectedSupported, `supported should be ${expectedSupported}`);
 
-  // As long as it resolves to an object with `supported` (even if false),
-  // the IDL parser correctly digested `encryptionScheme`.
-  assert_equals(typeof result.supported, 'boolean', "supported should be a boolean");
-  assert_equals(typeof result.smooth, 'boolean', "smooth should be a boolean");
-  assert_equals(typeof result.powerEfficient, 'boolean', "powerEfficient should be a boolean");
-}, "decodingInfo() accepts KeySystemTrackConfiguration with encryptionScheme");
+  if (expectedSupported) {
+    assert_not_equals(info.keySystemAccess, null, "keySystemAccess should be present in the result.");
+    const negotiatedConfig = info.keySystemAccess.getConfiguration();
+    assert_true(
+      !!negotiatedConfig.videoCapabilities && negotiatedConfig.videoCapabilities.length > 0,
+      "videoCapabilities should be present in the negotiated configuration."
+    );
 
-promise_test(async t => {
-  const config = {
-    type: 'file',
-    video: minimalVideoConfiguration,
-    audio: minimalAudioConfiguration,
-    keySystemConfiguration: {
-      keySystem: 'org.w3.clearkey',
-      video: {
-        robustness: '',
-        encryptionScheme: null  // <- Explicitly testing nullable
-      }
-    }
-  };
+    // If the encryptionScheme is not passed from mediaCapabilities.decodingInfo()
+    // to the EME query, the negotiated keySystemAccess configuration will not contain
+    // the requested encryptionScheme (it will be null/unspecified).
+    assert_equals(
+      negotiatedConfig.videoCapabilities[0].encryptionScheme,
+      scheme,
+      `negotiated encryptionScheme should match requested scheme: ${scheme}`
+    );
+  } else {
+    assert_equals(info.keySystemAccess, null, "keySystemAccess should be null when not supported.");
+  }
+}
 
-  const result = await navigator.mediaCapabilities.decodingInfo(config);
-  assert_equals(typeof result.supported, 'boolean');
-}, "decodingInfo() accepts KeySystemTrackConfiguration with null encryptionScheme");
+promise_test(t => {
+  return runEncryptionSchemeTest(t, 'cenc', true);
+}, "decodingInfo() supports 'cenc' encryptionScheme and echoes it back.");
+
+promise_test(t => {
+  return runEncryptionSchemeTest(t, 'cbcs', true);
+}, "decodingInfo() supports 'cbcs' encryptionScheme and echoes it back.");
+
+promise_test(t => {
+  return runEncryptionSchemeTest(t, 'cbcs-1-9', true);
+}, "decodingInfo() supports 'cbcs-1-9' encryptionScheme and echoes it back.");
+
+promise_test(t => {
+  return runEncryptionSchemeTest(t, 'foobar', false);
+}, "decodingInfo() with unrecognized encryptionScheme returns supported: false.");
+
+promise_test(t => {
+  return runEncryptionSchemeTest(t, null, true);
+}, "decodingInfo() with null encryptionScheme returns supported: true and echoes null.");
+
 
 </script>

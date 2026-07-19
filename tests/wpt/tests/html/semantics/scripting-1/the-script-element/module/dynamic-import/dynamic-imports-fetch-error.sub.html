@@ -37,25 +37,4 @@ for (const [label, specifier] of cases) {
     assert_not_equals(error1, error2, "The error objects must be different");
   }, "import() must reject with a different error object for each import when there is a " + label);
 }
-
-promise_test(async t => {
-  const id = token();
-  const url = `./resources/status-changing-script.py?id=${id}`;
-
-  // Serve HTTP 404 for the first import().
-  await fetch(url + '&newStatus=404');
-  const promise1 = import(url);
-  await promise_rejects_js(t, TypeError, promise1,
-      "First import() must be rejected due to 404");
-
-  // Serve HTTP 200 after the first import() completes.
-  await fetch(url + '&newStatus=200');
-  const r = await fetch(url, { cache: 'no-cache' });
-  assert_equals(r.status, 200);
-
-  const promise2 = import(url);
-  await promise_rejects_js(t, TypeError, promise2,
-      "Second import() must be rejected, because the result of " +
-      "the first import() is cached in the module map");
-}, "import() fetch errors must be cached");
 </script>

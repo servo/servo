@@ -7,11 +7,20 @@
 <meta name="assert" content="When text-overflow is a string and the content overflows, the string should appear as ellipsis, and it should work correctly with bidirectional text.">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
+  @font-face {
+    /* Pin a bundled font covering Latin and Hebrew so the bidi content is laid
+       out with known, platform-independent advances. */
+    font-family: "mplus-test";
+    src: url("/fonts/mplus-1p-regular.woff");
+  }
   div {
-    font-family: monospace;
+    font-family: "mplus-test";
     font-size: 20px;
     white-space: pre;
-    width: 9ch;
+    /* 6ch for the digits "123456" + 6px for the space + 20px for the Hebrew +
+       9px for the "-" ellipsis + 4px of slack against rounding. The LTR line
+       then keeps "ום 123456" and the RTL line keeps "שלום 3456". */
+    width: calc(6ch + 6px + 20px + 9px + 4px);
     overflow: hidden;
   }
   div.test {
@@ -21,8 +30,8 @@
 <body>
   <p>Test passes if each pair of lines looks identical</p>
   <div class="test">שלום 123456</div>
-  <div>ם 123456-</div>
+  <div>ום 123456-</div>
   <br/>
   <div class="test" dir=rtl>שלום 123456</div>
-  <div dir=rtl>שלום 456-</div>
+  <div dir=rtl>שלום 3456-</div>
 </body>

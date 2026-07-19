@@ -2,17 +2,17 @@
 <title>Test trimming applied dynamically</title>
 <link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
 <link rel="match" href="text-box-trim-set-dynamically-ref.html">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<meta charset="utf-8">
 <style>
-@import "support/TestMetricsFont.css";
-
 #container {
-  font: 100px/1 MetricsTestFont;
+  font: 100px/1 BaselineDiagnosticAlphabeticZero;
 }
 </style>
 <div id="container">
-  <div class="inner">ApÉx</div>
-  <div class="inner">ApÉx</div>
-  <div class="inner">ApÉx</div>
+  <div class="inner">█BxIF</div>
+  <div class="inner">█BxIF</div>
+  <div class="inner">█BxIF</div>
 </div>
 <script>
 document.body.offsetHeight;

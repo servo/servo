@@ -4,6 +4,8 @@
   "manifest_version": 3,
   "permissions": ["storage"],
   "background": {
-    "service_worker": "background.js"
+    "scripts": [ "background.js" ],
+    "service_worker": "background.js",
+    "type": "module"
   }
 }

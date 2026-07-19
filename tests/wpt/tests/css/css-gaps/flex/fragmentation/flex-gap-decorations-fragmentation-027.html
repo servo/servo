@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Gap Decorations: flex gap decorations with a fragmented, skipped interior line</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://issues.chromium.org/issues/528865563">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="match" href="flex-gap-decorations-fragmentation-027-ref.html">
+<style>
+  body { margin: 0; }
+
+  .multi-column {
+    column-count: 2;
+    height: 60px;
+    gap: 10px;
+    width: 350px
+  }
+
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 170px;
+    height: 100px;
+    row-gap: 3px;
+    column-gap: 3px;
+    row-rule: 3px solid gold;
+    column-rule: 3px solid blue;
+    border: 1px dashed;
+  }
+
+  #flexbox > div {
+    width: 40px;
+  }
+
+  #flexbox > .l0 { background: #5b9bd5; }
+  #flexbox > .l1 { background: #9b59b6; }
+  #flexbox > .l2 { background: #c0504d; }
+  #flexbox > .l3 { background: #6aa84f; }
+</style>
+
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="l0" style="height: 120px;"></div>
+    <div class="l1" style="height: 15px;"></div>
+    <div class="l2" style="height: 85px;"></div>
+    <div class="l2" style="height: 12px;"></div>
+    <div class="l3" style="height: 85px;"></div>
+    <div class="l3" style="height: 12px;"></div>
+  </div>
+</div>

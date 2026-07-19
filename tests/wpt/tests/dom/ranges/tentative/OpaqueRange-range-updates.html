@@ -23,16 +23,15 @@ test(() => {
 
   // Get range on <input>.
   const inputRange = input.createValueRange(0, 4);
-  // Opaque range: containers are null.
-  assert_equals(inputRange.startContainer, null);
-  assert_equals(inputRange.endContainer, null);
+  assert_equals(inputRange.startContainer, undefined);
+  assert_equals(inputRange.endContainer, undefined);
   assert_equals(inputRange.startOffset, 0);
   assert_equals(inputRange.endOffset, 4);
 
   // Get range on <textarea>.
   const textareaRange = textarea.createValueRange(0, 5);
-  assert_equals(textareaRange.startContainer, null);
-  assert_equals(textareaRange.endContainer, null);
+  assert_equals(textareaRange.startContainer, undefined);
+  assert_equals(textareaRange.endContainer, undefined);
   assert_equals(textareaRange.startOffset, 0);
   assert_equals(textareaRange.endOffset, 5);
 }, "createValueRange works on different form controls.");
@@ -46,8 +45,8 @@ test(() => {
 
   // Verify disconnected <input>.
   const inputRange = input.createValueRange(0, 12);
-  assert_equals(inputRange.startContainer, null);
-  assert_equals(inputRange.endContainer, null);
+  assert_equals(inputRange.startContainer, undefined);
+  assert_equals(inputRange.endContainer, undefined);
   assert_equals(inputRange.startOffset, 0);
   assert_equals(inputRange.endOffset, 12);
 

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column and row rules with justify-self on grid-lanes items</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-016-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 86px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    height: 44px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.hi { background: #1f9d6b; }
+  .lanes > div.narrow { width: 52px; }
+  .lanes > div.js-center { justify-self: center; }
+  .lanes > div.js-end { justify-self: end; }
+  .lanes > div.h2 { height: 72px; }
+  .lanes > div.h3 { height: 58px; }
+  .lanes > div.h4 { height: 92px; }
+  .lanes > div.h5 { height: 50px; }
+  .lanes > div.h6 { height: 66px; }
+</style>
+<div class="lanes">
+  <div class="h2">1</div>
+  <div class="h3">2</div>
+  <div>3</div>
+  <div class="h4">4</div>
+  <div class="narrow js-center hi h5">5</div>
+  <div class="h6">6</div>
+  <div>7</div>
+  <div class="narrow js-end hi h3">8</div>
+</div>

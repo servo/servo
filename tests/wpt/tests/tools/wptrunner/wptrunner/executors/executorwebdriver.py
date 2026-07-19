@@ -1052,7 +1052,7 @@ class WebDriverWebExtensionsProtocolPart(WebExtensionsProtocolPart):
         if path is not None:
             path = self._resolve_path(path)
 
-        return self.webdriver.web_extensions.install(type, path, value)
+        return self.webdriver.web_extensions.install(type, path, value)["extension"]
 
     def uninstall_web_extension(self, extension_id):
         return self.webdriver.web_extensions.uninstall(extension_id)

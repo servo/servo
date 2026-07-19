@@ -902,7 +902,6 @@ custom-elements/registries/global.window.js @web-platform-tests/interop
 custom-elements/registries/pseudo-class-defined.window.js @web-platform-tests/interop
 custom-elements/registries/scoped-custom-element-registry-customelementregistry-attribute-in-xhtml.xhtml @web-platform-tests/interop
 custom-elements/registries/scoped-custom-element-registry-customelementregistry-attribute.html @web-platform-tests/interop
-custom-elements/registries/scoped-registry-append-does-not-upgrade.html @web-platform-tests/interop
 custom-elements/registries/scoped-registry-define-upgrade-criteria.html @web-platform-tests/interop
 custom-elements/registries/scoped-registry-define-upgrade-order.html @web-platform-tests/interop
 custom-elements/registries/scoped-registry-initialize-upgrades.html @web-platform-tests/interop
@@ -963,7 +962,6 @@ html/dom/render-blocking/element-render-blocking-038.html @web-platform-tests/in
 html/dom/render-blocking/element-render-blocking-039.html @web-platform-tests/interop
 html/dom/render-blocking/element-render-blocking-040.html @web-platform-tests/interop
 html/dom/render-blocking/element-render-blocking-041.html @web-platform-tests/interop
-html/dom/render-blocking/non-render-blocking-scripts.optional.html @web-platform-tests/interop
 html/dom/render-blocking/parser-blocking-script.html @web-platform-tests/interop
 html/dom/render-blocking/parser-inserted-async-inline-module-with-import.html @web-platform-tests/interop
 html/dom/render-blocking/parser-inserted-async-script.html @web-platform-tests/interop
@@ -975,8 +973,6 @@ html/dom/render-blocking/parser-inserted-stylesheet-link.html @web-platform-test
 html/dom/render-blocking/remove-attr-script-keeps-blocking.html @web-platform-tests/interop
 html/dom/render-blocking/remove-attr-style-keeps-blocking.html @web-platform-tests/interop
 html/dom/render-blocking/remove-attr-stylesheet-link-keeps-blocking.html @web-platform-tests/interop
-html/dom/render-blocking/remove-attr-unblocks-rendering.optional.html @web-platform-tests/interop
-html/dom/render-blocking/remove-element-unblocks-rendering.optional.html @web-platform-tests/interop
 html/dom/render-blocking/remove-pending-async-render-blocking-script.html @web-platform-tests/interop
 html/dom/render-blocking/script-inserted-inline-module-with-import.html @web-platform-tests/interop
 html/dom/render-blocking/script-inserted-module-script.html @web-platform-tests/interop
@@ -1307,7 +1303,6 @@ navigation-api/ordering-and-transition/back-cross-document-event-order-with-page
 navigation-api/ordering-and-transition/back-same-document-intercept-reject.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-same-document-intercept.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/back-same-document.html @web-platform-tests/interop
-navigation-api/ordering-and-transition/currententrychange-before-popstate-intercept.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/currententrychange-dispose-ordering.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/intercept-async.html @web-platform-tests/interop
 navigation-api/ordering-and-transition/location-href-canceled.html @web-platform-tests/interop

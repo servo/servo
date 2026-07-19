@@ -31,6 +31,26 @@ def service_worker_page(worker_url, extra_script=""):
     </script>"""
 
 
+def accept_language_request(echo_url, request_type):
+    """Return a JS Promise expression that resolves to the `Accept-Language`
+    header value the header-echo handler at `echo_url` received for a request
+    made via `request_type` (either "fetch" or "xhr"). Caching is bypassed so
+    that repeated requests always hit the network and observe the current
+    locale override."""
+    if request_type == "fetch":
+        return f"""fetch("{echo_url}", {{cache: "no-store"}})
+            .then((response) => response.json())
+            .then((data) => data.headers["accept-language"][0])"""
+    return f"""new Promise((resolve, reject) => {{
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "{echo_url}?nocache=" + Math.random());
+        xhr.responseType = "json";
+        xhr.onload = () => resolve(xhr.response.headers["accept-language"][0]);
+        xhr.onerror = () => reject(new Error("XHR request failed"));
+        xhr.send();
+    }})"""
+
+
 @pytest_asyncio.fixture
 async def get_log_entry_with_worker_message(
     bidi_session,
@@ -590,3 +610,112 @@ async def test_existing_service_worker(
             await_promise=True,
             target=ContextTarget(new_tab["context"]),
         )
+
+
+@pytest.mark.parametrize("request_type", ["fetch", "xhr"])
+async def test_new_dedicated_worker_accept_language(
+    bidi_session,
+    new_tab,
+    subscribe_events,
+    inline,
+    url,
+    some_locale,
+    wait_for_event,
+    wait_for_future_safe,
+    request_type,
+):
+    # Set locale override.
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=some_locale
+    )
+    await subscribe_events([LOG_ENTRY_ADDED])
+
+    on_entry_added = wait_for_event(LOG_ENTRY_ADDED)
+    echo_url = url("webdriver/tests/support/http_handlers/headers_echo.py")
+    request = accept_language_request(echo_url, request_type)
+
+    # Create a dedicated worker that requests the header-echo handler and logs
+    # the Accept-Language header the server received.
+    worker_url = inline(
+        f"""({request}).then((acceptLanguage) => postMessage(acceptLanguage));""",
+        doctype="js",
+    )
+    page_url = inline(f"""<script>
+        const worker = new Worker("{worker_url}");
+        worker.onmessage = (event) => {{
+            console.log(event.data);
+        }};
+    </script>""")
+    await bidi_session.browsing_context.navigate(
+        url=page_url, context=new_tab["context"], wait="complete"
+    )
+    event = await wait_for_future_safe(on_entry_added)
+
+    # Verify the worker-initiated request used the overridden Accept-Language.
+    assert event["text"] == some_locale
+
+    # Reset locale override.
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=None
+    )
+
+
+@pytest.mark.parametrize("request_type", ["fetch", "xhr"])
+async def test_existing_dedicated_worker_accept_language(
+    bidi_session,
+    new_tab,
+    subscribe_events,
+    inline,
+    url,
+    default_accept_language,
+    some_locale,
+    get_log_entry_with_worker_message,
+    request_type,
+):
+    await subscribe_events([LOG_ENTRY_ADDED])
+
+    echo_url = url("webdriver/tests/support/http_handlers/headers_echo.py")
+    request = accept_language_request(echo_url, request_type)
+
+    # Create a dedicated worker that requests the header-echo handler and logs
+    # the Accept-Language header the server received whenever it receives a
+    # message.
+    worker_url = inline(
+        f"""onmessage = () => {{
+            ({request}).then((acceptLanguage) => postMessage(acceptLanguage));
+        }};""",
+        doctype="js",
+    )
+    page_url = inline(f"""<script>
+        window.worker = new Worker("{worker_url}");
+        window.worker.onmessage = (event) => {{
+            console.log(event.data);
+        }};
+    </script>""")
+    await bidi_session.browsing_context.navigate(
+        url=page_url, context=new_tab["context"], wait="complete"
+    )
+
+    trigger = "window.worker.postMessage('test')"
+
+    # Verify the existing worker initially uses the default Accept-Language.
+    event = await get_log_entry_with_worker_message(new_tab["context"], trigger)
+    assert event["text"] == default_accept_language
+
+    # Set locale override on the existing worker.
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=some_locale
+    )
+
+    # Verify the existing worker now uses the overridden Accept-Language.
+    event = await get_log_entry_with_worker_message(new_tab["context"], trigger)
+    assert event["text"] == some_locale
+
+    # Reset locale override.
+    await bidi_session.emulation.set_locale_override(
+        contexts=[new_tab["context"]], locale=None
+    )
+
+    # Verify the existing worker now uses the original Accept-Language.
+    event = await get_log_entry_with_worker_message(new_tab["context"], trigger)
+    assert event["text"] == default_accept_language
