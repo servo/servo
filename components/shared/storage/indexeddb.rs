@@ -363,6 +363,7 @@ impl AsyncReadWriteOperation {
 pub enum AsyncSchemaOperation {
     /// Creates a new index for the database
     CreateIndex {
+        callback: GenericCallback<BackendError>,
         index_name: String,
         key_path: KeyPath,
         unique: bool,
@@ -370,20 +371,24 @@ pub enum AsyncSchemaOperation {
     },
     /// Rename an index
     RenameIndex {
+        callback: GenericCallback<BackendError>,
         index_name: String,
         new_name: String,
     },
     /// Delete an index
-    DeleteIndex { index_name: String },
+    DeleteIndex {
+        callback: GenericCallback<BackendError>,
+        index_name: String,
+    },
     /// Creates a new store for the database
     CreateObjectStore {
-        callback: GenericSender<BackendResult<CreateObjectResult>>,
+        callback: GenericCallback<BackendError>,
         key_path: Option<KeyPath>,
         auto_increment: bool,
     },
     /// Delete an existing object store in the database
     DeleteObjectStore {
-        callback: GenericSender<BackendResult<()>>,
+        callback: GenericCallback<BackendError>,
     },
 }
 
@@ -394,10 +399,10 @@ impl AsyncSchemaOperation {
             AsyncSchemaOperation::RenameIndex { .. } |
             AsyncSchemaOperation::DeleteIndex { .. } => {},
             AsyncSchemaOperation::CreateObjectStore { callback, .. } => {
-                let _ = callback.send(Err(error));
+                let _ = callback.send(error);
             },
             AsyncSchemaOperation::DeleteObjectStore { callback, .. } => {
-                let _ = callback.send(Err(error));
+                let _ = callback.send(error);
             },
         };
     }

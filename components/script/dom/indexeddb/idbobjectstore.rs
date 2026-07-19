@@ -603,6 +603,7 @@ impl IDBObjectStore {
     /// The caller must ensure that the original index exists.
     pub(crate) fn rename_index(&self, name: &DOMString, new_name: &DOMString) {
         let operation = AsyncSchemaOperation::RenameIndex {
+            callback: self.transaction.create_abort_callback(),
             index_name: name.to_string(),
             new_name: new_name.to_string(),
         };
@@ -1022,6 +1023,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Set index’s name to name and key path to keyPath. If unique is set, set index’s unique flag.
         // If multiEntry is set, set index’s multiEntry flag.
         let operation = AsyncSchemaOperation::CreateIndex {
+            callback: self.transaction.create_abort_callback(),
             index_name: name.to_string(),
             key_path: key_path.clone().into(),
             unique: options.unique,
@@ -1068,6 +1070,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.index_set.borrow_mut().retain(|n, _| n != &name);
         // Step 8. Destroy index.
         let operation = AsyncSchemaOperation::DeleteIndex {
+            callback: self.transaction.create_abort_callback(),
             index_name: name.to_string(),
         };
         if self

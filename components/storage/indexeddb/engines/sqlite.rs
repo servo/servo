@@ -513,14 +513,15 @@ impl KvsEngine for SqliteEngine {
             };
             for request in transaction.requests {
                 if let AsyncOperation::Schema(AsyncSchemaOperation::CreateObjectStore {
-                        callback,
-                        key_path,
-                        auto_increment }) = &request.operation
-                {
-                    let _ = callback.send(
+                    callback,
+                    key_path,
+                    auto_increment
+                }) = &request.operation {
+                    if let Err(error) =
                         Self::create_store(&connection, &request.store_name, key_path.clone(), *auto_increment)
-                            .map_err(|error| BackendError::DbErr(format!("{error:?}")))
-                        );
+                    {
+                        let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                    }
                     continue;
                 }
 
@@ -684,6 +685,7 @@ impl KvsEngine for SqliteEngine {
                         );
                     },
                     AsyncOperation::Schema(AsyncSchemaOperation::CreateIndex {
+                        callback,
                         index_name,
                         key_path,
                         unique,
@@ -697,32 +699,30 @@ impl KvsEngine for SqliteEngine {
                             unique,
                             multi_entry
                         ) {
-                            warn!("Could not create index: {error:?}");
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
                         }
                     },
                     AsyncOperation::Schema(AsyncSchemaOperation::CreateObjectStore { .. }) => {
                         unreachable!("Should be handled above");
                     },
-                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteIndex { index_name }) => {
+                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteIndex { index_name, callback }) => {
                         if let Err(error) = Self::delete_index(&connection, &request.store_name, index_name) {
-                            warn!("Could not delete index: {error:?}");
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
                         }
                     },
-                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteObjectStore { callback}) => {
-                        let _ = callback.send(
-                            Self::delete_store(&connection, &request.store_name)
-                                .map(|_| ())
-                                .map_err(|error| BackendError::DbErr(format!("{error:?}")))
-                            );
+                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteObjectStore { callback }) => {
+                        if let Err(error) = Self::delete_store(&connection, &request.store_name) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
                     },
-                    AsyncOperation::Schema(AsyncSchemaOperation::RenameIndex { index_name, new_name }) =>  {
+                    AsyncOperation::Schema(AsyncSchemaOperation::RenameIndex { index_name, new_name, callback }) =>  {
                         if let Err(error) = Self::rename_index(
                             &connection,
                             &request.store_name,
                             &index_name,
                             &new_name
                         ) {
-                            warn!("Could not rename index: {error:?}");
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
                         }
                     },
                 }
