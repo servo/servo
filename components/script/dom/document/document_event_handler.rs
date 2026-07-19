@@ -166,6 +166,15 @@ pub(crate) struct DocumentEventHandler {
     #[no_trace]
     #[ignore_malloc_size_of = "InputEventId contains data from outside crates"]
     coalesced_wheel_event_ids: DomRefCell<Vec<InputEventId>>,
+    /// Indices into `pending_input_events` of the most recent pending touchmove
+    /// event for each active touch identifier. Used to coalesce successive
+    /// touchmove events for the same touch point.
+    touch_move_event_indices: DomRefCell<FxHashMap<i32, usize>>,
+    /// The [`InputEventId`]s of touchmove events that have been coalesced,
+    /// grouped by touch identifier.
+    #[no_trace]
+    #[ignore_malloc_size_of = "InputEventId contains data from outside crates"]
+    coalesced_touch_move_event_ids: DomRefCell<FxHashMap<i32, Vec<InputEventId>>>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
@@ -217,6 +226,8 @@ impl DocumentEventHandler {
             coalesced_mouse_move_event_ids: Default::default(),
             wheel_event_index: Default::default(),
             coalesced_wheel_event_ids: Default::default(),
+            touch_move_event_indices: Default::default(),
+            coalesced_touch_move_event_ids: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
             mouse_buttons_down: Cell::new(0),
@@ -279,6 +290,50 @@ impl DocumentEventHandler {
             *self.wheel_event_index.borrow_mut() = Some(pending_input_events.len());
         }
 
+        if let InputEvent::Touch(ref new_touch_event) = event.event.event {
+            let TouchId(identifier) = new_touch_event.touch_id;
+            match new_touch_event.event_type {
+                TouchEventType::Move => {
+                    // Try to replace any existing pending touchmove for this touch point.
+                    let existing_index = self
+                        .touch_move_event_indices
+                        .borrow()
+                        .get(&identifier)
+                        .copied();
+                    if let Some(touch_move_event) =
+                        existing_index.and_then(|index| pending_input_events.get_mut(index))
+                    {
+                        debug!(
+                            "touchmove coalesce: replacing pending event id={:?} with id={:?} for touch_id={}",
+                            touch_move_event.event.id, event.event.id, identifier
+                        );
+                        self.coalesced_touch_move_event_ids
+                            .borrow_mut()
+                            .entry(identifier)
+                            .or_default()
+                            .push(touch_move_event.event.id);
+                        *touch_move_event = event;
+                        return;
+                    }
+
+                    debug!(
+                        "touchmove coalesce: queuing new event id={:?} for touch_id={}",
+                        event.event.id, identifier
+                    );
+                    self.touch_move_event_indices
+                        .borrow_mut()
+                        .insert(identifier, pending_input_events.len());
+                },
+                TouchEventType::Down | TouchEventType::Up | TouchEventType::Cancel => {
+                    // The touch point is starting or ending; any pending move index
+                    // for this touch identifier is no longer valid for coalescing.
+                    self.touch_move_event_indices
+                        .borrow_mut()
+                        .remove(&identifier);
+                },
+            }
+        }
+
         pending_input_events.push(event);
     }
 
@@ -311,19 +366,26 @@ impl DocumentEventHandler {
         let mut realm = enter_auto_realm(cx, &*self.window);
         let cx = &mut realm.current_realm();
 
-        // Reset the mouse and wheel event indices.
+        // Reset the mouse, wheel and touchmove event indices.
         *self.mouse_move_event_index.borrow_mut() = None;
         *self.wheel_event_index.borrow_mut() = None;
+        self.touch_move_event_indices.borrow_mut().clear();
         let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
         let mut coalesced_mouse_move_event_ids =
             mem::take(&mut *self.coalesced_mouse_move_event_ids.borrow_mut());
         let mut coalesced_wheel_event_ids =
             mem::take(&mut *self.coalesced_wheel_event_ids.borrow_mut());
+        let mut coalesced_touch_move_event_ids =
+            mem::take(&mut *self.coalesced_touch_move_event_ids.borrow_mut());
 
         let mut input_event_outcomes = Vec::with_capacity(
             pending_input_events.len() +
                 coalesced_mouse_move_event_ids.len() +
-                coalesced_wheel_event_ids.len(),
+                coalesced_wheel_event_ids.len() +
+                coalesced_touch_move_event_ids
+                    .values()
+                    .map(Vec::len)
+                    .sum::<usize>(),
         );
         // TODO: For some of these we still aren't properly calculating whether or not
         // the event was handled or if `preventDefault()` was called on it. Each of
@@ -354,7 +416,28 @@ impl DocumentEventHandler {
                     self.handle_mouse_left_viewport_event(cx, &event, &mouse_leave_event);
                     InputEventResult::default()
                 },
-                InputEvent::Touch(touch_event) => self.handle_touch_event(cx, touch_event, &event),
+                InputEvent::Touch(touch_event) => {
+                    let result = self.handle_touch_event(cx, touch_event, &event);
+                    if matches!(touch_event.event_type, TouchEventType::Move) {
+                        let TouchId(identifier) = touch_event.touch_id;
+                        if let Some(coalesced_ids) =
+                            coalesced_touch_move_event_ids.remove(&identifier)
+                        {
+                            debug!(
+                                "touchmove coalesce: reporting {} coalesced id(s) for touch_id={} (processed id={:?})",
+                                coalesced_ids.len(),
+                                identifier,
+                                event.event.id
+                            );
+                            input_event_outcomes.extend(
+                                coalesced_ids
+                                    .into_iter()
+                                    .map(|id| InputEventOutcome { id, result }),
+                            );
+                        }
+                    }
+                    result
+                },
                 InputEvent::Wheel(wheel_event) => {
                     let result = self.handle_wheel_event(cx, wheel_event, &event);
                     input_event_outcomes.extend(
