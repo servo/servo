@@ -495,9 +495,9 @@ struct SourceChildrenPointer {
 }
 
 impl SourceChildrenPointer {
-    fn new(source_before_pointer: DomRoot<HTMLSourceElement>, inclusive: bool) -> Self {
+    fn new(source_before_pointer: &HTMLSourceElement, inclusive: bool) -> Self {
         Self {
-            source_before_pointer: source_before_pointer.as_traced(),
+            source_before_pointer: Dom::from_ref(source_before_pointer),
             inclusive,
         }
     }
@@ -1223,7 +1223,7 @@ impl HTMLMediaElement {
         // pointer. Initially, let pointer be the position between the candidate node and the next
         // node, if there are any, or the end of the list, if it is the last node.
         *self.source_children_pointer.borrow_mut() =
-            Some(SourceChildrenPointer::new(DomRoot::from_ref(source), false));
+            Some(SourceChildrenPointer::new(source, false));
 
         let element = source.upcast::<Element>();
 
@@ -1906,8 +1906,7 @@ impl HTMLMediaElement {
 
         self.load_state.set(LoadState::LoadingFromSourceChild);
 
-        *self.source_children_pointer.borrow_mut() =
-            Some(SourceChildrenPointer::new(DomRoot::from_ref(source), true));
+        *self.source_children_pointer.borrow_mut() = Some(SourceChildrenPointer::new(source, true));
 
         // Step 9.children.23. Await a stable state.
         let task = MediaElementMicrotask::SelectNextSourceChildAfterWait {
