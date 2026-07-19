@@ -146,11 +146,11 @@ pub(crate) enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke(self, global: &GlobalScope, js_timers: &JsTimers, cx: &mut JSContext) {
+    fn invoke(self, cx: &mut JSContext, global: &GlobalScope, js_timers: &JsTimers) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(cx),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
-            OneshotTimerCallback::JsTimer(task) => task.invoke(global, js_timers, cx),
+            OneshotTimerCallback::JsTimer(task) => task.invoke(cx, global, js_timers),
             #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(cx),
             OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(cx, global),
@@ -424,7 +424,7 @@ impl OneshotTimers {
                 },
                 _ => {
                     let cb = timer.callback;
-                    cb.invoke(&self.global_scope, &self.js_timers, cx);
+                    cb.invoke(cx, &self.global_scope, &self.js_timers);
                 },
             }
         }
@@ -782,7 +782,7 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    fn invoke(self, global: &GlobalScope, timers: &JsTimers, cx: &mut JSContext) {
+    fn invoke(self, cx: &mut JSContext, global: &GlobalScope, timers: &JsTimers) {
         // step 9.2 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 

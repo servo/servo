@@ -251,7 +251,7 @@ impl RefreshRedirectDue {
     pub(crate) fn invoke(self, cx: &mut JSContext, global: &GlobalScope) {
         let window = global
             .downcast::<Window>()
-            .expect("Queued a RefreshRedirectDue on a non Window globalscope");
+            .expect("Queued a RefreshRedirectDue on a non-Window globalscope");
 
         // After the refresh has come due (as defined below),
         // if the user has not canceled the redirect and, if meta is given,
@@ -266,10 +266,10 @@ impl RefreshRedirectDue {
         {
             return;
         }
-        let load_data = window.load_data_for_document(self.url.clone(), window.pipeline_id());
+        let load_data = window.load_data_for_document(self.url, window.pipeline_id());
         navigate(
             cx,
-            &window,
+            window,
             NavigationHistoryBehavior::Replace,
             false,
             load_data,
