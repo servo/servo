@@ -23,6 +23,7 @@ use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
+use style::font_face::FontLanguageOverride;
 use style::properties::ComputedValues;
 use style::str::char_is_whitespace;
 use style::values::computed::{
@@ -517,6 +518,20 @@ impl TextRun {
     ) -> Vec<TextRunItem> {
         let font_style = parent_style.clone_font();
         let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
+        let language_for_shaping = Some(font_style.font_language_override)
+            .filter(|language_override| *language_override != FontLanguageOverride::normal())
+            .and_then(|language_override| {
+                // FIXME: ICU4x limits language tags to three bytes as that is limit
+                // defined by BCP 47. But OpenType defines a couple four-letter
+                // languages, and stylo correctly stores a four-byte value for the computed
+                // value of the property.
+                //
+                // https://www.w3.org/TR/css-fonts-4/#font-language-override-string-value
+                //
+                // For now we need to truncate the language tag ):
+                Language::try_from_bytes(&language_override.0.to_be_bytes()[..3]).ok()
+            })
+            .unwrap_or(language);
         let font_size = font_style.font_size.computed_size().into();
         let kerning = font_style.font_kerning;
         let ligatures = font_style.font_variant_ligatures;
@@ -614,7 +629,7 @@ impl TextRun {
                 font,
                 script,
                 bidi_level,
-                language,
+                language: language_for_shaping,
                 word_spacing,
                 letter_spacing,
                 text_rendering,
