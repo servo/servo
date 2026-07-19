@@ -9000,7 +9000,6 @@ dependencies = [
  "servo-media",
  "servo-media-thread",
  "servo-metrics",
- "servo-net",
  "servo-net-traits",
  "servo-paint-api",
  "servo-pixels",
