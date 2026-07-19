@@ -3007,7 +3007,7 @@ impl GlobalScope {
     }
 
     pub(crate) fn fire_timer(&self, handle: TimerEventId, cx: &mut js::context::JSContext) {
-        self.with_timers(|timers| timers.fire_timer(handle, self, cx));
+        self.with_timers(|timers| timers.fire_timer(handle, cx));
     }
 
     pub(crate) fn resume(&self) {
