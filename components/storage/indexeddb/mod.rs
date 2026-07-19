@@ -111,6 +111,7 @@ struct IndexedDBEnvironment<E: KvsEngine> {
     handled_next_unhandled_request_id: FxHashMap<u64, u64>,
     handled_pending: FxHashMap<u64, HashSet<u64>>,
     pending_commit_callbacks: FxHashMap<u64, Vec<GenericCallback<TxnCompleteMsg>>>,
+    pending_abort_callbacks: FxHashMap<u64, Vec<GenericCallback<TxnCompleteMsg>>>,
 }
 
 impl<E: KvsEngine> IndexedDBEnvironment<E> {
@@ -133,6 +134,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             handled_next_unhandled_request_id: FxHashMap::default(),
             handled_pending: FxHashMap::default(),
             pending_commit_callbacks: FxHashMap::default(),
+            pending_abort_callbacks: FxHashMap::default(),
         }
     }
 
@@ -760,6 +762,48 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .set_version(version)
             .map_err(|err| format!("{err:?}"))
     }
+
+    /// <https://w3c.github.io/IndexedDB/#abort-a-transaction>
+    ///
+    /// > When a transaction is aborted the implementation must undo (roll back) any changes that
+    /// > were made to the database during that transaction.
+    ///
+    /// This only aborts the transaction if one was previously queued by adding an abort
+    /// callback to [`Self::pending_abort_callbacks`].
+    ///
+    /// TODO: implement the abort algorithm and rollback for the engine.
+    fn abort(&mut self, origin: &ImmutableOrigin, database_name: &str, transaction: u64) -> bool {
+        let message = || TxnCompleteMsg {
+            origin: origin.clone(),
+            db_name: database_name.into(),
+            txn: transaction,
+            result: Err(BackendError::Abort),
+        };
+
+        let Some(abort_callbacks) = self.pending_abort_callbacks.remove(&transaction) else {
+            return false;
+        };
+        if abort_callbacks.is_empty() {
+            return false;
+        }
+
+        for callback in self
+            .take_pending_commit_callbacks(transaction)
+            .into_iter()
+            .chain(abort_callbacks)
+        {
+            if callback.send(message()).is_err() {
+                error!(
+                    "Failed to send deferred abort completion for \
+                    database '{database_name}' transaction {transaction}.",
+                );
+            }
+        }
+
+        self.abort_transaction(transaction);
+        self.schedule_transactions(origin.clone(), database_name);
+        true
+    }
 }
 
 fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
@@ -1049,8 +1093,9 @@ impl IndexedDBManager {
                     db_name,
                     txn,
                 } => {
-                    let should_notify =
-                        if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                    let should_notify = self
+                        .get_database_mut(origin.clone(), db_name.clone())
+                        .is_some_and(|db| {
                             // Decide which running flag to clear based on txn mode.
                             let mode = db.transactions.get(&txn).map(|t| t.mode.clone());
 
@@ -1067,13 +1112,16 @@ impl IndexedDBManager {
                                 },
                             }
 
+                            if db.abort(&origin, &db_name, txn) {
+                                return false;
+                            }
+
                             // If more requests were queued while this batch was running,
                             // schedule again now.
                             db.schedule_transactions(origin.clone(), &db_name);
                             db.can_notify_txn_maybe_commit(txn)
-                        } else {
-                            false
-                        };
+                        });
+
                     if should_notify {
                         self.handle_sync_operation(SyncOperation::TxnMaybeCommit {
                             origin,
@@ -2383,12 +2431,9 @@ impl IndexedDBManager {
         }
     }
 
-    /// <https://w3c.github.io/IndexedDB/#abort-a-transaction>
-    ///
-    /// > When a transaction is aborted the implementation must undo (roll back) any changes that
-    /// > were made to the database during that transaction.
-    ///
-    /// TODO: implement the abort algorithm and rollback for the engine.
+    /// Handling for the `Abort` message which will call [`Self::abort`] if the transaction
+    /// being aborted is not ongoing. If the transaction is in process, abort is delayed until
+    /// the batch finishes.
     fn handle_abort(
         &mut self,
         abort_callback: GenericCallback<TxnCompleteMsg>,
@@ -2403,26 +2448,32 @@ impl IndexedDBManager {
             result: Err(BackendError::Abort),
         };
 
-        if let Some(database) = self.get_database_mut(origin.clone(), database_name.clone()) {
-            for callback in database.take_pending_commit_callbacks(transaction) {
-                if callback.send(message()).is_err() {
-                    error!(
-                        "Failed to send deferred abort completion for \
-                        database '{database_name}' transaction {transaction}.",
-                    );
-                }
+        let Some(database) = self.get_database_mut(origin.clone(), database_name.clone()) else {
+            // We didn't find the database, so just treat the transaction as aborted.
+            if abort_callback.send(message()).is_err() {
+                error!(
+                    "Failed to send abort completion for database \
+                    '{database_name}' transaction {transaction}.",
+                );
             }
+            return;
+        };
 
-            database.abort_transaction(transaction);
-            database.schedule_transactions(origin.clone(), &database_name);
+        database
+            .pending_abort_callbacks
+            .entry(transaction)
+            .or_default()
+            .push(abort_callback);
+
+        // If the transaction is running wait to abort until after it finishes to actually
+        // abort.
+        if database.running_readwrite == Some(transaction) ||
+            database.running_readonly.contains(&transaction)
+        {
+            return;
         }
 
-        if abort_callback.send(message()).is_err() {
-            error!(
-                "Failed to send deferred abort completion for \
-                database '{database_name}' transaction {transaction}.",
-            );
-        }
+        database.abort(&origin, &database_name, transaction);
     }
 
     fn collect_memory_reports(&self) -> Vec<Report> {
