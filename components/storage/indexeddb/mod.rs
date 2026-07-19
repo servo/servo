@@ -2261,50 +2261,7 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::Abort(abort_callback, origin, db_name, txn) => {
-                // https://w3c.github.io/IndexedDB/#abort-a-transaction
-                // “When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction.”
-                // TODO: implement the abort algorithm and rollback for the engine.
-                let pending_commit_callbacks =
-                    if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
-                        let callbacks = db.take_pending_commit_callbacks(txn);
-                        db.abort_transaction(txn);
-                        callbacks
-                    } else {
-                        Vec::new()
-                    };
-                if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
-                    db.schedule_transactions(origin.clone(), &db_name);
-                }
-                for callback in pending_commit_callbacks {
-                    if callback
-                        .send(storage_traits::indexeddb::TxnCompleteMsg {
-                            origin: origin.clone(),
-                            db_name: db_name.clone(),
-                            txn,
-                            result: Err(BackendError::Abort),
-                        })
-                        .is_err()
-                    {
-                        error!(
-                            "Failed to send deferred abort completion for db '{}' txn {}.",
-                            db_name, txn
-                        );
-                    }
-                }
-                if abort_callback
-                    .send(storage_traits::indexeddb::TxnCompleteMsg {
-                        origin,
-                        db_name: db_name.clone(),
-                        txn,
-                        result: Err(BackendError::Abort),
-                    })
-                    .is_err()
-                {
-                    error!(
-                        "Failed to send abort completion for db '{}' txn {}.",
-                        db_name, txn
-                    );
-                }
+                self.handle_abort(abort_callback, origin, db_name, txn);
             },
             SyncOperation::UpgradeTransactionFinished {
                 origin,
@@ -2438,6 +2395,48 @@ impl IndexedDBManager {
             SyncOperation::Exit(_) => {
                 unreachable!("We must've already broken out of event loop.");
             },
+        }
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#abort-a-transaction>
+    ///
+    /// > When a transaction is aborted the implementation must undo (roll back) any changes that
+    /// > were made to the database during that transaction.
+    ///
+    /// TODO: implement the abort algorithm and rollback for the engine.
+    fn handle_abort(
+        &mut self,
+        abort_callback: GenericCallback<TxnCompleteMsg>,
+        origin: ImmutableOrigin,
+        database_name: String,
+        transaction: u64,
+    ) {
+        let message = || TxnCompleteMsg {
+            origin: origin.clone(),
+            db_name: database_name.clone(),
+            txn: transaction,
+            result: Err(BackendError::Abort),
+        };
+
+        if let Some(database) = self.get_database_mut(origin.clone(), database_name.clone()) {
+            for callback in database.take_pending_commit_callbacks(transaction) {
+                if callback.send(message()).is_err() {
+                    error!(
+                        "Failed to send deferred abort completion for \
+                        database '{database_name}' transaction {transaction}.",
+                    );
+                }
+            }
+
+            database.abort_transaction(transaction);
+            database.schedule_transactions(origin.clone(), &database_name);
+        }
+
+        if abort_callback.send(message()).is_err() {
+            error!(
+                "Failed to send deferred abort completion for \
+                database '{database_name}' transaction {transaction}.",
+            );
         }
     }
 
