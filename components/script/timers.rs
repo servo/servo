@@ -17,23 +17,19 @@ use js::rust::wrappers2::JS_GetScriptedCallerPrivate;
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::ParserMetadata;
 use rustc_hash::FxHashMap;
-use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::DomObject;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use timers::{BoxedTimerCallback, TimerEventRequest};
 
-use crate::DomTypeHolder;
 use crate::dom::bindings::callback::ExceptionHandling::Report;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
@@ -786,12 +782,7 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    fn invoke<T: DomObject + OwnerWindow<DomTypeHolder>>(
-        self,
-        this: &T,
-        timers: &JsTimers,
-        cx: &mut JSContext,
-    ) {
+    fn invoke(self, global: &GlobalScope, timers: &JsTimers, cx: &mut JSContext) {
         // step 9.2 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
@@ -803,7 +794,6 @@ impl JsTimerTask {
             InternalTimerCallback::StringTimerCallback(ref code_str, ref fetch_info) => {
                 // Step 6.4. Let settings object be global's relevant settings object.
                 // Step 6. Let realm be global's relevant realm.
-                let global = this.global();
 
                 // Note: the steps to retrieve *fetch options* and *base URL* are performed in
                 // `active_script_fetch_info`.
@@ -833,7 +823,7 @@ impl JsTimerTask {
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments = self.collect_heap_args(arguments);
                 rooted!(&in(cx) let mut value: JSVal);
-                let _ = function.Call_(cx, this, arguments, value.handle_mut(), Report);
+                let _ = function.Call_(cx, global, arguments, value.handle_mut(), Report);
             },
         };
 
@@ -848,7 +838,7 @@ impl JsTimerTask {
         if self.is_interval == IsInterval::Interval &&
             timers.active_timers.borrow().contains_key(&self.handle)
         {
-            timers.initialize_and_schedule(&this.global(), self);
+            timers.initialize_and_schedule(global, self);
         }
     }
 
