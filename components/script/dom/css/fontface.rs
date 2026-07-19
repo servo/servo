@@ -354,6 +354,11 @@ impl FontFace {
         *self.css_font_face_rule.borrow_mut() = None;
     }
 
+    /// <https://drafts.csswg.org/css-font-loading/#css-connected>
+    pub(crate) fn is_css_connected(&self) -> bool {
+        self.css_font_face_rule.borrow().is_some()
+    }
+
     /// Return true if the `FontFace` is [css-connected] *and* was created by the provided
     /// `@font-face` rule.
     ///

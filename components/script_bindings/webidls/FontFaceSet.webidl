@@ -25,7 +25,7 @@ interface FontFaceSet : EventTarget {
 
   [Pref="dom_fontface_enabled"]
   setlike<FontFace>;
-  [Pref="dom_fontface_enabled"]
+  [Pref="dom_fontface_enabled", Throws]
   FontFaceSet add(FontFace font);
   [Pref="dom_fontface_enabled"]
   boolean delete(FontFace font);
