@@ -8,6 +8,7 @@
 
 pub mod gpuadapterinfo;
 pub mod gpubufferusage;
+pub mod gpucommandbuffer;
 pub mod gpucompilationinfo;
 pub mod gpucompilationmessage;
 pub mod gpudevicelostinfo;
@@ -44,6 +45,7 @@ pub(crate) mod codegen {
 
         use crate::gpuadapterinfo::GPUAdapterInfo;
         use crate::gpubufferusage::GPUBufferUsage;
+        use crate::gpucommandbuffer::GPUCommandBuffer;
         use crate::gpucompilationinfo::GPUCompilationInfo;
         use crate::gpucompilationmessage::GPUCompilationMessage;
         use crate::gpudevicelostinfo::GPUDeviceLostInfo;

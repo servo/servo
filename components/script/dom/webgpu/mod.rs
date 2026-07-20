@@ -17,7 +17,10 @@ pub(crate) mod gpubufferusage {
 }
 pub(crate) mod gpucanvascontext;
 pub(crate) mod gpucolorwrite;
-pub(crate) mod gpucommandbuffer;
+pub(crate) mod gpucommandbuffer {
+    pub(crate) type GPUCommandBuffer =
+        script_webgpu::gpucommandbuffer::GPUCommandBuffer<crate::DomTypeHolder>;
+}
 pub(crate) mod gpucommandencoder;
 pub(crate) mod gpucompilationinfo {
     pub(crate) type GPUCompilationInfo =
