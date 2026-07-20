@@ -147,6 +147,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.13.0")
+    implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
     implementation("androidx.compose.material3:material3:1.4.0")
     implementation("androidx.preference:preference-ktx:1.2.0")
 }
