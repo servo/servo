@@ -11,6 +11,7 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use js::typedarray::HeapArrayBuffer;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUMapModeConstants;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
@@ -21,8 +22,8 @@ use wgpu_core::resource::BufferAccessError;
 use crate::conversions::Convert;
 use crate::dom::bindings::buffer_source::DataBlock;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBufferDescriptor, GPUBufferMapState, GPUBufferMethods, GPUFlagsConstant,
-    GPUMapModeConstants, GPUMapModeFlags, GPUSize64,
+    GPUBufferDescriptor, GPUBufferMapState, GPUBufferMethods, GPUFlagsConstant, GPUMapModeFlags,
+    GPUSize64,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;

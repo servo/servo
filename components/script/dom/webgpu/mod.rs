@@ -41,7 +41,9 @@ pub(crate) mod gpudevicelostinfo {
 pub(crate) mod gpuerror;
 pub(crate) mod gpuexternaltexture;
 pub(crate) mod gpuinternalerror;
-pub(crate) mod gpumapmode;
+pub(crate) mod gpumapmode {
+    pub(crate) type GPUMapMode = script_webgpu::gpumapmode::GPUMapMode<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuoutofmemoryerror;
 pub(crate) mod gpupipelineerror;
 #[expect(dead_code)]
