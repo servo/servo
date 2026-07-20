@@ -2,16 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use jstraceable_derive::JSTraceable;
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUCommandBufferMethods, GPUCommandBufferWrap,
+};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUCommandBufferMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUCommandBuffer {
@@ -37,13 +44,18 @@ impl Drop for DroppableGPUCommandBuffer {
 }
 
 #[dom_struct]
-pub(crate) struct GPUCommandBuffer {
+pub struct GPUCommandBuffer<D: DomTypes> {
     reflector_: Reflector,
     label: DomRefCell<USVString>,
     droppable: DroppableGPUCommandBuffer,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUCommandBuffer {
+impl<D> GPUCommandBuffer<D>
+where
+    D: DomTypes<GPUCommandBuffer = GPUCommandBuffer<D>>,
+{
     fn new_inherited(
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
@@ -56,17 +68,18 @@ impl GPUCommandBuffer {
                 channel,
                 command_buffer,
             },
+            phantom: PhantomData,
         }
     }
 
-    pub(crate) fn new(
+    pub fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUCommandBuffer::new_inherited(
                 channel,
                 command_buffer,
@@ -74,17 +87,18 @@ impl GPUCommandBuffer {
             )),
             global,
             cx,
+            GPUCommandBufferWrap::<D>,
         )
     }
 }
 
-impl GPUCommandBuffer {
-    pub(crate) fn id(&self) -> WebGPUCommandBuffer {
+impl<D: DomTypes> GPUCommandBuffer<D> {
+    pub fn id(&self) -> WebGPUCommandBuffer {
         self.droppable.command_buffer
     }
 }
 
-impl GPUCommandBufferMethods<crate::DomTypeHolder> for GPUCommandBuffer {
+impl<D: DomTypes> GPUCommandBufferMethods<D> for GPUCommandBuffer<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

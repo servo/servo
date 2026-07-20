@@ -21,8 +21,10 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
 deny_public_fields = { workspace = true }
 dom_struct = { workspace = true }
 js = { workspace = true }
+log = { workspace = true }
 jstraceable_derive = { workspace = true }
 script_bindings = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 webgpu_traits = { workspace = true }
+wgpu-core = { workspace = true }

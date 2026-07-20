@@ -9127,6 +9127,7 @@ dependencies = [
 name = "servo-script-webgpu"
 version = "0.4.0"
 dependencies = [
+ "log",
  "malloc_size_of_derive",
  "mozjs",
  "servo-deny-public-fields",
@@ -9135,6 +9136,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo-script-bindings",
  "servo-webgpu-traits",
+ "wgpu-core 30.0.0",
 ]
 
 [[package]]

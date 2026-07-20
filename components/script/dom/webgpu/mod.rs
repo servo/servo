@@ -17,7 +17,10 @@ pub(crate) mod gpubufferusage {
 }
 pub(crate) mod gpucanvascontext;
 pub(crate) mod gpucolorwrite;
-pub(crate) mod gpucommandbuffer;
+pub(crate) mod gpucommandbuffer {
+    pub(crate) type GPUCommandBuffer =
+        script_webgpu::gpucommandbuffer::GPUCommandBuffer<crate::DomTypeHolder>;
+}
 pub(crate) mod gpucommandencoder;
 pub(crate) mod gpucompilationinfo {
     pub(crate) type GPUCompilationInfo =
@@ -38,27 +41,39 @@ pub(crate) mod gpudevicelostinfo {
 pub(crate) mod gpuerror;
 pub(crate) mod gpuexternaltexture;
 pub(crate) mod gpuinternalerror;
-pub(crate) mod gpumapmode;
+pub(crate) mod gpumapmode {
+    pub(crate) type GPUMapMode = script_webgpu::gpumapmode::GPUMapMode<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuoutofmemoryerror;
 pub(crate) mod gpupipelineerror;
 #[expect(dead_code)]
 pub(crate) mod gpupipelinelayout;
 pub(crate) mod gpuqueryset;
 pub(crate) mod gpuqueue;
-pub(crate) mod gpurenderbundle;
+pub(crate) mod gpurenderbundle {
+    pub(crate) type GPURenderBundle =
+        script_webgpu::gpurenderbundle::GPURenderBundle<crate::DomTypeHolder>;
+}
 pub(crate) mod gpurenderbundleencoder;
 pub(crate) mod gpurenderpassencoder;
 pub(crate) mod gpurenderpipeline;
 pub(crate) mod gpusampler;
 pub(crate) mod gpushadermodule;
-pub(crate) mod gpushaderstage;
+pub(crate) mod gpushaderstage {
+    pub(crate) type GPUShaderStage =
+        script_webgpu::gpushaderstage::GPUShaderStage<crate::DomTypeHolder>;
+}
 pub(crate) mod gpusupportedfeatures;
 pub(crate) mod gpusupportedlimits;
 pub(crate) mod gputexture;
-pub(crate) mod gputextureusage;
+pub(crate) mod gputextureusage {
+    pub(crate) type GPUTextureUsage =
+        script_webgpu::gputextureusage::GPUTextureUsage<crate::DomTypeHolder>;
+}
 pub(crate) mod gputextureview;
 pub(crate) mod gpuuncapturederrorevent;
 pub(crate) mod gpuvalidationerror;
-#[expect(dead_code)]
-pub(crate) mod identityhub;
+pub(crate) mod identityhub {
+    pub(crate) type IdentityHub = script_webgpu::identityhub::IdentityHub;
+}
 pub(crate) mod wgsllanguagefeatures;
