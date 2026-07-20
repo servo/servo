@@ -1233,33 +1233,29 @@ impl InitialFlexLineLayout<'_> {
         {
             items
                 .into_par_iter()
-                .zip(&item_used_main_sizes)
+                .zip(item_used_main_sizes.into_par_iter())
                 .map(|(item, used_main_size)| {
-                    let layout_result = item.layout(*used_main_size, flex_context, None);
+                    let layout_result = item.layout(used_main_size, flex_context, None);
                     FlexLineItem {
                         item,
                         layout_result,
-                        used_main_size: *used_main_size,
+                        used_main_size,
                     }
                 })
                 .collect()
         } else {
-            let flex_item_layout_results: Vec<_> = items
-                .iter()
-                .zip(&item_used_main_sizes)
-                .map(|(item, used_main_size)| item.layout(*used_main_size, flex_context, None))
-                .collect();
-            izip!(
-                items.into_iter(),
-                flex_item_layout_results.into_iter(),
-                item_used_main_sizes.into_iter()
-            )
-            .map(|(item, layout_result, used_main_size)| FlexLineItem {
-                item,
-                layout_result,
-                used_main_size,
-            })
-            .collect()
+            items
+                .into_iter()
+                .zip(item_used_main_sizes)
+                .map(|(item, used_main_size)| {
+                    let layout_result = item.layout(used_main_size, flex_context, None);
+                    FlexLineItem {
+                        item,
+                        layout_result,
+                        used_main_size,
+                    }
+                })
+                .collect()
         };
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-line
