@@ -6850,7 +6850,7 @@ pub(crate) struct SameOriginDescendantNavigablesIterator {
 }
 
 impl SameOriginDescendantNavigablesIterator {
-    pub(crate) fn new(document: DomRoot<Document>) -> Self {
+    pub(crate) fn new(document: &Document) -> Self {
         let iframes: Vec<DomRoot<HTMLIFrameElement>> = document.iframes().iter().collect();
         Self {
             stack: vec![Box::new(iframes.into_iter())],
