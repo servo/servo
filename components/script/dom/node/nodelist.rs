@@ -128,12 +128,12 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nodelist-item>
-    fn Item(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Node>> {
+    fn Item(&self, no_gc: &NoGC, index: u32) -> Option<DomRoot<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems
                 .get(index as usize)
                 .map(|node| DomRoot::from_ref(&**node)),
-            NodeListType::Children(ref list) => list.item(index, cx),
+            NodeListType::Children(ref list) => list.item(index, no_gc),
             NodeListType::Labels(ref list) => list.item(index),
             NodeListType::Radio(ref list) => list.item(index),
             NodeListType::ElementsByName(ref list) => list.item(index),
@@ -141,8 +141,8 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nodelist-item>
-    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Node>> {
-        self.Item(cx, index)
+    fn IndexedGetter(&self, no_gc: &NoGC, index: u32) -> Option<DomRoot<Node>> {
+        self.Item(no_gc, index)
     }
 }
 
@@ -155,14 +155,11 @@ impl NodeList {
         }
     }
 
-    pub(crate) fn iter<'a>(
-        &'a self,
-        cx: &'a JSContext,
-    ) -> impl Iterator<Item = DomRoot<Node>> + 'a {
+    pub(crate) fn iter<'a>(&'a self, no_gc: &'a NoGC) -> impl Iterator<Item = DomRoot<Node>> + 'a {
         let len = self.Length();
         // There is room for optimization here in non-simple cases,
         // as calling Item repeatedly on a live list can involve redundant work.
-        (0..len).flat_map(move |i| self.Item(cx, i))
+        (0..len).flat_map(move |i| self.Item(no_gc, i))
     }
 }
 

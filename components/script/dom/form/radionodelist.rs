@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_bindings::root::DomRoot;
 use stylo_atoms::Atom;
@@ -85,9 +85,9 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
-    fn Value(&self, cx: &JSContext) -> DOMString {
+    fn Value(&self, no_gc: &NoGC) -> DOMString {
         self.upcast::<NodeList>()
-            .iter(cx)
+            .iter(no_gc)
             .find_map(|node| {
                 // Step 1
                 node.downcast::<HTMLInputElement>().and_then(|input| {
@@ -143,7 +143,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     // https://github.com/servo/servo/issues/5875
     //
     /// <https://dom.spec.whatwg.org/#dom-nodelist-item>
-    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Node>> {
-        self.node_list.IndexedGetter(cx, index)
+    fn IndexedGetter(&self, no_gc: &NoGC, index: u32) -> Option<DomRoot<Node>> {
+        self.node_list.IndexedGetter(no_gc, index)
     }
 }
