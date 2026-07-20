@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use pixels::Snapshot;
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_canvas_traits::canvas::CanvasCommand;
@@ -419,13 +419,14 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
-    fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
-        self.context.PutImageData(imagedata, dx, dy)
+    fn PutImageData(&self, no_gc: &NoGC, imagedata: &ImageData, dx: i32, dy: i32) {
+        self.context.PutImageData(no_gc, imagedata, dx, dy)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
     fn PutImageData_(
         &self,
+        no_gc: &NoGC,
         imagedata: &ImageData,
         dx: i32,
         dy: i32,
@@ -435,6 +436,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         dirty_height: i32,
     ) {
         self.context.PutImageData_(
+            no_gc,
             imagedata,
             dx,
             dy,

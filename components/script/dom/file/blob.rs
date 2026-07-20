@@ -103,7 +103,7 @@ impl Serializable for Blob {
     type Data = BlobImpl;
 
     /// <https://w3c.github.io/FileAPI/#ref-for-serialization-steps>
-    fn serialize(&self) -> Result<(BlobId, BlobImpl), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(BlobId, BlobImpl), ()> {
         let blob_id = self.blob_id;
 
         // 1. Get a clone of the blob impl.

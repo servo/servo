@@ -289,7 +289,7 @@ impl GPUQueueMethods<crate::DomTypeHolder> for GPUQueue {
                         "ImageData is detached".to_string(),
                     )));
                 }
-                Some(data.get_snapshot())
+                Some(data.get_snapshot(cx.no_gc()))
             },
             GPUCopyExternalImageSource::HTMLImageElement(inner) => {
                 if inner.is_usable()? {
