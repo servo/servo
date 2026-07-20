@@ -19,7 +19,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::xpath::{Value, XPathWrapper};
+use crate::xpath::Value;
 
 #[repr(u16)]
 #[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, Ord, PartialEq, PartialOrd)]
@@ -57,13 +57,14 @@ impl TryFrom<u16> for XPathResultType {
 }
 
 #[derive(Debug, JSTraceable, MallocSizeOf)]
-pub(crate) enum XPathResultValue {
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+enum XPathResultValue {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
     Number(f64),
     String(DOMString),
     /// A collection of unique nodes
-    Nodeset(Vec<DomRoot<Node>>),
+    Nodeset(Vec<Dom<Node>>),
 }
 
 impl From<Value> for XPathResultValue {
@@ -72,9 +73,12 @@ impl From<Value> for XPathResultValue {
             Value::Boolean(b) => XPathResultValue::Boolean(b),
             Value::Number(n) => XPathResultValue::Number(n),
             Value::String(s) => XPathResultValue::String(s.into()),
-            Value::NodeSet(nodes) => {
-                XPathResultValue::Nodeset(nodes.into_iter().map(XPathWrapper::into_inner).collect())
-            },
+            Value::NodeSet(nodes) => XPathResultValue::Nodeset(
+                nodes
+                    .into_iter()
+                    .map(|xpath_node| xpath_node.0.as_traced())
+                    .collect(),
+            ),
         }
     }
 }
@@ -92,11 +96,7 @@ pub(crate) struct XPathResult {
 }
 
 impl XPathResult {
-    fn new_inherited(
-        window: &Window,
-        result_type: XPathResultType,
-        value: XPathResultValue,
-    ) -> XPathResult {
+    fn new_inherited(window: &Window, result_type: XPathResultType, value: Value) -> XPathResult {
         XPathResult {
             reflector_: Reflector::new(),
             window: Dom::from_ref(window),
@@ -108,7 +108,7 @@ impl XPathResult {
             ),
             result_type: Cell::new(result_type),
             iterator_pos: Cell::new(0),
-            value: RefCell::new(value),
+            value: RefCell::new(value.into()),
         }
     }
 
@@ -129,7 +129,7 @@ impl XPathResult {
         window: &Window,
         proto: Option<HandleObject>,
         result_type: XPathResultType,
-        value: XPathResultValue,
+        value: Value,
     ) -> DomRoot<XPathResult> {
         reflect_dom_object_with_proto(
             cx,
@@ -139,9 +139,9 @@ impl XPathResult {
         )
     }
 
-    pub(crate) fn reinitialize_with(&self, result_type: XPathResultType, value: XPathResultValue) {
+    pub(crate) fn reinitialize_with(&self, result_type: XPathResultType, value: Value) {
         self.result_type.set(result_type);
-        *self.value.borrow_mut() = value;
+        *self.value.borrow_mut() = value.into();
         self.version.set(
             self.window
                 .Document()
@@ -211,7 +211,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         if position >= nodes.len() {
             Ok(None)
         } else {
-            let node = nodes[position].clone();
+            let node = nodes[position].as_rooted();
             self.iterator_pos.set(position + 1);
             Ok(Some(node))
         }
@@ -246,7 +246,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
             (
                 XPathResultValue::Nodeset(nodes),
                 XPathResultType::OrderedNodeSnapshot | XPathResultType::UnorderedNodeSnapshot,
-            ) => Ok(nodes.get(index as usize).cloned()),
+            ) => Ok(nodes.get(index as usize).map(|node| node.as_rooted())),
             _ => Err(Error::Type(
                 c"Can't get snapshot item of XPathResult that is not a snapshot".to_owned(),
             )),
@@ -259,7 +259,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
             (
                 XPathResultValue::Nodeset(nodes),
                 XPathResultType::AnyUnorderedNode | XPathResultType::FirstOrderedNode,
-            ) => Ok(nodes.first().cloned()),
+            ) => Ok(nodes.first().map(|node| node.as_rooted())),
             _ => Err(Error::Type(
                 c"Getting single value requires result type 'any unordered node' or 'first ordered node'".to_owned(),
             )),

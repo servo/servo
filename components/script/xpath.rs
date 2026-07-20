@@ -304,12 +304,6 @@ impl<T> From<T> for XPathWrapper<T> {
     }
 }
 
-impl<T> XPathWrapper<T> {
-    pub(crate) fn into_inner(self) -> T {
-        self.0
-    }
-}
-
 pub(crate) fn parse_expression(
     cx: &mut JSContext,
     expression: &str,
