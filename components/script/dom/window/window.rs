@@ -2672,7 +2672,7 @@ impl Window {
             }
 
             let stylesheets_changed = document.flush_stylesheets_for_reflow();
-            let pending_restyles = document.drain_pending_restyles();
+            let pending_restyles = document.drain_pending_restyles(cx.no_gc());
             let dirty_root = document
                 .take_dirty_root()
                 .filter(|_| !stylesheets_changed)
