@@ -59,7 +59,10 @@ pub(crate) mod gpurenderpassencoder;
 pub(crate) mod gpurenderpipeline;
 pub(crate) mod gpusampler;
 pub(crate) mod gpushadermodule;
-pub(crate) mod gpushaderstage;
+pub(crate) mod gpushaderstage {
+    pub(crate) type GPUShaderStage =
+        script_webgpu::gpushaderstage::GPUShaderStage<crate::DomTypeHolder>;
+}
 pub(crate) mod gpusupportedfeatures;
 pub(crate) mod gpusupportedlimits;
 pub(crate) mod gputexture;
