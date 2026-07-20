@@ -6,7 +6,8 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::AnimationEffectBinding::{
-    AnimationEffectMethods, EffectTiming, FillMode, OptionalEffectTiming, PlaybackDirection,
+    AnimationEffectMethods, ComputedEffectTiming, EffectTiming, FillMode, OptionalEffectTiming,
+    PlaybackDirection,
 };
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::error::{Error, Fallible};
@@ -236,6 +237,31 @@ impl AnimationEffectMethods<crate::DomTypeHolder> for AnimationEffect {
         }
     }
 
+    /// <https://drafts.csswg.org/web-animations-1/#dom-animationeffect-getcomputedtiming>
+    fn GetComputedTiming(&self) -> ComputedEffectTiming {
+        let specified_timing_properties = self.specified_timing_properties.borrow();
+        let computed_fill_mode = if specified_timing_properties.fill_mode == FillMode::Auto {
+            FillMode::None
+        } else {
+            specified_timing_properties.fill_mode
+        };
+        ComputedEffectTiming {
+            delay: specified_timing_properties.start_delay,
+            direction: specified_timing_properties.playback_direction,
+            duration: specified_timing_properties
+                .iteration_duration
+                .computed_value(),
+            easing: specified_timing_properties
+                .easing_function
+                .to_css_string()
+                .into(),
+            endDelay: specified_timing_properties.end_delay,
+            fill: computed_fill_mode,
+            iterationStart: specified_timing_properties.iteration_start,
+            iterations: specified_timing_properties.iteration_count,
+        }
+    }
+
     /// <https://drafts.csswg.org/web-animations-1/#dom-animationeffect-updatetiming>
     fn UpdateTiming(&self, timing: &OptionalEffectTiming) -> Fallible<()> {
         // > Updates the specified timing properties of this animation effect by performing the procedure
@@ -248,6 +274,15 @@ impl AnimationEffectMethods<crate::DomTypeHolder> for AnimationEffect {
 enum IterationDurationOrAuto {
     Duration(f64),
     Auto,
+}
+
+impl IterationDurationOrAuto {
+    fn computed_value(&self) -> f64 {
+        match self {
+            IterationDurationOrAuto::Auto => 0.0,
+            IterationDurationOrAuto::Duration(double) => double,
+        }
+    }
 }
 
 impl From<IterationDurationOrAuto> for UnrestrictedDoubleOrString {

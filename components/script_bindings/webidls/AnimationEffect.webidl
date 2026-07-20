@@ -6,7 +6,7 @@
 [Exposed=Window, Pref="dom_web_animations_enabled"]
 interface AnimationEffect {
      EffectTiming         getTiming();
-//     ComputedEffectTiming getComputedTiming();
+     ComputedEffectTiming getComputedTiming();
      [Throws] undefined            updateTiming(optional OptionalEffectTiming timing = {});
 };
 
@@ -38,3 +38,12 @@ enum FillMode { "none", "forwards", "backwards", "both", "auto" };
 
 // https://drafts.csswg.org/web-animations-1/#the-playbackdirection-enumeration
 enum PlaybackDirection { "normal", "reverse", "alternate", "alternate-reverse" };
+
+// https://drafts.csswg.org/web-animations-1/#the-computedeffecttiming-dictionary
+dictionary ComputedEffectTiming : EffectTiming {
+  unrestricted double  endTime;
+  unrestricted double  activeDuration;
+  double?              localTime;
+  double?              progress;
+  unrestricted double? currentIteration;
+};
