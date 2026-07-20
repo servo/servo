@@ -59,7 +59,7 @@ impl UserActivation {
         // Step 4.
         // > Extend windows with the active window of each of document's descendant navigables, filtered to include only
         // > those navigables whose active document's origin is same origin with document's origin.
-        for document in SameOriginDescendantNavigablesIterator::new(DomRoot::from_ref(document)) {
+        for document in SameOriginDescendantNavigablesIterator::new(document) {
             windows.push(Dom::from_ref(document.window()));
         }
 
