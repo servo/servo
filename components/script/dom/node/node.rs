@@ -4318,7 +4318,7 @@ impl VirtualMethods for Node {
             weak_ranges.drain_to_parent(old_parent, context.index(), self);
         }
 
-        self.owner_doc()
+        self.owner_doc_unrooted(cx.no_gc())
             .content_and_heritage_changed(cx.no_gc(), self);
     }
 
