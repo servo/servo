@@ -526,7 +526,7 @@ impl WebGL2RenderingContext {
             Err(error) => return self.base.webgl_error(error),
         };
         let dst_end = dst_byte_offset + skipped_bytes + size;
-        let dst_pixels = dst.as_mut_slice_safe(no_gc);
+        let dst_pixels = dst.as_mut_slice_safe(no_gc).unwrap_or(&mut []);
         if dst_pixels.len() < dst_end {
             return self.base.webgl_error(InvalidOperation);
         }
@@ -588,7 +588,7 @@ impl WebGL2RenderingContext {
         uniform_location: &WebGLUniformLocation,
     ) -> WebGLResult<Vec<u32>> {
         let vec = match vec {
-            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec(),
+            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec().unwrap_or_default(),
             Uint32ArrayOrUnsignedLongSequence::UnsignedLongSequence(v) => v,
         };
         self.base
@@ -1510,7 +1510,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         }
 
         let data_end = byte_offset + copy_bytes;
-        let data: &[u8] = &data.as_slice_safe(cx.no_gc())[byte_offset..data_end];
+        let data = data.as_slice_safe(cx.no_gc()).unwrap_or(&[]);
+        let data = &data[byte_offset..data_end];
         handle_potential_webgl_error!(self.base, bound_buffer.buffer_data(target, data, usage));
     }
 
@@ -1576,7 +1577,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             receiver,
         ));
         let src_end = src_byte_offset + copy_bytes;
-        let data: &[u8] = &src_data.as_slice_safe(cx.no_gc())[src_byte_offset..src_end];
+        let data = src_data.as_slice_safe(cx.no_gc()).unwrap_or(&[]);
+        let data = &data[src_byte_offset..src_end];
         let buffer = GenericSharedMemory::from_bytes(data);
         sender.send(buffer).unwrap();
     }
@@ -1690,7 +1692,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         ));
         let data = receiver.recv().unwrap();
         let dst_end = dst_byte_offset + copy_bytes;
-        dst_buffer.as_mut_slice_safe(cx.no_gc())[dst_byte_offset..dst_end].copy_from_slice(&data);
+        let dst_buffer = dst_buffer.as_mut_slice_safe(cx.no_gc()).unwrap_or(&mut []);
+        dst_buffer[dst_byte_offset..dst_end].copy_from_slice(&data);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.6>
@@ -1707,7 +1710,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_offset: u32,
         src_length_override: u32,
     ) {
-        let mut data = pixels.as_slice_safe(no_gc);
+        let mut data = pixels.as_slice_safe(no_gc).unwrap_or(&[]);
         let start = src_offset as usize;
         let end = (src_offset + src_length_override) as usize;
         if start > data.len() || end > data.len() {
@@ -1743,7 +1746,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_offset: u32,
         src_length_override: u32,
     ) {
-        let mut data = pixels.as_slice_safe(no_gc);
+        let mut data = pixels.as_slice_safe(no_gc).unwrap_or(&[]);
         let start = src_offset as usize;
         let end = (src_offset + src_length_override) as usize;
         if start > data.len() || end > data.len() {
@@ -3067,7 +3070,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn VertexAttribI4iv(&self, cx: &mut JSContext, index: u32, v: Int32ArrayOrLongSequence) {
         let values = match v {
-            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec().unwrap_or_default(),
             Int32ArrayOrLongSequence::LongSequence(v) => v,
         };
         if values.len() < 4 {
@@ -3089,7 +3092,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         v: Uint32ArrayOrUnsignedLongSequence,
     ) {
         let values = match v {
-            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec(),
+            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec().unwrap_or_default(),
             Uint32ArrayOrUnsignedLongSequence::UnsignedLongSequence(v) => v,
         };
         if values.len() < 4 {
@@ -3235,7 +3238,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         // If srcData is null, a buffer of sufficient size initialized to 0 is passed.
         let buff = match *src_data {
-            Some(ref data) => GenericSharedMemory::from_bytes(data.as_slice_safe(no_gc)),
+            Some(ref data) => {
+                GenericSharedMemory::from_bytes(data.as_slice_safe(no_gc).unwrap_or(&[]))
+            },
             None => GenericSharedMemory::from_byte(0, expected_byte_len as usize),
         };
         if buff.len() < expected_byte_len as usize {
@@ -3540,8 +3545,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return Ok(());
         }
 
-        let buff =
-            GenericSharedMemory::from_bytes(&src_data.as_slice_safe(no_gc)[src_byte_offset..]);
+        let src_data_slice = src_data.as_slice_safe(no_gc).unwrap_or(&[]);
+        let buff = GenericSharedMemory::from_bytes(&src_data_slice[src_byte_offset..]);
 
         let expected_byte_length = match self.base.validate_tex_image_2d_data(
             width,
@@ -4780,7 +4785,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_offset: u32,
     ) {
         let array = match values {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => {
+                v.to_vec().unwrap_or_default()
+            },
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         self.clear_buffer::<f32>(
@@ -4802,7 +4809,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_offset: u32,
     ) {
         let array = match values {
-            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec().unwrap_or_default(),
             Int32ArrayOrLongSequence::LongSequence(v) => v,
         };
         self.clear_buffer::<i32>(
@@ -4824,7 +4831,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_offset: u32,
     ) {
         let array = match values {
-            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec(),
+            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec().unwrap_or_default(),
             Uint32ArrayOrUnsignedLongSequence::UnsignedLongSequence(v) => v,
         };
         self.clear_buffer::<u32>(

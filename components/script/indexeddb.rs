@@ -88,6 +88,7 @@ pub fn key_type_to_jsval(
                 .expect("ArrayBuffer::create should create an ArrayBuffer object");
             array_buffer
                 .as_mut_slice_safe(cx.no_gc())
+                .expect("Can't be detached")
                 .copy_from_slice(b);
 
             // Step 3.5. Return buffer.
@@ -318,7 +319,8 @@ pub fn convert_value_to_key(
                     let array_buffer_view =
                         ArrayBufferView::from(*object).map_err(|()| Error::JSFailed)?;
                     array_buffer_view.to_vec()
-                };
+                }
+                .expect("Already checked for detached buffers");
                 // 3.3. Return a new key with type binary and value bytes.
                 return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(bytes)));
             }

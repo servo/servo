@@ -47,7 +47,7 @@ use url::Position;
 
 use crate::body::{BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal};
 use crate::document_loader::DocumentLoader;
-use crate::dom::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::buffer_source::{HeapBufferSource, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
     XMLHttpRequestMethods, XMLHttpRequestResponseType,
@@ -611,7 +611,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                     .expect("Couldn't extract body."),
             ),
             Some(DocumentOrXMLHttpRequestBodyInit::ArrayBuffer(ref typedarray)) => {
-                let bytes = typedarray.to_vec();
+                let bytes = get_buffer_source_copy(typedarray.into());
                 let total_bytes = bytes.len();
                 let global = self.global();
                 let stream = ReadableStream::new_from_bytes(cx, &global, bytes)?;
@@ -623,7 +623,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 })
             },
             Some(DocumentOrXMLHttpRequestBodyInit::ArrayBufferView(ref typedarray)) => {
-                let bytes = typedarray.to_vec();
+                let bytes = get_buffer_source_copy(typedarray.into());
                 let total_bytes = bytes.len();
                 let global = self.global();
                 let stream = ReadableStream::new_from_bytes(cx, &global, bytes)?;

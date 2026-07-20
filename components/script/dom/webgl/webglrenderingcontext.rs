@@ -1464,7 +1464,7 @@ impl WebGLRenderingContext {
         uniform_location: &WebGLUniformLocation,
     ) -> WebGLResult<Vec<i32>> {
         let vec = match vec {
-            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec().unwrap_or_default(),
             Int32ArrayOrLongSequence::LongSequence(v) => v,
         };
         self.uniform_vec_section::<i32>(vec, offset, length, uniform_size, uniform_location)
@@ -1479,7 +1479,9 @@ impl WebGLRenderingContext {
         uniform_location: &WebGLUniformLocation,
     ) -> WebGLResult<Vec<f32>> {
         let vec = match vec {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => {
+                v.to_vec().unwrap_or_default()
+            },
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         self.uniform_vec_section::<f32>(vec, offset, length, uniform_size, uniform_location)
@@ -1533,7 +1535,9 @@ impl WebGLRenderingContext {
         uniform_location: &WebGLUniformLocation,
     ) -> WebGLResult<Vec<f32>> {
         let vec = match vec {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => {
+                v.to_vec().unwrap_or_default()
+            },
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if transpose {
@@ -2817,7 +2821,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         border: i32,
         data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        let data = data.as_slice_safe(no_gc);
+        let data = data.as_slice_safe(no_gc).unwrap_or(&[]);
         self.compressed_tex_image_2d(target, level, internal_format, width, height, border, data)
     }
 
@@ -2834,7 +2838,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         format: u32,
         data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        let data = data.as_slice_safe(no_gc);
+        let data = data.as_slice_safe(no_gc).unwrap_or(&[]);
         self.compressed_tex_sub_image_2d(
             target, level, xoffset, yoffset, width, height, format, data,
         )
@@ -3986,7 +3990,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             return
         );
 
-        let dest = pixels.as_mut_slice_safe(no_gc);
+        let dest = pixels.as_mut_slice_safe(no_gc).unwrap_or(&mut []);
         if dest.len() < required_dest_len as usize {
             return self.webgl_error(InvalidOperation);
         }
@@ -4469,7 +4473,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
         let values = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => {
+                v.to_vec().unwrap_or_default()
+            },
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.is_empty() {
@@ -4492,7 +4498,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
         let values = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => {
+                v.to_vec().unwrap_or_default()
+            },
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 2 {
@@ -4515,7 +4523,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
         let values = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => {
+                v.to_vec().unwrap_or_default()
+            },
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 3 {
@@ -4538,7 +4548,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
         let values = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => {
+                v.to_vec().unwrap_or_default()
+            },
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 4 {
@@ -4656,7 +4668,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         // initialized to 0 is passed.
         let buff = match *pixels {
             None => GenericSharedMemory::from_byte(0, expected_byte_length as usize),
-            Some(ref data) => GenericSharedMemory::from_bytes(data.as_slice_safe(no_gc)),
+            Some(ref data) => {
+                GenericSharedMemory::from_bytes(data.as_slice_safe(no_gc).unwrap_or_default())
+            },
         };
 
         // From the WebGL spec:
@@ -4850,7 +4864,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             self,
             pixels
                 .as_ref()
-                .map(|p| GenericSharedMemory::from_bytes(p.as_slice_safe(no_gc)))
+                .map(|p| GenericSharedMemory::from_bytes(p.as_slice_safe(no_gc).unwrap_or(&[])))
                 .ok_or(InvalidValue),
             return Ok(())
         );

@@ -224,7 +224,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             ));
         }
 
-        let mut radii_vec = radii.to_vec();
+        let mut radii_vec = radii.to_vec().unwrap_or_default();
         let mut all_valid = true;
         radii_vec.iter_mut().enumerate().for_each(|(i, radius)| {
             if let Some(joint_frame) = joint_spaces
@@ -273,7 +273,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
             ));
         }
 
-        let mut transforms_vec = transforms.to_vec();
+        let mut transforms_vec = transforms.to_vec().unwrap_or_default();
         let mut all_valid = true;
         spaces.iter().enumerate().for_each(|(i, space)| {
             let Some(joint_pose) = self.get_pose(space) else {

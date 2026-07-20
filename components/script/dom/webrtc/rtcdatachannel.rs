@@ -267,8 +267,12 @@ impl RTCDataChannel {
             SendSource::Blob(blob) => {
                 DataChannelMessage::Binary(blob.get_bytes().unwrap_or(vec![]))
             },
-            SendSource::ArrayBuffer(array) => DataChannelMessage::Binary(array.to_vec()),
-            SendSource::ArrayBufferView(array) => DataChannelMessage::Binary(array.to_vec()),
+            SendSource::ArrayBuffer(array) => {
+                DataChannelMessage::Binary(array.to_vec().unwrap_or_default())
+            },
+            SendSource::ArrayBufferView(array) => {
+                DataChannelMessage::Binary(array.to_vec().unwrap_or_default())
+            },
         };
 
         let controller = self.peer_connection.get_webrtc_controller().borrow();

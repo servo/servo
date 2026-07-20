@@ -132,6 +132,7 @@ pub(crate) fn get_buffer_source_copy(source: ArrayBufferViewOrArrayBufferRef<'_>
         ArrayBufferViewOrArrayBufferRef::ArrayBufferView(view) => view.to_vec(),
         ArrayBufferViewOrArrayBufferRef::ArrayBuffer(buffer) => buffer.to_vec(),
     }
+    .unwrap_or(vec![])
 }
 
 /// Returns a slice referencing the bytes in the buffer source, without copying.
@@ -146,6 +147,7 @@ pub(crate) fn get_buffer_source_slice<'a>(
         ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.as_slice_safe(no_gc),
         ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.as_slice_safe(no_gc),
     }
+    .unwrap_or(&[])
 }
 
 pub(crate) fn create_heap_buffer_source_with_length<T>(
@@ -527,9 +529,12 @@ where
         let data = if let Ok(array) =
             array as Result<CustomAutoRooterGuard<'_, TypedArray<T, *mut JSObject>>, &mut ()>
         {
-            let data = array.to_vec();
-            let _ = self.detach_buffer(cx);
-            Ok(data)
+            if let Some(data) = array.to_vec() {
+                let _ = self.detach_buffer(cx);
+                Ok(data)
+            } else {
+                Err(())
+            }
         } else {
             Err(())
         };
@@ -547,7 +552,7 @@ where
         cx: &mut JSContext,
         dest: &mut [T::Element],
         source_start: usize,
-        length: usize,
+        source_end: usize,
     ) -> Result<(), ()> {
         assert!(self.is_initialized());
         typedarray!(&in(cx) let array: TypedArray = match &self.buffer_source {
@@ -561,8 +566,8 @@ where
         else {
             return Err(());
         };
-        let slice = (*array).as_slice_safe(cx.no_gc());
-        dest.copy_from_slice(&slice[source_start..length]);
+        let slice = (*array).as_slice_safe(cx.no_gc()).unwrap_or(&[]);
+        dest.copy_from_slice(&slice[source_start..source_end]);
         Ok(())
     }
 
@@ -585,9 +590,10 @@ where
         else {
             return Err(());
         };
-        let slice = (*array).as_mut_slice_safe(cx.no_gc());
+        let slice = (*array).as_mut_slice_safe(cx.no_gc()).unwrap_or(&mut []);
         let (_, dest) = slice.split_at_mut(dest_start);
-        dest[0..length].copy_from_slice(&source.as_slice_safe(cx.no_gc())[0..length]);
+        let source = source.as_slice_safe(cx.no_gc()).unwrap_or(&[]);
+        dest[0..length].copy_from_slice(&source[0..length]);
         Ok(())
     }
 
