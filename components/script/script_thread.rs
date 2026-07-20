@@ -2956,12 +2956,10 @@ impl ScriptThread {
             .unwrap_or(FocusableArea::Viewport)
         );
 
-        focus_handler.focus_update_steps(
-            cx,
-            focusable_area.focus_chain(),
-            focus_handler.current_focus_chain(),
-            &*focusable_area,
-        );
+        rooted!(&in(cx) let new_focus_chain = focusable_area.focus_chain());
+        rooted!(&in(cx) let old_focus_chain = focus_handler.current_focus_chain());
+
+        focus_handler.focus_update_steps(cx, new_focus_chain, old_focus_chain, &focusable_area);
     }
 
     fn handle_focus_document(
@@ -3011,10 +3009,13 @@ impl ScriptThread {
             return;
         }
 
+        rooted!(&in(cx) let new_focus_chain = vec![]);
+        rooted!(&in(cx) let old_focus_chain = focus_handler.current_focus_chain());
+
         focus_handler.focus_update_steps(
             cx,
-            vec![],
-            focus_handler.current_focus_chain(),
+            new_focus_chain,
+            old_focus_chain,
             &FocusableArea::Viewport,
         );
     }

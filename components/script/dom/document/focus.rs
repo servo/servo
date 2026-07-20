@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
 use js::context::{JSContext, NoGC};
+use js::gc::RootedGuard;
 use keyboard_types::Modifiers;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -261,12 +262,10 @@ impl DocumentFocusHandler {
     /// transaction, or the document if no elements requested it.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: FocusableArea) {
-        self.focus_update_steps(
-            cx,
-            new_focus_target.focus_chain(),
-            self.current_focus_chain(),
-            &new_focus_target,
-        );
+        rooted!(&in(cx) let new_focus_chain = new_focus_target.focus_chain());
+        rooted!(&in(cx) let old_focus_chain = self.current_focus_chain());
+
+        self.focus_update_steps(cx, new_focus_chain, old_focus_chain, &new_focus_target);
 
         // Advertise the change in the focus chain.
         // <https://html.spec.whatwg.org/multipage/#focus-chain>
@@ -312,12 +311,11 @@ impl DocumentFocusHandler {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-update-steps>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn focus_update_steps(
         &self,
         cx: &mut JSContext,
-        mut new_focus_chain: Vec<FocusableArea>,
-        mut old_focus_chain: Vec<FocusableArea>,
+        mut new_focus_chain: RootedGuard<'_, Vec<FocusableArea>>,
+        mut old_focus_chain: RootedGuard<'_, Vec<FocusableArea>>,
         new_focus_target: &FocusableArea,
     ) {
         let new_focus_chain_was_empty = new_focus_chain.is_empty();
@@ -331,8 +329,8 @@ impl DocumentFocusHandler {
             (new_focus_chain.last(), old_focus_chain.last())
         {
             if last_new == last_old {
-                new_focus_chain.pop();
-                old_focus_chain.pop();
+                new_focus_chain.as_mut_ref(cx.no_gc()).pop();
+                old_focus_chain.as_mut_ref(cx.no_gc()).pop();
             } else {
                 break;
             }
