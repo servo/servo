@@ -28,6 +28,7 @@ use crate::dom::execcommand::commands::fontsize::{
     execute_fontsize_command, font_size_loosely_equivalent, value_for_fontsize_command,
 };
 use crate::dom::execcommand::commands::forecolor::execute_forecolor_command;
+use crate::dom::execcommand::commands::forwarddelete::execute_forward_delete_command;
 use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
 use crate::dom::execcommand::commands::inserthorizontalrule::execute_insert_horizontal_rule_command;
 use crate::dom::execcommand::commands::insertimage::execute_insert_image_command;
@@ -742,6 +743,7 @@ impl CommandName {
             CommandName::FontName => execute_fontname_command(cx, document, selection, value),
             CommandName::FontSize => execute_fontsize_command(cx, document, selection, value),
             CommandName::ForeColor => execute_forecolor_command(cx, document, selection, value),
+            CommandName::ForwardDelete => execute_forward_delete_command(cx, document, selection),
             CommandName::HiliteColor => execute_hilitecolor_command(cx, document, selection, value),
             CommandName::InsertHorizontalRule => {
                 execute_insert_horizontal_rule_command(cx, document, selection)
