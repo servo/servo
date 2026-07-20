@@ -90,4 +90,16 @@ impl AnimationMethods<crate::DomTypeHolder> for Animation {
 
         animation
     }
+
+    /// <https://drafts.csswg.org/web-animations-1/#dom-animation-effect>
+    fn GetEffect(&self) -> Option<DomRoot<AnimationEffect>> {
+        self.associated_effect.get()
+    }
+
+    /// <https://drafts.csswg.org/web-animations-1/#dom-animation-effect>
+    fn SetEffect(&self, effect: Option<&AnimationEffect>) {
+        // > Setting this attribute updates the object’s associated effect using
+        //> the procedure to set the associated effect of an animation.
+        self.set_the_associated_effect(effect);
+    }
 }

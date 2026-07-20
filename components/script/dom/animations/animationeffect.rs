@@ -239,26 +239,47 @@ impl AnimationEffectMethods<crate::DomTypeHolder> for AnimationEffect {
 
     /// <https://drafts.csswg.org/web-animations-1/#dom-animationeffect-getcomputedtiming>
     fn GetComputedTiming(&self) -> ComputedEffectTiming {
+        // > Returns the calculated timing properties for this animation effect.
         let specified_timing_properties = self.specified_timing_properties.borrow();
+
+        // > while getTiming() can return the string auto, getComputedTiming() must return a number
+        // > corresponding to the calculated value of the iteration duration as defined in the description
+        // > of the duration member of the EffectTiming interface.
+        // > In this level of the specification, that simply means that an auto value is replaced by zero.
+        let computed_duration = specified_timing_properties
+            .iteration_duration
+            .computed_value();
+
+        // > likewise, while getTiming() can return the string auto, getComputedTiming() must return the
+        // > specific FillMode used for timing calculations as defined in the description of the fill
+        // > member of the EffectTiming interface.
+        // > In this level of the specification, that simply means that an auto value is replaced by the none FillMode.
         let computed_fill_mode = if specified_timing_properties.fill_mode == FillMode::Auto {
             FillMode::None
         } else {
             specified_timing_properties.fill_mode
         };
+
         ComputedEffectTiming {
-            delay: specified_timing_properties.start_delay,
-            direction: specified_timing_properties.playback_direction,
-            duration: specified_timing_properties
-                .iteration_duration
-                .computed_value(),
-            easing: specified_timing_properties
-                .easing_function
-                .to_css_string()
-                .into(),
-            endDelay: specified_timing_properties.end_delay,
-            fill: computed_fill_mode,
-            iterationStart: specified_timing_properties.iteration_start,
-            iterations: specified_timing_properties.iteration_count,
+            parent: EffectTiming {
+                delay: specified_timing_properties.start_delay,
+                direction: specified_timing_properties.playback_direction,
+                duration: UnrestrictedDoubleOrString::UnrestrictedDouble(computed_duration),
+                easing: specified_timing_properties
+                    .easing_function
+                    .to_css_string()
+                    .into(),
+                endDelay: specified_timing_properties.end_delay,
+                fill: computed_fill_mode,
+                iterationStart: specified_timing_properties.iteration_start,
+                iterations: specified_timing_properties.iteration_count,
+            },
+            // FIXME: These are just placeholder values
+            endTime: None,
+            activeDuration: None,
+            localTime: None,
+            progress: None,
+            currentIteration: None,
         }
     }
 
@@ -280,7 +301,7 @@ impl IterationDurationOrAuto {
     fn computed_value(&self) -> f64 {
         match self {
             IterationDurationOrAuto::Auto => 0.0,
-            IterationDurationOrAuto::Duration(double) => double,
+            IterationDurationOrAuto::Duration(double) => *double,
         }
     }
 }
