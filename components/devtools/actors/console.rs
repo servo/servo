@@ -7,6 +7,7 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use std::collections::HashMap;
+use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -29,6 +30,8 @@ use crate::actors::worker::WorkerTargetActor;
 use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, UniqueId, debugger_value_to_json};
+
+mod autocomplete_parsing;
 
 #[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
@@ -362,6 +365,16 @@ impl ConsoleActor {
         self.client_ready_to_receive_messages
             .store(true, Ordering::Relaxed);
     }
+
+    fn reply_no_autocomplete_matches(&self, request: ClientRequest) -> Result<(), ActorError> {
+        let msg = AutocompleteReply {
+            from: self.name().into(),
+            matches: vec![],
+            match_prop: "".to_owned(),
+            is_element_access: false,
+        };
+        request.reply_final(&msg)
+    }
 }
 
 impl Actor for ConsoleActor {
@@ -416,6 +429,15 @@ impl Actor for ConsoleActor {
                     .map(String::from)
                     .ok_or(ActorError::Internal)?;
 
+                let analysis = autocomplete_parsing::analyze_autocomplete_input_string(&prompt);
+                let analysis = match analysis {
+                    Err(_) => return self.reply_no_autocomplete_matches(request),
+                    Ok(a) => a,
+                };
+                if !analysis.should_be_autocompleted() {
+                    return self.reply_no_autocomplete_matches(request);
+                }
+
                 let identifiers = environment_actor.search_identifiers_recursive(registry, &prompt);
 
                 let matches: Vec<String> = identifiers
@@ -425,22 +447,17 @@ impl Actor for ConsoleActor {
                     })
                     .collect();
 
-                let msg = if matches.is_empty() {
-                    AutocompleteReply {
-                        from: self.name().into(),
-                        matches: vec![],
-                        match_prop: "".to_owned(),
-                        is_element_access: false,
-                    }
+                if matches.is_empty() {
+                    self.reply_no_autocomplete_matches(request)?;
                 } else {
-                    AutocompleteReply {
+                    let msg = AutocompleteReply {
                         from: self.name().into(),
                         matches,
                         match_prop: prompt,
                         is_element_access: false,
-                    }
-                };
-                request.reply_final(&msg)?
+                    };
+                    request.reply_final(&msg)?
+                }
             },
 
             "evaluateJS" => {
