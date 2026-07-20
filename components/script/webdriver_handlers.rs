@@ -284,13 +284,14 @@ pub(crate) fn find_node_by_unique_id_in_document(
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-link-text-selector>
-fn matching_links(
-    links: &NodeList,
+fn matching_links<'a>(
+    cx: &'a JSContext,
+    links: &'a NodeList,
     link_text: String,
     partial: bool,
-) -> impl Iterator<Item = String> + '_ {
+) -> impl Iterator<Item = String> + 'a {
     links
-        .iter()
+        .iter(cx)
         .filter(move |node| {
             let content = node
                 .downcast::<HTMLElement>()
@@ -319,7 +320,7 @@ fn all_matching_links(
     root_node
         .query_selector_all(cx, DOMString::from("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
-        .map(|nodes| matching_links(&nodes, link_text, partial).collect())
+        .map(|nodes| matching_links(cx, &nodes, link_text, partial).collect())
 }
 
 #[expect(unsafe_code)]
@@ -797,7 +798,7 @@ pub(crate) fn handle_find_elements_css_selector(
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
-                            .iter()
+                            .iter(cx)
                             .map(|x| x.upcast::<Node>().unique_id(pipeline))
                             .collect()
                     }),
@@ -945,7 +946,7 @@ pub(crate) fn handle_find_element_elements_css_selector(
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
-                            .iter()
+                            .iter(cx)
                             .map(|x| x.upcast::<Node>().unique_id(pipeline))
                             .collect()
                     })
@@ -1036,7 +1037,7 @@ pub(crate) fn handle_find_shadow_elements_css_selector(
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
-                            .iter()
+                            .iter(cx)
                             .map(|x| x.upcast::<Node>().unique_id(pipeline))
                             .collect()
                     })
@@ -1084,7 +1085,7 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
                     .query_selector_all(cx, DOMString::from(selector))
                     .map(|nodes| {
                         nodes
-                            .iter()
+                            .iter(cx)
                             .map(|x| x.upcast::<Node>().unique_id(pipeline))
                             .collect()
                     })

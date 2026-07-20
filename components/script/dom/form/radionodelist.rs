@@ -85,9 +85,9 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
-    fn Value(&self) -> DOMString {
+    fn Value(&self, cx: &JSContext) -> DOMString {
         self.upcast::<NodeList>()
-            .iter()
+            .iter(cx)
             .find_map(|node| {
                 // Step 1
                 node.downcast::<HTMLInputElement>().and_then(|input| {
@@ -110,7 +110,12 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
     fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
-        for node in self.upcast::<NodeList>().iter() {
+        let node_list = self.upcast::<NodeList>();
+        // Inlining `node_list.iter()` so `cx` doesn’t stay borrowed
+        for index in 0..node_list.Length() {
+            let Some(node) = node_list.Item(cx, index) else {
+                continue;
+            };
             // Step 1
             if let Some(input) = node.downcast::<HTMLInputElement>() {
                 match *input.input_type() {
@@ -138,7 +143,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     // https://github.com/servo/servo/issues/5875
     //
     /// <https://dom.spec.whatwg.org/#dom-nodelist-item>
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node>> {
-        self.node_list.IndexedGetter(index)
+    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Node>> {
+        self.node_list.IndexedGetter(cx, index)
     }
 }

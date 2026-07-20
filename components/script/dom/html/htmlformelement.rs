@@ -483,7 +483,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
         // Step 5
         // candidates_length is 1, so we can unwrap item 0
-        let element_node = candidates.upcast::<NodeList>().Item(0).unwrap();
+        let element_node = candidates.upcast::<NodeList>().Item(cx, 0).unwrap();
         past_names_map.insert(
             name,
             (

@@ -5,7 +5,7 @@
 use std::cell::RefCell;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use stylo_atoms::Atom;
 
@@ -128,12 +128,12 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nodelist-item>
-    fn Item(&self, index: u32) -> Option<DomRoot<Node>> {
+    fn Item(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Node>> {
         match self.list_type {
             NodeListType::Simple(ref elems) => elems
                 .get(index as usize)
                 .map(|node| DomRoot::from_ref(&**node)),
-            NodeListType::Children(ref list) => list.item(index),
+            NodeListType::Children(ref list) => list.item(index, cx),
             NodeListType::Labels(ref list) => list.item(index),
             NodeListType::Radio(ref list) => list.item(index),
             NodeListType::ElementsByName(ref list) => list.item(index),
@@ -141,8 +141,8 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nodelist-item>
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<Node>> {
-        self.Item(index)
+    fn IndexedGetter(&self, cx: &JSContext, index: u32) -> Option<DomRoot<Node>> {
+        self.Item(cx, index)
     }
 }
 
@@ -155,11 +155,14 @@ impl NodeList {
         }
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = DomRoot<Node>> + '_ {
+    pub(crate) fn iter<'a>(
+        &'a self,
+        cx: &'a JSContext,
+    ) -> impl Iterator<Item = DomRoot<Node>> + 'a {
         let len = self.Length();
         // There is room for optimization here in non-simple cases,
         // as calling Item repeatedly on a live list can involve redundant work.
-        (0..len).flat_map(move |i| self.Item(i))
+        (0..len).flat_map(move |i| self.Item(cx, i))
     }
 }
 
@@ -182,13 +185,13 @@ impl ChildrenList {
         self.node.children_count()
     }
 
-    pub(crate) fn item(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn item(&self, index: u32, no_gc: &NoGC) -> Option<DomRoot<Node>> {
         self.cached_children
             .borrow_mut()
             .get_or_insert_with(|| {
                 self.node
-                    .children()
-                    .map(|child| Dom::from_ref(&*child))
+                    .children_unrooted(no_gc)
+                    .map(|child| (*child).clone())
                     .collect()
             })
             .get(index as usize)
