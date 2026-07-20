@@ -16,11 +16,12 @@ use crate::dom::element::AttributeMutation;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlinputelement::{HTMLInputElement, InputActivationState};
+use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
+use crate::dom::html::form_controls::input_type::{
+    InputType, SpecificInputActivationType, SpecificInputType,
+};
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::htmlinputelement::input_type::InputType;
-use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
-use crate::dom::input_element::{HTMLInputElement, InputActivationState};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;

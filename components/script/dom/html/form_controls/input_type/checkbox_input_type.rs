@@ -9,9 +9,9 @@ use script_bindings::inheritance::Castable;
 
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
-use crate::dom::input_element::{HTMLInputElement, InputActivationState};
+use crate::dom::html::form_controls::htmlinputelement::{HTMLInputElement, InputActivationState};
+use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
+use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::Node;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
