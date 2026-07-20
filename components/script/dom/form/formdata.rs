@@ -22,12 +22,12 @@ use crate::dom::bindings::trace::NoTrace;
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{
     FormDatum, FormDatumUnrooted, FormDatumValueUnrooted, FormSubmitterElement, HTMLFormElement,
 };
-use crate::dom::html::input_element::HTMLInputElement;
 
 #[dom_struct]
 pub(crate) struct FormData {

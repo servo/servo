@@ -159,7 +159,7 @@ impl HTMLTrackElement {
         // crossorigin content attribute. Otherwise, let corsAttributeState be No CORS.
         let cors_attribute_state = cors_setting_for_element(&parent);
         let task = TrackElementMicrotask::ProcessingModel {
-            elem: DomRoot::from_ref(self),
+            elem: Dom::from_ref(self),
             cors_attribute_state,
             url,
         };
@@ -349,7 +349,7 @@ impl VirtualMethods for HTMLTrackElement {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum TrackElementMicrotask {
     ProcessingModel {
-        elem: DomRoot<HTMLTrackElement>,
+        elem: Dom<HTMLTrackElement>,
         #[no_trace]
         cors_attribute_state: Option<CorsSettings>,
         #[no_trace]

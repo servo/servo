@@ -9,6 +9,7 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::Angle;
 use euclid::default::{Transform2D, Transform3D};
+use js::context::NoGC;
 use js::conversions::jsstr_to_string;
 use js::jsapi::JSObject;
 use js::jsval;
@@ -992,7 +993,7 @@ impl Serializable for DOMMatrixReadOnly {
     type Index = DomMatrixIndex;
     type Data = DomMatrix;
 
-    fn serialize(&self) -> Result<(DomMatrixId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(DomMatrixId, Self::Data), ()> {
         let serialized = if self.is2D() {
             DomMatrix {
                 matrix: Transform3D::new(

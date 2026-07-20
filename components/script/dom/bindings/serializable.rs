@@ -5,7 +5,7 @@
 //! Trait representing the concept of [serializable objects]
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::DomObject;
 use script_bindings::structuredclone::MarkedAsSerializableInIdl;
@@ -53,7 +53,7 @@ where
     type Data;
 
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
-    fn serialize(&self) -> Result<(NamespaceIndex<Self::Index>, Self::Data), ()>;
+    fn serialize(&self, no_gc: &NoGC) -> Result<(NamespaceIndex<Self::Index>, Self::Data), ()>;
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
     fn deserialize(
         cx: &mut JSContext,

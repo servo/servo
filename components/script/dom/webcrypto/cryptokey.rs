@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
+use js::context::NoGC;
 use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
 use malloc_size_of::MallocSizeOf;
@@ -229,7 +230,7 @@ impl Serializable for CryptoKey {
     type Data = SerializableCryptoKey;
 
     /// <https://w3c.github.io/webcrypto/#cryptokey-interface-serializable>
-    fn serialize(&self) -> Result<(CryptoKeyId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(CryptoKeyId, Self::Data), ()> {
         // Step 1. Set serialized.[[Type]] to the [[type]] internal slot of value.
         // Step 2. Set serialized.[[Extractable]] to the [[extractable]] internal slot of value.
         // Step 3. Set serialized.[[Algorithm]] to the sub-serialization of the [[algorithm]]

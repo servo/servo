@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
@@ -199,7 +199,7 @@ impl Serializable for DOMQuad {
     type Index = DomQuadIndex;
     type Data = DomQuad;
 
-    fn serialize(&self) -> Result<(DomQuadId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(DomQuadId, Self::Data), ()> {
         let make_point = |src: &DOMPoint| -> DomPoint {
             DomPoint {
                 x: src.X(),

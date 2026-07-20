@@ -7,7 +7,7 @@ use js::context::JSContext;
 use crate::dom::element::Element;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::html::input_element::InputActivationState;
+use crate::dom::html::form_controls::htmlinputelement::InputActivationState;
 
 /// Trait for elements with defined activation behavior
 pub(crate) trait Activatable {

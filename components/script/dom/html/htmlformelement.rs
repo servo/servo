@@ -61,6 +61,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::formdataevent::FormDataEvent;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::InputType;
 use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmlcollection::CollectionFilter;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
@@ -73,8 +75,6 @@ use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
-use crate::dom::html::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::InputType;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper};
 use crate::dom::nodelist::{NodeList, RadioListMode};
@@ -367,8 +367,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-form-elements>
     fn Elements(&self, cx: &mut JSContext) -> DomRoot<HTMLFormControlsCollection> {
         #[derive(JSTraceable, MallocSizeOf)]
+        #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
         struct ElementsFilter {
-            form: DomRoot<HTMLFormElement>,
+            form: Dom<HTMLFormElement>,
         }
         impl CollectionFilter for ElementsFilter {
             fn filter<'a>(&self, elem: &'a Element, _root: &'a Node) -> bool {
@@ -417,18 +418,21 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                     _ => return false,
                 };
 
-                match form_owner {
-                    Some(form_owner) => form_owner == self.form,
-                    None => false,
-                }
+                form_owner
+                    .as_deref()
+                    .is_some_and(|form_owner| self.form == form_owner)
             }
         }
         DomRoot::from_ref(self.elements.init_once(|| {
-            let filter = Box::new(ElementsFilter {
-                form: DomRoot::from_ref(self),
-            });
             let window = self.owner_window();
-            HTMLFormControlsCollection::new(cx, &window, self, filter)
+            HTMLFormControlsCollection::new(
+                cx,
+                &window,
+                self,
+                Box::new(ElementsFilter {
+                    form: Dom::from_ref(self),
+                }),
+            )
         }))
     }
 

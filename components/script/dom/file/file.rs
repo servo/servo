@@ -7,7 +7,7 @@ use std::time::SystemTime;
 
 use dom_struct::dom_struct;
 use embedder_traits::SelectedFile;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_base::id::{FileId, FileIndex};
@@ -139,8 +139,8 @@ impl File {
         self.modified
     }
 
-    pub(crate) fn serialized_data(&self) -> Result<SerializableFile, ()> {
-        let (_, blob_impl) = self.upcast::<Blob>().serialize()?;
+    pub(crate) fn serialized_data(&self, no_gc: &NoGC) -> Result<SerializableFile, ()> {
+        let (_, blob_impl) = self.upcast::<Blob>().serialize(no_gc)?;
         Ok(SerializableFile {
             blob_impl,
             name: self.name.to_string(),
@@ -155,8 +155,8 @@ impl Serializable for File {
     type Data = SerializableFile;
 
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
-    fn serialize(&self) -> Result<(FileId, SerializableFile), ()> {
-        Ok((FileId::new(), self.serialized_data()?))
+    fn serialize(&self, no_gc: &NoGC) -> Result<(FileId, SerializableFile), ()> {
+        Ok((FileId::new(), self.serialized_data(no_gc)?))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>

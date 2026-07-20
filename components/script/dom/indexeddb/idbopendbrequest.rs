@@ -227,6 +227,10 @@ impl IDBOpenDBRequest {
         }
     }
 
+    pub(crate) fn pending_connection(&self) -> Option<DomRoot<IDBDatabase>> {
+        self.pending_connection.get()
+    }
+
     pub(crate) fn delete_database(
         &self,
         storage_key: ImmutableOrigin,

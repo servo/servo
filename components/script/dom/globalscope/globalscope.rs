@@ -3050,12 +3050,16 @@ impl GlobalScope {
         true
     }
 
-    /// Returns the idb factory for this global.
-    pub(crate) fn get_indexeddb(&self, cx: &mut js::context::JSContext) -> DomRoot<IDBFactory> {
+    /// Potentially instantiate and return this [`GlobalScope`]'s [`IDBFactory`].
+    pub(crate) fn ensure_indexeddb_factory(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> DomRoot<IDBFactory> {
         self.indexeddb.or_init(|| IDBFactory::new(cx, self))
     }
 
-    pub(crate) fn get_existing_indexeddb(&self) -> Option<DomRoot<IDBFactory>> {
+    /// Return this [`GlobalScope`]'s [`IDBFactory`] if it has previously been instantiated.
+    pub(crate) fn indexeddb_factory(&self) -> Option<DomRoot<IDBFactory>> {
         self.indexeddb.get()
     }
 

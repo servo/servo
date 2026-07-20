@@ -1,0 +1,29 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
+
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
+use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
+
+#[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct ButtonInputType {
+    text_value_widget: DomRefCell<TextValueWidget>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct ButtonInputActivation;
+
+impl SpecificInputActivationType for ButtonInputActivation {}
+
+impl SpecificInputType for ButtonInputType {
+    fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        self.text_value_widget
+            .borrow()
+            .update_shadow_tree(cx, input)
+    }
+}

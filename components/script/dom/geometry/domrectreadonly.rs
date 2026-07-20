@@ -5,7 +5,7 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{
@@ -205,7 +205,7 @@ impl Serializable for DOMRectReadOnly {
     type Index = DomRectIndex;
     type Data = DomRect;
 
-    fn serialize(&self) -> Result<(DomRectId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(DomRectId, Self::Data), ()> {
         let serialized = DomRect {
             x: self.X(),
             y: self.Y(),
