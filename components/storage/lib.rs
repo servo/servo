@@ -9,7 +9,7 @@ pub(crate) mod shared;
 mod storage_thread;
 mod webstorage;
 
-pub(crate) use cache_storage::CacheStorageThreadFactory;
+pub use cache_storage::CacheStorageThreadFactory;
 pub use client_storage::ClientStorageThreadFactory;
 pub(crate) use indexeddb::IndexedDBThreadFactory;
 pub use storage_thread::new_storage_threads;
