@@ -66,7 +66,10 @@ pub(crate) mod gpushaderstage {
 pub(crate) mod gpusupportedfeatures;
 pub(crate) mod gpusupportedlimits;
 pub(crate) mod gputexture;
-pub(crate) mod gputextureusage;
+pub(crate) mod gputextureusage {
+    pub(crate) type GPUTextureUsage =
+        script_webgpu::gputextureusage::GPUTextureUsage<crate::DomTypeHolder>;
+}
 pub(crate) mod gputextureview;
 pub(crate) mod gpuuncapturederrorevent;
 pub(crate) mod gpuvalidationerror;
