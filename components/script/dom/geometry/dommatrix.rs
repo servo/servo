@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use euclid::default::Transform3D;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
 use rustc_hash::FxHashMap;
@@ -502,7 +502,7 @@ impl Serializable for DOMMatrix {
     type Index = DomMatrixIndex;
     type Data = DomMatrix;
 
-    fn serialize(&self) -> Result<(DomMatrixId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(DomMatrixId, Self::Data), ()> {
         let serialized = if self.parent.is2D() {
             DomMatrix {
                 matrix: Transform3D::new(

@@ -3412,7 +3412,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.6>
     fn TexImage2D___(
         &self,
-        _no_gc: &NoGC,
+        no_gc: &NoGC,
         target: u32,
         level: i32,
         internalformat: i32,
@@ -3457,7 +3457,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
 
         let unpacking_alignment = self.base.texture_unpacking_alignment();
 
-        let pixels = match self.base.get_image_pixels(source)? {
+        let pixels = match self.base.get_image_pixels(no_gc, source)? {
             Some(pixels) => pixels,
             None => return Ok(()),
         };

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
@@ -131,7 +131,7 @@ impl Serializable for DOMRect {
     type Index = DomRectIndex;
     type Data = DomRect;
 
-    fn serialize(&self) -> Result<(DomRectId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(DomRectId, Self::Data), ()> {
         let serialized = DomRect {
             x: self.X(),
             y: self.Y(),

@@ -7,7 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use pixels::{CorsStatus, Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
@@ -573,7 +573,7 @@ impl ImageBitmap {
                     image_data.get_size().cast(),
                     SnapshotPixelFormat::RGBA,
                     alpha_mode,
-                    image_data.to_vec(),
+                    image_data.to_vec(realm.no_gc()),
                 );
 
                 // Step 6.3. Set imageBitmap's bitmap data to image's image data,
@@ -608,7 +608,7 @@ impl Serializable for ImageBitmap {
     type Data = SerializableImageBitmap;
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:serialization-steps>
-    fn serialize(&self) -> Result<(ImageBitmapId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(ImageBitmapId, Self::Data), ()> {
         // <https://html.spec.whatwg.org/multipage/#structuredserializeinternal>
         // Step 19.1. If value has a [[Detached]] internal slot whose value is
         // true, then throw a "DataCloneError" DOMException.

@@ -8,7 +8,7 @@ use std::ffi::CStr;
 use std::os::raw;
 use std::ptr::{self, NonNull};
 
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::gc::RootedVec;
 use js::glue::{
     CopyJSStructuredCloneData, GetLengthOfJSStructuredCloneData, WriteBytesToJSStructuredCloneData,
@@ -202,13 +202,14 @@ unsafe fn read_object<T: Serializable>(
 }
 
 unsafe fn write_object<T: Serializable>(
+    no_gc: &NoGC,
     interface: SerializableInterface,
     owner: &GlobalScope,
     object: &T,
     w: *mut JSStructuredCloneWriter,
     sc_writer: &mut StructuredDataWriter,
 ) -> bool {
-    if let Ok((new_id, serialized)) = object.serialize() {
+    if let Ok((new_id, serialized)) = object.serialize(no_gc) {
         let objects = T::serialized_storage(StructuredData::Writer(sc_writer))
             .get_or_insert(FxHashMap::default());
         objects.insert(new_id, serialized);
@@ -283,7 +284,7 @@ unsafe fn try_serialize<T: Serializable + IDLInterface>(
 ) -> Result<bool, OperationError> {
     let object = unsafe { root_from_object::<T>(cx, *object) };
     if let Ok(obj) = object {
-        return unsafe { Ok(write_object(val, global, &*obj, w, writer)) };
+        return unsafe { Ok(write_object(cx.no_gc(), val, global, &*obj, w, writer)) };
     }
     Err(OperationError::InterfaceDoesNotMatch)
 }

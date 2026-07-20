@@ -5,7 +5,7 @@
 use std::slice::Iter;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::{FileListId, FileListIndex};
 use servo_constellation_traits::SerializableFileList;
@@ -72,11 +72,11 @@ impl Serializable for FileList {
     type Data = SerializableFileList;
 
     /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
-    fn serialize(&self) -> Result<(FileListId, SerializableFileList), ()> {
+    fn serialize(&self, no_gc: &NoGC) -> Result<(FileListId, SerializableFileList), ()> {
         let files = self
             .list
             .iter()
-            .map(|file| file.serialized_data())
+            .map(|file| file.serialized_data(no_gc))
             .collect::<Result<Vec<_>, _>>()?;
         Ok((FileListId::new(), SerializableFileList { files }))
     }

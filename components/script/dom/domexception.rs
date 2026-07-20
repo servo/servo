@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
@@ -253,7 +253,7 @@ impl Serializable for DOMException {
     type Data = DomException;
 
     /// <https://webidl.spec.whatwg.org/#idl-DOMException>
-    fn serialize(&self) -> Result<(DomExceptionId, Self::Data), ()> {
+    fn serialize(&self, _no_gc: &NoGC) -> Result<(DomExceptionId, Self::Data), ()> {
         let serialized = DomException {
             message: self.message.to_string(),
             name: self.name.to_string(),

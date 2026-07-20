@@ -653,7 +653,11 @@ impl WebGLRenderingContext {
         )
     }
 
-    pub(crate) fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
+    pub(crate) fn get_image_pixels(
+        &self,
+        no_gc: &NoGC,
+        source: TexImageSource,
+    ) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
             TexImageSource::ImageBitmap(bitmap) => {
                 if !bitmap.origin_is_clean() {
@@ -690,7 +694,7 @@ impl WebGLRenderingContext {
                     self.get_current_unpack_state(Alpha::NotPremultiplied);
 
                 TexPixels::new(
-                    image_data.to_shared_memory(),
+                    image_data.to_shared_memory(no_gc),
                     image_data.get_size(),
                     PixelFormat::RGBA8,
                     alpha_treatment,
@@ -4712,7 +4716,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexImage2D_(
         &self,
-        _no_gc: &NoGC,
+        no_gc: &NoGC,
         target: u32,
         level: i32,
         internal_format: i32,
@@ -4725,7 +4729,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             return Ok(());
         }
 
-        let pixels = match self.get_image_pixels(source)? {
+        let pixels = match self.get_image_pixels(no_gc, source)? {
             Some(pixels) => pixels,
             None => return Ok(()),
         };
@@ -4889,7 +4893,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexSubImage2D_(
         &self,
-        _no_gc: &NoGC,
+        no_gc: &NoGC,
         target: u32,
         level: i32,
         xoffset: i32,
@@ -4898,7 +4902,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         data_type: u32,
         source: TexImageSource,
     ) -> ErrorResult {
-        let pixels = match self.get_image_pixels(source)? {
+        let pixels = match self.get_image_pixels(no_gc, source)? {
             Some(pixels) => pixels,
             None => return Ok(()),
         };
