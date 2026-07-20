@@ -73,6 +73,7 @@ pub(crate) mod gputextureusage {
 pub(crate) mod gputextureview;
 pub(crate) mod gpuuncapturederrorevent;
 pub(crate) mod gpuvalidationerror;
-#[expect(dead_code)]
-pub(crate) mod identityhub;
+pub(crate) mod identityhub {
+    pub(crate) type IdentityHub = script_webgpu::identityhub::IdentityHub;
+}
 pub(crate) mod wgsllanguagefeatures;

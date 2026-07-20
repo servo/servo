@@ -16,6 +16,7 @@ pub mod gpumapmode;
 pub mod gpurenderbundle;
 pub mod gpushaderstage;
 pub mod gputextureusage;
+pub mod identityhub;
 
 pub(crate) use js::gc::Traceable as JSTraceable;
 pub(crate) use jstraceable_derive::JSTraceable;

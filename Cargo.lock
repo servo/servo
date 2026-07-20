@@ -9136,6 +9136,7 @@ dependencies = [
  "servo-malloc-size-of",
  "servo-script-bindings",
  "servo-webgpu-traits",
+ "wgpu-core 30.0.0",
 ]
 
 [[package]]
