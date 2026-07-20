@@ -1166,9 +1166,9 @@ impl Document {
         self.encoding.set(encoding);
     }
 
-    pub(crate) fn content_and_heritage_changed(&self, node: &Node) {
+    pub(crate) fn content_and_heritage_changed(&self, no_gc: &NoGC, node: &Node) {
         if node.is_connected() {
-            node.note_dirty_descendants();
+            node.note_dirty_descendants(no_gc);
         }
 
         // FIXME(emilio): This is very inefficient, ideally the flag above would
@@ -4570,7 +4570,10 @@ impl Document {
         self.name_map.get_all(cx.no_gc(), self.upcast(), name)
     }
 
-    pub(crate) fn drain_pending_restyles(&self) -> Vec<(TrustedNodeAddress, PendingRestyle)> {
+    pub(crate) fn drain_pending_restyles(
+        &self,
+        no_gc: &NoGC,
+    ) -> Vec<(TrustedNodeAddress, PendingRestyle)> {
         self.pending_restyles
             .borrow_mut()
             .drain()
@@ -4579,7 +4582,7 @@ impl Document {
                 if !node.get_flag(NodeFlags::IS_CONNECTED) {
                     return None;
                 }
-                node.note_dirty_descendants();
+                node.note_dirty_descendants(no_gc);
                 Some((node.to_trusted_node_address(), restyle.0))
             })
             .collect()

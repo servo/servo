@@ -512,7 +512,7 @@ impl Node {
     /// Fails unless `child` is a child of this node.
     fn remove_child(&self, cx: &mut JSContext, child: &Node, cached_index: Option<u32>) {
         assert!(child.parent_node.get().as_deref() == Some(self));
-        self.note_dirty_descendants();
+        self.note_dirty_descendants(cx.no_gc());
         self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         let prev_sibling = child.GetPreviousSibling();
@@ -556,7 +556,7 @@ impl Node {
     fn move_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.dirty(NodeDamage::ContentOrHeritage);
-        self.note_dirty_descendants();
+        self.note_dirty_descendants(cx.no_gc());
         self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         child.prev_sibling.set(None);
@@ -872,8 +872,9 @@ impl Node {
     }
 
     // FIXME(emilio): This and the function below should move to Element.
-    pub(crate) fn note_dirty_descendants(&self) {
-        self.owner_doc().note_node_with_dirty_descendants(self);
+    pub(crate) fn note_dirty_descendants(&self, no_gc: &NoGC) {
+        self.owner_doc_unrooted(no_gc)
+            .note_node_with_dirty_descendants(self);
     }
 
     pub(crate) fn has_dirty_descendants(&self) -> bool {
@@ -1715,6 +1716,10 @@ impl Node {
 
     pub(crate) fn owner_doc(&self) -> DomRoot<Document> {
         self.owner_doc.get().unwrap()
+    }
+
+    pub(crate) fn owner_doc_unrooted<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, Document> {
+        self.owner_doc.get_unrooted(no_gc).unwrap()
     }
 
     pub(crate) fn set_owner_doc(&self, document: &Document) {
@@ -4275,7 +4280,8 @@ impl VirtualMethods for Node {
             list.as_children_list().children_changed(mutation);
         }
 
-        self.owner_doc().content_and_heritage_changed(self);
+        self.owner_doc_unrooted(cx.no_gc())
+            .content_and_heritage_changed(cx.no_gc(), self);
     }
 
     // This handles the ranges mentioned in steps 2-3 when removing a node.
@@ -4312,7 +4318,8 @@ impl VirtualMethods for Node {
             weak_ranges.drain_to_parent(old_parent, context.index(), self);
         }
 
-        self.owner_doc().content_and_heritage_changed(self);
+        self.owner_doc_unrooted(cx.no_gc())
+            .content_and_heritage_changed(cx.no_gc(), self);
     }
 
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
