@@ -1172,7 +1172,7 @@ pub fn should_be_blocked_due_to_nosniff(
         Some(ref mime_type) if destination.is_script_like() => !is_javascript_mime_type(mime_type),
         // Step 5
         Some(ref mime_type) if destination == Destination::Style => {
-            mime_type.type_() != mime::TEXT && mime_type.subtype() != mime::CSS
+            mime_type.type_() != mime::TEXT || mime_type.subtype() != mime::CSS
         },
 
         None if destination == Destination::Style || destination.is_script_like() => true,
