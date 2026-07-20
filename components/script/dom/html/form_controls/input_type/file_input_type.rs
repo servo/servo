@@ -28,10 +28,10 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::filelist::FileList;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::{Node, NodeTraits};
 
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
@@ -82,9 +82,7 @@ impl FileInputType {
     ) {
         let mut files = Vec::new();
 
-        if let Some(pending_webdriver_reponse) =
-            input.pending_webdriver_response.borrow_mut().take()
-        {
+        if let Some(pending_webdriver_reponse) = input.take_pending_webdriver_response() {
             // From: <https://w3c.github.io/webdriver/#dfn-dispatch-actions-for-a-string>
             // "Complete implementation specific steps equivalent to setting the selected
             // files on the input element. If multiple is true files are be appended to

@@ -3,25 +3,32 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::DOMString;
 
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
+use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
-use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::NodeTraits;
+
+const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct ImageInputType {
+pub(crate) struct SubmitInputType {
     text_value_widget: DomRefCell<TextValueWidget>,
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct ImageInputActivation;
+pub(crate) struct SubmitInputActivation;
 
-impl SpecificInputType for ImageInputType {
+impl SpecificInputType for SubmitInputType {
+    fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
+        DEFAULT_SUBMIT_VALUE.into()
+    }
+
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
         self.text_value_widget
             .borrow()
@@ -29,8 +36,8 @@ impl SpecificInputType for ImageInputType {
     }
 }
 
-impl SpecificInputActivationType for ImageInputActivation {
-    /// <https://html.spec.whatwg.org/multipage/#image-button-state-(type=image):input-activation-behavior>
+impl SpecificInputActivationType for SubmitInputActivation {
+    /// <https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):input-activation-behavior>
     fn activation_behavior(
         &self,
         cx: &mut JSContext,
@@ -47,10 +54,7 @@ impl SpecificInputActivationType for ImageInputActivation {
                 return;
             }
 
-            // TODO Step 3. If the user activated the control while explicitly selecting a coordinate,
-            // then set the element's selected coordinate to that coordinate.
-
-            // Step 4: Submit the element's form owner from the element with userInvolvement
+            // Step 3: Submit the element's form owner from the element with userInvolvement
             // set to event's user navigation involvement.
             form_owner.submit(
                 cx,

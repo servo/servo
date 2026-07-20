@@ -14,31 +14,74 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
+use crate::dom::html::form_controls::htmlinputelement::{
+    HTMLInputElement, InputActivationState, ValueMode,
+};
+use crate::dom::html::form_controls::input_type::button_input_type::{
+    ButtonInputActivation, ButtonInputType,
+};
+use crate::dom::html::form_controls::input_type::checkbox_input_type::{
+    CheckboxInputActivation, CheckboxInputType,
+};
+use crate::dom::html::form_controls::input_type::color_input_type::{
+    ColorInputActivation, ColorInputType,
+};
+use crate::dom::html::form_controls::input_type::date_input_type::DateInputType;
+use crate::dom::html::form_controls::input_type::datetime_local_input_type::DatetimeLocalInputType;
+use crate::dom::html::form_controls::input_type::email_input_type::EmailInputType;
+use crate::dom::html::form_controls::input_type::file_input_type::{
+    FileInputActivation, FileInputType,
+};
+use crate::dom::html::form_controls::input_type::hidden_input_type::HiddenInputType;
+use crate::dom::html::form_controls::input_type::image_input_type::{
+    ImageInputActivation, ImageInputType,
+};
+use crate::dom::html::form_controls::input_type::month_input_type::MonthInputType;
+use crate::dom::html::form_controls::input_type::number_input_type::NumberInputType;
+use crate::dom::html::form_controls::input_type::password_input_type::PasswordInputType;
+use crate::dom::html::form_controls::input_type::radio_input_type::{
+    RadioInputActivation, RadioInputType,
+};
+use crate::dom::html::form_controls::input_type::range_input_type::RangeInputType;
+use crate::dom::html::form_controls::input_type::reset_input_type::{
+    ResetInputActivation, ResetInputType,
+};
+use crate::dom::html::form_controls::input_type::search_input_type::SearchInputType;
+use crate::dom::html::form_controls::input_type::submit_input_type::{
+    SubmitInputActivation, SubmitInputType,
+};
+use crate::dom::html::form_controls::input_type::tel_input_type::TelInputType;
+use crate::dom::html::form_controls::input_type::text_input_type::TextInputType;
+use crate::dom::html::form_controls::input_type::time_input_type::TimeInputType;
+use crate::dom::html::form_controls::input_type::url_input_type::UrlInputType;
+use crate::dom::html::form_controls::input_type::week_input_type::WeekInputType;
 use crate::dom::htmlformelement::HTMLFormElement;
-use crate::dom::input_element::button_input_type::{ButtonInputActivation, ButtonInputType};
-use crate::dom::input_element::checkbox_input_type::{CheckboxInputActivation, CheckboxInputType};
-use crate::dom::input_element::color_input_type::{ColorInputActivation, ColorInputType};
-use crate::dom::input_element::date_input_type::DateInputType;
-use crate::dom::input_element::datetime_local_input_type::DatetimeLocalInputType;
-use crate::dom::input_element::email_input_type::EmailInputType;
-use crate::dom::input_element::file_input_type::{FileInputActivation, FileInputType};
-use crate::dom::input_element::hidden_input_type::HiddenInputType;
-use crate::dom::input_element::image_input_type::{ImageInputActivation, ImageInputType};
-use crate::dom::input_element::month_input_type::MonthInputType;
-use crate::dom::input_element::number_input_type::NumberInputType;
-use crate::dom::input_element::password_input_type::PasswordInputType;
-use crate::dom::input_element::radio_input_type::{RadioInputActivation, RadioInputType};
-use crate::dom::input_element::range_input_type::RangeInputType;
-use crate::dom::input_element::reset_input_type::{ResetInputActivation, ResetInputType};
-use crate::dom::input_element::search_input_type::SearchInputType;
-use crate::dom::input_element::submit_input_type::{SubmitInputActivation, SubmitInputType};
-use crate::dom::input_element::tel_input_type::TelInputType;
-use crate::dom::input_element::text_input_type::TextInputType;
-use crate::dom::input_element::time_input_type::TimeInputType;
-use crate::dom::input_element::url_input_type::UrlInputType;
-use crate::dom::input_element::week_input_type::WeekInputType;
-use crate::dom::input_element::{HTMLInputElement, InputActivationState, ValueMode};
 use crate::dom::node::{BindContext, UnbindContext};
+
+pub(crate) mod button_input_type;
+pub(crate) mod checkbox_input_type;
+pub(crate) mod color_input_type;
+pub(crate) mod date_input_type;
+pub(crate) mod datetime_local_input_type;
+pub(crate) mod email_input_type;
+pub(crate) mod file_input_type;
+pub(crate) mod hidden_input_type;
+pub(crate) mod image_input_type;
+pub(crate) mod month_input_type;
+pub(crate) mod number_input_type;
+pub(crate) mod password_input_type;
+pub(crate) mod radio_input_type;
+pub(crate) mod range_input_type;
+pub(crate) mod reset_input_type;
+pub(crate) mod search_input_type;
+pub(crate) mod submit_input_type;
+pub(crate) mod tel_input_type;
+pub(crate) mod text_input_type;
+pub(crate) mod text_input_widget;
+pub(crate) mod text_value_widget;
+pub(crate) mod time_input_type;
+pub(crate) mod url_input_type;
+pub(crate) mod week_input_type;
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-type>
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]

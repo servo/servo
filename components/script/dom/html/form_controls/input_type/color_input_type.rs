@@ -26,9 +26,9 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::HTMLFormElement;
-use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]

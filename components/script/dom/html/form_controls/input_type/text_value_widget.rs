@@ -12,7 +12,7 @@ use script_bindings::root::Dom;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
-use crate::dom::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::text::Text;
 

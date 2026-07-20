@@ -5,9 +5,9 @@
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 
-use crate::dom::htmlinputelement::HTMLInputElement;
-use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
+use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]

@@ -5,6 +5,7 @@
 pub(crate) mod documentmetadata;
 pub(crate) use self::documentmetadata::*;
 pub(crate) mod form_controls;
+pub(crate) use self::form_controls::*;
 pub(crate) mod htmlanchorelement;
 pub(crate) mod htmlareaelement;
 pub(crate) mod htmlaudioelement;
@@ -36,8 +37,6 @@ pub(crate) mod htmlhtmlelement;
 pub(crate) mod htmlhyperlinkelementutils;
 pub(crate) mod htmliframeelement;
 pub(crate) mod htmlimageelement;
-pub(crate) mod input_element;
-pub(crate) use self::input_element as htmlinputelement;
 pub(crate) mod htmllabelelement;
 pub(crate) mod htmllegendelement;
 pub(crate) mod htmllielement;

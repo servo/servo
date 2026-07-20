@@ -5,17 +5,17 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 
 use crate::dom::bindings::str::DOMString;
-use crate::dom::htmlinputelement::text_input_widget::TextInputWidget;
-use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::SpecificInputType;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::SpecificInputType;
+use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct PasswordInputType {
+pub(crate) struct SearchInputType {
     text_input_widget: DomRefCell<TextInputWidget>,
 }
 
-impl SpecificInputType for PasswordInputType {
+impl SpecificInputType for SearchInputType {
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         value.strip_newlines();
     }

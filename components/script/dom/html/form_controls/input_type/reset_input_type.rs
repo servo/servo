@@ -7,10 +7,10 @@ use script_bindings::domstring::DOMString;
 
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
+use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, ResetFrom};
-use crate::dom::htmlinputelement::text_value_widget::TextValueWidget;
-use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::node::NodeTraits;
 
 const DEFAULT_RESET_VALUE: &str = "Reset";

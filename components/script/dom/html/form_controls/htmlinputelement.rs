@@ -54,6 +54,10 @@ use crate::dom::event::Event;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
+use crate::dom::html::form_controls::input_type::radio_input_type::{
+    broadcast_radio_checked, perform_radio_group_validation,
+};
+use crate::dom::html::form_controls::input_type::{InputActivationType, InputType};
 use crate::dom::html::form_controls::text_control::{TextControlElement, TextControlSelection};
 use crate::dom::html::form_controls::text_input::{
     ClipboardEventFlags, EmbedderClipboardProvider, IsComposing, KeyReaction, Lines, TextInput,
@@ -64,10 +68,6 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
-use crate::dom::htmlinputelement::radio_input_type::{
-    broadcast_radio_checked, perform_radio_group_validation,
-};
-use crate::dom::input_element::input_type::{InputActivationType, InputType};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -80,34 +80,8 @@ use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::realms::enter_auto_realm;
 
-pub(crate) mod button_input_type;
-pub(crate) mod checkbox_input_type;
-pub(crate) mod color_input_type;
-pub(crate) mod date_input_type;
-pub(crate) mod datetime_local_input_type;
-pub(crate) mod email_input_type;
-pub(crate) mod file_input_type;
-pub(crate) mod hidden_input_type;
-pub(crate) mod image_input_type;
-pub(crate) mod input_type;
-pub(crate) mod month_input_type;
-pub(crate) mod number_input_type;
-pub(crate) mod password_input_type;
-pub(crate) mod radio_input_type;
-pub(crate) mod range_input_type;
-pub(crate) mod reset_input_type;
-pub(crate) mod search_input_type;
-pub(crate) mod submit_input_type;
-pub(crate) mod tel_input_type;
-pub(crate) mod text_input_type;
-pub(crate) mod text_input_widget;
-pub(crate) mod text_value_widget;
-pub(crate) mod time_input_type;
-pub(crate) mod url_input_type;
-pub(crate) mod week_input_type;
-
 #[derive(Debug, PartialEq)]
-enum ValueMode {
+pub(crate) enum ValueMode {
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value-value>
     Value,
 
@@ -164,11 +138,11 @@ pub(crate) struct HTMLInputElement {
 
 #[derive(JSTraceable)]
 pub(crate) struct InputActivationState {
-    indeterminate: bool,
-    checked: bool,
-    checked_radio: Option<DomRoot<HTMLInputElement>>,
-    was_radio: bool,
-    was_checkbox: bool,
+    pub(crate) indeterminate: bool,
+    pub(crate) checked: bool,
+    pub(crate) checked_radio: Option<DomRoot<HTMLInputElement>>,
+    pub(crate) was_radio: bool,
+    pub(crate) was_checkbox: bool,
     // was_mutable is implied: pre-activation would return None if it wasn't
 }
 
@@ -269,7 +243,7 @@ impl HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
-    fn value_mode(&self) -> ValueMode {
+    pub(crate) fn value_mode(&self) -> ValueMode {
         match *self.input_type() {
             InputType::Submit(_) |
             InputType::Reset(_) |
@@ -396,7 +370,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-step>
-    fn allowed_value_step(&self) -> Option<f64> {
+    pub(crate) fn allowed_value_step(&self) -> Option<f64> {
         // Step 1. If the attribute does not apply, then there is no allowed value step.
         // NOTE: The attribute applies iff there is a default step
         let default_step = self.default_step()?;
@@ -432,7 +406,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-min>
-    fn minimum(&self) -> Option<f64> {
+    pub(crate) fn minimum(&self) -> Option<f64> {
         self.upcast::<Element>()
             .get_attribute_string_value(&local_name!("min"))
             .and_then(|value| self.convert_string_to_number(&value))
@@ -440,7 +414,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-max>
-    fn maximum(&self) -> Option<f64> {
+    pub(crate) fn maximum(&self) -> Option<f64> {
         self.upcast::<Element>()
             .get_attribute_string_value(&local_name!("max"))
             .and_then(|value| self.convert_string_to_number(&value))
@@ -449,7 +423,7 @@ impl HTMLInputElement {
 
     /// when allowed_value_step and minimum both exist, this is the smallest
     /// value >= minimum that lies on an integer step
-    fn stepped_minimum(&self) -> Option<f64> {
+    pub(crate) fn stepped_minimum(&self) -> Option<f64> {
         match (self.minimum(), self.allowed_value_step()) {
             (Some(min), Some(allowed_step)) => {
                 let step_base = self.step_base();
@@ -464,7 +438,7 @@ impl HTMLInputElement {
 
     /// when allowed_value_step and maximum both exist, this is the smallest
     /// value <= maximum that lies on an integer step
-    fn stepped_maximum(&self) -> Option<f64> {
+    pub(crate) fn stepped_maximum(&self) -> Option<f64> {
         match (self.maximum(), self.allowed_value_step()) {
             (Some(max), Some(allowed_step)) => {
                 let step_base = self.step_base();
@@ -494,7 +468,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-value-default-range>
-    fn default_range_value(&self) -> f64 {
+    pub(crate) fn default_range_value(&self) -> f64 {
         let min = self.minimum().unwrap_or(0.0);
         let max = self.maximum().unwrap_or(100.0);
         if max < min {
@@ -533,7 +507,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage#concept-input-min-zero>
-    fn step_base(&self) -> f64 {
+    pub(crate) fn step_base(&self) -> f64 {
         // Step 1. If the element has a min content attribute, and the result of applying
         // the algorithm to convert a string to a number to the value of the min content attribute
         // is not an error, then return that result.
@@ -894,7 +868,7 @@ impl HTMLInputElement {
     }
 
     /// Return a string that represents the contents of the element in its displayed shadow DOM.
-    fn value_for_shadow_dom(&self) -> DOMString {
+    pub(crate) fn value_for_shadow_dom(&self) -> DOMString {
         let input_type = &*self.input_type();
         match input_type {
             InputType::Checkbox(_) |
@@ -914,7 +888,7 @@ impl HTMLInputElement {
         }
     }
 
-    fn textinput_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
+    pub(crate) fn textinput_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
         self.textinput.borrow_mut()
     }
 
@@ -1713,7 +1687,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-group>
-    fn radio_group_name(&self) -> Option<Atom> {
+    pub(crate) fn radio_group_name(&self) -> Option<Atom> {
         self.upcast::<Element>()
             .get_name()
             .filter(|name| !name.is_empty())
@@ -1831,6 +1805,10 @@ impl HTMLInputElement {
             .select_files(self, Some(test_paths));
     }
 
+    pub(crate) fn take_pending_webdriver_response(&self) -> Option<PendingWebDriverResponse> {
+        self.pending_webdriver_response.borrow_mut().take()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
     fn sanitize_value(&self, value: &mut DOMString) {
         self.input_type().as_specific().sanitize_value(self, value);
@@ -1905,7 +1883,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-string-number>
-    fn convert_string_to_number(&self, value: &str) -> Option<f64> {
+    pub(crate) fn convert_string_to_number(&self, value: &str) -> Option<f64> {
         self.input_type()
             .as_specific()
             .convert_string_to_number(value)
@@ -1937,7 +1915,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
-    fn show_the_picker_if_applicable(&self) {
+    pub(crate) fn show_the_picker_if_applicable(&self) {
         // FIXME: Implement most of this algorithm
 
         // Step 2. If element is not mutable, then return.
@@ -2700,7 +2678,7 @@ fn matches_js_regex(cx: &mut JSContext, regex_obj: HandleObject, value: &str) ->
 /// as selecting files, this stores the details necessary to complete the response when
 /// the action is complete.
 #[derive(MallocSizeOf)]
-struct PendingWebDriverResponse {
+pub(crate) struct PendingWebDriverResponse {
     /// An [`IpcSender`] to use to send the reply when the response is ready.
     response_sender: GenericSender<Result<bool, ErrorStatus>>,
     /// The number of files expected to be selected when the selection process is done.
@@ -2708,7 +2686,7 @@ struct PendingWebDriverResponse {
 }
 
 impl PendingWebDriverResponse {
-    fn finish(self, number_files_selected: usize) {
+    pub(crate) fn finish(self, number_files_selected: usize) {
         if number_files_selected == self.expected_file_count {
             let _ = self.response_sender.send(Ok(false));
         } else {

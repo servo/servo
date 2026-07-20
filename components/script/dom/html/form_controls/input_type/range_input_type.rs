@@ -16,8 +16,8 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::input_element::HTMLInputElement;
-use crate::dom::input_element::input_type::SpecificInputType;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::node::{Node, NodeTraits};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]

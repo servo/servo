@@ -35,6 +35,8 @@ use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
+use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
 use crate::dom::html::form_controls::text_control::{TextControlElement, TextControlSelection};
 use crate::dom::html::form_controls::text_input::{
     ClipboardEventFlags, EmbedderClipboardProvider, IsComposing, KeyReaction, Lines, TextInput,
@@ -42,8 +44,6 @@ use crate::dom::html::form_controls::text_input::{
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
-use crate::dom::html::input_element::HTMLInputElement;
-use crate::dom::htmlinputelement::text_input_widget::TextInputWidget;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{

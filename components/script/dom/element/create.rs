@@ -16,6 +16,7 @@ use crate::dom::customelementregistry::{
 use crate::dom::document::Document;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
 use crate::dom::html::htmlaudioelement::HTMLAudioElement;
@@ -84,7 +85,6 @@ use crate::dom::html::htmltrackelement::HTMLTrackElement;
 use crate::dom::html::htmlulistelement::HTMLUListElement;
 use crate::dom::html::htmlunknownelement::HTMLUnknownElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
-use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::htmlmarqueeelement::HTMLMarqueeElement;
 use crate::dom::svg::svgcircleelement::SVGCircleElement;
 use crate::dom::svg::svgdefselement::SVGDefsElement;
