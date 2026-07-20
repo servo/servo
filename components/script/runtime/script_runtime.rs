@@ -24,33 +24,30 @@ use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
-    CreateJobQueue, DeleteJobQueue, DispatchablePointer, JS_GetReservedSlot, JobQueueTraps,
-    RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
-    RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
-    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
+    CreateJobQueue, DeleteJobQueue, DispatchablePointer, JobQueueTraps, RUST_js_GetErrorMessage,
+    RegisterScriptEnvironmentPreparer, RunScriptEnvironmentPreparerClosure, SetBuildId,
+    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
+    StreamConsumerStreamError,
 };
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
-    GCOptions, GCProgress, GCReason, GetPromiseUserInputEventHandlingState, Handle as RawHandle,
-    HandleObject, HandleString, HandleValue as RawHandleValue, Heap, JS_SetReservedSlot,
-    JSCLASS_RESERVED_SLOTS_MASK, JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps,
-    JSContext as RawJSContext, JSGCParamKey, JSGCStatus, JSJitCompilerOption, JSObject,
-    JSSecurityCallbacks, JSString, JSTracer, JobQueue, MimeType, MutableHandleObject,
-    MutableHandleString, PromiseRejectionHandlingState, PromiseUserInputEventHandlingState,
-    RuntimeCode, ScriptEnvironmentPreparer_Closure, SetProcessBuildIdOp,
-    StreamConsumer as JSStreamConsumer,
+    GCOptions, GCProgress, GCReason, Handle as RawHandle, HandleObject, HandleString,
+    HandleValue as RawHandleValue, Heap, JSContext as RawJSContext, JSGCParamKey, JSGCStatus,
+    JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, JobQueue, MimeType,
+    MutableHandleObject, MutableHandleString, PromiseRejectionHandlingState, RuntimeCode,
+    ScriptEnvironmentPreparer_Closure, SetProcessBuildIdOp, StreamConsumer as JSStreamConsumer,
 };
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, UndefinedValue};
 use js::panic::wrap_panic;
 use js::realm::CurrentRealm;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers2::{
     CollectServoSizes, ContextOptionsRef, DispatchableRun, InitConsumeStreamCallback,
     JS_AddExtraGCRootsTracer, JS_GetPromiseResult, JS_InitDestroyPrincipalsCallback,
-    JS_InitReadPrincipalsCallback, JS_NewObject, JS_NewStringCopyUTF8N, JS_SetGCCallback,
-    JS_SetGCParameter, JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled,
-    JS_SetSecurityCallbacks, SetDOMCallbacks, SetGCSliceCallback, SetJobQueue,
-    SetPreserveWrapperCallbacks, SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
+    JS_InitReadPrincipalsCallback, JS_NewStringCopyUTF8N, JS_SetGCCallback, JS_SetGCParameter,
+    JS_SetGlobalJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetSecurityCallbacks,
+    SetDOMCallbacks, SetGCSliceCallback, SetJobQueue, SetPreserveWrapperCallbacks,
+    SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
 };
 use js::rust::{
     Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, ParentRuntime,
@@ -69,7 +66,6 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
 
-use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
@@ -99,15 +95,15 @@ use crate::engine::handle::current_js_engine_handle;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::EnsureModuleHooksInitialized;
 use crate::realms::enter_auto_realm;
-use crate::runtime::microtask::{EnqueuedPromiseCallback, MicrotaskQueue};
+use crate::runtime::microtask::MicrotaskQueue;
 use crate::tasks::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getHostDefinedData: Some(get_host_defined_data),
-    enqueuePromiseJob: Some(enqueue_promise_job),
+    getHostDefinedGlobal: Some(get_host_defined_global),
     runJobs: Some(run_jobs),
-    empty: Some(empty),
+    traceNonGCThingMicroTask: Some(crate::runtime::microtask::trace_non_gc_things_micro_task),
     pushNewInterruptQueue: Some(push_new_interrupt_queue),
     popInterruptQueue: Some(pop_interrupt_queue),
     dropInterruptQueues: Some(drop_interrupt_queues),
@@ -254,64 +250,42 @@ impl From<ScriptThreadEventCategory> for ScriptHangAnnotation {
     }
 }
 
-static HOST_DEFINED_DATA: JSClassOps = JSClassOps {
-    addProperty: None,
-    delProperty: None,
-    enumerate: None,
-    newEnumerate: None,
-    resolve: None,
-    mayResolve: None,
-    finalize: None,
-    call: None,
-    construct: None,
-    trace: None,
-};
-
-static HOST_DEFINED_DATA_CLASS: JSClass = JSClass {
-    name: c"HostDefinedData".as_ptr(),
-    flags: (HOST_DEFINED_DATA_SLOTS & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT,
-    cOps: &HOST_DEFINED_DATA,
-    spec: ptr::null(),
-    ext: ptr::null(),
-    oOps: ptr::null(),
-};
-
-const INCUMBENT_SETTING_SLOT: u32 = 0;
-const HOST_DEFINED_DATA_SLOTS: u32 = 1;
-
-/// <https://searchfox.org/mozilla-central/rev/2a8a30f4c9b918b726891ab9d2d62b76152606f1/xpcom/base/CycleCollectedJSContext.cpp#316>
+/// <https://searchfox.org/firefox-main/rev/446c6e609dbd7c355c2fb27209dfe4833211991f/xpcom/base/CycleCollectedJSContext.cpp#229>
 #[expect(unsafe_code)]
 unsafe extern "C" fn get_host_defined_data(
-    _: *const c_void,
     cx: *mut RawJSContext,
+    incumbent_global: MutableHandleObject,
     data: MutableHandleObject,
 ) -> bool {
-    let mut cx = unsafe {
-        // SAFETY: We are in SM hook
-        JSContext::from_ptr(NonNull::new(cx).expect("JSContext should not be null in SM hook"))
-    };
+    incumbent_global.set(std::ptr::null_mut());
+    data.set(std::ptr::null_mut());
+    if !unsafe { get_host_defined_global(cx, incumbent_global) } {
+        return false;
+    }
+
+    if incumbent_global.is_null() {
+        return true;
+    }
+
+    // we have no schedulingState
+
+    true
+}
+
+#[allow(unsafe_code)]
+/// <https://searchfox.org/firefox-main/rev/446c6e609dbd7c355c2fb27209dfe4833211991f/xpcom/base/CycleCollectedJSContext.cpp#199>
+unsafe extern "C" fn get_host_defined_global(
+    _cx: *mut RawJSContext,
+    out: MutableHandleObject,
+) -> bool {
     wrap_panic(&mut || {
         let Some(incumbent_global) = GlobalScope::incumbent() else {
-            data.set(ptr::null_mut());
             return;
         };
 
-        let mut realm = enter_auto_realm(&mut cx, &*incumbent_global);
-        let cx = &mut realm.current_realm();
-
-        rooted!(&in(cx) let result = unsafe { JS_NewObject(cx, &HOST_DEFINED_DATA_CLASS)});
-        assert!(!result.is_null());
-
-        unsafe {
-            JS_SetReservedSlot(
-                *result,
-                INCUMBENT_SETTING_SLOT,
-                &ObjectValue(*incumbent_global.reflector().get_jsobject()),
-            )
-        };
-
-        data.set(result.get());
+        out.set(incumbent_global.reflector().get_jsobject().get());
     });
+
     true
 }
 
@@ -327,16 +301,6 @@ unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSCont
         // Those will require real `globalscopes` values.
         microtask_queue.checkpoint(&mut cx, vec![]);
     });
-}
-
-#[expect(unsafe_code)]
-unsafe extern "C" fn empty(extra: *const c_void) -> bool {
-    let mut result = false;
-    wrap_panic(&mut || {
-        let microtask_queue = unsafe { &*(extra as *const MicrotaskQueue) };
-        result = microtask_queue.empty()
-    });
-    result
 }
 
 #[expect(unsafe_code)]
@@ -375,59 +339,6 @@ unsafe extern "C" fn drop_interrupt_queues(interrupt_queues: *mut c_void) {
             unsafe { Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>) };
         drop(interrupt_queues);
     });
-}
-
-/// <https://searchfox.org/mozilla-central/rev/2a8a30f4c9b918b726891ab9d2d62b76152606f1/xpcom/base/CycleCollectedJSContext.cpp#355>
-/// SM callback for promise job resolution. Adds a promise callback to the current
-/// global's microtask queue.
-#[expect(unsafe_code)]
-unsafe extern "C" fn enqueue_promise_job(
-    extra: *const c_void,
-    cx: *mut RawJSContext,
-    promise: HandleObject,
-    job: HandleObject,
-    _allocation_site: HandleObject,
-    host_defined_data: HandleObject,
-) -> bool {
-    // SAFETY: it is safe to construct a JSContext from engine hook.
-    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    let cx = &mut cx;
-
-    let mut result = false;
-    wrap_panic(&mut || {
-        let microtask_queue = unsafe { &*(extra as *const MicrotaskQueue) };
-        let global = if !host_defined_data.is_null() {
-            let mut incumbent_global = UndefinedValue();
-            unsafe {
-                JS_GetReservedSlot(
-                    host_defined_data.get(),
-                    INCUMBENT_SETTING_SLOT,
-                    &mut incumbent_global,
-                );
-                GlobalScope::from_object(incumbent_global.to_object())
-            }
-        } else {
-            let mut realm = CurrentRealm::assert(cx);
-            GlobalScope::from_current_realm(&mut realm)
-        };
-        let interaction = if promise.get().is_null() {
-            PromiseUserInputEventHandlingState::DontCare
-        } else {
-            unsafe { GetPromiseUserInputEventHandlingState(promise) }
-        };
-        let is_user_interacting =
-            interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
-        microtask_queue.enqueue(
-            cx,
-            Box::new(EnqueuedPromiseCallback {
-                callback: unsafe { PromiseJobCallback::new(cx, job.get()) },
-                global: global.as_traced(),
-                is_user_interacting,
-            }),
-        );
-        result = true
-    });
-    result
 }
 
 #[expect(unsafe_code)]
@@ -865,6 +776,8 @@ impl Runtime {
                 SetUpEventLoopDispatch(
                     cx,
                     Some(dispatch_to_event_loop),
+                    None,
+                    None,
                     runtime_callback_data as *mut c_void,
                 );
             }
@@ -1059,9 +972,9 @@ impl Drop for Runtime {
     #[expect(unsafe_code)]
     fn drop(&mut self) {
         // Clear our main microtask_queue.
-        self.microtask_queue.clear();
+        self.microtask_queue.clear(self.rt.cx_no_gc());
 
-        // Delete the RustJobQueue in mozjs, which will destroy our interrupt queues.
+        // Delete the RustJobQueue in mozjs
         unsafe {
             DeleteJobQueue(self.job_queue);
         }
