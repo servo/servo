@@ -13,6 +13,7 @@ import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
@@ -36,10 +38,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.getSystemService
 import androidx.preference.PreferenceManager
 import kotlinx.coroutines.launch
@@ -66,107 +68,115 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
 
-        servoView = findViewById(R.id.servoview)
+        servoView = ServoView(this)
 
         historyManager = HistoryManager(this)
 
         updateSettingsIfNecessary(true)
 
-        findViewById<ComposeView>(R.id.toolbar).setContent {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(600)
-                if (isWindowWidthAtLeastMedium) {
-                    IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
-                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
-                    }
-                    IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
-                        Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
-                    }
-                    IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
+        setContent {
+            val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(600)
+
+            Scaffold(
+                topBar = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (isWindowWidthAtLeastMedium) {
+                            IconButton(onClick = ::onHistoryBackMenuItemClicked, enabled = canGoBackState.value) {
+                                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.history_back))
+                            }
+                            IconButton(onClick = ::onHistoryForwardMenuItemClicked, enabled = canGoForwardState.value) {
+                                Icon(painterResource(R.drawable.arrow_forward), stringResource(R.string.history_forward))
+                            }
+                            IconButton(onClick = { if (isRefreshingState.value) onCancelMenuItemClicked() else onRefreshMenuItemClicked() }) {
+                                if (isRefreshingState.value) {
+                                    Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
+                                } else {
+                                    Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                                }
+                            }
+                        }
+                        Omnibox(
+                            urlTextFieldState,
+                            onSearch = { search ->
+                                loadUrl(search)
+                                servoView.requestFocus()
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(end = 10.dp),
+                        )
                         if (isRefreshingState.value) {
-                            Icon(painterResource(R.drawable.cancel), stringResource(R.string.cancel))
-                        } else {
-                            Icon(painterResource(R.drawable.refresh), stringResource(R.string.refresh))
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .padding(end = 10.dp)
+                                    .size(20.dp),
+                            )
+                        }
+                        if (isWindowWidthAtLeastMedium) {
+                            IconButton(onClick = ::onSettingsMenuItemClicked) {
+                                Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
+                            }
+                            IconButton(onClick = ::onHistoryMenuItemClicked) {
+                                Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
+                            }
                         }
                     }
-                }
-                Omnibox(
-                    urlTextFieldState,
-                    onSearch = { search ->
-                        loadUrl(search)
-                        servoView.requestFocus()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 10.dp),
+                },
+                bottomBar = {
+                    if (!isWindowWidthAtLeastMedium) {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = false,
+                                enabled = canGoBackState.value,
+                                onClick = ::onHistoryBackMenuItemClicked,
+                                icon = { Icon(painterResource(R.drawable.arrow_back), null) },
+                                label = { Text(stringResource(R.string.history_back)) },
+                            )
+                            NavigationBarItem(
+                                selected = false,
+                                enabled = canGoForwardState.value,
+                                onClick = { onHistoryForwardMenuItemClicked() },
+                                icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
+                                label = { Text(stringResource(R.string.history_forward)) },
+                            )
+                            if (isRefreshingState.value) {
+                                NavigationBarItem(
+                                    selected = false,
+                                    onClick = ::onCancelMenuItemClicked,
+                                    icon = { Icon(painterResource(R.drawable.cancel), null) },
+                                    label = { Text(stringResource(R.string.cancel)) },
+                                )
+                            } else {
+                                NavigationBarItem(
+                                    selected = false,
+                                    onClick = ::onRefreshMenuItemClicked,
+                                    icon = { Icon(painterResource(R.drawable.refresh), null) },
+                                    label = { Text(stringResource(R.string.refresh)) },
+                                )
+                            }
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = ::onSettingsMenuItemClicked,
+                                icon = { Icon(painterResource(R.drawable.settings), null) },
+                                label = { Text(stringResource(R.string.options)) },
+                            )
+                            NavigationBarItem(
+                                selected = false,
+                                onClick = ::onHistoryMenuItemClicked,
+                                icon = { Icon(painterResource(R.drawable.history), null) },
+                                label = { Text(stringResource(R.string.history_title)) },
+                            )
+                        }
+                    }
+                },
+            ) { innerPadding ->
+                AndroidView(
+                    factory = { _ -> servoView },
+                    modifier = Modifier.padding(innerPadding),
                 )
-                if (isRefreshingState.value) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .padding(end = 10.dp)
-                            .size(20.dp),
-                    )
-                }
-                if (isWindowWidthAtLeastMedium) {
-                    IconButton(onClick = ::onSettingsMenuItemClicked) {
-                        Icon(painterResource(R.drawable.settings), stringResource(R.string.options))
-                    }
-                    IconButton(onClick = ::onHistoryMenuItemClicked) {
-                        Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
-                    }
-                }
-            }
-        }
-
-        findViewById<ComposeView>(R.id.bottom_bar)?.apply {
-            setContent {
-                NavigationBar {
-                    NavigationBarItem(
-                        selected = false,
-                        enabled = canGoBackState.value,
-                        onClick = ::onHistoryBackMenuItemClicked,
-                        icon = { Icon(painterResource(R.drawable.arrow_back), null) },
-                        label = { Text(stringResource(R.string.history_back)) },
-                    )
-                    NavigationBarItem(
-                        selected = false,
-                        enabled = canGoForwardState.value,
-                        onClick = { onHistoryForwardMenuItemClicked() },
-                        icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
-                        label = { Text(stringResource(R.string.history_forward)) },
-                    )
-                    if (isRefreshingState.value) {
-                        NavigationBarItem(
-                            selected = false,
-                            onClick = ::onCancelMenuItemClicked,
-                            icon = { Icon(painterResource(R.drawable.cancel), null) },
-                            label = { Text(stringResource(R.string.cancel)) },
-                        )
-                    } else {
-                        NavigationBarItem(
-                            selected = false,
-                            onClick = ::onRefreshMenuItemClicked,
-                            icon = { Icon(painterResource(R.drawable.refresh), null) },
-                            label = { Text(stringResource(R.string.refresh)) },
-                        )
-                    }
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = ::onSettingsMenuItemClicked,
-                        icon = { Icon(painterResource(R.drawable.settings), null) },
-                        label = { Text(stringResource(R.string.options)) },
-                    )
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = ::onHistoryMenuItemClicked,
-                        icon = { Icon(painterResource(R.drawable.history), null) },
-                        label = { Text(stringResource(R.string.history_title)) },
-                    )
-                }
             }
         }
 
