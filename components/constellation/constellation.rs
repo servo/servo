@@ -170,6 +170,7 @@ use servo_constellation_traits::{
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
+use storage_traits::cache_storage::CacheStorageThreadMessage;
 use storage_traits::client_storage::ClientStorageThreadMessage;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
@@ -2765,6 +2766,10 @@ where
             generic_channel::channel().expect("Failed to create generic channel!");
         let (private_client_storage_generic_sender, private_client_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
+        let (private_cache_storage_generic_sender, private_cache_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
+        let (public_cache_storage_generic_sender, public_cache_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
         let (public_indexeddb_ipc_sender, public_indexeddb_ipc_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
         let (private_indexeddb_ipc_sender, private_indexeddb_ipc_receiver) =
@@ -2803,6 +2808,21 @@ where
             ClientStorageThreadMessage::Exit(private_client_storage_generic_sender),
         ) {
             warn!("Exit private client storage thread failed ({})", e);
+        }
+
+        debug!("Exiting public cache storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.public_storage_threads,
+            CacheStorageThreadMessage::Exit(public_cache_storage_generic_sender),
+        ) {
+            warn!("Exit public cache storage thread failed ({})", e);
+        }
+        debug!("Exiting private cache storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.private_storage_threads,
+            CacheStorageThreadMessage::Exit(private_cache_storage_generic_sender),
+        ) {
+            warn!("Exit private cache storage thread failed ({})", e);
         }
 
         debug!("Exiting public indexeddb resource threads.");
@@ -2914,6 +2934,12 @@ where
         }
         if let Err(e) = private_client_storage_generic_receiver.recv() {
             warn!("Exit private client storage thread failed ({:?})", e);
+        }
+        if let Err(e) = private_cache_storage_generic_receiver.recv() {
+            warn!("Exit private cache storage thread failed ({:?})", e);
+        }
+        if let Err(e) = public_cache_storage_generic_receiver.recv() {
+            warn!("Exit public cache storage thread failed ({:?})", e);
         }
         if let Err(e) = public_indexeddb_ipc_receiver.recv() {
             warn!("Exit public indexeddb thread failed ({:?})", e);

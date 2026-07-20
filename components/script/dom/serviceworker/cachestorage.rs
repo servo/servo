@@ -66,8 +66,11 @@ impl CacheStorage {
         let callback = GenericCallback::new(move |message| {
             let response_listener = response_listener.clone();
             let response = match message {
-                Ok(inner) => inner,
-                Err(err) => return error!("Error in CacheStorage callback {:?}.", err),
+                Ok(inner) => Some(inner),
+                Err(err) => {
+                    error!("Error in CacheStorage callback {:?}.", err);
+                    None
+                },
             };
             task_source.queue(task!(set_request_result_to_database: move |cx| {
                 let cache_storage = response_listener.root();
@@ -81,7 +84,16 @@ impl CacheStorage {
         callback
     }
 
-    fn handle_response(&self, cx: &mut JSContext, response: CacheStorageThreadResponse) {
+    fn handle_response(&self, cx: &mut JSContext, response: Option<CacheStorageThreadResponse>) {
+        let response = match response {
+            Some(response) => response,
+            None => {
+                if self.pending_promises.borrow_mut().pop_front().is_none() {
+                    error!("No pending promise for CacheStorage response.");
+                }
+                return;
+            },
+        };
         match response {
             // https://w3c.github.io/ServiceWorker/#cache-storage-has
             // the steps resolving the promise with the result.
