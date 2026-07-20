@@ -2,16 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use jstraceable_derive::JSTraceable;
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPURenderBundleMethods, GPURenderBundleWrap,
+};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPURenderBundleMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPURenderBundle {
@@ -37,15 +44,20 @@ impl Drop for DroppableGPURenderBundle {
 }
 
 #[dom_struct]
-pub(crate) struct GPURenderBundle {
+pub struct GPURenderBundle<D: DomTypes> {
     reflector_: Reflector,
     #[no_trace]
     device: WebGPUDevice,
     label: DomRefCell<USVString>,
     droppable: DroppableGPURenderBundle,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPURenderBundle {
+impl<D> GPURenderBundle<D>
+where
+    D: DomTypes<GPURenderBundle = GPURenderBundle<D>>,
+{
     fn new_inherited(
         render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
@@ -60,18 +72,19 @@ impl GPURenderBundle {
                 channel,
                 render_bundle,
             },
+            phantom: PhantomData,
         }
     }
 
-    pub(crate) fn new(
+    pub fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
         channel: WebGPU,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPURenderBundle::new_inherited(
                 render_bundle,
                 device,
@@ -80,17 +93,18 @@ impl GPURenderBundle {
             )),
             global,
             cx,
+            GPURenderBundleWrap::<D>,
         )
     }
 }
 
-impl GPURenderBundle {
-    pub(crate) fn id(&self) -> WebGPURenderBundle {
+impl<D: DomTypes> GPURenderBundle<D> {
+    pub fn id(&self) -> WebGPURenderBundle {
         self.droppable.render_bundle
     }
 }
 
-impl GPURenderBundleMethods<crate::DomTypeHolder> for GPURenderBundle {
+impl<D: DomTypes> GPURenderBundleMethods<D> for GPURenderBundle<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn Label(&self) -> USVString {
         self.label.borrow().clone()

@@ -50,7 +50,10 @@ pub(crate) mod gpupipelineerror;
 pub(crate) mod gpupipelinelayout;
 pub(crate) mod gpuqueryset;
 pub(crate) mod gpuqueue;
-pub(crate) mod gpurenderbundle;
+pub(crate) mod gpurenderbundle {
+    pub(crate) type GPURenderBundle =
+        script_webgpu::gpurenderbundle::GPURenderBundle<crate::DomTypeHolder>;
+}
 pub(crate) mod gpurenderbundleencoder;
 pub(crate) mod gpurenderpassencoder;
 pub(crate) mod gpurenderpipeline;

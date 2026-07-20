@@ -13,6 +13,7 @@ pub mod gpucompilationinfo;
 pub mod gpucompilationmessage;
 pub mod gpudevicelostinfo;
 pub mod gpumapmode;
+pub mod gpurenderbundle;
 
 pub(crate) use js::gc::Traceable as JSTraceable;
 pub(crate) use jstraceable_derive::JSTraceable;
@@ -51,6 +52,7 @@ pub(crate) mod codegen {
         use crate::gpucompilationmessage::GPUCompilationMessage;
         use crate::gpudevicelostinfo::GPUDeviceLostInfo;
         use crate::gpumapmode::GPUMapMode;
+        use crate::gpurenderbundle::GPURenderBundle;
         include!(concat!(
             env!("OUT_DIR"),
             "/ConcreteBindings/WebGPUBinding.rs"
