@@ -134,7 +134,7 @@ hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "ht
 icu_locid = "1.5.0"
 icu_properties = "1.5.0"
 icu_segmenter = "1.5.0"
-image = { version = "0.25", default-features = false, features = ["avif", "bmp", "gif", "ico", "jpeg", "png", "rayon", "webp"] }
+image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "rayon", "webp"] }
 imsz = "0.4"
 indexmap = { version = "2.14.0", features = ["std"] }
 inventory = "0.3.24"
