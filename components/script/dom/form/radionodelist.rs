@@ -143,7 +143,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     // https://github.com/servo/servo/issues/5875
     //
     /// <https://dom.spec.whatwg.org/#dom-nodelist-item>
-    fn IndexedGetter(&self, no_gc: &NoGC, index: u32) -> Option<DomRoot<Node>> {
-        self.node_list.IndexedGetter(no_gc, index)
+    fn IndexedGetter(&self, cx: &NoGC, index: u32) -> Option<DomRoot<Node>> {
+        self.node_list.IndexedGetter(cx, index)
     }
 }

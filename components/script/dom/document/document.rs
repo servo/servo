@@ -4132,15 +4132,18 @@ impl Document {
         self.count_node_list(|n| Document::is_element_in_get_by_name(n, name))
     }
 
-    pub(crate) fn nth_element_by_name(
+    pub(crate) fn nth_element_by_name<'a>(
         &self,
+        no_gc: &'a NoGC,
         index: u32,
         name: &DOMString,
-    ) -> Option<DomRoot<Node>> {
+    ) -> Option<UnrootedDom<'a, Node>> {
         if name.is_empty() {
             return None;
         }
-        self.nth_in_node_list(index, |n| Document::is_element_in_get_by_name(n, name))
+        self.nth_in_node_list(no_gc, index, |n| {
+            Document::is_element_in_get_by_name(n, name)
+        })
     }
 
     // Note that document.getByName does not match on the same conditions
@@ -4166,19 +4169,17 @@ impl Document {
             .count() as u32
     }
 
-    fn nth_in_node_list<F: Fn(&Node) -> bool>(
+    fn nth_in_node_list<'a, F: Fn(&Node) -> bool>(
         &self,
+        no_gc: &'a NoGC,
         index: u32,
         callback: F,
-    ) -> Option<DomRoot<Node>> {
-        let doc = self.GetDocumentElement();
-        let maybe_node = doc.as_deref().map(Castable::upcast::<Node>);
-        maybe_node
-            .iter()
-            .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
+    ) -> Option<UnrootedDom<'a, Node>> {
+        let doc = self.get_document_element_unrooted(no_gc)?;
+        doc.upcast::<Node>()
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
             .filter(|node| callback(node))
             .nth(index as usize)
-            .map(|n| DomRoot::from_ref(&*n))
     }
 
     fn get_html_element(&self) -> Option<DomRoot<HTMLHtmlElement>> {
