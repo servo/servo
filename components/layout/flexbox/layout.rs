@@ -1236,12 +1236,11 @@ impl InitialFlexLineLayout<'_> {
                 .zip(&item_used_main_sizes)
                 .map(|(item, used_main_size)| {
                     let layout_result = item.layout(*used_main_size, flex_context, None);
-                    (item, layout_result, used_main_size)
-                })
-                .map(|(item, layout_result, used_main_size)| FlexLineItem {
-                    item,
-                    layout_result,
-                    used_main_size: *used_main_size,
+                    FlexLineItem {
+                        item,
+                        layout_result,
+                        used_main_size: *used_main_size,
+                    }
                 })
                 .collect()
         } else {
