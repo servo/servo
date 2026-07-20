@@ -74,17 +74,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
         updateSettingsIfNecessary(true)
 
-        /*
-        We use both Menu+MenuItems and Buttons for the same functions,
-        depending on whether we’re in a phone or tablet+ layout. For the phone, we want
-        the affordances of a navigation bar that uses a Menu (mBottomNav), but there’s no
-        straightforward way to re-use these MenuItems to place them in the top toolbar
-        in the tablet layout. The inverse approach has other problems. So we use
-        - mBottomNav with a Menu + MenuItems on phones
-        - individual Buttons added to the MaterialToolbar that also holds the URLInput on
-          tablets and larger sizes
-         */
-
         findViewById<ComposeView>(R.id.bottom_bar)?.apply {
             setContent {
                 NavigationBar {
