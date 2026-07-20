@@ -74,54 +74,6 @@ class MainActivity : AppCompatActivity(), Servo.Client {
 
         updateSettingsIfNecessary(true)
 
-        findViewById<ComposeView>(R.id.bottom_bar)?.apply {
-            setContent {
-                NavigationBar {
-                    NavigationBarItem(
-                        selected = false,
-                        enabled = canGoBackState.value,
-                        onClick = ::onHistoryBackMenuItemClicked,
-                        icon = { Icon(painterResource(R.drawable.arrow_back), null) },
-                        label = { Text(stringResource(R.string.history_back)) },
-                    )
-                    NavigationBarItem(
-                        selected = false,
-                        enabled = canGoForwardState.value,
-                        onClick = { onHistoryForwardMenuItemClicked() },
-                        icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
-                        label = { Text(stringResource(R.string.history_forward)) },
-                    )
-                    if (isRefreshingState.value) {
-                        NavigationBarItem(
-                            selected = false,
-                            onClick = ::onCancelMenuItemClicked,
-                            icon = { Icon(painterResource(R.drawable.cancel), null) },
-                            label = { Text(stringResource(R.string.cancel)) },
-                        )
-                    } else {
-                        NavigationBarItem(
-                            selected = false,
-                            onClick = ::onRefreshMenuItemClicked,
-                            icon = { Icon(painterResource(R.drawable.refresh), null) },
-                            label = { Text(stringResource(R.string.refresh)) },
-                        )
-                    }
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = ::onSettingsMenuItemClicked,
-                        icon = { Icon(painterResource(R.drawable.settings), null) },
-                        label = { Text(stringResource(R.string.options)) },
-                    )
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = ::onHistoryMenuItemClicked,
-                        icon = { Icon(painterResource(R.drawable.history), null) },
-                        label = { Text(stringResource(R.string.history_title)) },
-                    )
-                }
-            }
-        }
-
         findViewById<ComposeView>(R.id.toolbar).setContent {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -166,6 +118,54 @@ class MainActivity : AppCompatActivity(), Servo.Client {
                     IconButton(onClick = ::onHistoryMenuItemClicked) {
                         Icon(painterResource(R.drawable.history), stringResource(R.string.history_title))
                     }
+                }
+            }
+        }
+
+        findViewById<ComposeView>(R.id.bottom_bar)?.apply {
+            setContent {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = false,
+                        enabled = canGoBackState.value,
+                        onClick = ::onHistoryBackMenuItemClicked,
+                        icon = { Icon(painterResource(R.drawable.arrow_back), null) },
+                        label = { Text(stringResource(R.string.history_back)) },
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        enabled = canGoForwardState.value,
+                        onClick = { onHistoryForwardMenuItemClicked() },
+                        icon = { Icon(painterResource(R.drawable.arrow_forward), null) },
+                        label = { Text(stringResource(R.string.history_forward)) },
+                    )
+                    if (isRefreshingState.value) {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = ::onCancelMenuItemClicked,
+                            icon = { Icon(painterResource(R.drawable.cancel), null) },
+                            label = { Text(stringResource(R.string.cancel)) },
+                        )
+                    } else {
+                        NavigationBarItem(
+                            selected = false,
+                            onClick = ::onRefreshMenuItemClicked,
+                            icon = { Icon(painterResource(R.drawable.refresh), null) },
+                            label = { Text(stringResource(R.string.refresh)) },
+                        )
+                    }
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = ::onSettingsMenuItemClicked,
+                        icon = { Icon(painterResource(R.drawable.settings), null) },
+                        label = { Text(stringResource(R.string.options)) },
+                    )
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = ::onHistoryMenuItemClicked,
+                        icon = { Icon(painterResource(R.drawable.history), null) },
+                        label = { Text(stringResource(R.string.history_title)) },
+                    )
                 }
             }
         }
