@@ -324,7 +324,7 @@ impl Node {
         let document = self.owner_document();
         document
             .focus_handler()
-            .focus(cx, focusable_area.take().unwrap());
+            .focus(cx, &focusable_area.take().unwrap());
         true
     }
 

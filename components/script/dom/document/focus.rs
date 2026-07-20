@@ -260,12 +260,11 @@ impl DocumentFocusHandler {
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: FocusableArea) {
+    pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: &FocusableArea) {
         rooted!(&in(cx) let new_focus_chain = new_focus_target.focus_chain());
         rooted!(&in(cx) let old_focus_chain = self.current_focus_chain());
 
-        self.focus_update_steps(cx, new_focus_chain, old_focus_chain, &new_focus_target);
+        self.focus_update_steps(cx, new_focus_chain, old_focus_chain, new_focus_target);
 
         // Advertise the change in the focus chain.
         // <https://html.spec.whatwg.org/multipage/#focus-chain>
@@ -290,9 +289,9 @@ impl DocumentFocusHandler {
         // >     `new focus target` to the nested browsing context's
         // >     active document.
         let child_browsing_context_id = match new_focus_target {
-            FocusableArea::IFrameViewport {
-                ref iframe_element, ..
-            } => iframe_element.browsing_context_id(),
+            FocusableArea::IFrameViewport { iframe_element, .. } => {
+                iframe_element.browsing_context_id()
+            },
             _ => None,
         };
         let sequence = self.increment_fetch_focus_sequence();
@@ -529,7 +528,7 @@ impl DocumentFocusHandler {
         {
             return;
         }
-        self.focus(cx, FocusableArea::Viewport);
+        self.focus(cx, &FocusableArea::Viewport);
     }
 
     pub(crate) fn set_sequential_focus_navigation_starting_point(&self, node: &Node) {
@@ -673,7 +672,7 @@ impl DocumentFocusHandler {
         // a child `<iframe>` and within a Document. If no suitable focusable area can be found
         // when moving into an `<iframe>`, we want to focus the `<iframe>`'s viewport itself.
         if allow_focusing_viewport {
-            self.focus(cx, FocusableArea::Viewport);
+            self.focus(cx, &FocusableArea::Viewport);
             return;
         }
 

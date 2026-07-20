@@ -325,7 +325,7 @@ impl HTMLDialogElement {
         // FIXME: Use the focusing step once they support a focusable area as an argument
         if control.is_some() {
             let document = self.owner_document();
-            document.focus_handler().focus(cx, control.take().unwrap());
+            document.focus_handler().focus(cx, &control.take().unwrap());
         }
 
         // TODO: Step 7. Let topDocument be control's node navigable's top-level traversable's active document.
