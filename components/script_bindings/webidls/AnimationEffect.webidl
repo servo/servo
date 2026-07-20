@@ -5,9 +5,9 @@
 // https://drafts.csswg.org/web-animations-1/#animationeffect
 [Exposed=Window, Pref="dom_web_animations_enabled"]
 interface AnimationEffect {
-//     EffectTiming         getTiming();
+     EffectTiming         getTiming();
 //     ComputedEffectTiming getComputedTiming();
-//     undefined            updateTiming(optional OptionalEffectTiming timing = {});
+     [Throws] undefined            updateTiming(optional OptionalEffectTiming timing = {});
 };
 
 // https://drafts.csswg.org/web-animations-1/#the-effecttiming-dictionaries

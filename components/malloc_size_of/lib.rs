@@ -1320,6 +1320,18 @@ impl<T: stylo_malloc_size_of::MallocSizeOf, const FRACTION_BITS: u16> MallocSize
     }
 }
 
+impl<Integer, Number, LinearStops> MallocSizeOf
+    for style::values::generics::easing::TimingFunction<Integer, Number, LinearStops>
+where
+    Integer: stylo_malloc_size_of::MallocSizeOf,
+    Number: stylo_malloc_size_of::MallocSizeOf,
+    LinearStops: stylo_malloc_size_of::MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        <Self as stylo_malloc_size_of::MallocSizeOf>::size_of(self, ops)
+    }
+}
+
 malloc_size_of_is_stylo_malloc_size_of!(style::properties::PropertyId);
 malloc_size_of_is_stylo_malloc_size_of!(style::animation::DocumentAnimationSet);
 malloc_size_of_is_stylo_malloc_size_of!(style::attr::AttrIdentifier);

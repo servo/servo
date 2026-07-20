@@ -73,6 +73,8 @@ impl AnimationMethods<crate::DomTypeHolder> for Animation {
         _object: Option<HandleObject>,
         effect: Option<&AnimationEffect>,
     ) -> DomRoot<Self> {
+        let document = window.Document();
+
         // Step 1. Let animation be a new Animation object.
         let animation = Animation::new(cx, window.upcast());
 
@@ -80,7 +82,7 @@ impl AnimationMethods<crate::DomTypeHolder> for Animation {
         // as the new timeline; or, if the timeline argument is missing, passing the default document
         // timeline of the Document associated with the Window that is the current global object.
         // TODO: We don't suppor the timeline argument yet.
-        animation.set_the_timeline(window.Document().Timeline().upcast());
+        animation.set_the_timeline(document.Timeline().upcast());
 
         // Step 3. Run the procedure to set the associated effect of an animation on animation passing
         // source as the new effect.
