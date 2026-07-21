@@ -14,7 +14,7 @@ use rayon::iter::{
 };
 use style::Zero;
 use style::computed_values::position::T as Position;
-use style::logical_geometry::Direction;
+use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::longhands::align_items::computed_value::T as AlignItems;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
@@ -153,12 +153,16 @@ struct FlexLineItem<'a> {
 }
 
 impl FlexLineItem<'_> {
-    fn get_or_synthesize_baseline_with_cross_size(&self, cross_size: Au) -> Au {
+    fn get_or_synthesize_baseline_with_cross_size(
+        &self,
+        cross_size: Au,
+        flex_container_config: &FlexContainerConfig,
+    ) -> Au {
         self.layout_result
             .flex_alignment_baseline_relative_to_margin_box
             .unwrap_or_else(|| {
                 self.item
-                    .synthesized_baseline_relative_to_margin_box(cross_size)
+                    .synthesized_baseline_relative_to_margin_box(cross_size, flex_container_config)
             })
     }
 
@@ -1496,6 +1500,7 @@ impl InitialFlexLineLayout<'_> {
             ) {
                 let baseline = item.get_or_synthesize_baseline_with_cross_size(
                     item.layout_result.hypothetical_cross_size,
+                    &flex_context.config,
                 );
                 let hypothetical_margin_box_cross_size =
                     item.layout_result.hypothetical_cross_size + item.item.pbm_auto_is_zero.cross;
@@ -1615,7 +1620,8 @@ impl InitialFlexLineLayout<'_> {
                         .layout(item.used_main_size, flex_context, Some(used_cross_size));
             }
 
-            let baseline = item.get_or_synthesize_baseline_with_cross_size(used_cross_size);
+            let baseline = item
+                .get_or_synthesize_baseline_with_cross_size(used_cross_size, &flex_context.config);
             if matches!(
                 item.item.align_self.0.value(),
                 AlignFlags::BASELINE | AlignFlags::LAST_BASELINE
@@ -1950,16 +1956,75 @@ impl FlexItem<'_> {
         }
     }
 
-    fn synthesized_baseline_relative_to_margin_box(&self, content_size: Au) -> Au {
-        // If the item does not have a baseline in the necessary axis,
-        // then one is synthesized from the flex item’s border box.
+    /// Returns the distance from the baseline relative to the cross-start edge of the margin box
+    /// along the cross axis.
+    fn synthesized_baseline_relative_to_margin_box(
+        &self,
+        content_size: Au,
+        config: &FlexContainerConfig,
+    ) -> Au {
+        let own_writing_mode = self.box_.style().writing_mode;
         // https://drafts.csswg.org/css-flexbox/#valdef-align-items-baseline
-        content_size +
-            self.margin.cross_start.auto_is(Au::zero) +
-            self.padding.cross_start +
-            self.border.cross_start +
-            self.border.cross_end +
-            self.padding.cross_end
+        // > If the item does not have a baseline in the necessary axis,
+        // > then one is synthesized from the flex item’s border box.
+        // Note: This is the case when this function is called.
+
+        // https://drafts.csswg.org/css-align-3/#synthesize-baseline
+        // > To synthesize baselines from a rectangle (or two parallel lines),
+        // > synthesize the alphabetic baseline from the line-under.
+        let distance_from_cross_start_to_line_under = |writing_mode: WritingMode| -> Au {
+            // The different positions for line-under depending on the writing mode are defined
+            // in https://drafts.csswg.org/css-writing-modes-4/#logical-to-physical.
+            let line_under_edge_is_on_same_side_as_cross_start = (writing_mode.is_horizontal() &&
+                config.flex_wrap_is_reversed) ||
+                (writing_mode.is_vertical_lr() != config.flex_wrap_is_reversed);
+            if line_under_edge_is_on_same_side_as_cross_start {
+                // line-under edge is the bottom border edge and cross axis goes bottom->top
+                // OR
+                // line-under edge is the left border edge and cross axis goes left->right
+                // OR
+                // line-under edge is the right border edge and cross axis goes right->left
+                self.margin.cross_start.auto_is(Au::zero)
+            } else {
+                // line-under edge is the bottom border edge and cross axis goes top->bottom
+                // OR
+                // line-under edge is the right border edge and cross axis goes left->right
+                // OR
+                // line-under edge is the left border edge and cross axis goes right->left
+                content_size +
+                    self.margin.cross_start.auto_is(Au::zero) +
+                    self.padding.cross_sum() +
+                    self.border.cross_sum()
+            }
+        };
+
+        // > In general, the writing mode of the box, shape, or other object being aligned is used
+        // > to determine the line-under and line-over edges for synthesis.
+        // > However, when that writing mode’s block flow direction is parallel to the axis of the
+        // > alignment context, an axis-compatible writing mode must be assumed:
+        // > * If the box establishing the alignment context has a block flow direction that is orthogonal
+        // >   to the axis of the alignment context, use its writing mode.
+        // > * Otherwise:
+        // >   * If the box’s own writing mode is vertical, assume horizontal-tb.
+        // >   * If the box’s own writing mode is horizontal, assume vertical-lr if direction is ltr
+        // >     and vertical-rl if direction is rtl.
+        let can_use_writing_mode = |writing_mode: WritingMode| {
+            writing_mode.is_vertical() != (config.flex_axis == FlexAxis::Row)
+        };
+        if can_use_writing_mode(own_writing_mode) {
+            distance_from_cross_start_to_line_under(own_writing_mode)
+        } else if can_use_writing_mode(config.writing_mode) {
+            distance_from_cross_start_to_line_under(config.writing_mode)
+        } else if own_writing_mode.is_vertical() {
+            distance_from_cross_start_to_line_under(WritingMode::WRITING_MODE_HORIZONTAL_TB)
+        } else {
+            let used_writing_mode = match own_writing_mode.is_bidi_ltr() {
+                true => WritingMode::WRITING_MODE_VERTICAL_LR,
+                false => WritingMode::WRITING_MODE_VERTICAL_RL,
+            };
+
+            distance_from_cross_start_to_line_under(used_writing_mode)
+        }
     }
 
     fn subtree_size(&self) -> usize {
