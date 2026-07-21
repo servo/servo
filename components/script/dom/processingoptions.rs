@@ -15,10 +15,7 @@ use net_traits::request::{
     CorsSettings, Destination, Initiator, PreloadId, PreloadKey, Referrer, RequestBuilder,
     RequestClient, RequestId,
 };
-use net_traits::response::{Response, ResponseBody};
-use net_traits::{
-    CoreResourceMsg, FetchMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
-};
+use net_traits::{FetchMetadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 pub use nom_rfc8288::complete::LinkDataOwned as LinkHeader;
 use nom_rfc8288::complete::link_lenient as parse_link_header;
 use servo_base::id::WebViewId;
@@ -305,9 +302,8 @@ impl LinkProcessingOptions {
         let fetch_context = LinkFetchContext {
             url,
             link,
-            document: Trusted::new(document),
             global: Trusted::new(&document.global()),
-            type_: LinkFetchContextType::Preload(key.clone()),
+            type_: LinkFetchContextType::Preload,
             response_body: vec![],
         };
         document.insert_preloaded_resource(key, preload_id);
@@ -428,7 +424,7 @@ pub(crate) fn process_link_headers(
 #[strum(serialize_all = "lowercase")]
 pub(crate) enum LinkFetchContextType {
     Prefetch,
-    Preload(PreloadKey),
+    Preload,
 }
 
 impl From<LinkFetchContextType> for InitiatorType {
@@ -443,7 +439,6 @@ pub(crate) struct LinkFetchContext {
     pub(crate) link: Option<Trusted<HTMLLinkElement>>,
 
     pub(crate) global: Trusted<GlobalScope>,
-    pub(crate) document: Trusted<Document>,
 
     /// The url being prefetched
     pub(crate) url: ServoUrl,
@@ -472,7 +467,7 @@ impl FetchResponseListener for LinkFetchContext {
         _: RequestId,
         mut chunk: Vec<u8>,
     ) {
-        if matches!(self.type_, LinkFetchContextType::Preload(..)) {
+        if matches!(self.type_, LinkFetchContextType::Preload) {
             self.response_body.append(&mut chunk);
         }
     }
@@ -480,41 +475,12 @@ impl FetchResponseListener for LinkFetchContext {
     /// Step 7 of <https://html.spec.whatwg.org/multipage/#link-type-prefetch:fetch-and-process-the-linked-resource-2>
     /// and step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     fn process_response_eof(
-        mut self,
+        self,
         cx: &mut js::context::JSContext,
         _: RequestId,
         response_result: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        // Steps for https://html.spec.whatwg.org/multipage/#preload
-        if let LinkFetchContextType::Preload(key) = &self.type_ {
-            let response = if response_result.is_ok() {
-                // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
-                let response = Response::new(self.url.clone(), timing.clone());
-                *response.body.lock() = ResponseBody::Done(std::mem::take(&mut self.response_body));
-                response
-            } else {
-                // Step 11.2. Otherwise, set response to a network error.
-                Response::network_error(NetworkError::ResourceLoadError("Failed to preload".into()))
-            };
-            // Step 11.5. If entry's on response available is null, then set entry's response to response;
-            // otherwise call entry's on response available given response.
-            // Step 12. Let commit be the following steps given a Document document:
-            // Step 12.1. If entry's response is not null, then call reportTiming given document.
-            // Step 12.2. Set document's map of preloaded resources[key] to entry.
-            // Step 13. If options's document is null, then set options's on document ready to commit. Otherwise, call commit with options's document.
-            let document = self.document.root();
-            let document_preloaded_resources = document.preloaded_resources();
-            let Some(preload_id) = document_preloaded_resources.get(key) else {
-                unreachable!(
-                    "Must only be able to lookup preloaded resources if they already exist in document"
-                );
-            };
-            let _ = self.global.root().core_resource_thread().send(
-                CoreResourceMsg::StorePreloadedResponse(preload_id.clone(), response),
-            );
-        }
-
         submit_timing(cx, &self, &response_result, &timing);
 
         // Step 11.6. If processResponse is given, then call processResponse with response.

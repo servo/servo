@@ -27,7 +27,7 @@ use net_traits::response::{Response, ResponseInit};
 use net_traits::{
     AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
     CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
-    ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
+    NetworkError, ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
     WebSocketNetworkEvent,
 };
 use parking_lot::{Mutex, RwLock};
@@ -646,9 +646,6 @@ impl ResourceChannelManager {
                 }
             },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
-            CoreResourceMsg::StorePreloadedResponse(preload_id, response) => self
-                .resource_manager
-                .handle_preloaded_response(preload_id, response),
             CoreResourceMsg::TotalSizeOfInFlightKeepAliveRecords(pipeline_id, sender) => {
                 let total = self
                     .resource_manager
@@ -740,8 +737,23 @@ impl CoreResourceManager {
         }
     }
 
-    fn handle_preloaded_response(&self, preload_id: PreloadId, response: Response) {
-        let mut preloaded_resources = self.preloaded_resources.lock().unwrap();
+    fn handle_preloaded_response(
+        preloaded_resources: SharedPreloadedResources,
+        preload_id: PreloadId,
+        response: Response,
+    ) {
+        // https://html.spec.whatwg.org/multipage/#preload
+        // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
+        // Step 11.2. Otherwise, set response to a network error.
+        let response = response
+            .get_network_error()
+            .map(|_| {
+                Response::network_error(NetworkError::ResourceLoadError("Failed to preload".into()))
+            })
+            .unwrap_or(response);
+        let mut preloaded_resources = preloaded_resources.lock().unwrap();
+        // Step 11.5. If entry's on response available is null, then set entry's response to response;
+        // otherwise call entry's on response available given response.
         if let Some(entry) = preloaded_resources.get_mut(&preload_id) {
             entry.with_response(response);
         }
@@ -837,7 +849,7 @@ impl CoreResourceManager {
                 websocket_chan: None,
                 ca_certificates,
                 ignore_certificate_errors,
-                preloaded_resources,
+                preloaded_resources: preloaded_resources.clone(),
                 in_flight_keep_alive_records,
             };
 
@@ -866,7 +878,11 @@ impl CoreResourceManager {
                     }
                 },
                 None => {
-                    fetch(request, &mut sender, &context).await;
+                    let preload_id = request.preload_id.clone();
+                    let response = fetch(request, &mut sender, &context).await;
+                    if let Some(preload_id) = preload_id {
+                        Self::handle_preloaded_response(preloaded_resources, preload_id, response);
+                    }
                 },
             };
 

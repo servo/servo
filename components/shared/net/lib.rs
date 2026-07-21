@@ -42,7 +42,7 @@ use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::FileManagerThreadMsg;
 use crate::http_status::HttpStatus;
 use crate::mime_classifier::{ApacheBugFlag, MimeClassifier};
-use crate::request::{PreloadId, Request, RequestBuilder};
+use crate::request::{Request, RequestBuilder};
 use crate::response::{Response, ResponseInit};
 
 pub mod blob_url_store;
@@ -777,7 +777,6 @@ pub enum CoreResourceMsg {
     NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
-    StorePreloadedResponse(PreloadId, Response),
     TotalSizeOfInFlightKeepAliveRecords(PipelineId, GenericSender<u64>),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     /// and exit
