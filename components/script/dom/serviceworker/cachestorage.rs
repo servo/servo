@@ -33,7 +33,7 @@ pub(crate) struct CacheStorage {
     callback: RefCell<Option<GenericCallback<CacheStorageThreadResponse>>>,
 
     // Dequeue of pending promises for backend operations.
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     pending_promises: RefCell<VecDeque<Rc<Promise>>>,
 }
 
