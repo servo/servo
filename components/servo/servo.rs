@@ -32,7 +32,7 @@ use net::embedder::NetToEmbedderMsg;
 use net::image_cache::ImageCacheFactoryImpl;
 use net::protocols::ProtocolRegistry;
 use net::resource_thread::new_resource_threads;
-use net_traits::{ResourceThreads, exit_fetch_thread, start_fetch_thread};
+use net_traits::{FetchThread, ResourceThreads};
 use paint::{InitialPaintState, Paint};
 pub use paint_api::rendering_context::RenderingContext;
 use paint_api::{CrossProcessPaintApi, PaintMessage, PaintProxy};
@@ -1319,9 +1319,6 @@ pub fn run_content_process(token: String) {
         UnprivilegedContent::ScriptEventLoop(new_event_loop_info) => {
             media_platform::init();
 
-            // Start the fetch thread for this content process.
-            let fetch_thread_join_handle = start_fetch_thread();
-
             set_logger(
                 new_event_loop_info
                     .initial_script_state
@@ -1357,11 +1354,8 @@ pub fn run_content_process(token: String) {
 
             StyleThreadPool::shutdown();
 
-            // Shut down the fetch thread started above.
-            exit_fetch_thread();
-            fetch_thread_join_handle
-                .join()
-                .expect("Failed to join on the fetch thread in the constellation");
+            // Shut down the `FetchThread` if it had been started in the course of execution.
+            FetchThread::exit();
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();
