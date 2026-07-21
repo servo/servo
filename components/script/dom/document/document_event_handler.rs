@@ -314,9 +314,13 @@ impl DocumentEventHandler {
         // Reset the mouse and wheel event indices.
         *self.mouse_move_event_index.safe_borrow_mut(cx.no_gc()) = None;
         *self.wheel_event_index.safe_borrow_mut(cx.no_gc()) = None;
-        let pending_input_events = mem::take(&mut *self.pending_input_events.safe_borrow_mut(cx.no_gc()));
-        let mut coalesced_mouse_move_event_ids =
-            mem::take(&mut *self.coalesced_mouse_move_event_ids.safe_borrow_mut(cx.no_gc()));
+        let pending_input_events =
+            mem::take(&mut *self.pending_input_events.safe_borrow_mut(cx.no_gc()));
+        let mut coalesced_mouse_move_event_ids = mem::take(
+            &mut *self
+                .coalesced_mouse_move_event_ids
+                .safe_borrow_mut(cx.no_gc()),
+        );
         let mut coalesced_wheel_event_ids =
             mem::take(&mut *self.coalesced_wheel_event_ids.safe_borrow_mut(cx.no_gc()));
 
@@ -2580,7 +2584,9 @@ impl DocumentEventHandler {
             self.pending_pointer_capture
                 .safe_borrow_mut(cx.no_gc())
                 .remove(&pointer_id);
-            self.pointer_capture_target.safe_borrow_mut(cx.no_gc()).remove(&pointer_id);
+            self.pointer_capture_target
+                .safe_borrow_mut(cx.no_gc())
+                .remove(&pointer_id);
             return true;
         }
         false
@@ -2814,7 +2820,9 @@ impl DocumentEventHandler {
         self.pending_pointer_capture
             .safe_borrow_mut(cx.no_gc())
             .remove(&pointer_id);
-        self.pointer_capture_target.safe_borrow_mut(cx.no_gc()).remove(&pointer_id);
+        self.pointer_capture_target
+            .safe_borrow_mut(cx.no_gc())
+            .remove(&pointer_id);
     }
 
     /// Process pending pointer capture before dispatching a pointer event.
@@ -2915,7 +2923,9 @@ impl DocumentEventHandler {
                     self.pending_pointer_capture
                         .safe_borrow_mut(cx.no_gc())
                         .remove(&pointer_id);
-                    self.pointer_capture_target.safe_borrow_mut(cx.no_gc()).remove(&pointer_id);
+                    self.pointer_capture_target
+                        .safe_borrow_mut(cx.no_gc())
+                        .remove(&pointer_id);
                 }
             },
             (None, Some(current_el)) | (Some(_), Some(current_el)) if !pending_connected => {
@@ -2939,7 +2949,9 @@ impl DocumentEventHandler {
                         &hover_target,
                     );
                 }
-                self.pointer_capture_target.safe_borrow_mut(cx.no_gc()).remove(&pointer_id);
+                self.pointer_capture_target
+                    .safe_borrow_mut(cx.no_gc())
+                    .remove(&pointer_id);
                 if !pending_connected {
                     self.pending_pointer_capture
                         .safe_borrow_mut(cx.no_gc())
