@@ -155,22 +155,31 @@ impl AnimationEffect {
 
         // Step 4. If the easing member of input exists but cannot be parsed using the <easing-function> production [CSS-EASING-1],
         // throw a TypeError and abort this procedure.
-        let easing = input.easing.as_ref().and_then(|easing| {
-            let easing = easing.str();
-            let mut parser_input = ParserInput::new(&easing);
-            let mut parser = Parser::new(&mut parser_input);
+        let Ok(easing) = input
+            .easing
+            .as_ref()
+            .map(|easing| {
+                let easing = easing.str();
+                let mut parser_input = ParserInput::new(&easing);
+                let mut parser = Parser::new(&mut parser_input);
 
-            // None of these values should matter
-            let document = self.window.Document();
-            let urlextradata = document.url().into_url().into();
-            let parser_context = parser_context_for_document(
-                &document,
-                CssRuleType::Style,
-                ParsingMode::DEFAULT,
-                &urlextradata,
-            );
-            TimingFunction::parse(&parser_context, &mut parser).ok()
-        });
+                // None of these values should matter
+                let document = self.window.Document();
+                let urlextradata = document.url().into_url().into();
+                let parser_context = parser_context_for_document(
+                    &document,
+                    CssRuleType::Style,
+                    ParsingMode::DEFAULT,
+                    &urlextradata,
+                );
+                TimingFunction::parse(&parser_context, &mut parser).map_err(|_| ())
+            })
+            .transpose()
+        else {
+            return Err(Error::Type(
+                c"\"easing\" is not a valid timing function".to_owned(),
+            ));
+        };
 
         // Step 5. Assign each member that exists in input to the corresponding timing property of effect as follows:
         // delay → start delay
