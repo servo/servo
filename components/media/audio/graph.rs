@@ -558,6 +558,7 @@ impl AudioGraph {
     ///
     /// <https://webaudio.github.io/web-audio-api/#rendering-loop>
     ///
+    /// ```text
     /// 4. Process a render quantum.
     ///     2. Order the AudioNodes of the BaseAudioContext to be processed.
     ///         4. Let cycle breakers be an empty set of DelayNodes. It will contain all the DelayNodes that are part of a cycle.
@@ -567,6 +568,7 @@ impl AudioGraph {
     ///             1. Let delayWriter and delayReader respectively be a DelayWriter and a DelayReader, for delay. Add delayWriter and delayReader to nodes. Disconnect delay from all its input and outputs.
     ///                 Note: This breaks the cycle: if a DelayNode is in a cycle, its two ends can be considered separately, because delay lines cannot be smaller than one render quantum when in a cycle.
     ///         7. If nodes contains cycles, mute all the AudioNodes that are part of this cycle, and remove them from nodes.
+    /// ```
     ///
     /// TODO: Implement steps 4.2.4–4.2.6 for cyclic `DelayNode`s by replacing
     /// each with a `DelayWriter` and `DelayReader`.
