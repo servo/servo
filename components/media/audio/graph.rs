@@ -362,10 +362,13 @@ impl AudioGraph {
         self.listener_id
     }
 
+    /// For a given block, process all the data on this graph
+    ///
+    /// This implements steps 4.2 and parts of 4.4 from
     /// <https://webaudio.github.io/web-audio-api/#rendering-loop>
     pub fn process(&mut self, info: &BlockInfo) -> Chunk {
         // Step 4.2. Order the AudioNodes of the BaseAudioContext to be processed.
-        let cycle_nodes = self.cycle_nodes();
+        let cycle_nodes = self.detect_nodes_in_cycles();
 
         // DFS post order: Children are processed before their parent,
         // which is exactly what we need since the parent depends on the
@@ -388,10 +391,7 @@ impl AudioGraph {
                 if cycle_nodes.contains(&ix) {
                     // Step 4.2.7. If nodes contains cycles, mute all the AudioNodes
                     // that are part of this cycle, and remove them from nodes.
-                    //
-                    // Muting an AudioNode means that its output MUST be silence for
-                    // the rendering of this audio block.
-                    let chunk = Self::silence_for_node(curr.as_mut());
+                    let chunk = curr.as_mut().mute_node();
                     if curr.output_count() == 0 {
                         // Step 4.4.5. If this AudioNode is a destination node, record
                         // the input of this AudioNode.
@@ -399,7 +399,7 @@ impl AudioGraph {
                     } else {
                         // Step 4.4.6. Else, process the input buffer, and make
                         // available for reading the resulting buffer.
-                        Self::fill_outputs_with_silence(&self.graph, ix, curr.output_count());
+                        self.fill_node_cache_with_silence(ix, curr.output_count());
                     }
                     continue;
                 }
@@ -547,20 +547,41 @@ impl AudioGraph {
         self.graph[ix.0].node.borrow_mut()
     }
 
+    /// Detect cycles in this graph and return the indices of their nodes.
+    ///
+    /// This covers the cycle-related part of step 4.2. Tarjan's algorithm finds
+    /// the cycles, and [`Self::process`] mutes the affected nodes as required by
+    /// step 4.2.7.
+    ///
+    /// The outer render-loop steps, including returning `render_result`, are
+    /// outside this method because [`Self::process`] returns audio data.
+    ///
     /// <https://webaudio.github.io/web-audio-api/#rendering-loop>
-    fn cycle_nodes(&self) -> FxHashSet<NodeIndex<DefaultIx>> {
+    ///
+    /// 4. Process a render quantum.
+    ///     2. Order the AudioNodes of the BaseAudioContext to be processed.
+    ///         4. Let cycle breakers be an empty set of DelayNodes. It will contain all the DelayNodes that are part of a cycle.
+    ///         5. For each AudioNode node in nodes:
+    ///             1. If node is a DelayNode that is part of a cycle, add it to cycle breakers and remove it from nodes.
+    ///         6. For each DelayNode delay in cycle breakers:
+    ///             1. Let delayWriter and delayReader respectively be a DelayWriter and a DelayReader, for delay. Add delayWriter and delayReader to nodes. Disconnect delay from all its input and outputs.
+    ///                 Note: This breaks the cycle: if a DelayNode is in a cycle, its two ends can be considered separately, because delay lines cannot be smaller than one render quantum when in a cycle.
+    ///         7. If nodes contains cycles, mute all the AudioNodes that are part of this cycle, and remove them from nodes.
+    ///
+    /// TODO: Implement steps 4.2.4–4.2.6 for cyclic `DelayNode`s by replacing
+    /// each with a `DelayWriter` and `DelayReader`.
+    fn detect_nodes_in_cycles(&self) -> FxHashSet<NodeIndex<DefaultIx>> {
         let mut cycle_nodes = FxHashSet::default();
-        // Step 4.2.4. Let cycle breakers be an empty set of DelayNodes.
-
-        // TODO: Step 4.2.5. If node is a DelayNode that is part of a cycle,
-        // add it to cycle breakers and remove it from nodes.
-        // TODO: Step 4.2.6. For each DelayNode in cycle breakers, replace it
-        // with a DelayWriter and DelayReader to break the cycle.
         for component in tarjan_scc(&self.graph) {
+            // Tarjan's algorithm groups the graph into strongly connected components.
+            // A component with multiple nodes is a cycle; a single-node component is a
+            // cycle only when the node has an edge to itself.
             let is_cycle = component.len() > 1 ||
-                component
-                    .first()
-                    .is_some_and(|ix| self.graph.edges(*ix).any(|edge| edge.target() == *ix));
+                component.first().is_some_and(|node_index| {
+                    self.graph
+                        .edges(*node_index)
+                        .any(|edge| edge.target() == *node_index)
+                });
             if is_cycle {
                 cycle_nodes.extend(component);
             }
@@ -568,41 +589,22 @@ impl AudioGraph {
         cycle_nodes
     }
 
-    /// <https://webaudio.github.io/web-audio-api/#mute>
-    fn silence_for_node(node: &mut dyn AudioNodeEngine) -> Chunk {
-        // Muting an AudioNode means that its output MUST be silence for the
-        // rendering of this audio block.
-        let mut chunk = Chunk::default();
-        chunk
-            .blocks
-            .resize(node.input_count() as usize, Default::default());
-
-        let mode = node.channel_count_mode();
-        let count = node.channel_count();
-        let interpretation = node.channel_interpretation();
-        for block in &mut chunk.blocks {
-            if mode == ChannelCountMode::Explicit {
-                block.mix(count, interpretation);
-            }
-        }
-        chunk
-    }
-
     /// <https://webaudio.github.io/web-audio-api/#available-for-reading>
-    fn fill_outputs_with_silence(
-        graph: &StableGraph<Node, Edge>,
-        node_index: NodeIndex<DefaultIx>,
-        output_count: u32,
-    ) {
-        // Making a buffer available for reading from an AudioNode means putting
-        // it in a state where other AudioNodes connected to this AudioNode can
-        // safely read from it.
-        for edge in graph.edges(node_index) {
+    ///
+    /// Making a buffer available for reading from an AudioNode means putting
+    /// it in a state where other AudioNodes connected to this AudioNode can
+    /// safely read from it.
+    ///
+    /// The specification does not require these buffers to be silent. This helper
+    /// runs after [`AudioNodeEngine::mute_node`], so it fills the caches with
+    /// silence for downstream nodes.
+    fn fill_node_cache_with_silence(&self, node_index: NodeIndex<DefaultIx>, output_count: u32) {
+        for edge in self.graph.edges(node_index) {
             let edge = edge.weight();
-            for conn in &edge.connections {
-                if let PortIndex::Port(idx) = conn.output_idx {
-                    if idx < output_count {
-                        *conn.cache.borrow_mut() = Some(Block::default());
+            for connection in &edge.connections {
+                if let PortIndex::Port(index) = connection.output_idx {
+                    if index < output_count {
+                        *connection.cache.borrow_mut() = Some(Block::default());
                     }
                 } else {
                     unreachable!()
