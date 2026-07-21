@@ -1396,7 +1396,7 @@ impl DocumentEventHandler {
                 // > The target of this event must be the same Element on which the touch
                 // > point started when it was first placed on the surface, even if the touch point
                 // > has since moved outside the interactive area of the target element.
-                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                let active_touch_points = self.active_touch_points.borrow();
                 let Some(index) = active_touch_points
                     .iter()
                     .position(|point| point.Identifier() == identifier)
@@ -1406,6 +1406,7 @@ impl DocumentEventHandler {
                 };
                 // This is the original target that was selected during `touchstart` event handling.
                 let original_target = active_touch_points[index].Target();
+                drop(active_touch_points);
 
                 let touch_with_touchstart_target = Touch::new(
                     cx,
@@ -1420,6 +1421,7 @@ impl DocumentEventHandler {
                     page_y,
                 );
 
+                let mut active_touch_points = self.active_touch_points.safe_borrow_mut(cx.no_gc());
                 // Update or remove the stored touch
                 match event.event_type {
                     TouchEventType::Move => {
