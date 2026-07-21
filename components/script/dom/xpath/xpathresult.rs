@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
-use js::rust::HandleObject;
+use js::context::{JSContext, NoGC};
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
     XPathResultConstants, XPathResultMethods,
@@ -91,7 +91,7 @@ pub(crate) struct XPathResult {
     /// values in the result, this is used to invalidate the iterator when the document is modified.
     version: Cell<u64>,
     result_type: Cell<XPathResultType>,
-    value: RefCell<XPathResultValue>,
+    value: DomRefCell<XPathResultValue>,
     iterator_pos: Cell<usize>,
 }
 
@@ -108,7 +108,7 @@ impl XPathResult {
             ),
             result_type: Cell::new(result_type),
             iterator_pos: Cell::new(0),
-            value: RefCell::new(value.into()),
+            value: DomRefCell::new(value.into()),
         }
     }
 
@@ -127,21 +127,24 @@ impl XPathResult {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
-        proto: Option<HandleObject>,
         result_type: XPathResultType,
         value: Value,
     ) -> DomRoot<XPathResult> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object(
             cx,
             Box::new(XPathResult::new_inherited(window, result_type, value)),
             window,
-            proto,
         )
     }
 
-    pub(crate) fn reinitialize_with(&self, result_type: XPathResultType, value: Value) {
+    pub(crate) fn reinitialize_with(
+        &self,
+        no_gc: &NoGC,
+        result_type: XPathResultType,
+        value: Value,
+    ) {
         self.result_type.set(result_type);
-        *self.value.borrow_mut() = value.into();
+        *self.value.safe_borrow_mut(no_gc) = value.into();
         self.version.set(
             self.window
                 .Document()
