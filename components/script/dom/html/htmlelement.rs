@@ -7,13 +7,14 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use rustc_hash::FxHashSet;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
+use script_bindings::dom::UnrootedDom;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
@@ -925,7 +926,11 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This gets the nth label in tree order.
-    pub(crate) fn label_at(&self, index: u32) -> Option<DomRoot<Node>> {
+    pub(crate) fn label_at<'a>(
+        &self,
+        no_gc: &'a NoGC,
+        index: u32,
+    ) -> Option<UnrootedDom<'a, Node>> {
         let element = self.as_element();
 
         // Traverse entire tree for <label> elements that have
@@ -941,14 +946,14 @@ impl HTMLElement {
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
         root_node
-            .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
+            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .filter_map(UnrootedDom::downcast::<HTMLLabelElement>)
             .filter(|elem| match elem.GetControl() {
                 Some(control) => &*control == self,
                 _ => false,
             })
             .nth(index as usize)
-            .map(|n| DomRoot::from_ref(n.upcast::<Node>()))
+            .map(UnrootedDom::upcast)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels

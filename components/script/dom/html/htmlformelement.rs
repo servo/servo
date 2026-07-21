@@ -19,6 +19,7 @@ use rand::random;
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::DomObject;
 use servo_constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
@@ -186,18 +187,19 @@ impl HTMLFormElement {
         false
     }
 
-    pub(crate) fn nth_for_radio_list(
+    pub(crate) fn nth_for_radio_list<'a>(
         &self,
+        no_gc: &'a NoGC,
         index: u32,
         mode: RadioListMode,
         name: &Atom,
-    ) -> Option<DomRoot<Node>> {
+    ) -> Option<UnrootedDom<'a, Node>> {
         self.controls
             .borrow()
             .iter()
             .filter(|n| HTMLFormElement::filter_for_radio_list(mode, n, name))
             .nth(index as usize)
-            .map(|n| DomRoot::from_ref(n.upcast::<Node>()))
+            .map(|n| UnrootedDom::upcast(UnrootedDom::from_dom(n.clone(), no_gc)))
     }
 
     pub(crate) fn count_for_radio_list(&self, mode: RadioListMode, name: &Atom) -> u32 {
@@ -483,7 +485,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
 
         // Step 5
         // candidates_length is 1, so we can unwrap item 0
-        let element_node = candidates.upcast::<NodeList>().Item(0).unwrap();
+        let element_node = candidates.upcast::<NodeList>().Item(cx, 0).unwrap();
         past_names_map.insert(
             name,
             (
