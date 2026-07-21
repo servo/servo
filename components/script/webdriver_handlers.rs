@@ -285,7 +285,7 @@ pub(crate) fn find_node_by_unique_id_in_document(
 
 /// <https://w3c.github.io/webdriver/#dfn-link-text-selector>
 fn matching_links<'a>(
-    cx: &'a JSContext,
+    cx: &'a NoGC,
     links: &'a NodeList,
     link_text: String,
     partial: bool,
