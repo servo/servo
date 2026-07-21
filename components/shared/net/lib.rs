@@ -880,7 +880,7 @@ impl FetchThread {
             .expect("Thread spawning failed");
         FetchThreadHandle {
             sender,
-            join_handle,
+            join_handle: RwLock::new(Some(join_handle)),
         }
     }
 
@@ -954,20 +954,18 @@ impl FetchThread {
         response_init: Option<ResponseInit>,
         callback: BoxedFetchCallback,
     ) {
-        let _ = FETCH_THREAD
-            .read()
-            .get_or_init(FetchThread::spawn)
-            .sender
-            .send(ToFetchThreadMessage::StartFetch(
+        let _ = FETCH_THREAD.get_or_init(FetchThread::spawn).sender.send(
+            ToFetchThreadMessage::StartFetch(
                 request,
                 response_init,
                 callback,
                 core_resource_thread.clone(),
-            ));
+            ),
+        );
     }
 
     fn cancel_async_fetch(request_ids: Vec<RequestId>, core_resource_thread: &CoreResourceThread) {
-        if let Some(fetch_thread) = FETCH_THREAD.read().get() {
+        if let Some(fetch_thread) = FETCH_THREAD.get() {
             let _ = fetch_thread.sender.send(ToFetchThreadMessage::Cancel(
                 request_ids,
                 core_resource_thread.clone(),
@@ -977,23 +975,24 @@ impl FetchThread {
 
     /// If the `FetchThread` is running, send the exit message and wait for it to exit.
     pub fn exit() {
-        let Some(fetch_thread) = FETCH_THREAD.write().take() else {
+        let Some(fetch_thread) = FETCH_THREAD.get() else {
             return;
         };
         let _ = fetch_thread.sender.send(ToFetchThreadMessage::Exit);
-        fetch_thread
-            .join_handle
-            .join()
-            .expect("Failed to join on the FetchThread join handle.");
+        if let Some(join_handle) = fetch_thread.join_handle.write().take() {
+            join_handle
+                .join()
+                .expect("Failed to join on the FetchThread join handle.");
+        }
     }
 }
 
 struct FetchThreadHandle {
     sender: Sender<ToFetchThreadMessage>,
-    join_handle: JoinHandle<()>,
+    join_handle: RwLock<Option<JoinHandle<()>>>,
 }
 
-static FETCH_THREAD: RwLock<OnceLock<FetchThreadHandle>> = RwLock::new(OnceLock::new());
+static FETCH_THREAD: OnceLock<FetchThreadHandle> = OnceLock::new();
 
 /// Instruct the fetch thread to start a new asynchronous fetch request.
 pub fn fetch_async(
