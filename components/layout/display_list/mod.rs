@@ -785,6 +785,14 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             .to_webrender();
         let common = self.common_properties(state, clip, &style);
 
+        #[cfg(feature = "svg-engine")]
+        if let Some(ref svg_tree) = fragment.svg_render_tree {
+            use svg_engine::render_svg_tree;
+            // TODO: call with origin, size, spatial_id, clip_chain_id, and self.wr()
+            render_svg_tree(svg_tree);
+            return;
+        }
+
         if let Some(image_key) = fragment.image_key {
             self.wr().push_image(
                 &common,

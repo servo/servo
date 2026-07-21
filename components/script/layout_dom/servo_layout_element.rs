@@ -55,6 +55,11 @@ impl<'dom> ServoLayoutElement<'dom> {
         self.element.is_html_element()
     }
 
+    /// Returns true if this element is in the SVG namespace.
+    pub fn is_svg_element(&self) -> bool {
+        *self.element.namespace() == ns!(svg)
+    }
+
     /// The shadow root that this [`ServoLayoutElement`] is a host of, if it has one.
     ///
     /// Note: This should *not* be exposed to layout as it allows access to an ancestor element.

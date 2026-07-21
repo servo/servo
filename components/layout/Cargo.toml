@@ -17,6 +17,7 @@ doctest = false
 
 [features]
 tracing = ["dep:tracing"]
+svg-engine = ["dep:svg_engine", "dep:html5ever"]
 
 [dependencies]
 accesskit = { workspace = true }
@@ -28,6 +29,7 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
+html5ever = { workspace = true, optional = true }
 icu_locid = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 icu_segmenter = { workspace = true }
@@ -62,6 +64,7 @@ strum = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
 stylo_traits = { workspace = true }
+svg_engine = { workspace = true, optional = true }
 taffy = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }

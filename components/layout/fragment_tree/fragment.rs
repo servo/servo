@@ -15,6 +15,8 @@ use servo_base::print_tree::PrintTree;
 use servo_url::ServoUrl;
 use style::Zero;
 use style_traits::CSSPixel;
+#[cfg(feature = "svg-engine")]
+use svg_engine::render_tree::SvgRenderTree;
 use webrender_api::{FontInstanceKey, ImageKey};
 
 use super::{
@@ -112,6 +114,9 @@ pub(crate) struct ImageFragment {
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
+    #[cfg(feature = "svg-engine")]
+    #[conditional_malloc_size_of]
+    pub svg_render_tree: Option<Arc<SvgRenderTree>>,
 }
 
 #[derive(MallocSizeOf)]
