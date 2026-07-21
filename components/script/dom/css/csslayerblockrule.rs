@@ -30,11 +30,12 @@ pub(crate) struct CSSLayerBlockRule {
 
 impl CSSLayerBlockRule {
     pub(crate) fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         layerblockrule: Arc<LayerBlockRule>,
     ) -> CSSLayerBlockRule {
         CSSLayerBlockRule {
-            css_grouping_rule: CSSGroupingRule::new_inherited(parent_stylesheet),
+            css_grouping_rule: CSSGroupingRule::new_inherited(parent_rule, parent_stylesheet),
             layer_block_rule: RefCell::new(layerblockrule),
         }
     }
@@ -42,11 +43,13 @@ impl CSSLayerBlockRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         layerblockrule: Arc<LayerBlockRule>,
     ) -> DomRoot<CSSLayerBlockRule> {
         reflect_dom_object_with_cx(
             Box::new(CSSLayerBlockRule::new_inherited(
+                parent_rule,
                 parent_stylesheet,
                 layerblockrule,
             )),

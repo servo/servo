@@ -15,6 +15,7 @@ use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -27,11 +28,12 @@ pub(crate) struct CSSFontFaceRule {
 
 impl CSSFontFaceRule {
     fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         fontfacerule: Arc<Locked<FontFaceRule>>,
     ) -> CSSFontFaceRule {
         CSSFontFaceRule {
-            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
             font_face_rule: RefCell::new(fontfacerule),
         }
     }
@@ -39,11 +41,13 @@ impl CSSFontFaceRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         fontfacerule: Arc<Locked<FontFaceRule>>,
     ) -> DomRoot<CSSFontFaceRule> {
         reflect_dom_object_with_cx(
             Box::new(CSSFontFaceRule::new_inherited(
+                parent_rule,
                 parent_stylesheet,
                 fontfacerule,
             )),

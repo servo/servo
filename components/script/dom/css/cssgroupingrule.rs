@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLock, SharedRwLockReadGuard};
-use style::stylesheets::{CssRuleType, CssRuleTypes, CssRules};
+use style::stylesheets::CssRules;
 
 use super::cssconditionrule::CSSConditionRule;
 use super::csslayerblockrule::CSSLayerBlockRule;
@@ -28,9 +28,12 @@ pub(crate) struct CSSGroupingRule {
 }
 
 impl CSSGroupingRule {
-    pub(crate) fn new_inherited(parent_stylesheet: &CSSStyleSheet) -> CSSGroupingRule {
+    pub(crate) fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
+        parent_stylesheet: &CSSStyleSheet,
+    ) -> CSSGroupingRule {
         CSSGroupingRule {
-            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
             rule_list: MutNullableDom::new(None),
         }
     }
@@ -50,6 +53,7 @@ impl CSSGroupingRule {
             CSSRuleList::new(
                 cx,
                 self.global().as_window(),
+                Some(self),
                 parent_stylesheet,
                 RulesSource::Rules(rules),
             )
@@ -84,20 +88,7 @@ impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule>
     fn InsertRule(&self, cx: &mut JSContext, rule: DOMString, index: u32) -> Fallible<u32> {
-        // TODO: this should accumulate the rule types of all ancestors.
-        let rule_type = self.css_rule.as_specific().ty();
-        let containing_rule_types = CssRuleTypes::from(rule_type);
-        let parse_relative_rule_type = match rule_type {
-            CssRuleType::Style | CssRuleType::Scope => Some(rule_type),
-            _ => None,
-        };
-        self.rulelist(cx).insert_rule(
-            cx,
-            &rule,
-            index,
-            containing_rule_types,
-            parse_relative_rule_type,
-        )
+        self.rulelist(cx).insert_rule(cx, &rule, index)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-deleterule>

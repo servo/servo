@@ -27,11 +27,12 @@ pub(crate) struct CSSConditionRule {
 
 impl CSSConditionRule {
     pub(crate) fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         rules: Arc<Locked<StyleCssRules>>,
     ) -> CSSConditionRule {
         CSSConditionRule {
-            css_grouping_rule: CSSGroupingRule::new_inherited(parent_stylesheet),
+            css_grouping_rule: CSSGroupingRule::new_inherited(parent_rule, parent_stylesheet),
             rules: RefCell::new(rules),
         }
     }

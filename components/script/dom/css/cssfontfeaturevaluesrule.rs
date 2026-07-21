@@ -13,6 +13,7 @@ use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -25,11 +26,12 @@ pub(crate) struct CSSFontFeatureValuesRule {
 
 impl CSSFontFeatureValuesRule {
     fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         font_feature_values_rule: Arc<FontFeatureValuesRule>,
     ) -> CSSFontFeatureValuesRule {
         CSSFontFeatureValuesRule {
-            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
             font_feature_values_rule,
         }
     }
@@ -37,11 +39,13 @@ impl CSSFontFeatureValuesRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         font_feature_values_rule: Arc<FontFeatureValuesRule>,
     ) -> DomRoot<CSSFontFeatureValuesRule> {
         reflect_dom_object_with_cx(
             Box::new(CSSFontFeatureValuesRule::new_inherited(
+                parent_rule,
                 parent_stylesheet,
                 font_feature_values_rule,
             )),

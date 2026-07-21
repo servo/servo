@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMe
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::css::cssgroupingrule::CSSGroupingRule;
 use crate::dom::medialist::MediaList;
 use crate::dom::window::Window;
 
@@ -32,10 +33,18 @@ pub(crate) struct CSSMediaRule {
 }
 
 impl CSSMediaRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<MediaRule>) -> CSSMediaRule {
+    fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
+        parent_stylesheet: &CSSStyleSheet,
+        mediarule: Arc<MediaRule>,
+    ) -> CSSMediaRule {
         let list = mediarule.rules.clone();
         CSSMediaRule {
-            css_condition_rule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            css_condition_rule: CSSConditionRule::new_inherited(
+                parent_rule,
+                parent_stylesheet,
+                list,
+            ),
             media_rule: RefCell::new(mediarule),
             media_list: MutNullableDom::new(None),
         }
@@ -44,11 +53,16 @@ impl CSSMediaRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         mediarule: Arc<MediaRule>,
     ) -> DomRoot<CSSMediaRule> {
         reflect_dom_object_with_cx(
-            Box::new(CSSMediaRule::new_inherited(parent_stylesheet, mediarule)),
+            Box::new(CSSMediaRule::new_inherited(
+                parent_rule,
+                parent_stylesheet,
+                mediarule,
+            )),
             window,
             cx,
         )

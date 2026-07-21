@@ -17,6 +17,7 @@ use super::cssrule::SpecificCSSRule;
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::css::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -29,12 +30,17 @@ pub(crate) struct CSSSupportsRule {
 
 impl CSSSupportsRule {
     fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         supportsrule: Arc<SupportsRule>,
     ) -> CSSSupportsRule {
         let list = supportsrule.rules.clone();
         CSSSupportsRule {
-            css_condition_rule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            css_condition_rule: CSSConditionRule::new_inherited(
+                parent_rule,
+                parent_stylesheet,
+                list,
+            ),
             supports_rule: RefCell::new(supportsrule),
         }
     }
@@ -42,11 +48,13 @@ impl CSSSupportsRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         supportsrule: Arc<SupportsRule>,
     ) -> DomRoot<CSSSupportsRule> {
         reflect_dom_object_with_cx(
             Box::new(CSSSupportsRule::new_inherited(
+                parent_rule,
                 parent_stylesheet,
                 supportsrule,
             )),

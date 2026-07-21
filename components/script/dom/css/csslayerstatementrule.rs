@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::CSSLayerStatementRuleBinding::CSSLa
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
+use crate::dom::types::CSSGroupingRule;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -31,11 +32,12 @@ pub(crate) struct CSSLayerStatementRule {
 
 impl CSSLayerStatementRule {
     pub(crate) fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         layerstatementrule: Arc<LayerStatementRule>,
     ) -> CSSLayerStatementRule {
         CSSLayerStatementRule {
-            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
             layer_statement_rule: RefCell::new(layerstatementrule),
         }
     }
@@ -43,11 +45,13 @@ impl CSSLayerStatementRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         layerstatementrule: Arc<LayerStatementRule>,
     ) -> DomRoot<CSSLayerStatementRule> {
         reflect_dom_object_with_cx(
             Box::new(CSSLayerStatementRule::new_inherited(
+                parent_rule,
                 parent_stylesheet,
                 layerstatementrule,
             )),
