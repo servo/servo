@@ -312,13 +312,17 @@ impl DocumentEventHandler {
         let cx = &mut realm.current_realm();
 
         // Reset the mouse and wheel event indices.
-        *self.mouse_move_event_index.borrow_mut() = None;
-        *self.wheel_event_index.borrow_mut() = None;
-        let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
-        let mut coalesced_mouse_move_event_ids =
-            mem::take(&mut *self.coalesced_mouse_move_event_ids.borrow_mut());
+        *self.mouse_move_event_index.safe_borrow_mut(cx.no_gc()) = None;
+        *self.wheel_event_index.safe_borrow_mut(cx.no_gc()) = None;
+        let pending_input_events =
+            mem::take(&mut *self.pending_input_events.safe_borrow_mut(cx.no_gc()));
+        let mut coalesced_mouse_move_event_ids = mem::take(
+            &mut *self
+                .coalesced_mouse_move_event_ids
+                .safe_borrow_mut(cx.no_gc()),
+        );
         let mut coalesced_wheel_event_ids =
-            mem::take(&mut *self.coalesced_wheel_event_ids.borrow_mut());
+            mem::take(&mut *self.coalesced_wheel_event_ids.safe_borrow_mut(cx.no_gc()));
 
         let mut input_event_outcomes = Vec::with_capacity(
             pending_input_events.len() +
@@ -919,7 +923,7 @@ impl DocumentEventHandler {
         // the value 1
         if event.action == MouseButtonAction::Down {
             self.click_counting_info
-                .borrow_mut()
+                .safe_borrow_mut(cx.no_gc())
                 .reset_click_count_if_necessary(event.button, hit_test_result.point_in_frame);
         }
 
@@ -1065,7 +1069,7 @@ impl DocumentEventHandler {
                 // do not trigger "click" and "dblclick" events, so we increment
                 // even when those events are not fired.
                 self.click_counting_info
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .increment_click_count(event.button, hit_test_result.point_in_frame);
 
                 self.maybe_trigger_click_for_mouse_button_down_event(
@@ -1385,7 +1389,7 @@ impl DocumentEventHandler {
             TouchEventType::Down => {
                 // Add a new touch point
                 self.active_touch_points
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .push(Dom::from_ref(&*pointer_touch));
                 self.set_active_element(&element);
                 (current_target, pointer_touch)
@@ -1396,7 +1400,7 @@ impl DocumentEventHandler {
                 // > The target of this event must be the same Element on which the touch
                 // > point started when it was first placed on the surface, even if the touch point
                 // > has since moved outside the interactive area of the target element.
-                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                let active_touch_points = self.active_touch_points.borrow();
                 let Some(index) = active_touch_points
                     .iter()
                     .position(|point| point.Identifier() == identifier)
@@ -1406,6 +1410,7 @@ impl DocumentEventHandler {
                 };
                 // This is the original target that was selected during `touchstart` event handling.
                 let original_target = active_touch_points[index].Target();
+                drop(active_touch_points);
 
                 let touch_with_touchstart_target = Touch::new(
                     cx,
@@ -1420,6 +1425,7 @@ impl DocumentEventHandler {
                     page_y,
                 );
 
+                let mut active_touch_points = self.active_touch_points.safe_borrow_mut(cx.no_gc());
                 // Update or remove the stored touch
                 match event.event_type {
                     TouchEventType::Move => {
@@ -2576,9 +2582,11 @@ impl DocumentEventHandler {
             );
             // Clear both pending and current capture
             self.pending_pointer_capture
-                .borrow_mut()
+                .safe_borrow_mut(cx.no_gc())
                 .remove(&pointer_id);
-            self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+            self.pointer_capture_target
+                .safe_borrow_mut(cx.no_gc())
+                .remove(&pointer_id);
             return true;
         }
         false
@@ -2810,9 +2818,11 @@ impl DocumentEventHandler {
             }
         }
         self.pending_pointer_capture
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .remove(&pointer_id);
-        self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+        self.pointer_capture_target
+            .safe_borrow_mut(cx.no_gc())
+            .remove(&pointer_id);
     }
 
     /// Process pending pointer capture before dispatching a pointer event.
@@ -2870,11 +2880,11 @@ impl DocumentEventHandler {
                         pending_el,
                     );
                     self.pointer_capture_target
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .insert(pointer_id, Dom::from_ref(pending_el));
                 } else {
                     self.pending_pointer_capture
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .remove(&pointer_id);
                 }
             },
@@ -2907,13 +2917,15 @@ impl DocumentEventHandler {
                         pending_el,
                     );
                     self.pointer_capture_target
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .insert(pointer_id, Dom::from_ref(pending_el));
                 } else {
                     self.pending_pointer_capture
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .remove(&pointer_id);
-                    self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+                    self.pointer_capture_target
+                        .safe_borrow_mut(cx.no_gc())
+                        .remove(&pointer_id);
                 }
             },
             (None, Some(current_el)) | (Some(_), Some(current_el)) if !pending_connected => {
@@ -2937,10 +2949,12 @@ impl DocumentEventHandler {
                         &hover_target,
                     );
                 }
-                self.pointer_capture_target.borrow_mut().remove(&pointer_id);
+                self.pointer_capture_target
+                    .safe_borrow_mut(cx.no_gc())
+                    .remove(&pointer_id);
                 if !pending_connected {
                     self.pending_pointer_capture
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .remove(&pointer_id);
                 }
             },
