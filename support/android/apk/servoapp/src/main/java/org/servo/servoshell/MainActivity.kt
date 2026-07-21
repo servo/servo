@@ -13,8 +13,8 @@ import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoView
 
-class MainActivity : AppCompatActivity(), Servo.Client {
+class MainActivity : ComponentActivity(), Servo.Client {
     private lateinit var servoView: ServoView
 
     private val urlTextFieldState = TextFieldState()
