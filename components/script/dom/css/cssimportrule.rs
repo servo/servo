@@ -18,6 +18,7 @@ use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSImportRuleBinding::CSSImportRuleMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -30,11 +31,12 @@ pub(crate) struct CSSImportRule {
 
 impl CSSImportRule {
     fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         import_rule: Arc<Locked<ImportRule>>,
     ) -> Self {
         CSSImportRule {
-            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
             import_rule: RefCell::new(import_rule),
         }
     }
@@ -42,11 +44,16 @@ impl CSSImportRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         import_rule: Arc<Locked<ImportRule>>,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_cx(
-            Box::new(Self::new_inherited(parent_stylesheet, import_rule)),
+            Box::new(Self::new_inherited(
+                parent_rule,
+                parent_stylesheet,
+                import_rule,
+            )),
             window,
             cx,
         )

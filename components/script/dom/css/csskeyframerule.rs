@@ -20,6 +20,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -33,11 +34,12 @@ pub(crate) struct CSSKeyframeRule {
 
 impl CSSKeyframeRule {
     fn new_inherited(
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         keyframerule: Arc<Locked<Keyframe>>,
     ) -> CSSKeyframeRule {
         CSSKeyframeRule {
-            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_rule, parent_stylesheet),
             keyframe_rule: RefCell::new(keyframerule),
             style_declaration: Default::default(),
         }
@@ -46,11 +48,13 @@ impl CSSKeyframeRule {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
+        parent_rule: Option<&CSSGroupingRule>,
         parent_stylesheet: &CSSStyleSheet,
         keyframerule: Arc<Locked<Keyframe>>,
     ) -> DomRoot<CSSKeyframeRule> {
         reflect_dom_object_with_cx(
             Box::new(CSSKeyframeRule::new_inherited(
+                parent_rule,
                 parent_stylesheet,
                 keyframerule,
             )),

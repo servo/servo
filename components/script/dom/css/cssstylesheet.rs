@@ -18,7 +18,7 @@ use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{
-    AllowImportRules, CssRuleTypes, Origin, Stylesheet as StyleStyleSheet, StylesheetContents,
+    AllowImportRules, Origin, Stylesheet as StyleStyleSheet, StylesheetContents,
     StylesheetInDocument, UrlExtraData,
 };
 
@@ -163,6 +163,7 @@ impl CSSStyleSheet {
             CSSRuleList::new(
                 cx,
                 self.global().as_window(),
+                None,
                 self,
                 RulesSource::Rules(rules),
             )
@@ -412,8 +413,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             )));
         }
 
-        self.rulelist(cx)
-            .insert_rule(cx, &rule, index, CssRuleTypes::default(), None)
+        self.rulelist(cx).insert_rule(cx, &rule, index)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule>
