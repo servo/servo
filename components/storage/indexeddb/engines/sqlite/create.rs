@@ -43,40 +43,25 @@ create table object_store_index (
     primary key autoincrement,
     object_store_id   integer        not null
     references object_store,
-    name              varchar        not null
-    unique,
+    name              varchar        not null,
     key_path          varbinary_blob not null,
     unique_index      boolean        not null,
-    multi_entry_index boolean        not null
+    multi_entry_index boolean        not null,
+    constraint "uq-object_store_index-name"
+        unique (object_store_id, name)
 );"#;
     conn.execute(OBJECT_STORE_INDEX, [])?;
 
     const INDEX_DATA: &str = r#"
-CREATE TABLE index_data (
-    index_id INTEGER NOT NULL,
-    value BLOB NOT NULL,
-    object_data_key BLOB NOT NULL,
-    object_store_id INTEGER NOT NULL,
-    value_locale BLOB,
-    PRIMARY KEY (index_id, value, object_data_key)
-    FOREIGN KEY (index_id) REFERENCES object_store_index(id),
-    FOREIGN KEY (object_store_id, object_data_key)
-    REFERENCES object_data(object_store_id, key)
+create table index_data (
+    index_id        integer not null
+        references object_store_index,
+    index_key       blob    not null,
+    object_key      blob    not null,
+    constraint "pk-index_data"
+        primary key (index_id, index_key, object_key)
 ) WITHOUT ROWID;"#;
     conn.execute(INDEX_DATA, [])?;
 
-    const UNIQUE_INDEX_DATA: &str = r#"
-CREATE TABLE unique_index_data (
-    index_id INTEGER NOT NULL,
-    value BLOB NOT NULL,
-    object_store_id INTEGER NOT NULL,
-    object_data_key BLOB NOT NULL,
-    value_locale BLOB,
-    PRIMARY KEY (index_id, value),
-    FOREIGN KEY (index_id) REFERENCES object_store_index(id),
-    FOREIGN KEY (object_store_id, object_data_key)
-    REFERENCES object_data(object_store_id, key)
-) WITHOUT ROWID;"#;
-    conn.execute(UNIQUE_INDEX_DATA, [])?;
     Ok(())
 }

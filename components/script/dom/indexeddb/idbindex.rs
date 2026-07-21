@@ -3,19 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::gc::MutableHandleValue;
+use js::gc::{HandleValue, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::codegen::GenericBindings::IDBTransactionBinding::IDBTransactionMode;
 use script_bindings::conversions::SafeToJSValConvertible;
-use script_bindings::error::{Error, ErrorResult};
+use script_bindings::error::{Error, ErrorResult, Fallible};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::str::DOMString;
+use storage_traits::indexeddb::{AsyncOperation, AsyncReadOnlyOperation};
 
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::idbobjectstore::KeyPath;
+use crate::dom::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
+use crate::indexeddb::convert_value_to_key_range;
 
 #[dom_struct]
 pub(crate) struct IDBIndex {
@@ -65,6 +68,34 @@ impl IDBIndex {
             global,
             cx,
         )
+    }
+
+    pub(crate) fn name(&self) -> String {
+        self.name.borrow().to_string()
+    }
+
+    pub(crate) fn key_path(&self) -> &KeyPath {
+        &self.key_path
+    }
+
+    pub(crate) fn multi_entry(&self) -> bool {
+        self.multi_entry
+    }
+
+    pub(crate) fn unique(&self) -> bool {
+        self.unique
+    }
+
+    pub(crate) fn object_store(&self) -> DomRoot<IDBObjectStore> {
+        self.object_store.as_rooted()
+    }
+
+    fn verify_not_deleted(&self) -> ErrorResult {
+        if !self.object_store.index_exists(&self.name.borrow()) {
+            return Err(Error::InvalidState(None));
+        }
+        self.object_store.verify_not_deleted()?;
+        Ok(())
     }
 }
 
@@ -154,5 +185,93 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
                 sequence.safe_to_jsval(cx, retval);
             },
         }
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-get>
+    fn Get(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 3. If index or index’s object store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        self.object_store.check_transaction_active()?;
+
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
+        let range = convert_value_to_key_range(cx, query, None);
+
+        // Step 6. Let operation be an algorithm to run retrieve a referenced value from an index with the current Realm record, index, and range.
+        // Step 7. Return the result (an IDBRequest) of running asynchronously execute a request with this and operation.
+        range.and_then(|q| {
+            IDBRequest::execute_async(
+                cx,
+                self,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetItem {
+                        callback,
+                        index_name: self.name.borrow().to_string(),
+                        key_range: q,
+                    })
+                },
+                None,
+                None,
+            )
+        })
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-getkey>
+    fn GetKey(
+        &self,
+        cx: &mut JSContext,
+        query_or_options: HandleValue,
+    ) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 3. If index or index’s object store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        self.object_store.check_transaction_active()?;
+
+        // Step 5. Let range be the result of converting a value to a key range with query and true. Rethrow any exceptions.
+        let range = convert_value_to_key_range(cx, query_or_options, None);
+        range.and_then(|q| {
+            IDBRequest::execute_async(
+                cx,
+                self,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetKey {
+                        callback,
+                        index_name: self.name.borrow().to_string(),
+                        key_range: q,
+                    })
+                },
+                None,
+                None,
+            )
+        })
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-count>
+    fn Count(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
+        // Step 3. If index or index’s object store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If transaction’s state is not active, then throw a "TransactionInactiveError" DOMException.
+        self.object_store.check_transaction_active()?;
+
+        // Step 5. Let range be the result of converting a value to a key range with query. Rethrow any exceptions.
+        let range = convert_value_to_key_range(cx, query, None);
+        range.and_then(|q| {
+            IDBRequest::execute_async(
+                cx,
+                self,
+                |callback| {
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexCount {
+                        callback,
+                        index_name: self.name.borrow().to_string(),
+                        key_range: q,
+                    })
+                },
+                None,
+                None,
+            )
+        })
     }
 }
