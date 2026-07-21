@@ -108,15 +108,14 @@ impl XPathExpression {
         if let Some(result) = result {
             // According to https://www.w3.org/TR/DOM-Level-3-XPath/xpath.html#XPathEvaluator-evaluate, reusing
             // the provided result object is optional. We choose to do it here because thats what other browsers do.
-            result.reinitialize_with(inferred_result_type, result_value.into());
+            result.reinitialize_with(cx.no_gc(), inferred_result_type, result_value);
             Ok(DomRoot::from_ref(result))
         } else {
             Ok(XPathResult::new(
                 cx,
                 window,
-                None,
                 inferred_result_type,
-                result_value.into(),
+                result_value,
             ))
         }
     }
