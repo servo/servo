@@ -15,7 +15,8 @@ use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use servo_base::id::ScriptEventLoopId;
 use storage_traits::indexeddb::{
-    IndexedDBIndex, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation, TxnCompleteMsg,
+    BackendError, IndexedDBIndex, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation,
+    TxnCompleteMsg,
 };
 use stylo_atoms::Atom;
 
@@ -41,6 +42,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortState};
 use crate::dom::indexeddb::idbrequest::IDBRequest;
+use crate::indexeddb::map_backend_error_to_dom_error;
 
 #[dom_struct]
 pub struct IDBTransaction {
@@ -720,6 +722,30 @@ impl IDBTransaction {
             object_store.indexes,
             object_store.key_generator_current_number,
         ))
+    }
+
+    pub(crate) fn create_abort_callback(&self) -> GenericCallback<BackendError> {
+        let trusted_transaction = Trusted::new(self);
+        let task_source = self
+            .global()
+            .task_manager()
+            .storage_task_source()
+            .to_sendable();
+        GenericCallback::new(
+            self.global().time_profiler_chan().clone(),
+            move |error: Result<BackendError, ipc_channel::IpcError>| {
+                let Ok(error) = error else {
+                    return;
+                };
+                let trusted_transaction = trusted_transaction.clone();
+                task_source.queue(task!(delete_failed: move |cx| {
+                    let transaction = trusted_transaction.root();
+                    transaction.initiate_abort(cx, map_backend_error_to_dom_error(error));
+                    transaction.request_backend_abort();
+                }));
+            },
+        )
+        .expect("Could not create GenericCallback")
     }
 }
 

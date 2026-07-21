@@ -17,8 +17,8 @@ use script_bindings::error::ErrorResult;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{
-    self, AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
-    IndexedDBThreadMsg, SyncOperation,
+    self, AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, AsyncSchemaOperation,
+    IndexedDBKeyType, IndexedDBThreadMsg,
 };
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
@@ -602,16 +602,25 @@ impl IDBObjectStore {
 
     /// The caller must ensure that the original index exists.
     pub(crate) fn rename_index(&self, name: &DOMString, new_name: &DOMString) {
-        let rename_index_operation = SyncOperation::RenameIndex(
-            self.global().origin().immutable().clone(),
-            self.db_name.to_string(),
-            self.name.borrow().to_string(),
-            String::from(name.clone()),
-            String::from(new_name.clone()),
-        );
-        self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(rename_index_operation))
-            .unwrap();
+        let operation = AsyncSchemaOperation::RenameIndex {
+            callback: self.transaction.create_abort_callback(),
+            index_name: name.to_string(),
+            new_name: new_name.to_string(),
+        };
+
+        if self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::AsyncSchemaOperation {
+                origin: self.global().origin().immutable().clone(),
+                database_name: self.db_name.to_string(),
+                store_name: self.name.borrow().clone().into(),
+                operation,
+                transaction_serial_number: self.transaction.get_serial_number(),
+            })
+            .is_err()
+        {
+            warn!("Could not send AsyncSchemaOperation");
+        }
 
         // We also need to update the key in the index set
         let index = self
@@ -1013,18 +1022,23 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 11. Let index be a new index in store.
         // Set index’s name to name and key path to keyPath. If unique is set, set index’s unique flag.
         // If multiEntry is set, set index’s multiEntry flag.
-        let create_index_operation = SyncOperation::CreateIndex(
-            self.global().origin().immutable().clone(),
-            self.db_name.to_string(),
-            self.name.borrow().to_string(),
-            name.to_string(),
-            key_path.clone().into(),
-            options.unique,
-            options.multiEntry,
-        );
+        let operation = AsyncSchemaOperation::CreateIndex {
+            callback: self.transaction.create_abort_callback(),
+            index_name: name.to_string(),
+            key_path: key_path.clone().into(),
+            unique: options.unique,
+            multi_entry: options.multiEntry,
+        };
+
         if self
             .get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(create_index_operation))
+            .send(IndexedDBThreadMsg::AsyncSchemaOperation {
+                origin: self.global().origin().immutable().clone(),
+                database_name: self.db_name.to_string(),
+                store_name: self.name.borrow().clone().into(),
+                operation,
+                transaction_serial_number: self.transaction.get_serial_number(),
+            })
             .is_err()
         {
             return Err(Error::Operation(None));
@@ -1055,15 +1069,23 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 7. Remove index from this object store handle's index set.
         self.index_set.borrow_mut().retain(|n, _| n != &name);
         // Step 8. Destroy index.
-        let delete_index_operation = SyncOperation::DeleteIndex(
-            self.global().origin().immutable().clone(),
-            self.db_name.to_string(),
-            self.name.borrow().to_string(),
-            String::from(name),
-        );
-        self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(delete_index_operation))
-            .unwrap();
+        let operation = AsyncSchemaOperation::DeleteIndex {
+            callback: self.transaction.create_abort_callback(),
+            index_name: name.to_string(),
+        };
+        if self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::AsyncSchemaOperation {
+                origin: self.global().origin().immutable().clone(),
+                database_name: self.db_name.to_string(),
+                store_name: self.name.borrow().clone().into(),
+                operation,
+                transaction_serial_number: self.transaction.get_serial_number(),
+            })
+            .is_err()
+        {
+            return Err(Error::Operation(None));
+        }
         Ok(())
     }
 

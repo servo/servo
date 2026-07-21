@@ -11,9 +11,9 @@ use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use servo_base::threadpool::ThreadPool;
 use storage_traits::indexeddb::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
-    CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord,
-    IndexedDBTxnMode, KeyPath, PutItemResult,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, AsyncSchemaOperation,
+    BackendError, CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType,
+    IndexedDBRecord, IndexedDBTxnMode, KeyPath, PutItemResult,
 };
 
 use crate::indexeddb::IndexedDBDescription;
@@ -315,6 +315,138 @@ impl SqliteEngine {
             .query_row(&*values.as_params(), |row| row.get(0))
             .map(|count: i64| count as usize)
     }
+
+    fn create_store(
+        connection: &Connection,
+        store_name: &str,
+        key_path: Option<KeyPath>,
+        auto_increment: bool,
+    ) -> Result<CreateObjectResult, Error> {
+        let mut stmt = connection.prepare("SELECT * FROM object_store WHERE name = ?")?;
+        if stmt.exists(params![store_name.to_string()])? {
+            // Store already exists
+            return Ok(CreateObjectResult::AlreadyExists);
+        }
+        connection.execute(
+            "INSERT INTO object_store (name, key_path, auto_increment) VALUES (?, ?, ?)",
+            params![
+                store_name.to_string(),
+                key_path.map(|v| postcard::to_stdvec(&v).unwrap()),
+                auto_increment as i32
+            ],
+        )?;
+        Ok(CreateObjectResult::Created)
+    }
+
+    fn delete_store(connection: &Connection, store_name: &str) -> Result<(), Error> {
+        // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore
+        // Step 7. Destroy store.
+        let object_store = Self::object_store_by_name(connection, store_name)?;
+
+        connection.execute(
+            "DELETE FROM index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        connection.execute(
+            "DELETE FROM unique_index_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        connection.execute(
+            "DELETE FROM object_store_index WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        connection.execute(
+            "DELETE FROM object_data WHERE object_store_id = ?",
+            params![object_store.id],
+        )?;
+        let result = connection.execute(
+            "DELETE FROM object_store WHERE id = ?",
+            params![object_store.id],
+        )?;
+        if result == 0 {
+            Err(Error::QueryReturnedNoRows)
+        } else if result > 1 {
+            Err(Error::QueryReturnedMoreThanOneRow)
+        } else {
+            Ok(())
+        }
+    }
+
+    fn create_index(
+        connection: &Connection,
+        store_name: &str,
+        index_name: String,
+        key_path: KeyPath,
+        unique: bool,
+        multi_entry: bool,
+    ) -> Result<CreateObjectResult, Error> {
+        let object_store = connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        let index_exists: bool = connection.query_row(
+            "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
+            params![index_name, object_store.id],
+            |row| row.get(0),
+        )?;
+        if index_exists {
+            return Ok(CreateObjectResult::AlreadyExists);
+        }
+
+        connection.execute(
+            "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
+            VALUES (?, ?, ?, ?, ?)",
+            params![
+                object_store.id,
+                index_name,
+                postcard::to_stdvec(&key_path).unwrap(),
+                unique,
+                multi_entry,
+            ],
+        )?;
+        Ok(CreateObjectResult::Created)
+    }
+
+    fn rename_index(
+        connection: &Connection,
+        store_name: &str,
+        index_name: &str,
+        new_name: &str,
+    ) -> Result<(), Error> {
+        let object_store = connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        // Rename the index if it exists
+        let _ = connection.execute(
+            "UPDATE object_store_index SET name = ? WHERE name = ? AND object_store_id = ?",
+            params![new_name, index_name, object_store.id],
+        )?;
+        Ok(())
+    }
+
+    fn delete_index(
+        connection: &Connection,
+        store_name: &str,
+        index_name: String,
+    ) -> Result<(), Error> {
+        let object_store = connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| Ok(object_store_model::Model::try_from(row).unwrap()),
+        )?;
+
+        // Delete the index if it exists
+        let _ = connection.execute(
+            "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
+            params![index_name, object_store.id],
+        )?;
+        Ok(())
+    }
 }
 
 impl KvsEngine for SqliteEngine {
@@ -326,57 +458,28 @@ impl KvsEngine for SqliteEngine {
         key_path: Option<KeyPath>,
         auto_increment: bool,
     ) -> Result<CreateObjectResult, Self::Error> {
-        let mut stmt = self
-            .connection
-            .prepare("SELECT * FROM object_store WHERE name = ?")?;
-        if stmt.exists(params![store_name.to_string()])? {
-            // Store already exists
-            return Ok(CreateObjectResult::AlreadyExists);
-        }
-        self.connection.execute(
-            "INSERT INTO object_store (name, key_path, auto_increment) VALUES (?, ?, ?)",
-            params![
-                store_name.to_string(),
-                key_path.map(|v| postcard::to_stdvec(&v).unwrap()),
-                auto_increment as i32
-            ],
-        )?;
-
-        Ok(CreateObjectResult::Created)
+        Self::create_store(&self.connection, store_name, key_path, auto_increment)
+    }
+    fn create_index(
+        &self,
+        store_name: &str,
+        index_name: String,
+        key_path: KeyPath,
+        unique: bool,
+        multi_entry: bool,
+    ) -> Result<CreateObjectResult, Self::Error> {
+        Self::create_index(
+            &self.connection,
+            store_name,
+            index_name,
+            key_path,
+            unique,
+            multi_entry,
+        )
     }
 
     fn delete_store(&self, store_name: &str) -> Result<(), Self::Error> {
-        // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore
-        // Step 7. Destroy store.
-        let object_store = Self::object_store_by_name(&self.connection, store_name)?;
-
-        self.connection.execute(
-            "DELETE FROM index_data WHERE object_store_id = ?",
-            params![object_store.id],
-        )?;
-        self.connection.execute(
-            "DELETE FROM unique_index_data WHERE object_store_id = ?",
-            params![object_store.id],
-        )?;
-        self.connection.execute(
-            "DELETE FROM object_store_index WHERE object_store_id = ?",
-            params![object_store.id],
-        )?;
-        self.connection.execute(
-            "DELETE FROM object_data WHERE object_store_id = ?",
-            params![object_store.id],
-        )?;
-        let result = self.connection.execute(
-            "DELETE FROM object_store WHERE id = ?",
-            params![object_store.id],
-        )?;
-        if result == 0 {
-            Err(Error::QueryReturnedNoRows)
-        } else if result > 1 {
-            Err(Error::QueryReturnedMoreThanOneRow)
-        } else {
-            Ok(())
-        }
+        Self::delete_store(&self.connection, store_name)
     }
 
     fn close_store(&self, _store_name: &str) -> Result<(), Self::Error> {
@@ -409,6 +512,19 @@ impl KvsEngine for SqliteEngine {
                 },
             };
             for request in transaction.requests {
+                if let AsyncOperation::Schema(AsyncSchemaOperation::CreateObjectStore {
+                    callback,
+                    key_path,
+                    auto_increment
+                }) = &request.operation {
+                    if let Err(error) =
+                        Self::create_store(&connection, &request.store_name, key_path.clone(), *auto_increment)
+                    {
+                        let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                    }
+                    continue;
+                }
+
                 let object_store = connection
                     .prepare("SELECT * FROM object_store WHERE name = ?")
                     .and_then(|mut stmt| {
@@ -568,6 +684,47 @@ impl KvsEngine for SqliteEngine {
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
+                    AsyncOperation::Schema(AsyncSchemaOperation::CreateIndex {
+                        callback,
+                        index_name,
+                        key_path,
+                        unique,
+                        multi_entry
+                    }) => {
+                        if let Err(error) = Self::create_index(
+                            &connection,
+                            &request.store_name,
+                            index_name,
+                            key_path,
+                            unique,
+                            multi_entry
+                        ) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::CreateObjectStore { .. }) => {
+                        unreachable!("Should be handled above");
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteIndex { index_name, callback }) => {
+                        if let Err(error) = Self::delete_index(&connection, &request.store_name, index_name) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::DeleteObjectStore { callback }) => {
+                        if let Err(error) = Self::delete_store(&connection, &request.store_name) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
+                    AsyncOperation::Schema(AsyncSchemaOperation::RenameIndex { index_name, new_name, callback }) =>  {
+                        if let Err(error) = Self::rename_index(
+                            &connection,
+                            &request.store_name,
+                            &index_name,
+                            &new_name
+                        ) {
+                            let _ = callback.send(BackendError::DbErr(format!("{error:?}")));
+                        }
+                    },
                 }
             }
             on_complete();
@@ -661,76 +818,8 @@ impl KvsEngine for SqliteEngine {
         Ok(indexes)
     }
 
-    fn create_index(
-        &self,
-        store_name: &str,
-        index_name: String,
-        key_path: KeyPath,
-        unique: bool,
-        multi_entry: bool,
-    ) -> Result<CreateObjectResult, Self::Error> {
-        let object_store = self.connection.query_row(
-            "SELECT * FROM object_store WHERE name = ?",
-            params![store_name.to_string()],
-            |row| object_store_model::Model::try_from(row),
-        )?;
-
-        let index_exists: bool = self.connection.query_row(
-            "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
-            params![index_name, object_store.id],
-            |row| row.get(0),
-        )?;
-        if index_exists {
-            return Ok(CreateObjectResult::AlreadyExists);
-        }
-
-        self.connection.execute(
-            "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
-            VALUES (?, ?, ?, ?, ?)",
-            params![
-                object_store.id,
-                index_name,
-                postcard::to_stdvec(&key_path).unwrap(),
-                unique,
-                multi_entry,
-            ],
-        )?;
-        Ok(CreateObjectResult::Created)
-    }
-
-    fn rename_index(
-        &self,
-        store_name: &str,
-        index_name: &str,
-        new_name: &str,
-    ) -> Result<(), Self::Error> {
-        let object_store = self.connection.query_row(
-            "SELECT * FROM object_store WHERE name = ?",
-            params![store_name],
-            |row| object_store_model::Model::try_from(row),
-        )?;
-
-        // Rename the index if it exists
-        let _ = self.connection.execute(
-            "UPDATE object_store_index SET name = ? WHERE name = ? AND object_store_id = ?",
-            params![new_name, index_name, object_store.id],
-        )?;
-        Ok(())
-    }
-
     fn delete_index(&self, store_name: &str, index_name: String) -> Result<(), Self::Error> {
-        let object_store = self.connection.query_row(
-            "SELECT * FROM object_store WHERE name = ?",
-            params![store_name.to_string()],
-            |r| Ok(object_store_model::Model::try_from(r).unwrap()),
-        )?;
-
-        // Delete the index if it exists
-        let _ = self.connection.execute(
-            "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
-            params![index_name, object_store.id],
-        )?;
-        Ok(())
+        Self::delete_index(&self.connection, store_name, index_name)
     }
 
     fn version(&self) -> Result<u64, Self::Error> {

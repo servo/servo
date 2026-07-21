@@ -111,6 +111,7 @@ struct IndexedDBEnvironment<E: KvsEngine> {
     handled_next_unhandled_request_id: FxHashMap<u64, u64>,
     handled_pending: FxHashMap<u64, HashSet<u64>>,
     pending_commit_callbacks: FxHashMap<u64, Vec<GenericCallback<TxnCompleteMsg>>>,
+    pending_abort_callbacks: FxHashMap<u64, Vec<GenericCallback<TxnCompleteMsg>>>,
 }
 
 impl<E: KvsEngine> IndexedDBEnvironment<E> {
@@ -133,6 +134,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             handled_next_unhandled_request_id: FxHashMap::default(),
             handled_pending: FxHashMap::default(),
             pending_commit_callbacks: FxHashMap::default(),
+            pending_abort_callbacks: FxHashMap::default(),
         }
     }
 
@@ -638,12 +640,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             .map_err(|err| format!("{err:?}"))
     }
 
-    fn rename_index(&self, store_name: &str, index_name: &str, new_name: &str) -> DbResult<()> {
-        self.engine
-            .rename_index(store_name, index_name, new_name)
-            .map_err(|error| format!("{error:?}"))
-    }
-
     fn delete_index(&self, store_name: &str, index_name: String) -> DbResult<()> {
         self.engine
             .delete_index(store_name, index_name)
@@ -765,6 +761,48 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.engine
             .set_version(version)
             .map_err(|err| format!("{err:?}"))
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#abort-a-transaction>
+    ///
+    /// > When a transaction is aborted the implementation must undo (roll back) any changes that
+    /// > were made to the database during that transaction.
+    ///
+    /// This only aborts the transaction if one was previously queued by adding an abort
+    /// callback to [`Self::pending_abort_callbacks`].
+    ///
+    /// TODO: implement the abort algorithm and rollback for the engine.
+    fn abort(&mut self, origin: &ImmutableOrigin, database_name: &str, transaction: u64) -> bool {
+        let message = || TxnCompleteMsg {
+            origin: origin.clone(),
+            db_name: database_name.into(),
+            txn: transaction,
+            result: Err(BackendError::Abort),
+        };
+
+        let Some(abort_callbacks) = self.pending_abort_callbacks.remove(&transaction) else {
+            return false;
+        };
+        if abort_callbacks.is_empty() {
+            return false;
+        }
+
+        for callback in self
+            .take_pending_commit_callbacks(transaction)
+            .into_iter()
+            .chain(abort_callbacks)
+        {
+            if callback.send(message()).is_err() {
+                error!(
+                    "Failed to send deferred abort completion for \
+                    database '{database_name}' transaction {transaction}.",
+                );
+            }
+        }
+
+        self.abort_transaction(transaction);
+        self.schedule_transactions(origin.clone(), database_name);
+        true
     }
 }
 
@@ -1055,8 +1093,9 @@ impl IndexedDBManager {
                     db_name,
                     txn,
                 } => {
-                    let should_notify =
-                        if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                    let should_notify = self
+                        .get_database_mut(origin.clone(), db_name.clone())
+                        .is_some_and(|db| {
                             // Decide which running flag to clear based on txn mode.
                             let mode = db.transactions.get(&txn).map(|t| t.mode.clone());
 
@@ -1073,13 +1112,16 @@ impl IndexedDBManager {
                                 },
                             }
 
+                            if db.abort(&origin, &db_name, txn) {
+                                return false;
+                            }
+
                             // If more requests were queued while this batch was running,
                             // schedule again now.
                             db.schedule_transactions(origin.clone(), &db_name);
                             db.can_notify_txn_maybe_commit(txn)
-                        } else {
-                            false
-                        };
+                        });
+
                     if should_notify {
                         self.handle_sync_operation(SyncOperation::TxnMaybeCommit {
                             origin,
@@ -1091,6 +1133,28 @@ impl IndexedDBManager {
                 IndexedDBThreadMsg::CollectMemoryReport(sender) => {
                     let reports = self.collect_memory_reports();
                     sender.send(ProcessReports::new(reports));
+                },
+                IndexedDBThreadMsg::AsyncSchemaOperation {
+                    origin,
+                    database_name,
+                    store_name,
+                    operation,
+                    transaction_serial_number,
+                } => {
+                    if let Some(database) =
+                        self.get_database_mut(origin.clone(), database_name.clone())
+                    {
+                        // Queues an operation for a transaction without starting it
+                        database.queue_operation(
+                            &store_name,
+                            transaction_serial_number,
+                            IndexedDBTxnMode::Versionchange,
+                            AsyncOperation::Schema(operation),
+                        );
+                        database.schedule_transactions(origin, &database_name);
+                    } else {
+                        operation.notify_error(BackendError::DbNotFound);
+                    }
                 },
             }
         }
@@ -2211,29 +2275,6 @@ impl IndexedDBManager {
                 });
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
-            SyncOperation::CreateIndex(
-                origin,
-                db_name,
-                store_name,
-                index_name,
-                key_path,
-                unique,
-                multi_entry,
-            ) => {
-                if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = db.create_index(&store_name, index_name, key_path, unique, multi_entry);
-                }
-            },
-            SyncOperation::RenameIndex(origin, db_name, store_name, index_name, new_name) => {
-                if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = db.rename_index(&store_name, index_name.as_str(), new_name.as_str());
-                }
-            },
-            SyncOperation::DeleteIndex(origin, db_name, store_name, index_name) => {
-                if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = db.delete_index(&store_name, index_name);
-                }
-            },
             SyncOperation::Commit(callback, origin, db_name, txn) => {
                 // https://w3c.github.io/IndexedDB/#commit-a-transaction
                 // TODO: implement the commit algorithm and only reply after the backend has
@@ -2369,29 +2410,6 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::CreateObjectStore(
-                sender,
-                origin,
-                db_name,
-                store_name,
-                key_paths,
-                auto_increment,
-            ) => {
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    let result = db.create_object_store(&store_name, key_paths, auto_increment);
-                    let _ = sender.send(result.map_err(BackendError::from));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
-                }
-            },
-            SyncOperation::DeleteObjectStore(sender, origin, db_name, store_name) => {
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    let result = db.delete_object_store(&store_name);
-                    let _ = sender.send(result.map_err(BackendError::from));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
-                }
-            },
             SyncOperation::Version(sender, origin, db_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
                     let _ = sender.send(db.version().map_err(backend_error_from_sqlite_error));
@@ -2413,12 +2431,9 @@ impl IndexedDBManager {
         }
     }
 
-    /// <https://w3c.github.io/IndexedDB/#abort-a-transaction>
-    ///
-    /// > When a transaction is aborted the implementation must undo (roll back) any changes that
-    /// > were made to the database during that transaction.
-    ///
-    /// TODO: implement the abort algorithm and rollback for the engine.
+    /// Handling for the `Abort` message which will call [`Self::abort`] if the transaction
+    /// being aborted is not ongoing. If the transaction is in process, abort is delayed until
+    /// the batch finishes.
     fn handle_abort(
         &mut self,
         abort_callback: GenericCallback<TxnCompleteMsg>,
@@ -2433,26 +2448,32 @@ impl IndexedDBManager {
             result: Err(BackendError::Abort),
         };
 
-        if let Some(database) = self.get_database_mut(origin.clone(), database_name.clone()) {
-            for callback in database.take_pending_commit_callbacks(transaction) {
-                if callback.send(message()).is_err() {
-                    error!(
-                        "Failed to send deferred abort completion for \
-                        database '{database_name}' transaction {transaction}.",
-                    );
-                }
+        let Some(database) = self.get_database_mut(origin.clone(), database_name.clone()) else {
+            // We didn't find the database, so just treat the transaction as aborted.
+            if abort_callback.send(message()).is_err() {
+                error!(
+                    "Failed to send abort completion for database \
+                    '{database_name}' transaction {transaction}.",
+                );
             }
+            return;
+        };
 
-            database.abort_transaction(transaction);
-            database.schedule_transactions(origin.clone(), &database_name);
+        database
+            .pending_abort_callbacks
+            .entry(transaction)
+            .or_default()
+            .push(abort_callback);
+
+        // If the transaction is running wait to abort until after it finishes to actually
+        // abort.
+        if database.running_readwrite == Some(transaction) ||
+            database.running_readonly.contains(&transaction)
+        {
+            return;
         }
 
-        if abort_callback.send(message()).is_err() {
-            error!(
-                "Failed to send deferred abort completion for \
-                database '{database_name}' transaction {transaction}.",
-            );
-        }
+        database.abort(&origin, &database_name, transaction);
     }
 
     fn collect_memory_reports(&self) -> Vec<Report> {
