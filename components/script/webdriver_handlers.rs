@@ -2038,7 +2038,7 @@ pub(crate) fn handle_element_click(
 fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> bool {
     // An element is in view if it is a member of its own pointer-interactable paint tree,
     // given the pretense that its pointer events are not disabled.
-    if !paint_tree.contains(&DomRoot::from_ref(element)) {
+    if !paint_tree.iter().any(|e| std::ptr::eq(&**e, element)) {
         return false;
     }
     use style::computed_values::pointer_events::T as PointerEvents;
