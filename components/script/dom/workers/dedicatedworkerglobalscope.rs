@@ -6,7 +6,7 @@ use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -107,6 +107,7 @@ impl Drop for AutoWorkerReset<'_> {
 pub(crate) enum DedicatedWorkerControlMsg {
     /// Shutdown the worker.
     Exit,
+    AnimationFrameProviderUnsupported,
 }
 
 pub(crate) enum DedicatedWorkerScriptMsg {
@@ -221,7 +222,8 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
     browsing_context: Option<BrowsingContextId>,
-    animation_frame_provider_supported: bool,
+    #[conditional_malloc_size_of]
+    animation_frame_provider_supported: Arc<AtomicBool>,
     animation_frame_provider_registered: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier>
     animation_frame_ident: Cell<u32>,
@@ -241,8 +243,7 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     #[no_trace]
     #[ignore_malloc_size_of = "channels are hard"]
     animation_frame_tick_receiver: Option<RoutedReceiver<WorkerAnimationFrameTick>>,
-    /// A receiver of control messages,
-    /// currently only used to signal shutdown.
+    /// A receiver of control messages.
     #[no_trace]
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
     #[no_trace]
@@ -313,6 +314,7 @@ impl DedicatedWorkerGlobalScope {
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
+        animation_frame_provider_supported: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
         animation_frame_tick_sender: Option<GenericSender<WorkerAnimationFrameTick>>,
@@ -322,8 +324,6 @@ impl DedicatedWorkerGlobalScope {
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
     ) -> DedicatedWorkerGlobalScope {
-        let animation_frame_provider_supported = init.animation_frame_provider_supported;
-
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
                 init,
@@ -373,6 +373,7 @@ impl DedicatedWorkerGlobalScope {
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
+        animation_frame_provider_supported: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
         animation_frame_tick_sender: Option<GenericSender<WorkerAnimationFrameTick>>,
@@ -396,6 +397,7 @@ impl DedicatedWorkerGlobalScope {
             own_sender,
             receiver,
             closing,
+            animation_frame_provider_supported,
             image_cache,
             browsing_context,
             animation_frame_tick_sender,
@@ -433,6 +435,7 @@ impl DedicatedWorkerGlobalScope {
         worker_load_origin: WorkerScriptLoadOrigin,
         worker_options: &WorkerOptions,
         closing: Arc<AtomicBool>,
+        animation_frame_provider_supported: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -555,6 +558,7 @@ impl DedicatedWorkerGlobalScope {
                     own_sender,
                     receiver,
                     closing,
+                    animation_frame_provider_supported,
                     image_cache,
                     browsing_context,
                     animation_frame_tick_sender,
@@ -646,10 +650,15 @@ impl DedicatedWorkerGlobalScope {
 
     pub(crate) fn animation_frame_provider_supported(&self) -> bool {
         self.animation_frame_provider_supported
+            .load(Ordering::SeqCst)
+    }
+
+    pub(crate) fn animation_frame_provider_supported_flag(&self) -> Arc<AtomicBool> {
+        self.animation_frame_provider_supported.clone()
     }
 
     fn register_animation_frame_provider(&self) {
-        if !self.animation_frame_provider_supported {
+        if !self.animation_frame_provider_supported() {
             return;
         }
 
@@ -692,7 +701,7 @@ impl DedicatedWorkerGlobalScope {
     }
 
     fn send_animation_frame_callbacks_state(&self, active: bool) {
-        if !self.animation_frame_provider_supported {
+        if !self.animation_frame_provider_supported() {
             return;
         }
 
@@ -739,7 +748,7 @@ impl DedicatedWorkerGlobalScope {
         callback: Rc<FrameRequestCallback>,
     ) -> Fallible<u32> {
         // Step 1. If this is not supported, then throw a "NotSupportedError" DOMException.
-        if !self.animation_frame_provider_supported {
+        if !self.animation_frame_provider_supported() {
             return Err(Error::NotSupported(None));
         }
 
@@ -764,7 +773,7 @@ impl DedicatedWorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-animationframeprovider-cancelanimationframe>
     pub(crate) fn cancel_animation_frame(&self, ident: u32) -> ErrorResult {
         // Step 1. If this is not supported, then throw a "NotSupportedError" DOMException.
-        if !self.animation_frame_provider_supported {
+        if !self.animation_frame_provider_supported() {
             return Err(Error::NotSupported(None));
         }
 
@@ -784,7 +793,7 @@ impl DedicatedWorkerGlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
     pub(crate) fn run_the_animation_frame_callbacks(&self, cx: &mut JSContext) {
-        if !self.animation_frame_provider_supported ||
+        if !self.animation_frame_provider_supported() ||
             self.upcast::<WorkerGlobalScope>().is_closing()
         {
             return;
@@ -805,7 +814,7 @@ impl DedicatedWorkerGlobalScope {
         }
 
         self.running_animation_callbacks.set(true);
-        let timing = self.upcast::<GlobalScope>().performance().Now();
+        let timing = self.upcast::<GlobalScope>().performance(cx).Now();
 
         // Step 3. For each handle in callbackHandles, if handle exists in callbacks:
         for _ in 0..callback_count {
@@ -958,6 +967,11 @@ impl DedicatedWorkerGlobalScope {
             MixedMessage::Worker(DedicatedWorkerScriptMsg::WakeUp) => {},
             MixedMessage::Control(DedicatedWorkerControlMsg::Exit) => {
                 return false;
+            },
+            MixedMessage::Control(DedicatedWorkerControlMsg::AnimationFrameProviderUnsupported) => {
+                self.clear_animation_frame_callbacks_and_unregister();
+                self.upcast::<GlobalScope>()
+                    .disable_owned_worker_animation_frame_providers();
             },
             MixedMessage::AnimationFrameTick(_) => {
                 // Step 6.1.2. Run the animation frame callbacks for that

@@ -2754,7 +2754,9 @@ impl Document {
 
         // Step 10. Remove document from the owner set of each WorkerGlobalScope
         // object whose set contains document.
-        // TODO
+        exited_window
+            .as_global_scope()
+            .disable_owned_worker_animation_frame_providers();
 
         // Step 11. For each workletGlobalScope in document's worklet global scopes,
         // terminate workletGlobalScope.
