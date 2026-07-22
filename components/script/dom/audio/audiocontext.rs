@@ -146,7 +146,12 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         // Step 1. If this’s relevant global object’s associated Document is not fully active then return a promise rejected with "InvalidStateError" DOMException.
         if !self.global().as_window().Document().is_fully_active() {
             let promise = Promise::new_in_realm(cx);
-            promise.reject_error(cx, Error::InvalidState(None));
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some(
+                    "Audio context's associated document is not active".into(),
+                )),
+            );
             return promise;
         }
 
@@ -209,7 +214,12 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         // Step 1. If this’s relevant global object’s associated Document is not fully active then return a promise rejected with "InvalidStateError" DOMException.
         if !self.global().as_window().Document().is_fully_active() {
             let promise = Promise::new_in_realm(cx);
-            promise.reject_error(cx, Error::InvalidState(None));
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some(
+                    "Audio context's associated document is not active".into(),
+                )),
+            );
             return promise;
         }
 
