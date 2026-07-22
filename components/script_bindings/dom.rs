@@ -49,9 +49,9 @@ impl<T: DomObject> MutDom<T> {
         unsafe { DomRoot::from_ref(&*ptr::read(self.val.get())) }
     }
 
-    /// Get the [`DomObject`] without rooting it. Constructing an [`UnrootedDom`]. This is
-    /// safe as we take a reference to NoGC and bound the lifetime by [`NoGC`] bound. This
-    /// implies that while the [`UnrootedDom`] is alive, garbage collection will not happen.
+    /// Get the [`DomObject`] without rooting it as an [`UnrootedDom`]. This is safe as
+    /// the return value shares the lifetime of the provided [`NoGC`] This implies that
+    /// while the [`UnrootedDom`] is alive, garbage collection will not happen.
     pub fn get_unrooted<'a>(&self, _: &'a NoGC) -> UnrootedDom<'a, T> {
         assert_in_script();
         UnrootedDom {

@@ -7,6 +7,7 @@
 
 use std::borrow::Cow;
 use std::fmt::Debug;
+use std::ops::Range;
 
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
@@ -173,7 +174,7 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// For a text node, returns which range of this text is part of the document selection
     ///
     /// Returned offsets are counted in `char`s in the `self.text_content()` string.
-    fn document_selection_in_text_node(&self) -> Option<std::ops::Range<Utf32CodeUnitLength>>;
+    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnitLength>>;
 
     /// If this node manages a selection, this returns the shared selection for the node.
     fn selection(&self) -> Option<SharedSelection>;
