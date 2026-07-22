@@ -1,0 +1,132 @@
+name: Linux Arm64
+on:
+  workflow_call:
+    outputs:
+      artifact_ids:
+        value: ${{ jobs.linux-arm64.outputs.artifact_ids }}
+        description: Comma-separated list of artifact IDs for the release artifacts
+    inputs:
+      profile:
+        required: false
+        default: "checked-release"
+        type: string
+      build-args:
+        default: ""
+        required: false
+        type: string
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-sync-from-upstream:
+        required: false
+        default: false
+        type: boolean
+      wpt:
+        required: false
+        type: boolean
+      number-of-wpt-chunks:
+        default: 20
+        required: false
+        type: number
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+      coverage:
+        required: false
+        default: false
+        type: boolean
+      capi:
+        required: false
+        default: false
+        type: boolean
+
+  workflow_dispatch:
+    inputs:
+      profile:
+        required: false
+        default: "checked-release"
+        type: choice
+        options: ["checked-release", "release", "debug", "production"]
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      wpt-sync-from-upstream:
+        default: false
+        required: false
+        type: boolean
+      wpt:
+        required: false
+        type: boolean
+      number-of-wpt-chunks:
+        default: 20
+        required: false
+        type: number
+      unit-tests:
+        required: false
+        default: false
+        type: boolean
+      devtools-tests:
+        required: false
+        default: false
+        type: boolean
+      build-libservo:
+        required: false
+        default: false
+        type: boolean
+      force-github-hosted-runner:
+        required: false
+        type: boolean
+        default: false
+      bencher:
+        required: false
+        default: false
+        type: boolean
+      capi:
+        required: false
+        default: false
+        type: boolean
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+
+jobs:
+  linux-arm64:
+    name: Call common linux workflow for arm64
+    uses: ./.github/workflows/linux-common.yml
+    secrets: inherit
+    with:
+      arch: arm64
+      github-runner-label: ubuntu-22.04-arm
+      uploaded-artifact-name: ${{ inputs.profile }}-binary-linux-arm64
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
+      unit-tests: ${{ inputs.unit-tests }}
+      devtools-tests: ${{ inputs.devtools-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+      coverage: ${{ inputs.coverage }}
+      capi: ${{ inputs.capi }}
+
