@@ -749,7 +749,9 @@ impl DedicatedWorkerGlobalScope {
     ) -> Fallible<u32> {
         // Step 1. If this is not supported, then throw a "NotSupportedError" DOMException.
         if !self.animation_frame_provider_supported() {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Animation frame callbacks are not supported for this worker".to_owned(),
+            )));
         }
 
         // Step 2. Let target be this's target object.
@@ -774,7 +776,9 @@ impl DedicatedWorkerGlobalScope {
     pub(crate) fn cancel_animation_frame(&self, ident: u32) -> ErrorResult {
         // Step 1. If this is not supported, then throw a "NotSupportedError" DOMException.
         if !self.animation_frame_provider_supported() {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Animation frame callbacks are not supported for this worker".to_owned(),
+            )));
         }
 
         // Step 2. Let callbacks be this's target object's map of animation frame callbacks.
