@@ -308,7 +308,7 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
         let add_new_observer = {
             let mut replaced = false;
             for registered in &mut *target.registered_mutation_observers_mut() {
-                if !std::ptr::eq(&*registered.observer, self) {
+                if registered.observer != self {
                     continue;
                 }
                 // TODO: remove matching transient registered observers

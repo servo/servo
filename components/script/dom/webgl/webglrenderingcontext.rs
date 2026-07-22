@@ -470,7 +470,7 @@ impl WebGLRenderingContext {
         let Some(context) = object.upcast().context() else {
             return Err(WebGLError::InvalidOperation);
         };
-        if !std::ptr::eq(self, &*context) {
+        if self != &*context {
             return Err(WebGLError::InvalidOperation);
         }
         Ok(())

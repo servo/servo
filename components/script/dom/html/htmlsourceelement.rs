@@ -154,7 +154,7 @@ impl VirtualMethods for HTMLSourceElement {
 
         // Step 2. If parent is a media element that has no src attribute and whose networkState has
         // the value NETWORK_EMPTY, then invoke that media element's resource selection algorithm.
-        if parent.is::<HTMLMediaElement>() && std::ptr::eq(&*parent, context.parent) {
+        if parent.is::<HTMLMediaElement>() && *parent == *context.parent {
             parent
                 .downcast::<HTMLMediaElement>()
                 .unwrap()
@@ -163,7 +163,7 @@ impl VirtualMethods for HTMLSourceElement {
 
         // Step 3. If parent is a picture element, then for each child of parent's children, if
         // child is an img element, then count this as a relevant mutation for child.
-        if parent.is::<HTMLPictureElement>() && std::ptr::eq(&*parent, context.parent) {
+        if parent.is::<HTMLPictureElement>() && *parent == *context.parent {
             let next_sibling_iterator = self.upcast::<Node>().following_siblings();
             HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
                 cx,

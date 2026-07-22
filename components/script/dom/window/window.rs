@@ -3727,7 +3727,7 @@ impl Window {
             }
 
             let nodes = images.entry(id).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&*(n.node), &*node)) {
+            if !nodes.iter().any(|n| *n.node == *node) {
                 nodes.push(PendingLayoutImageAncillaryData {
                     node: Dom::from_ref(&*node),
                     destination: image.destination,
@@ -3752,7 +3752,7 @@ impl Window {
             }
 
             let nodes = images.entry((image.id, image.size)).or_default();
-            if !nodes.iter().any(|n| std::ptr::eq(&**n, &*node)) {
+            if !nodes.iter().any(|n| **n == *node) {
                 nodes.push(Dom::from_ref(&*node));
             }
         }

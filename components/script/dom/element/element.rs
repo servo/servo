@@ -3143,10 +3143,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn RemoveAttributeNode(&self, cx: &mut JSContext, attr: &Attr) -> Fallible<DomRoot<Attr>> {
         // The attr parameter passed here is already a Dom<Attr> that is somewhere present in the DOM,
         // hence already materialized. That means that `as_attr()` will never fail.
-        self.remove_first_matching_attribute(cx, |a| {
-            a.as_attr().is_some_and(|a| std::ptr::eq(a, attr))
-        })
-        .ok_or(Error::NotFound(None))
+        self.remove_first_matching_attribute(cx, |a| a.as_attr().is_some_and(|a| a == attr))
+            .ok_or(Error::NotFound(None))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattribute>
