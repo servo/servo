@@ -92,6 +92,7 @@ jobs:
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
+          allow-unsafe-pr-checkout: true
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-linux
@@ -176,6 +177,7 @@ jobs:
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name == 'pull_request_target' }}
         with:
           ref: refs/pull/${{ github.event.number }}/head
+          allow-unsafe-pr-checkout: true
       - uses: actions/download-artifact@v8
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
