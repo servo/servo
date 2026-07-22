@@ -1027,13 +1027,17 @@ impl Fragment {
         let resolve_thickness = |thickness: &TextDecorationThickness| -> Au {
             let resolved = match thickness {
                 TextDecorationThickness::LengthPercentage(lp) => {
-                    Au::from_f32_px(lp.resolve(font_size.computed_size.0).px())
+                    lp.resolve(font_size.computed_size.0).px()
                 },
                 TextDecorationThickness::Auto | TextDecorationThickness::FromFont => {
-                    font_metrics.underline_size
+                    font_metrics.underline_size.to_f32_px()
                 },
             };
-            Au::from_f32_px(resolved.to_nearest_pixel(dppx).max(1.0))
+
+            // Round to the nearest physical pixel. Floor at 1 physical pixel.
+            let nearest_min_1 = (resolved * dppx).floor().max(1.0) / dppx;
+
+            Au::from_f32_px(nearest_min_1)
         };
 
         // Gecko gets the text bounding box based on the ink overflow bounds. Since
