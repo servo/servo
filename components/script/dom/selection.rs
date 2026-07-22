@@ -135,8 +135,17 @@ impl Selection {
         let mut reached_start = false;
         let mut reached_end = false;
 
-        range.start_container().dirty(NodeDamage::ContentOrHeritage);
-        range.end_container().dirty(NodeDamage::ContentOrHeritage);
+        // In case the range hasn't changed, but the offsets within the start/end end node
+        // have changed, always dirty the start and end nodes, if they paint selection.
+        // TODO(mrobinson): We should handle changes only to the offsets within a single
+        // boundary node explicitly and not be unsetting and setting flags on the whole
+        // range.
+        if start_node.is::<CharacterData>() {
+            start_node.dirty(NodeDamage::ContentOrHeritage);
+        }
+        if end_node.is::<CharacterData>() {
+            end_node.dirty(NodeDamage::ContentOrHeritage);
+        }
 
         // We mark the ancestors of the start node as containing a selection. Two notes:
         // - The traversal itself will take care of marking ancestors of all other nodes,
