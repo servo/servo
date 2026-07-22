@@ -4618,11 +4618,18 @@ class CGSpecializedMethod(CGAbstractExternMethod):
                                                         self.method)
         return CGWrapper(CGMethodCall([], nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
-                         pre="let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
-                             "let cx = &mut cx;\n"
-                             f"let this = &*(this as *const {self.descriptor.concreteType});\n"
-                             "let args = &*args;\n"
-                             "let argc = args.argc_;\n")
+                         pre=f"""\
+                         let _span = profile_traits::trace_span!(
+                             "sv_jsapi.method.{self.descriptor.interface.identifier.name}.{nativeName}"
+                         )
+                         .entered();
+
+                         let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+                         let cx = &mut cx;
+                         let this = &*(this as *const {self.descriptor.concreteType});
+                         let args = &*args;
+                         let argc = args.argc_;
+                         """)
 
     @staticmethod
     def makeNativeName(descriptor: Descriptor, method: IDLMethod) -> str:
@@ -4793,9 +4800,16 @@ class CGSpecializedGetter(CGAbstractExternMethod):
 
         return CGWrapper(CGGetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
-                         pre="let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
-                             "let cx = &mut cx;\n"
-                             f"let this = &*(this as *const {self.descriptor.concreteType});\n")
+                         pre=f"""\
+                         let _span = profile_traits::trace_span!(
+                             "sv_jsapi.method.{self.descriptor.interface.identifier.name}.{nativeName}"
+                         )
+                         .entered();
+
+                         let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+                         let cx = &mut cx;
+                         let this = &*(this as *const {self.descriptor.concreteType});
+                         """)
 
     @staticmethod
     def makeNativeName(descriptor: Descriptor, attr: IDLAttribute) -> str:
@@ -4850,9 +4864,16 @@ class CGSpecializedSetter(CGAbstractExternMethod):
                                                         self.attr)
         return CGWrapper(
             CGSetterCall([], self.attr.type, nativeName, self.descriptor, self.attr),
-            pre=("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
-                 "let cx = &mut cx;\n"
-                 f"let this = &*(this as *const {self.descriptor.concreteType});\n")
+            pre=f"""\
+            let _span = profile_traits::trace_span!(
+             "sv_jsapi.method.{self.descriptor.interface.identifier.name}.{nativeName}"
+            )
+            .entered();
+
+            let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+            let cx = &mut cx;
+            let this = &*(this as *const {self.descriptor.concreteType});
+            """
         )
 
     @staticmethod
