@@ -9065,6 +9065,7 @@ version = "0.4.0"
 dependencies = [
  "atomic_refcell",
  "bitflags 2.13.0",
+ "criterion",
  "crossbeam-channel",
  "encoding_rs",
  "html5ever",
