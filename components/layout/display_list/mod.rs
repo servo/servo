@@ -1026,8 +1026,8 @@ impl Fragment {
 
         let resolve_thickness = |thickness: &TextDecorationThickness| -> Au {
             let resolved = match thickness {
-                TextDecorationThickness::LengthPercentage(lp) => {
-                    lp.resolve(font_size.computed_size.0).px()
+                TextDecorationThickness::LengthPercentage(length_percentage) => {
+                    length_percentage.resolve(font_size.computed_size.0).px()
                 },
                 TextDecorationThickness::Auto | TextDecorationThickness::FromFont => {
                     font_metrics.underline_size.to_f32_px()
