@@ -552,6 +552,8 @@ impl InlineFormattingContextBuilder {
         if let Some(next_text_selection) = new_text_selection {
             let existing_characters = text_run.character_range.end - text_run.character_range.start;
             if !text_run.document_selection.is_empty() {
+                // If both the new and old text had selections, they are only compatible
+                // if the old selection extends to the end of the old run run.
                 if text_run.document_selection.end.0 == existing_characters {
                     text_run.document_selection.end += next_text_selection.end;
                 } else {

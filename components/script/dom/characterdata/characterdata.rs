@@ -113,7 +113,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
-        let new_length = len_utf16(&data.str()) as u32;
+        let new_length = data.str().encode_utf16().count() as u32;
         *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
         self.content_changed(cx);
 
@@ -125,7 +125,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
     fn Length(&self) -> u32 {
-        len_utf16(&self.data.borrow()) as u32
+        self.data.borrow().encode_utf16().count() as u32
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
@@ -262,7 +262,12 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         // by count.
         let node = self.upcast::<Node>();
         if let Some(weak_ranges) = node.weak_ranges_mut() {
-            weak_ranges.replace_code_units(node, offset, count, len_utf16(&arg.str()) as u32);
+            weak_ranges.replace_code_units(
+                node,
+                offset,
+                count,
+                arg.str().encode_utf16().count() as u32,
+            );
         }
 
         // Step 12: If node is a ProcessingInstruction node and piAttributesAlreadyUpdated
@@ -355,11 +360,4 @@ fn split_at_utf16_code_unit_offset(s: &str, offset: u32) -> Result<(&str, Option
     } else {
         Err(())
     }
-}
-
-/// Returns the length (in 16-bit code units) of encoding `s` to UTF-16
-///
-/// Equivalent to but does less work than `.encode_utf16().count()`
-fn len_utf16(s: &str) -> usize {
-    s.chars().map(|c| c.len_utf16()).sum()
 }

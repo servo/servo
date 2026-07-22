@@ -89,28 +89,28 @@ impl Selection {
     }
 
     fn unset_flags_for_visible_selection(&self, no_gc: &NoGC) {
-        let mut iter = self
+        let mut traversal = self
             .document
             .upcast::<Node>()
-            .flat_tree_traversal_unrooted(no_gc);
-        let mut next = iter.next();
+            .following_flat_tree_nodes_unrooted(no_gc);
+        let mut next = traversal.next();
         while let Some(node) = next.take() {
             match node {
-                PrePostIteration::Pre(node) => {
+                PrePostIteration::Enter(node) => {
                     if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
                         node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
 
-                        // Currently only [`CharacterData`] nodes show visible selection.
+                        // Currently only `CharacterData` nodes show visible selection.
                         if node.is::<CharacterData>() {
                             node.dirty(NodeDamage::ContentOrHeritage);
                         }
 
-                        next = iter.next();
+                        next = traversal.next();
                     } else {
-                        next = iter.next_skipping_subtree();
+                        next = traversal.next_skipping_subtree();
                     }
                 },
-                PrePostIteration::Post(_) => {},
+                PrePostIteration::Leave(_) => {},
             }
         }
     }
@@ -125,15 +125,14 @@ impl Selection {
             return;
         };
 
-        let start_position =
-            position_in_flat_tree(range.start_container(), range.start_offset() as usize);
+        let start_position = position_in_flat_tree_for_selection(
+            range.start_container(),
+            range.start_offset() as usize,
+        );
         let end_position =
-            position_in_flat_tree(range.end_container(), range.end_offset() as usize);
+            position_in_flat_tree_for_selection(range.end_container(), range.end_offset() as usize);
         let start_node = start_position.node();
         let end_node = end_position.node();
-
-        let mut reached_start = false;
-        let mut reached_end = false;
 
         // In case the range hasn't changed, but the offsets within the start/end end node
         // have changed, always dirty the start and end nodes, if they paint selection.
@@ -147,6 +146,17 @@ impl Selection {
             end_node.dirty(NodeDamage::ContentOrHeritage);
         }
 
+        let add_selection_flag = |node: &Node| {
+            if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+                node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
+
+                // Currently only `CharacterData` nodes show visible selection.
+                if node.is::<CharacterData>() {
+                    node.dirty(NodeDamage::ContentOrHeritage);
+                }
+            }
+        };
+
         // We mark the ancestors of the start node as containing a selection. Two notes:
         // - The traversal itself will take care of marking ancestors of all other nodes,
         //   as the in-order tree walk will be guaranteed to walk them.
@@ -154,70 +164,35 @@ impl Selection {
         //   leaves (the only nodes that show visible selection).
         let mut maybe_parent = start_node.parent_in_flat_tree();
         while let FlatTreeParent::Parent(parent) = maybe_parent {
-            parent.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
+            add_selection_flag(&parent);
             maybe_parent = parent.parent_in_flat_tree();
         }
 
-        for iteration in start_node.flat_tree_traversal_unrooted(no_gc) {
-            let node = iteration.node();
-            let update_flag = |reached_start: bool, reached_end: bool, flag: NodeFlags| {
-                let overlaps = reached_start && !reached_end;
-                if overlaps && !node.get_flag(flag) {
-                    node.set_flag(flag, true);
+        let mut traversal = start_node.following_flat_tree_nodes_unrooted(no_gc);
 
-                    // Currently only [`CharacterData`] nodes show visible selection.
-                    if node.is::<CharacterData>() {
-                        node.dirty(NodeDamage::ContentOrHeritage);
-                    }
-                }
-            };
+        // If the selection starts after the first node, skip that node and all descendants
+        // before setting flags in the selection range.
+        if matches!(start_position, FlatTreeNodePosition::After(_)) {
+            let leaving_start = traversal.next_skipping_subtree();
+            debug_assert!(
+                matches!(leaving_start, Some(PrePostIteration::Leave(node)) if node == *start_node)
+            );
+        }
 
+        for iteration in traversal {
             match &iteration {
-                PrePostIteration::Pre(_) => {
-                    if node == start_node &&
-                        matches!(
-                            start_position,
-                            FlatTreeNodePosition::Before(_) | FlatTreeNodePosition::Inside(_)
-                        )
-                    {
-                        reached_start = true;
-                    }
-
+                PrePostIteration::Enter(node) => {
                     if node == end_node && matches!(end_position, FlatTreeNodePosition::Before(_)) {
-                        reached_end = true;
+                        break;
                     }
-
-                    update_flag(
-                        reached_start,
-                        reached_end,
-                        NodeFlags::OVERLAPS_DOCUMENT_SELECTION,
-                    );
+                    add_selection_flag(node);
                 },
-                PrePostIteration::Post(_) => {
-                    if node == end_node && matches!(end_position, FlatTreeNodePosition::Before(_)) {
-                        reached_end = true;
-                    }
-
-                    update_flag(
-                        reached_start,
-                        reached_end,
-                        NodeFlags::OVERLAPS_DOCUMENT_SELECTION,
-                    );
-
-                    if node == start_node &&
-                        matches!(start_position, FlatTreeNodePosition::After(_))
-                    {
-                        reached_start = true;
-                    }
-
+                PrePostIteration::Leave(node) => {
+                    add_selection_flag(node);
                     if node == end_node {
-                        reached_end = true;
+                        break;
                     }
                 },
-            }
-
-            if reached_end {
-                return;
             }
         }
     }
@@ -887,7 +862,13 @@ impl FlatTreeNodePosition {
     }
 }
 
-fn position_in_flat_tree(container: DomRoot<Node>, offset: usize) -> FlatTreeNodePosition {
+/// Find the position of a node and offset in the flat tree for the purposes of selection
+/// boundaries. This projects the given position onto the flat tree, accounting for origin
+/// nodes that may not actually be in the flat tree at all.
+fn position_in_flat_tree_for_selection(
+    container: DomRoot<Node>,
+    offset: usize,
+) -> FlatTreeNodePosition {
     if container.is::<CharacterData>() {
         return FlatTreeNodePosition::Inside(container);
     }
@@ -899,18 +880,17 @@ fn position_in_flat_tree(container: DomRoot<Node>, offset: usize) -> FlatTreeNod
             .unwrap_or(node.clone())
     };
 
-    if offset == 0 {
-        return FlatTreeNodePosition::Before(shadow_host_or_node(&container));
-    }
-
-    let Some(child) = container.children().nth(offset) else {
-        // There is no child at this index, which we interpret as the last element in the container.
+    if let Some(child) = container.children().nth(offset) {
+        if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree() {
+            return FlatTreeNodePosition::Before(child);
+        }
+    } else if let Some(last_child) = container.GetLastChild() &&
+        let FlatTreeParent::Parent(_) = last_child.parent_in_flat_tree()
+    {
         return FlatTreeNodePosition::After(shadow_host_or_node(&container));
-    };
-
-    if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree() {
-        return FlatTreeNodePosition::Before(child);
     }
 
-    FlatTreeNodePosition::After(shadow_host_or_node(&container))
+    // The container has no child in the flat tree or the child indicated by the index
+    // isn't in the flat tree, so just return a position inside that container.
+    FlatTreeNodePosition::Inside(shadow_host_or_node(&container))
 }

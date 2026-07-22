@@ -494,32 +494,36 @@ impl<'b> Iterator for UnrootedTreeIterator<'b> {
     }
 }
 
+/// An `Item` in an traversal that is both pre-order and post-order. Each iteration
+/// of the traversal is either an record of entering a node or a leaving a node during
+/// the course of traversal.
 #[derive(Clone)]
 pub(crate) enum PrePostIteration<T: Clone> {
-    Pre(T),
-    Post(T),
+    /// The traversal encountered this node for the first time. This happens before
+    /// traversing the node's descendants.
+    Enter(T),
+    /// The traversal is leaving this node. This happens after traversing the node's
+    /// descendants.
+    Leave(T),
 }
 
-impl<T: Clone> PrePostIteration<T> {
-    pub(crate) fn node(&self) -> &T {
-        match self {
-            PrePostIteration::Pre(node) => node,
-            PrePostIteration::Post(node) => node,
-        }
-    }
-}
-
+/// A traversal of a [`Document`]'s [flat tree]. This is both a pre-order and post-order
+/// unrooted traversal. This means that an item is returned both when encountering a node
+/// for the first time and when leaving a node. In addition, no garbage collection can
+/// happen while iterating, allowing returning unrooted values for performance reasons.
+///
+/// [flat tree]: https://drafts.csswg.org/css-shadow-1/#flat-tree
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct UnrootedFlatTreeTraversal<'b> {
-    root: UnrootedDom<'b, Node>,
-    previously_returned_item: Option<PrePostIteration<UnrootedDom<'b, Node>>>,
-    no_gc: &'b NoGC,
+pub(crate) struct UnrootedFollowingFlatTreeNodesTraversal<'no_gc> {
+    start: UnrootedDom<'no_gc, Node>,
+    previously_returned_item: Option<PrePostIteration<UnrootedDom<'no_gc, Node>>>,
+    no_gc: &'no_gc NoGC,
 }
 
-impl<'b> UnrootedFlatTreeTraversal<'b> {
-    pub(crate) fn new(root: &Node, no_gc: &'b NoGC) -> Self {
+impl<'no_gc> UnrootedFollowingFlatTreeNodesTraversal<'no_gc> {
+    pub(crate) fn new(root: &Node, no_gc: &'no_gc NoGC) -> Self {
         Self {
-            root: UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
+            start: UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
             previously_returned_item: None,
             no_gc,
         }
@@ -527,57 +531,61 @@ impl<'b> UnrootedFlatTreeTraversal<'b> {
 
     pub(crate) fn next_skipping_subtree(
         &mut self,
-    ) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+    ) -> Option<PrePostIteration<UnrootedDom<'no_gc, Node>>> {
         let next = self.find_next_skipping_subtree()?;
         self.previously_returned_item = Some(next);
         self.previously_returned_item.clone()
     }
 
-    fn find_next_skipping_subtree(&mut self) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+    fn find_next_skipping_subtree(
+        &mut self,
+    ) -> Option<PrePostIteration<UnrootedDom<'no_gc, Node>>> {
         match &self.previously_returned_item {
-            None => Some(PrePostIteration::Post(self.root.clone())),
-            Some(PrePostIteration::Pre(previous)) => Some(PrePostIteration::Post(previous.clone())),
-            Some(PrePostIteration::Post(previous)) => {
+            None => Some(PrePostIteration::Leave(self.start.clone())),
+            Some(PrePostIteration::Enter(previous)) => {
+                Some(PrePostIteration::Leave(previous.clone()))
+            },
+            Some(PrePostIteration::Leave(previous)) => {
                 Self::find_next_after_post(self.no_gc, previous)
             },
         }
     }
 
     fn find_next_after_post(
-        no_gc: &'b NoGC,
-        previous: &UnrootedDom<'b, Node>,
-    ) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+        no_gc: &'no_gc NoGC,
+        previous: &UnrootedDom<'no_gc, Node>,
+    ) -> Option<PrePostIteration<UnrootedDom<'no_gc, Node>>> {
         if let Some(next_sibling) = previous.next_flat_tree_sibling_unrooted(no_gc) {
-            return Some(PrePostIteration::Pre(next_sibling));
+            return Some(PrePostIteration::Enter(next_sibling));
         }
         match previous.parent_in_flat_tree() {
             FlatTreeParent::Parent(parent_node) => {
                 let parent_node = UnrootedDom::from_dom(parent_node.as_traced(), no_gc);
-                Some(PrePostIteration::Post(parent_node))
+                Some(PrePostIteration::Leave(parent_node))
             },
             FlatTreeParent::NotInFlatTree => None,
             FlatTreeParent::RootNode => None,
         }
     }
 
-    fn find_next(&mut self) -> Option<PrePostIteration<UnrootedDom<'b, Node>>> {
+    fn find_next(&mut self) -> Option<PrePostIteration<UnrootedDom<'no_gc, Node>>> {
         match &self.previously_returned_item {
-            None => Some(PrePostIteration::Pre(self.root.clone())),
-            Some(PrePostIteration::Pre(previous)) => {
+            None => Some(PrePostIteration::Enter(self.start.clone())),
+            Some(PrePostIteration::Enter(previous)) => {
                 if let Some(first_child) = previous.first_flat_tree_child_unrooted(self.no_gc) {
-                    return Some(PrePostIteration::Pre(first_child));
+                    return Some(PrePostIteration::Enter(first_child));
                 }
-                Some(PrePostIteration::Post(previous.clone()))
+                Some(PrePostIteration::Leave(previous.clone()))
             },
-            Some(PrePostIteration::Post(previous)) => {
+            Some(PrePostIteration::Leave(previous)) => {
                 Self::find_next_after_post(self.no_gc, previous)
             },
         }
     }
 }
 
-impl<'b> Iterator for UnrootedFlatTreeTraversal<'b> {
-    type Item = PrePostIteration<UnrootedDom<'b, Node>>;
+impl<'no_gc> Iterator for UnrootedFollowingFlatTreeNodesTraversal<'no_gc> {
+    type Item = PrePostIteration<UnrootedDom<'no_gc, Node>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.find_next()?;

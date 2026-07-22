@@ -104,7 +104,7 @@ use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::iterators::{
-    ShadowIncluding, UnrootedFlatTreeTraversal, UnrootedFollowingNodeIterator,
+    ShadowIncluding, UnrootedFollowingFlatTreeNodesTraversal, UnrootedFollowingNodeIterator,
     UnrootedPrecedingNodeIterator,
 };
 use crate::dom::mutationobserver::{Mutation, MutationObserver, RegisteredObserver};
@@ -237,12 +237,11 @@ bitflags! {
         const USES_ATTR_IN_CONTENT_ATTRIBUTE = 1 << 13;
 
         /// Whether any part of this node or its flat tree descendants overlaps with
-        /// the [Document selection](https://w3c.github.io/selection-api/#dfn-selection)
+        /// the [Document selection](https://w3c.github.io/selection-api/#dfn-selection).
         ///
-        /// By definition, if a node has this flag set
-        /// then all its flat tree ancestors have it set too.
-        /// Conversely, if a node has this flag unset
-        /// then all its flat tree descendants have it unset too.
+        /// By definition, if a node has this flag set then all its flat tree ancestors
+        /// have it set too. Conversely, if a node has this flag unset then all its flat
+        /// tree descendants have it unset too.
         const OVERLAPS_DOCUMENT_SELECTION = 1 << 14;
     }
 }
@@ -1020,11 +1019,11 @@ impl Node {
         })
     }
 
-    pub(crate) fn flat_tree_traversal_unrooted<'no_gc>(
+    pub(crate) fn following_flat_tree_nodes_unrooted<'no_gc>(
         &self,
         no_gc: &'no_gc NoGC,
-    ) -> UnrootedFlatTreeTraversal<'no_gc> {
-        UnrootedFlatTreeTraversal::new(self, no_gc)
+    ) -> UnrootedFollowingFlatTreeNodesTraversal<'no_gc> {
+        UnrootedFollowingFlatTreeNodesTraversal::new(self, no_gc)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor>
@@ -2730,7 +2729,7 @@ impl Node {
             }
         }
 
-        Self::update_selection_flags_for_newly_inserted_nodes(parent, new_nodes);
+        Self::maybe_dirty_visible_selection_for_newly_inserted_nodes(parent, new_nodes);
 
         if let SuppressObserver::Unsuppressed = suppress_observers {
             // Step 9. Run the children changed steps for parent.
@@ -2777,7 +2776,9 @@ impl Node {
         from_document.remove_script_and_layout_blocker(cx);
     }
 
-    pub(crate) fn update_selection_flags_for_newly_inserted_nodes(
+    /// If insertion of any of the given nodes happened within an existing visible
+    /// selection, mark the [`Document`]'s visible selection as dirty.
+    pub(crate) fn maybe_dirty_visible_selection_for_newly_inserted_nodes(
         parent: &Node,
         inserted_nodes: &[&Node],
     ) {
@@ -3403,8 +3404,9 @@ impl Node {
         no_gc: &'a NoGC,
     ) -> Option<UnrootedDom<'a, Node>> {
         if let Some(slot_element) = self.assigned_slot() {
-            // TODO(mrobinson): This is O(n²) against the number of slotted nodes, which isn't ideal.
-            // We could track the index of each slottable in the `<slot>` to fix this.
+            // TODO(mrobinson): When traversing this is O(n²) against the number of
+            // slotted nodes, which isn't ideal. We could track the index of each
+            // slottable in the `<slot>` to fix this.
             return slot_element
                 .assigned_nodes()
                 .iter()
@@ -3442,13 +3444,18 @@ impl Node {
                 .upcast::<Node>()
                 .first_flat_tree_child_unrooted(no_gc);
         };
+
+        // Return the first slotted node if this is a `<slot>` that has slotted nodes.
+        // Important here is that fallback content (`self.first_child()`) is returned
+        // if there are no slotted nodes.
         if let Some(slot_element) = element.downcast::<HTMLSlotElement>() &&
             slot_element.has_assigned_nodes() &&
             let Some(assigned_node) = slot_element.assigned_nodes().first()
         {
             return Some(UnrootedDom::from_dom(assigned_node.0.clone(), no_gc));
         }
-        self.first_child.get_unrooted(no_gc)
+
+        self.get_first_child_unrooted(no_gc)
     }
 
     fn get_last_child_unrooted<'b>(&self, no_gc: &'b NoGC) -> Option<UnrootedDom<'b, Node>> {
@@ -4405,7 +4412,7 @@ impl VirtualMethods for Node {
             .content_and_heritage_changed(cx.no_gc(), self);
 
         if let Some(parent) = self.GetParentNode() {
-            Self::update_selection_flags_for_newly_inserted_nodes(&parent, &[self]);
+            Self::maybe_dirty_visible_selection_for_newly_inserted_nodes(&parent, &[self]);
         }
     }
 

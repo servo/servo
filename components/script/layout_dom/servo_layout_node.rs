@@ -7,6 +7,7 @@
 
 use std::borrow::Cow;
 use std::fmt;
+use std::ops::Range;
 
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutDataTrait, LayoutElement, LayoutNode,
@@ -247,7 +248,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.text_content()
     }
 
-    fn document_selection_in_text_node(&self) -> Option<std::ops::Range<Utf32CodeUnitLength>> {
+    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnitLength>> {
         self.node.document_selection_in_text_node()
     }
 
