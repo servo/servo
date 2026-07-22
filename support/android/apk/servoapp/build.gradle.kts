@@ -144,8 +144,8 @@ dependencies {
     } else {
         implementation(project(":servoview"))
     }
-    implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.compose.material3.adaptive:adaptive:1.2.0")
-    implementation("androidx.compose.material3:material3:1.4.0")
-    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.material3.compose)
+    implementation(libs.androidx.material3.compose.adaptive)
+    implementation(libs.androidx.preference)
 }
