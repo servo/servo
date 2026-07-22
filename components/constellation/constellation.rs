@@ -3958,20 +3958,20 @@ where
         }
     }
 
-    fn send_worker_animation_frame_tick(&mut self, worker_id: WorkerId) {
+    fn deliver_rendering_opportunity_to_worker(&mut self, worker_id: WorkerId) {
         let mut send_failed = false;
         {
             let Some(provider) = self.worker_animation_frame_providers.get_mut(&worker_id) else {
                 return;
             };
             if provider.tick_pending {
-                debug!("Skipping pending worker animation frame tick: worker={worker_id:?}");
+                debug!("Skipping pending rendering opportunity: worker={worker_id:?}");
                 return;
             }
             if provider.sender.send(WorkerAnimationFrameTick).is_err() {
                 send_failed = true;
             } else {
-                debug!("Sent worker animation frame tick: worker={worker_id:?}");
+                debug!("Delivered rendering opportunity: worker={worker_id:?}");
                 provider.tick_pending = true;
             }
         }
@@ -4016,7 +4016,7 @@ where
                 continue;
             };
             if webview_ids.contains(&provider.webview_id) {
-                self.send_worker_animation_frame_tick(worker_id);
+                self.deliver_rendering_opportunity_to_worker(worker_id);
             }
         }
     }
