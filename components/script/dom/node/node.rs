@@ -1457,7 +1457,7 @@ impl Node {
             .expect("old_parent should always be initialized");
 
         // Step 9. Run the live range pre-remove steps, given node.
-        let cached_index = Node::live_range_pre_remove_steps(cx.no_gc(), node, &old_parent);
+        let cached_index = Node::live_range_pre_remove_steps(node, &old_parent);
 
         // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
         // node document: run the NodeIterator pre-remove steps given node and iterator.
@@ -1537,7 +1537,7 @@ impl Node {
             // greater than child’s index: increase its start offset by 1.
             // Step 17.2. For each live range whose end node is newParent and end offset is greater
             // than child’s index: increase its end offset by 1.
-            new_parent_ranges.increase_above(cx.no_gc(), new_parent, child.index(), 1)
+            new_parent_ranges.increase_above(new_parent, child.index(), 1)
         }
 
         // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
@@ -2608,12 +2608,7 @@ impl Node {
         if let Some(child) = child &&
             let Some(parent_weak_ranges) = parent.weak_ranges_mut()
         {
-            parent_weak_ranges.increase_above(
-                cx.no_gc(),
-                parent,
-                child.index(),
-                count.try_into().unwrap(),
-            );
+            parent_weak_ranges.increase_above(parent, child.index(), count.try_into().unwrap());
         }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
@@ -2900,7 +2895,7 @@ impl Node {
 
         // Step 3. Run the live range pre-remove steps.
         // https://dom.spec.whatwg.org/#live-range-pre-remove-steps
-        let cached_index = Node::live_range_pre_remove_steps(cx.no_gc(), node, parent);
+        let cached_index = Node::live_range_pre_remove_steps(node, parent);
 
         // TODO: Step 4. Pre-removing steps for node iterators
 
@@ -2968,7 +2963,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
-    fn live_range_pre_remove_steps(no_gc: &NoGC, node: &Node, parent: &Node) -> Option<u32> {
+    fn live_range_pre_remove_steps(node: &Node, parent: &Node) -> Option<u32> {
         if parent.weak_ranges_is_empty() {
             return None;
         }
@@ -2987,7 +2982,7 @@ impl Node {
         // Step 7. For each live range whose end node is parent and end offset is greater than index,
         // decrease its end offset by 1.
         if let Some(parent_weak_ranges) = parent.weak_ranges_mut() {
-            parent_weak_ranges.decrease_above(no_gc, parent, index, 1);
+            parent_weak_ranges.decrease_above(parent, index, 1);
         }
 
         // Parent had ranges, we needed the index, let's keep track of
@@ -3955,21 +3950,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 }) {
                     let (index, sibling) = children.next().unwrap();
                     if let Some(sibling_weak_ranges) = sibling.weak_ranges_mut() {
-                        sibling_weak_ranges.drain_to_preceding_text_sibling(
-                            cx.no_gc(),
-                            &sibling,
-                            &node,
-                            length,
-                        );
+                        sibling_weak_ranges
+                            .drain_to_preceding_text_sibling(&sibling, &node, length);
                     }
                     if let Some(weak_ranges) = self.weak_ranges_mut() {
-                        weak_ranges.move_to_text_child_at(
-                            cx.no_gc(),
-                            self,
-                            index as u32,
-                            &node,
-                            length,
-                        );
+                        weak_ranges.move_to_text_child_at(self, index as u32, &node, length);
                     }
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
@@ -4395,7 +4380,7 @@ impl VirtualMethods for Node {
             let Some(weak_ranges) = self.weak_ranges_mut() &&
             !weak_ranges.is_empty()
         {
-            weak_ranges.drain_to_parent(cx.no_gc(), context.parent, context.index(), self);
+            weak_ranges.drain_to_parent(context.parent, context.index(), self);
         }
     }
 
@@ -4413,7 +4398,7 @@ impl VirtualMethods for Node {
             let Some(weak_ranges) = self.weak_ranges_mut() &&
             !weak_ranges.is_empty()
         {
-            weak_ranges.drain_to_parent(cx.no_gc(), old_parent, context.index(), self);
+            weak_ranges.drain_to_parent(old_parent, context.index(), self);
         }
 
         self.owner_doc_unrooted(cx.no_gc())

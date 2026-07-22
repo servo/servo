@@ -270,24 +270,24 @@ impl Selection {
         self.range.get()
     }
 
-    pub(crate) fn collapse_current_range(&self, no_gc: &NoGC, node: &Node, offset: u32) {
+    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
-        range.set_start(no_gc, node, offset);
-        range.set_end(no_gc, node, offset);
+        range.set_start(node, offset);
+        range.set_end(node, offset);
 
         self.set_visible_selection_dirty();
     }
 
-    pub(crate) fn extend_current_range(&self, no_gc: &NoGC, node: &Node, offset: u32) {
+    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
         let range = self.range.get().expect("Must always have a range");
         assert!(range.collapsed(), "Must only extend after collapsing");
 
         let anchor_node = range.start_container();
         if (*anchor_node == *node && range.start_offset() < offset) || anchor_node.is_before(node) {
-            range.set_end(no_gc, node, offset);
+            range.set_end(node, offset);
             self.direction.set(Direction::Forwards);
         } else {
-            range.set_start(no_gc, node, offset);
+            range.set_start(node, offset);
             self.direction.set(Direction::Backwards);
         }
 

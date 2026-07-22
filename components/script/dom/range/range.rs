@@ -226,9 +226,9 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    pub(crate) fn set_start(&self, no_gc: &NoGC, node: &Node, offset: u32) {
+    pub(crate) fn set_start(&self, node: &Node, offset: u32) {
         if self.start().node() != node || self.start_offset() != offset {
-            self.prepare_for_range_update(no_gc);
+            self.prepare_for_range_update();
         }
         if self.start().node() != node {
             if self.start().node() == self.end().node() {
@@ -244,9 +244,9 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    pub(crate) fn set_end(&self, no_gc: &NoGC, node: &Node, offset: u32) {
+    pub(crate) fn set_end(&self, node: &Node, offset: u32) {
         if self.end().node() != node || self.end_offset() != offset {
-            self.prepare_for_range_update(no_gc);
+            self.prepare_for_range_update();
         }
         if self.end().node() != node {
             if self.end().node() == self.start().node() {
@@ -306,7 +306,7 @@ impl Range {
             .retain(|s| &**s != selection);
     }
 
-    fn prepare_for_range_update(&self, _no_gc: &NoGC) {
+    fn prepare_for_range_update(&self) {
         self.associated_selections
             .borrow()
             .iter()
@@ -370,7 +370,6 @@ impl Range {
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     fn set_the_start_or_end(
         &self,
-        no_gc: &NoGC,
         node: &Node,
         offset: u32,
         start_or_end: StartOrEnd,
@@ -398,11 +397,11 @@ impl Range {
                     bp_position(node, offset, &self.end_container(), self.end_offset()) ==
                         Ordering::Greater
                 {
-                    self.set_end(no_gc, node, offset);
+                    self.set_end(node, offset);
                 }
 
                 // Step 4.2. Set range’s start to bp.
-                self.set_start(no_gc, node, offset);
+                self.set_start(node, offset);
             },
             // If these steps were invoked as "set the end"
             StartOrEnd::End => {
@@ -412,11 +411,11 @@ impl Range {
                     bp_position(node, offset, &self.start_container(), self.start_offset()) ==
                         Ordering::Less
                 {
-                    self.set_start(no_gc, node, offset);
+                    self.set_start(node, offset);
                 }
 
                 // Step 4.2. Set range’s end to bp.
-                self.set_end(no_gc, node, offset);
+                self.set_end(node, offset);
             },
         }
 
@@ -461,63 +460,63 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstart>
-    fn SetStart(&self, no_gc: &NoGC, node: &Node, offset: u32) -> ErrorResult {
-        self.set_the_start_or_end(no_gc, node, offset, StartOrEnd::Start)
+    fn SetStart(&self, node: &Node, offset: u32) -> ErrorResult {
+        self.set_the_start_or_end(node, offset, StartOrEnd::Start)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setend>
-    fn SetEnd(&self, no_gc: &NoGC, node: &Node, offset: u32) -> ErrorResult {
-        self.set_the_start_or_end(no_gc, node, offset, StartOrEnd::End)
+    fn SetEnd(&self, node: &Node, offset: u32) -> ErrorResult {
+        self.set_the_start_or_end(node, offset, StartOrEnd::End)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstartbefore>
-    fn SetStartBefore(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
+    fn SetStartBefore(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetStart(no_gc, &parent, node.index())
+        self.SetStart(&parent, node.index())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setstartafter>
-    fn SetStartAfter(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
+    fn SetStartAfter(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetStart(no_gc, &parent, node.index() + 1)
+        self.SetStart(&parent, node.index() + 1)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setendbefore>
-    fn SetEndBefore(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
+    fn SetEndBefore(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetEnd(no_gc, &parent, node.index())
+        self.SetEnd(&parent, node.index())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-setendafter>
-    fn SetEndAfter(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
+    fn SetEndAfter(&self, node: &Node) -> ErrorResult {
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
-        self.SetEnd(no_gc, &parent, node.index() + 1)
+        self.SetEnd(&parent, node.index() + 1)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-collapse>
-    fn Collapse(&self, no_gc: &NoGC, to_start: bool) {
+    fn Collapse(&self, to_start: bool) {
         if to_start {
-            self.set_end(no_gc, &self.start_container(), self.start_offset());
+            self.set_end(&self.start_container(), self.start_offset());
         } else {
-            self.set_start(no_gc, &self.end_container(), self.end_offset());
+            self.set_start(&self.end_container(), self.end_offset());
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-selectnode>
-    fn SelectNode(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
+    fn SelectNode(&self, node: &Node) -> ErrorResult {
         // Steps 1, 2.
         let parent = node.GetParentNode().ok_or(Error::InvalidNodeType(None))?;
         // Step 3.
         let index = node.index();
         // Step 4.
-        self.set_start(no_gc, &parent, index);
+        self.set_start(&parent, index);
         // Step 5.
-        self.set_end(no_gc, &parent, index + 1);
+        self.set_end(&parent, index + 1);
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-selectnodecontents>
-    fn SelectNodeContents(&self, no_gc: &NoGC, node: &Node) -> ErrorResult {
+    fn SelectNodeContents(&self, node: &Node) -> ErrorResult {
         if node.is_doctype() {
             // Step 1.
             return Err(Error::InvalidNodeType(None));
@@ -525,9 +524,9 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 2.
         let length = node.len();
         // Step 3.
-        self.set_start(no_gc, node, 0);
+        self.set_start(node, 0);
         // Step 4.
-        self.set_end(no_gc, node, length);
+        self.set_end(node, length);
         Ok(())
     }
 
@@ -884,8 +883,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         }
 
         // Step 20.
-        self.SetStart(cx.no_gc(), &new_node, new_offset)?;
-        self.SetEnd(cx.no_gc(), &new_node, new_offset)?;
+        self.SetStart(&new_node, new_offset)?;
+        self.SetEnd(&new_node, new_offset)?;
 
         // Step 21.
         Ok(fragment)
@@ -975,7 +974,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         // Step 13.
         if self.collapsed() {
-            self.set_end(cx.no_gc(), &parent, new_offset);
+            self.set_end(&parent, new_offset);
         }
 
         Ok(())
@@ -1000,7 +999,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             let Some(text) = start_node.downcast::<CharacterData>()
         {
             if end_offset > start_offset {
-                self.prepare_for_range_update(cx.no_gc());
+                self.prepare_for_range_update();
             }
 
             // Step 3.1. Replace data of originalStartNode with originalStartOffset,
@@ -1058,8 +1057,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         };
 
         // Step 8. Set this’s start and end to (newNode, newOffset).
-        self.SetStart(cx.no_gc(), &new_node, new_offset).unwrap();
-        self.SetEnd(cx.no_gc(), &new_node, new_offset).unwrap();
+        self.SetStart(&new_node, new_offset).unwrap();
+        self.SetEnd(&new_node, new_offset).unwrap();
 
         // Step 9. If originalStartNode is a CharacterData node,
         // then replace data of originalStartNode with originalStartOffset,
@@ -1127,7 +1126,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         new_parent.AppendChild(cx, fragment.upcast())?;
 
         // Step 7.
-        self.SelectNode(cx.no_gc(), new_parent)
+        self.SelectNode(new_parent)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-stringifier>
@@ -1312,20 +1311,20 @@ impl WeakRangeVec {
 
     /// Used for steps 2.1-2. when inserting a node.
     /// <https://dom.spec.whatwg.org/#concept-node-insert>
-    pub(crate) fn increase_above(&self, no_gc: &NoGC, node: &Node, offset: u32, delta: u32) {
-        self.map_offset_above(no_gc, node, offset, |offset| offset + delta);
+    pub(crate) fn increase_above(&self, node: &Node, offset: u32, delta: u32) {
+        self.map_offset_above(node, offset, |offset| offset + delta);
     }
 
     /// Used for steps 4-5. when removing a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub(crate) fn decrease_above(&self, no_gc: &NoGC, node: &Node, offset: u32, delta: u32) {
-        self.map_offset_above(no_gc, node, offset, |offset| offset - delta);
+    pub(crate) fn decrease_above(&self, node: &Node, offset: u32, delta: u32) {
+        self.map_offset_above(node, offset, |offset| offset - delta);
     }
 
     /// Used for steps 2-3. when removing a node.
     ///
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    pub(crate) fn drain_to_parent(&self, no_gc: &NoGC, parent: &Node, offset: u32, child: &Node) {
+    pub(crate) fn drain_to_parent(&self, parent: &Node, offset: u32, child: &Node) {
         if self.is_empty() {
             return;
         }
@@ -1338,11 +1337,11 @@ impl WeakRangeVec {
                 entry.remove();
             }
             if range.start().node() == child {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.start().set(parent, offset);
             }
             if range.end().node() == child {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.end().set(parent, offset);
             }
         });
@@ -1356,13 +1355,7 @@ impl WeakRangeVec {
 
     /// Used for steps 6.1-2. when normalizing a node.
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    pub(crate) fn drain_to_preceding_text_sibling(
-        &self,
-        no_gc: &NoGC,
-        node: &Node,
-        sibling: &Node,
-        length: u32,
-    ) {
+    pub(crate) fn drain_to_preceding_text_sibling(&self, node: &Node, sibling: &Node, length: u32) {
         if self.is_empty() {
             return;
         }
@@ -1375,11 +1368,11 @@ impl WeakRangeVec {
                 entry.remove();
             }
             if range.start().node() == node {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.start().set(sibling, range.start_offset() + length);
             }
             if range.end().node() == node {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.end().set(sibling, range.end_offset() + length);
             }
         });
@@ -1395,7 +1388,6 @@ impl WeakRangeVec {
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     pub(crate) fn move_to_text_child_at(
         &self,
-        no_gc: &NoGC,
         node: &Node,
         offset: u32,
         child: &Node,
@@ -1434,11 +1426,11 @@ impl WeakRangeVec {
             }
 
             if move_start {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.start().set(child, new_offset);
             }
             if move_end {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.end().set(child, new_offset);
             }
         });
@@ -1448,13 +1440,12 @@ impl WeakRangeVec {
     /// <https://dom.spec.whatwg.org/#concept-cd-replace>
     pub(crate) fn replace_code_units(
         &self,
-        no_gc: &NoGC,
         node: &Node,
         offset: u32,
         removed_code_units: u32,
         added_code_units: u32,
     ) {
-        self.map_offset_above(no_gc, node, offset, |range_offset| {
+        self.map_offset_above(node, offset, |range_offset| {
             if range_offset <= offset + removed_code_units {
                 offset
             } else {
@@ -1467,7 +1458,6 @@ impl WeakRangeVec {
     /// <https://dom.spec.whatwg.org/#concept-text-split>
     pub(crate) fn move_to_following_text_sibling_above(
         &self,
-        no_gc: &NoGC,
         node: &Node,
         offset: u32,
         sibling: &Node,
@@ -1508,11 +1498,11 @@ impl WeakRangeVec {
             }
 
             if move_start {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.start().set(sibling, start_offset - offset);
             }
             if move_end {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.end().set(sibling, end_offset - offset);
             }
         });
@@ -1520,37 +1510,31 @@ impl WeakRangeVec {
 
     /// Used for steps 7.4-5. when splitting a text node.
     /// <https://dom.spec.whatwg.org/#concept-text-split>
-    pub(crate) fn increment_at(&self, no_gc: &NoGC, node: &Node, offset: u32) {
+    pub(crate) fn increment_at(&self, node: &Node, offset: u32) {
         self.cell.borrow_mut().update(|entry| {
             let range = entry.root().unwrap();
             if range.start().node() == node && offset == range.start_offset() {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.start().set_offset(offset + 1);
             }
             if range.end().node() == node && offset == range.end_offset() {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.end().set_offset(offset + 1);
             }
         });
     }
 
-    fn map_offset_above<F: FnMut(u32) -> u32>(
-        &self,
-        no_gc: &NoGC,
-        node: &Node,
-        offset: u32,
-        mut f: F,
-    ) {
+    fn map_offset_above<F: FnMut(u32) -> u32>(&self, node: &Node, offset: u32, mut f: F) {
         self.cell.borrow_mut().update(|entry| {
             let range = entry.root().unwrap();
             let start_offset = range.start_offset();
             if range.start().node() == node && start_offset > offset {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.start().set_offset(f(start_offset));
             }
             let end_offset = range.end_offset();
             if range.end().node() == node && end_offset > offset {
-                range.prepare_for_range_update(no_gc);
+                range.prepare_for_range_update();
                 range.end().set_offset(f(end_offset));
             }
         });

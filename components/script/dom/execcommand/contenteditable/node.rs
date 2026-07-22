@@ -191,8 +191,8 @@ where
     if let Some((selected_text_node, previous_start_offset, previous_end_offset)) =
         end_offsets_if_previously_selected_single_text_node
     {
-        active_range.set_start(cx.no_gc(), &selected_text_node, previous_start_offset);
-        active_range.set_end(cx.no_gc(), &selected_text_node, previous_end_offset);
+        active_range.set_start(&selected_text_node, previous_start_offset);
+        active_range.set_end(&selected_text_node, previous_end_offset);
         return;
     }
 
@@ -237,8 +237,8 @@ where
         }
     }
 
-    active_range.set_start(cx.no_gc(), &start_node, start_offset);
-    active_range.set_end(cx.no_gc(), &end_node, end_offset);
+    active_range.set_start(&start_node, start_offset);
+    active_range.set_end(&end_node, end_offset);
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#allowed-child>
@@ -679,14 +679,14 @@ where
             let start_offset = range.start_offset();
 
             if start_container == parent_of_new_parent && start_offset == new_parent.index() {
-                range.set_start(cx.no_gc(), &start_container, start_offset + 1);
+                range.set_start(&start_container, start_offset + 1);
             }
 
             let end_container = range.end_container();
             let end_offset = range.end_offset();
 
             if end_container == parent_of_new_parent && end_offset == new_parent.index() {
-                range.set_end(cx.no_gc(), &end_container, end_offset + 1);
+                range.set_end(&end_container, end_offset + 1);
             }
         }
     }

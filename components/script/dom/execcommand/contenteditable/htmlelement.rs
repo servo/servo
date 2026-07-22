@@ -261,8 +261,8 @@ impl HTMLElement {
             }
             previous_node = child;
         }
-        range.set_start(cx.no_gc(), &selected_node, selected_offset);
-        range.set_end(cx.no_gc(), &selected_node, selected_offset);
+        range.set_start(&selected_node, selected_offset);
+        range.set_end(&selected_node, selected_offset);
         selection.AddRange(&range);
     }
 }

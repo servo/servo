@@ -103,12 +103,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
             // greater than offset, set its end node to newNode and decrease its end
             // offset by offset.
             if let Some(weak_ranges) = node.weak_ranges_mut() {
-                weak_ranges.move_to_following_text_sibling_above(
-                    cx.no_gc(),
-                    node,
-                    offset,
-                    new_node.upcast(),
-                );
+                weak_ranges.move_to_following_text_sibling_above(node, offset, new_node.upcast());
             }
 
             // Step 7.4. For each live range whose start node is parent and start offset
@@ -117,7 +112,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
             // Step 7.5. For each live range whose end node is parent and end offset is
             // equal to the index of node plus 1, increase its end offset by 1.
             if let Some(parent_weak_ranges) = parent.weak_ranges_mut() {
-                parent_weak_ranges.increment_at(cx.no_gc(), parent, node.index() + 1);
+                parent_weak_ranges.increment_at(parent, node.index() + 1);
             }
         }
         // Step 8.

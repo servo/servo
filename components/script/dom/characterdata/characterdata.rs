@@ -119,7 +119,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
         let node = self.upcast::<Node>();
         if let Some(weak_ranges) = node.weak_ranges_mut() {
-            weak_ranges.replace_code_units(cx.no_gc(), node, 0, old_length, new_length);
+            weak_ranges.replace_code_units(node, 0, old_length, new_length);
         }
     }
 
@@ -262,13 +262,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         // by count.
         let node = self.upcast::<Node>();
         if let Some(weak_ranges) = node.weak_ranges_mut() {
-            weak_ranges.replace_code_units(
-                cx.no_gc(),
-                node,
-                offset,
-                count,
-                len_utf16(&arg.str()) as u32,
-            );
+            weak_ranges.replace_code_units(node, offset, count, len_utf16(&arg.str()) as u32);
         }
 
         // Step 12: If node is a ProcessingInstruction node and piAttributesAlreadyUpdated
