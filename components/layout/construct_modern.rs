@@ -9,7 +9,7 @@ use std::ops::Range;
 use std::sync::OnceLock;
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use servo_base::text::Utf32CodeUnitLength;
+use servo_base::text::Utf32CodeUnits;
 use style::selector_parser::PseudoElement;
 
 use crate::PropagatedBoxTreeData;
@@ -181,7 +181,7 @@ impl<'dom> ModernContainerJob<'dom> {
 struct ModernContainerTextRun<'dom> {
     info: NodeAndStyleInfo<'dom>,
     text: Cow<'dom, str>,
-    document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+    document_selection_range: Option<Range<Utf32CodeUnits>>,
     style_from_display_contents: Option<SharedInlineStyles>,
 }
 
@@ -214,7 +214,7 @@ impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
         text: Cow<'dom, str>,
-        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+        document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         self.contiguous_text_runs.push(ModernContainerTextRun {
             info: info.clone(),

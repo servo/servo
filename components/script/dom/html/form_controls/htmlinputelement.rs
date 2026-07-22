@@ -23,7 +23,7 @@ use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::domstring::parse_floating_point_number;
 use servo_base::generic_channel::GenericSender;
-use servo_base::text::Utf16CodeUnitLength;
+use servo_base::text::Utf16CodeUnits;
 use style::attr::AttrValue;
 use style::str::split_commas;
 use stylo_atoms::Atom;
@@ -757,7 +757,7 @@ impl HTMLInputElement {
         }
 
         let mut failed_flags = ValidationFlags::empty();
-        let Utf16CodeUnitLength(value_len) = textinput.len_utf16();
+        let Utf16CodeUnits(value_len) = textinput.len_utf16();
         let min_length = self.MinLength();
         let max_length = self.MaxLength();
 
@@ -1464,7 +1464,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
         self.selection()
-            .set_dom_start(start.map(Utf16CodeUnitLength::from))
+            .set_dom_start(start.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
@@ -1474,8 +1474,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, _cx: &mut JSContext, end: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_end(end.map(Utf16CodeUnitLength::from))
+        self.selection().set_dom_end(end.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
@@ -1495,8 +1494,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         self.selection().set_dom_range(
-            Utf16CodeUnitLength::from(start),
-            Utf16CodeUnitLength::from(end),
+            Utf16CodeUnits::from(start),
+            Utf16CodeUnits::from(end),
             direction,
         )
     }
@@ -1517,8 +1516,8 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     ) -> ErrorResult {
         self.selection().set_dom_range_text(
             replacement,
-            Some(Utf16CodeUnitLength::from(start)),
-            Some(Utf16CodeUnitLength::from(end)),
+            Some(Utf16CodeUnits::from(start)),
+            Some(Utf16CodeUnits::from(end)),
             selection_mode,
         )
     }
@@ -2126,12 +2125,10 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Set or remove the length restrictions depending on whether they apply
                         if self.does_minmaxlength_apply() {
-                            textinput.set_min_length(
-                                self.MinLength().to_usize().map(Utf16CodeUnitLength),
-                            );
-                            textinput.set_max_length(
-                                self.MaxLength().to_usize().map(Utf16CodeUnitLength),
-                            );
+                            textinput
+                                .set_min_length(self.MinLength().to_usize().map(Utf16CodeUnits));
+                            textinput
+                                .set_max_length(self.MaxLength().to_usize().map(Utf16CodeUnits));
                         } else {
                             textinput.set_min_length(None);
                             textinput.set_max_length(None);
@@ -2177,7 +2174,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(Utf16CodeUnitLength(value as usize)))
+                        textinput.set_max_length(Some(Utf16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -2189,7 +2186,7 @@ impl VirtualMethods for HTMLInputElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(Utf16CodeUnitLength(value as usize)))
+                        textinput.set_min_length(Some(Utf16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),

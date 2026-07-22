@@ -10,7 +10,7 @@ use layout_api::{
 };
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::Utf32CodeUnitLength;
+use servo_base::text::Utf32CodeUnits;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -91,7 +91,7 @@ pub(super) trait TraversalHandler<'dom> {
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
         text: Cow<'dom, str>,
-        document_selection: Option<Range<Utf32CodeUnitLength>>,
+        document_selection: Option<Range<Utf32CodeUnits>>,
     );
 
     /// Or pseudo-element

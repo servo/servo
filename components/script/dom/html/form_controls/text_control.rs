@@ -10,7 +10,7 @@
 use std::cell::Ref;
 
 use script_bindings::cell::DomRefCell;
-use servo_base::text::Utf16CodeUnitLength;
+use servo_base::text::Utf16CodeUnits;
 
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -63,15 +63,15 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Step 2 : Set the selection range with 0 and infinity.
         self.set_range(
-            Some(Utf16CodeUnitLength::zero()),
-            Some(Utf16CodeUnitLength(usize::MAX)),
+            Some(Utf16CodeUnits::zero()),
+            Some(Utf16CodeUnits(usize::MAX)),
             None,
             None,
         );
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    pub(crate) fn dom_start(&self) -> Option<Utf16CodeUnitLength> {
+    pub(crate) fn dom_start(&self) -> Option<Utf16CodeUnits> {
         // Step 1
         if !self.element.selection_api_applies() {
             return None;
@@ -82,7 +82,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    pub(crate) fn set_dom_start(&self, start: Option<Utf16CodeUnitLength>) -> ErrorResult {
+    pub(crate) fn set_dom_start(&self, start: Option<Utf16CodeUnits>) -> ErrorResult {
         // Step 1: If this element is an input element, and selectionStart does not apply
         // to this element, throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
@@ -105,7 +105,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    pub(crate) fn dom_end(&self) -> Option<Utf16CodeUnitLength> {
+    pub(crate) fn dom_end(&self) -> Option<Utf16CodeUnits> {
         // Step 1: If this element is an input element, and selectionEnd does not apply to
         // this element, return null.
         if !self.element.selection_api_applies() {
@@ -120,7 +120,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    pub(crate) fn set_dom_end(&self, end: Option<Utf16CodeUnitLength>) -> ErrorResult {
+    pub(crate) fn set_dom_end(&self, end: Option<Utf16CodeUnits>) -> ErrorResult {
         // Step 1: If this element is an input element, and selectionEnd does not apply to
         // this element, throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
@@ -164,8 +164,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     pub(crate) fn set_dom_range(
         &self,
-        start: Utf16CodeUnitLength,
-        end: Utf16CodeUnitLength,
+        start: Utf16CodeUnits,
+        end: Utf16CodeUnits,
         direction: Option<DOMString>,
     ) -> ErrorResult {
         // Step 1
@@ -187,8 +187,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     pub(crate) fn set_dom_range_text(
         &self,
         replacement: DOMString,
-        start: Option<Utf16CodeUnitLength>,
-        end: Option<Utf16CodeUnitLength>,
+        start: Option<Utf16CodeUnits>,
+        end: Option<Utf16CodeUnits>,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
         // Step 1: If this element is an input element, and setRangeText() does not apply
@@ -303,8 +303,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 // start. (This snaps the start of the selection to the start of the new
                 // text if it was in the middle of the text that it replaced.)
                 if selection_start > end {
-                    selection_start =
-                        Utf16CodeUnitLength::from((selection_start.0 as isize) + delta);
+                    selection_start = Utf16CodeUnits::from((selection_start.0 as isize) + delta);
                 } else if selection_start > start {
                     selection_start = start;
                 }
@@ -316,7 +315,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
                 // end. (This snaps the end of the selection to the end of the new text if
                 // it was in the middle of the text that it replaced.)
                 if selection_end > end {
-                    selection_end = Utf16CodeUnitLength::from((selection_end.0 as isize) + delta);
+                    selection_end = Utf16CodeUnits::from((selection_end.0 as isize) + delta);
                 } else if selection_end > start {
                     selection_end = new_end;
                 }
@@ -333,11 +332,11 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         Ok(())
     }
 
-    fn start(&self) -> Utf16CodeUnitLength {
+    fn start(&self) -> Utf16CodeUnits {
         self.textinput.borrow().selection_start_utf16()
     }
 
-    fn end(&self) -> Utf16CodeUnitLength {
+    fn end(&self) -> Utf16CodeUnits {
         self.textinput.borrow().selection_end_utf16()
     }
 
@@ -348,8 +347,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     /// <https://html.spec.whatwg.org/multipage/#set-the-selection-range>
     fn set_range(
         &self,
-        start: Option<Utf16CodeUnitLength>,
-        end: Option<Utf16CodeUnitLength>,
+        start: Option<Utf16CodeUnits>,
+        end: Option<Utf16CodeUnits>,
         direction: Option<SelectionDirection>,
         original_selection_state: Option<SelectionState>,
     ) {

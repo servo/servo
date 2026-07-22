@@ -22,7 +22,7 @@ use js::rust::{Runtime, Trace};
 use malloc_size_of::MallocSizeOfOps;
 use num_traits::{ToPrimitive, Zero};
 use regex::Regex;
-use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
 use style::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
 use zeroize::Zeroize;
@@ -411,20 +411,20 @@ impl DOMString {
 
     /// The length of this string in UTF-8 code units, each one being one byte in size.
     /// This method is the same as [`DOMString::len`], but the result is wrapped in a
-    /// `Utf8CodeUnitLength` to be used in code that mixes different kinds of offsets.
+    /// `Utf8CodeUnits` to be used in code that mixes different kinds of offsets.
     ///
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-8 code units.
-    pub fn len_utf8(&self) -> Utf8CodeUnitLength {
-        Utf8CodeUnitLength(self.len())
+    pub fn len_utf8(&self) -> Utf8CodeUnits {
+        Utf8CodeUnits(self.len())
     }
 
     /// The length of this string in UTF-16 code units, each one being one two bytes in size.
     ///
     /// Note: This is different than the number of Unicode characters (or code points). A
     /// character may require multiple UTF-16 code units.
-    pub fn len_utf16(&self) -> Utf16CodeUnitLength {
-        Utf16CodeUnitLength(self.str().chars().map(char::len_utf16).sum())
+    pub fn len_utf16(&self) -> Utf16CodeUnits {
+        Utf16CodeUnits(self.str().chars().map(char::len_utf16).sum())
     }
 
     pub fn make_ascii_lowercase(&mut self) {

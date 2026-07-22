@@ -13,7 +13,7 @@ use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use servo_arc::Arc;
 use servo_base::id::{BrowsingContextId, PipelineId};
-use servo_base::text::Utf32CodeUnitLength;
+use servo_base::text::Utf32CodeUnits;
 use servo_url::ServoUrl;
 use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, OpaqueNode, TNode};
@@ -174,7 +174,7 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// For a text node, returns which range of this text is part of the document selection
     ///
     /// Returned offsets are counted in `char`s in the `self.text_content()` string.
-    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnitLength>>;
+    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnits>>;
 
     /// If this node manages a selection, this returns the shared selection for the node.
     fn selection(&self) -> Option<SharedSelection>;
