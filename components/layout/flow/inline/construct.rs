@@ -389,10 +389,6 @@ impl InlineFormattingContextBuilder {
                 range.start - first_letter_range_u32.end..range.end - first_letter_range_u32.end
             })
         });
-        println!(
-            "Pushing: {:?} {remaining_selection_range:?}",
-            &text[first_letter_range.end..]
-        );
         self.push_text(
             Cow::Borrowed(&text[first_letter_range.end..]),
             info,
@@ -508,7 +504,6 @@ impl InlineFormattingContextBuilder {
             )
             .is_break()
         {
-            println!("Merging text: {text:?} {document_selection:?}");
             return;
         }
 
