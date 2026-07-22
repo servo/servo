@@ -2129,7 +2129,7 @@ impl VirtualMethods for HTMLImageElement {
 
         // Step 1. If insertedNode's parent is a picture element, then, count this as a relevant
         // mutation for insertedNode.
-        if parent.is::<HTMLPictureElement>() && std::ptr::eq(&*parent, context.parent) {
+        if parent.is::<HTMLPictureElement>() && *parent == *context.parent {
             self.update_the_image_data(cx);
         }
     }

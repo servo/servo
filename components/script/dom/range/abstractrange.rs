@@ -134,7 +134,7 @@ pub(crate) fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset:
 
     // Step 2: If nodeA is nodeB, then return equal if offsetA is offsetB, before if
     // offsetA is less than offsetB, and after if offsetA is greater than offsetB.
-    if std::ptr::eq(a_node, b_node) {
+    if a_node == b_node {
         return a_offset.cmp(&b_offset);
     }
 
