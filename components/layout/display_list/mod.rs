@@ -1034,10 +1034,13 @@ impl Fragment {
                 },
             };
 
-            // Round to the nearest physical pixel. Floor at 1 physical pixel.
-            let nearest_min_1 = (resolved * dppx).floor().max(1.0) / dppx;
-
-            Au::from_f32_px(nearest_min_1)
+            // If zero, return zero.
+            // Else round to the nearest physical pixel; floor at 1 physical pixel.
+            if resolved == 0.0 {
+                Au::zero()
+            } else {
+                Au::from_f32_px((resolved * dppx).floor().max(1.0) / dppx)
+            }
         };
 
         // Gecko gets the text bounding box based on the ink overflow bounds. Since
