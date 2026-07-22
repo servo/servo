@@ -873,11 +873,11 @@ fn position_in_flat_tree_for_selection(
         return FlatTreeNodePosition::Inside(container);
     }
 
-    let shadow_host_or_node = |node: &DomRoot<Node>| {
+    let shadow_host_or_node = |node: &Node| {
         container
             .downcast::<ShadowRoot>()
             .map(|shadow_root| DomRoot::upcast(shadow_root.Host()))
-            .unwrap_or(node.clone())
+            .unwrap_or(DomRoot::from_ref(node))
     };
 
     if let Some(child) = container.children().nth(offset) {
