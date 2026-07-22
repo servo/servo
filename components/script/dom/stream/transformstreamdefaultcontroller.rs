@@ -63,26 +63,31 @@ impl Callback for TransformTransformPromiseRejection {
 }
 
 /// The type of transformer algorithms we are using
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum TransformerType {
     /// Algorithms provided by Js callbacks
     Js {
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-cancelalgorithm>
+        #[conditional_malloc_size_of]
         cancel: RefCell<Option<Rc<TransformerCancelCallback>>>,
 
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
+        #[conditional_malloc_size_of]
         flush: RefCell<Option<Rc<TransformerFlushCallback>>>,
 
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
+        #[conditional_malloc_size_of]
         transform: RefCell<Option<Rc<TransformerTransformCallback>>>,
 
         /// The JS object used as `this` when invoking sink algorithms.
+        #[ignore_malloc_size_of = "mozjs"]
         transform_obj: Heap<*mut JSObject>,
     },
     /// Algorithms supporting `TextDecoderStream` are implemented in Rust
     ///
     /// <https://encoding.spec.whatwg.org/#textdecodercommon>
-    Decoder(Rc<TextDecoderCommon>),
+    Decoder(#[conditional_malloc_size_of] Rc<TextDecoderCommon>),
     /// Algorithms supporting `TextEncoderStream` are implemented in Rust
     ///
     /// <https://encoding.spec.whatwg.org/#textencoderstream-encoder>
@@ -90,11 +95,11 @@ pub(crate) enum TransformerType {
     /// Algorithms supporting `CompressionStream` are implemented in Rust
     ///
     /// <https://compression.spec.whatwg.org/#compressionstream>
-    Compressor(DomRoot<CompressionStream>),
+    Compressor(Dom<CompressionStream>),
     /// Algorithms supporting `DecompressionStream` are implemented in Rust
     ///
     /// <https://compression.spec.whatwg.org/#decompressionstream>
-    Decompressor(DomRoot<DecompressionStream>),
+    Decompressor(Dom<DecompressionStream>),
 }
 
 impl TransformerType {
@@ -115,7 +120,6 @@ pub struct TransformStreamDefaultController {
 
     /// The type of the underlying transformer used. Besides the JS variant,
     /// there will be other variant(s) for `TextDecoderStream`
-    #[ignore_malloc_size_of = "transformer_type"]
     transformer_type: TransformerType,
 
     /// <https://streams.spec.whatwg.org/#TransformStreamDefaultController-stream>
@@ -127,6 +131,7 @@ pub struct TransformStreamDefaultController {
 }
 
 impl TransformStreamDefaultController {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(transformer_type: TransformerType) -> TransformStreamDefaultController {
         TransformStreamDefaultController {
             reflector_: Reflector::new(),
@@ -136,6 +141,7 @@ impl TransformStreamDefaultController {
         }
     }
 
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
