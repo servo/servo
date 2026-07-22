@@ -183,7 +183,7 @@ impl ShadowRoot {
     }
 
     pub(crate) fn host_unrooted<'a>(&self, no_gc: &'a NoGC) -> UnrootedDom<'a, Element> {
-        self.document_fragment
+        self.upcast::<DocumentFragment>()
             .host_unrooted(no_gc)
             .expect("ShadowRoot always has an element as host")
     }
@@ -453,7 +453,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>
     fn Host(&self) -> DomRoot<Element> {
-        self.document_fragment
+        self.upcast::<DocumentFragment>()
             .host()
             .expect("ShadowRoot always has an element as host")
     }
