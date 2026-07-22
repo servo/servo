@@ -23,6 +23,7 @@ use style::color::AbsoluteColor;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
+use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
 use style::values::computed::angle::Angle;
 use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
@@ -315,6 +316,7 @@ pub(crate) struct FragmentTextDecoration {
     pub line: TextDecorationLine,
     pub color: AbsoluteColor,
     pub style: TextDecorationStyle,
+    pub thickness: TextDecorationThickness,
 }
 
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
@@ -886,6 +888,7 @@ impl BoxFragmentWithStyle<'_> {
                         .clone_text_decoration_color()
                         .resolve_to_absolute(color),
                     style: style.clone_text_decoration_style(),
+                    thickness: style.clone_text_decoration_thickness(),
                 });
                 new_text_decoration = Rc::new(new_vector);
                 &new_text_decoration

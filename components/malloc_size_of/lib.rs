@@ -1340,6 +1340,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::color::AbsoluteColor);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_caps::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_variant_position::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_style::T);
+malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_decoration_thickness::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::text_rendering::T);
 malloc_size_of_is_stylo_malloc_size_of!(style::dom::OpaqueNode);
 malloc_size_of_is_stylo_malloc_size_of!(style::font_face::ComputedFontStretchRange);

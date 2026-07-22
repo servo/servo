@@ -28,6 +28,7 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::text_decoration_style::{
     T as ComputedTextDecorationStyle, T as TextDecorationStyle,
 };
+use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
@@ -1019,8 +1020,21 @@ impl Fragment {
 
         let parent_style = fragment.base.style();
         let color = parent_style.clone_color();
+        let font_size = parent_style.clone_font_size();
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.device_pixel_ratio.get();
+
+        let resolve_thickness = |thickness: &TextDecorationThickness| -> Au {
+            let resolved = match thickness {
+                TextDecorationThickness::LengthPercentage(lp) => {
+                    Au::from_f32_px(lp.resolve(font_size.computed_size.0).px())
+                },
+                TextDecorationThickness::Auto | TextDecorationThickness::FromFont => {
+                    font_metrics.underline_size
+                },
+            };
+            Au::from_f32_px(resolved.to_nearest_pixel(dppx).max(1.0))
+        };
 
         // Gecko gets the text bounding box based on the ink overflow bounds. Since
         // we don't need to calculate this yet (as we do not implement `contain:
@@ -1064,9 +1078,7 @@ impl Fragment {
             if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
                 let mut rect = rect;
                 rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
-                rect.size.height =
-                    Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
-
+                rect.size.height = resolve_thickness(&text_decoration.thickness);
                 Self::build_display_list_for_text_decoration(
                     state,
                     &parent_style,
@@ -1081,8 +1093,7 @@ impl Fragment {
         for text_decoration in state.text_decorations.iter() {
             if text_decoration.line.contains(TextDecorationLine::OVERLINE) {
                 let mut rect = rect;
-                rect.size.height =
-                    Au::from_f32_px(font_metrics.underline_size.to_nearest_pixel(dppx));
+                rect.size.height = resolve_thickness(&text_decoration.thickness);
                 Self::build_display_list_for_text_decoration(
                     state,
                     &parent_style,
@@ -1117,8 +1128,7 @@ impl Fragment {
             {
                 let mut rect = rect;
                 rect.origin.y += font_metrics.ascent - font_metrics.strikeout_offset;
-                rect.size.height =
-                    Au::from_f32_px(font_metrics.strikeout_size.to_nearest_pixel(dppx));
+                rect.size.height = resolve_thickness(&text_decoration.thickness);
                 Self::build_display_list_for_text_decoration(
                     state,
                     &parent_style,
