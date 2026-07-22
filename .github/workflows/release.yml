@@ -114,6 +114,7 @@ jobs:
       # any of the build jobs failed.
       - build-android
       - build-linux
+      - build-linux-arm64
       - build-mac
       - build-mac-arm64
       - build-ohos
@@ -221,6 +222,7 @@ jobs:
       - build-mac
       - build-mac-arm64
       - build-linux
+      - build-linux-arm64
       - build-android
       - build-ohos
     strategy: &upload-artifacts-strategy
@@ -235,6 +237,8 @@ jobs:
             artifact_platform: mac-arm64
           - artifact_ids: ${{ needs.build-linux.outputs.artifact_ids }}
             artifact_platform: linux
+          - artifact_ids: ${{ needs.build-linux-arm64.outputs.artifact_ids }}
+            artifact_platform: linux-arm64
           - artifact_ids: ${{ needs.build-android.outputs.artifact_ids }}
             artifact_platform: android
           - artifact_ids: ${{ needs.build-ohos.outputs.artifact_ids }}
@@ -324,6 +328,15 @@ jobs:
     if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
     name: Build production release (Linux)
     uses: ./.github/workflows/linux.yml
+    with:
+      profile: "production"
+      force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>
+
+  build-linux-arm64:
+    # This job is only useful when run on upstream servo.
+    if: github.repository == 'servo/servo' || github.event_name == 'workflow_dispatch'
+    name: Build production release (Linux Arm64)
+    uses: ./.github/workflows/linux-arm64.yml
     with:
       profile: "production"
       force-github-hosted-runner: true  # <https://github.com/servo/servo/issues/33296>

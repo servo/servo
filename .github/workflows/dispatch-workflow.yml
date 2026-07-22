@@ -105,6 +105,24 @@ jobs:
       coverage: ${{ inputs.coverage }}
       capi: ${{ inputs.capi }}
 
+  linux-arm64:
+    if: ${{ inputs.workflow == 'linux-arm64' }}
+    name: Linux (arm64)
+    uses: ./.github/workflows/linux-arm64.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+      wpt: ${{ inputs.wpt }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
+      unit-tests: ${{ inputs.unit-tests }}
+      devtools-tests: ${{ inputs.devtools-tests }}
+      build-libservo: ${{ inputs.build-libservo }}
+      wpt-args: ${{ inputs.wpt-args }}
+      bencher: ${{ inputs.bencher }}
+      coverage: ${{ inputs.coverage }}
+      capi: ${{ inputs.capi }}
+
   lint:
     if: ${{ inputs.workflow == 'lint' }}
     name: Lint
