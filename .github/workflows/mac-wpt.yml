@@ -30,15 +30,7 @@ jobs:
       matrix:
         chunk_id: [1, 2, 3, 4, 5]
     steps:
-      - uses: actions/checkout@v6
-        if: github.event_name != 'pull_request_target'
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v6
-        if: github.event_name == 'pull_request_target'
-        with:
-          ref: refs/pull/${{ github.event.number }}/head
-          allow-unsafe-pr-checkout: true
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ env.NAME }}

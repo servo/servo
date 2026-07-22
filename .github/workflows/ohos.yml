@@ -55,17 +55,7 @@ jobs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
-      - uses: actions/checkout@v6
-        if: github.event_name != 'pull_request_target'
-        with:
-          fetch-depth: 2
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v6
-        if: github.event_name == 'pull_request_target'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
       - name: Install crown
         run: cargo install --path support/crown
       - name: Setup Python
@@ -179,15 +169,7 @@ jobs:
       # will make `needs.build-harmonyos-aarch64.result` evaluate to `success` even if the job failed.
       job_status: ${{ steps.result.outputs.JOB_STATUS }}
     steps:
-      - if: ${{ github.event_name != 'pull_request_target' }}
-        run: git fetch --depth=1 origin $GITHUB_SHA
-      - if: ${{ github.event_name == 'pull_request_target' }}
-        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
-      # Safeguard: -- means FETCH_HEAD is revision instead of path.
-      # See <https://github.com/servo/servo/pull/44309>
-      - run: |
-          git switch --detach
-          git reset --hard FETCH_HEAD --
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
       - name: Adding test files to directory
         run: cp -r support/hitrace-bencher/* support/openharmony/AppScope/resources/resfile/
       - name: Build for aarch64 HarmonyOS
@@ -236,16 +218,8 @@ jobs:
           # to make sure we don't use a previous version if installation failed for some reason.
           hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
-      - uses: actions/checkout@v6
-        if: github.event_name != 'pull_request_target'
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
         with:
-          fetch-depth: 0
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v6
-        if: github.event_name == 'pull_request_target'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
       - name: Setup Python
         uses: ./.github/actions/setup-python
