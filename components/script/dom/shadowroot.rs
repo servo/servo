@@ -601,6 +601,11 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         );
 
         if result.is_ok() {
+            if self.author_styles.borrow().stylesheets.dirty() {
+                self.invalidate_stylesheets();
+            }
+
+            // Clear the FrozenArray cache.
             self.adopted_stylesheets_frozen_types.clear();
         }
 
