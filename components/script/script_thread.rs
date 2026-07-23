@@ -2330,9 +2330,9 @@ impl ScriptThread {
                 self.debugger_global
                     .fire_list_frames(cx, pipeline_id, start, count, result_sender);
             },
-            DevtoolScriptControlMsg::GetEnvironment(frame_actor_id, result_sender) => {
+            DevtoolScriptControlMsg::GetEnvironment(request, result_sender) => {
                 self.debugger_global
-                    .fire_get_environment(cx, frame_actor_id, result_sender);
+                    .fire_get_environment(cx, request, result_sender);
             },
             DevtoolScriptControlMsg::Resume(resume_limit_type, frame_actor_id) => {
                 self.debugger_global
