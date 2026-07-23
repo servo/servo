@@ -17,6 +17,7 @@ button {
   position: relative;
   min-height: 40px;
   min-width: 230px;
+  height: 100%;
 }
 
 .controls {
