@@ -693,7 +693,7 @@ impl<'dom> LayoutDom<'dom, ShadowRoot> {
         unsafe {
             debug_assert!(self.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED));
         };
-        let author_styles = unsafe { self.unsafe_get().author_styles.borrow_mut_for_layout() };
+        let mut author_styles = self.unsafe_get().author_styles.borrow_mut_for_layout();
         if author_styles.stylesheets.dirty() {
             author_styles.flush(stylist, guard);
         }

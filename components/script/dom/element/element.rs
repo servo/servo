@@ -1185,7 +1185,7 @@ impl<'dom> LayoutDom<'dom, Element> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) unsafe fn initialize_style_data(self) {
-        let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
+        let mut data = self.unsafe_get().style_data.borrow_mut_for_layout();
         debug_assert!(data.is_none());
         *data = Some(Box::default());
     }
@@ -1193,9 +1193,7 @@ impl<'dom> LayoutDom<'dom, Element> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) unsafe fn clear_style_data(self) {
-        unsafe {
-            self.unsafe_get().style_data.borrow_mut_for_layout().take();
-        }
+        self.unsafe_get().style_data.borrow_mut_for_layout().take();
     }
 
     pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
@@ -1666,7 +1664,7 @@ impl<'dom> LayoutDom<'dom, Element> {
 
     #[expect(unsafe_code)]
     pub(crate) fn each_custom_state_for_layout(self, mut callback: impl FnMut(&AtomIdent)) {
-        let rare_data = unsafe { self.unsafe_get().rare_data.borrow_for_layout() };
+        let rare_data = self.unsafe_get().rare_data.borrow_for_layout_safe();
         let Some(rare_data) = rare_data.as_ref() else {
             return;
         };
@@ -1676,7 +1674,8 @@ impl<'dom> LayoutDom<'dom, Element> {
 
         let element_internals: LayoutDom<'_, _> = unsafe { element_internals.to_layout() };
         if let Some(states) = element_internals.unsafe_get().custom_states_for_layout() {
-            for state in unsafe { states.unsafe_get().set_for_layout().iter() } {
+            let states_for_layout = unsafe { states.unsafe_get().set_for_layout() };
+            for state in states_for_layout.iter() {
                 // FIXME: This creates new atoms whenever it is called, which is not optimal.
                 callback(&AtomIdent::from(&*state.str()));
             }

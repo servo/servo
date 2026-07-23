@@ -183,7 +183,6 @@ impl SVGSVGElement {
 }
 
 impl<'dom> LayoutDom<'dom, SVGSVGElement> {
-    #[expect(unsafe_code)]
     pub(crate) fn data(self) -> SVGElementData<'dom> {
         let svg_id = self.unsafe_get().uuid;
         let element = self.upcast::<Element>();
@@ -191,12 +190,11 @@ impl<'dom> LayoutDom<'dom, SVGSVGElement> {
         let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
         let view_box = element.get_attr_for_layout(&ns!(), &local_name!("viewBox"));
         SVGElementData {
-            source: unsafe {
-                self.unsafe_get()
-                    .cached_serialized_data_url
-                    .borrow_for_layout()
-                    .clone()
-            },
+            source: self
+                .unsafe_get()
+                .cached_serialized_data_url
+                .borrow_for_layout_safe()
+                .clone(),
             width,
             height,
             view_box,

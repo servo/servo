@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::default::Default;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
@@ -1682,9 +1682,8 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 }
 
 impl<'dom> LayoutDom<'dom, HTMLImageElement> {
-    #[expect(unsafe_code)]
-    fn current_request(self) -> &'dom ImageRequest {
-        unsafe { self.unsafe_get().current_request.borrow_for_layout() }
+    fn current_request(self) -> Ref<'dom, ImageRequest> {
+        self.unsafe_get().current_request.borrow_for_layout_safe()
     }
 
     #[expect(unsafe_code)]
