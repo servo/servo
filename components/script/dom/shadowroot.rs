@@ -593,8 +593,12 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
         );
 
-        // If update is successful, clear the FrozenArray cache.
         if result.is_ok() {
+            if self.author_styles.borrow().stylesheets.dirty() {
+                self.invalidate_stylesheets();
+            }
+
+            // Clear the FrozenArray cache.
             self.adopted_stylesheets_frozen_types.clear();
         }
 
