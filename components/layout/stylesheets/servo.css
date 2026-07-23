@@ -266,6 +266,49 @@ input[type="range"]:disabled::slider-thumb {
   border-color: rgba(180, 180, 180);
 }
 
+/* ── Native range input — overlaid on the buffered bar ── */
+/* Absolutely positioned and vertically centered so the slider's track
+   aligns with the 4px progress bar. The input's min-height (16px) causes
+   it to overflow equally above and below, giving the thumb room. */
+.progress-bar input[type="range"] {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+/* Track: thin dark bar spanning the full width. */
+.progress-bar input[type="range"]::slider-track {
+  width: 100%;
+  height: 4px;
+  border: none;
+  background: transparent;
+}
+
+/* Fill: red filled portion showing played progress. */
+.progress-bar input[type="range"]::slider-fill {
+  height: 4px;
+  border: none;
+  background: #ff0000;
+  border-radius: 0;
+}
+
+/* Thumb: small circle handle. */
+.progress-bar input[type="range"]::slider-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff0000;
+  border: none;
+  transform: translate(-5px, -50%);
+}
+
 /* Checkbox and radio button inputs */
 input[type="checkbox"],
 input[type="radio"] {
