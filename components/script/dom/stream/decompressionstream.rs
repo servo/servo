@@ -94,11 +94,14 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
         // decompress and enqueue a chunk algorithm with this and chunk.
         // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the
         // decompress flush and enqueue algorithm with this.
-        let transformer_type = TransformerType::Decompressor(decompression_stream.clone());
 
         // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
         // flushAlgorithm set to flushAlgorithm.
-        transform.set_up(cx, global, transformer_type)?;
+        transform.set_up(
+            cx,
+            global,
+            TransformerType::Decompressor(decompression_stream.as_traced()),
+        )?;
 
         Ok(decompression_stream)
     }
