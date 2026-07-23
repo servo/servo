@@ -53,6 +53,11 @@ class HistoryActivity : ComponentActivity() {
                     @OptIn(ExperimentalMaterial3Api::class)
                     TopAppBar(
                         title = { Text(stringResource(R.string.history_title)) },
+                        navigationIcon = {
+                            IconButton(onClick = { finish() }) {
+                                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
+                            }
+                        },
                         actions = {
                             IconButton(
                                 onClick = {
