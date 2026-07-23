@@ -105,6 +105,8 @@ ohos-deviceinfo = { workspace = true }
 ohos-ime = { workspace = true }
 ohos-ime-sys = { workspace = true }
 ohos-vsync = { workspace = true }
+ohos-window-sys = { workspace = true }
+ohos-sys-opaque-types = { workspace = true }
 ohos-window-manager-sys = { workspace = true, features = ["api-14"] }
 xcomponent-sys = { workspace = true, features = ["api-14", "keyboard-types"] }
 
