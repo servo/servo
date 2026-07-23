@@ -8412,6 +8412,12 @@
     "b485d435a63ada28eabe976b49a8a580725e7508",
     []
    ],
+   "accessibility-tree": {
+    "accessibility-update-partial-subtree-move-and-delete.html.orig": [
+     "b3f7e5ffbf70498a8b7aeda95318f0bfc6601a50",
+     []
+    ]
+   },
    "appearance": {
     "input-range-ref.html": [
      "a805e58f2bf0f48b597a3fef54ac7fa7c50db3b5",
@@ -11387,6 +11393,13 @@
   },
   "testharness": {
    "accessibility-tree": {
+    "accessibility-display-none-change.html": [
+     "cb2254cd1c2e9c4347cff69419836de448d1e5ec",
+     [
+      null,
+      {}
+     ]
+    ],
     "accessibility-update-basic-mutation.html": [
      "c5a01a3e528caa3d3925140ea8f575865c549c26",
      [
@@ -11409,14 +11422,14 @@
      ]
     ],
     "accessibility-update-mutation-move-nodes.html": [
-     "37da877ec1f10341d26cd9f6701c304af8ae5952",
+     "ffe548a769f5e7daac7cfcd988293de91dbd319c",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-partial-subtree-move-and-delete.html": [
-     "b6655b8c1c29d2d1faa4db042ef791b61ae5f79c",
+     "e30c3b29eba2bb8a3aa5d2f14391686d7de8f706",
      [
       null,
       {}

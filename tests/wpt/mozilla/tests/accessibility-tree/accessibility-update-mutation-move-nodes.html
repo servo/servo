@@ -28,15 +28,17 @@
       // - div1 (child added)
       // - div2 (child added)
       // - <section> (children removed)
-      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
+      // - <h1> (box rebuilt due to move)
+      // - <h2> (box rebuilt due to move)
+      assert_equals(update.nodesUpdatedFromDom, 5, "nodesUpdatedFromDom");
 
       // Nodes checked for changes based on the tree:
-      // - the document
+      // - <html>
       // - <body>
       // - <section>
       // - div1
       // - div2
-      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
+      assert_equals(update.nodesUpdatedFromTree, 7, "nodesUpdatedFromTree");
 
       //  updated nodes:
       // - <section>, which had 2 children removed

@@ -5,7 +5,7 @@
 #![expect(unsafe_code)]
 
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -21,10 +21,10 @@ use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locid::subtags::Language;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
-    LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
-    OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
+    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode,
+    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
+    NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
     ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, warn};
@@ -923,17 +923,18 @@ impl LayoutThread {
     fn handle_accessibility_tree_update(
         &self,
         root_element: &ServoLayoutNode,
+        accessibility_damage: Option<FxHashMap<ServoLayoutNode, AccessibilityDamage>>,
         reflow_request: &mut ReflowRequest,
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
-        if !self.needs_accessibility_update() {
+        let Some(accessibility_damage) = accessibility_damage else {
+            return false;
+        };
+        if !self.needs_accessibility_update() && accessibility_damage.is_empty() {
             return false;
         }
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
-            return false;
-        };
-        let Some(damage) = &reflow_request.accessibility_damage else {
             return false;
         };
 
@@ -941,13 +942,11 @@ impl LayoutThread {
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        let damage: VecDeque<_> = damage
-            .iter()
-            .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
-            .collect();
-
-        let (tree_update, counters) =
-            accessibility_tree.update_tree(root_element, damage, rooted_nodes);
+        let (tree_update, counters) = accessibility_tree.update_tree(
+            root_element,
+            accessibility_damage.into_iter().collect(),
+            rooted_nodes,
+        );
         if let Some(tree_update) = tree_update {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
@@ -1011,8 +1010,23 @@ impl LayoutThread {
         });
         let mut reflow_statistics = Default::default();
 
+        let mut accessibility_damage = None;
+        if let Some(damage) = std::mem::take(&mut reflow_request.accessibility_damage) {
+            accessibility_damage = Some(
+                damage
+                    .into_iter()
+                    .map(|(address, damage)| unsafe { (ServoLayoutNode::new(&address), damage) })
+                    .collect(),
+            );
+        };
         let (mut reflow_phases_run, iframe_sizes, changed_web_fonts) = self
-            .restyle_and_build_trees(&mut reflow_request, document, root_element, &image_resolver);
+            .restyle_and_build_trees(
+                &mut reflow_request,
+                document,
+                root_element,
+                &image_resolver,
+                accessibility_damage.as_mut(),
+            );
         if self.build_stacking_context_tree_for_reflow(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
@@ -1024,6 +1038,7 @@ impl LayoutThread {
         }
         if self.handle_accessibility_tree_update(
             &root_element.as_node(),
+            accessibility_damage,
             &mut reflow_request,
             &mut reflow_statistics,
         ) {
@@ -1138,12 +1153,13 @@ impl LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn restyle_and_build_trees(
+    fn restyle_and_build_trees<'dom>(
         &mut self,
         reflow_request: &mut ReflowRequest,
-        document: ServoDangerousStyleDocument<'_>,
-        root_element: ServoLayoutElement<'_>,
+        document: ServoDangerousStyleDocument<'dom>,
+        root_element: ServoLayoutElement<'dom>,
         image_resolver: &Arc<ImageResolver>,
+        accessibility_damage: Option<&mut FxHashMap<ServoLayoutNode<'dom>, AccessibilityDamage>>,
     ) -> (ReflowPhasesRun, IFrameSizes, WebFontSetDifference) {
         let mut snapshot_map = SnapshotMap::new();
         let _snapshot_setter = match reflow_request.restyle.as_mut() {
@@ -1257,7 +1273,7 @@ impl LayoutThread {
         let mut layout_roots = Vec::new();
         let damage = {
             let box_tree = &mut *box_tree;
-            let mut compute_damage_and_build_box_tree = || {
+            let compute_damage_and_build_box_tree = || {
                 compute_damage_and_rebuild_box_tree(
                     box_tree,
                     &layout_context,
@@ -1265,6 +1281,7 @@ impl LayoutThread {
                     root_node,
                     damage_from_environment,
                     &mut layout_roots,
+                    accessibility_damage,
                 )
             };
 

@@ -9,7 +9,9 @@ use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
 use bitflags::bitflags;
-use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType};
+use layout_api::{
+    AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType, NodeRenderingType,
+};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
@@ -22,6 +24,7 @@ use web_atoms::{LocalName, local_name};
 
 use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
+use crate::dom::NodeExt;
 
 bitflags! {
     /// Damage which was caused by changes to the accessibility tree. These changes can cause other
@@ -35,6 +38,8 @@ bitflags! {
         const RoleChanged = 0b0010;
         /// This node's computed label or text value (for a text node) changed.
         const TextChanged = 0b0100;
+        /// This node's visibility changed.
+        const VisibilityChanged = 0b1000;
     }
 }
 
@@ -772,16 +777,28 @@ impl AccessibilityNode {
         dom_damage: AccessibilityDamage,
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
-        if !dom_damage.contains(AccessibilityDamage::Text) {
-            return local_damage;
-        }
-        local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
-        if dom_node.type_id() == Some(LayoutNodeType::Text) {
+
+        if dom_damage.contains(AccessibilityDamage::Text) &&
+            dom_node.type_id() == Some(LayoutNodeType::Text)
+        {
             let text_content = dom_node.text_content();
             trace!("node text content = {text_content:?}");
             // FIXME: this should take into account editing selection units (grapheme clusters?)
             local_damage.insert(self.set_value(&text_content));
         }
+
+        if matches!(dom_node.rendering_type(), NodeRenderingType::NotRendered) {
+            local_damage.insert(self.set_hidden());
+        } else {
+            local_damage.insert(self.clear_hidden());
+        }
+
+        // TODO: We may need to track role from DOM node and role from ARIA separately since
+        // the role from ARIA may change.
+        // Also, we should have a type of damage for the role from DOM node so we don't need to
+        // recompute it every time - it may be able to change without the node being re-created
+        // in some limited cases like `<a>` with/without `href`.
+        local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
 
         local_damage
     }
@@ -819,6 +836,9 @@ impl AccessibilityNode {
         let mut text = String::new();
         while let Some(child) = children.pop_front() {
             let child = child.borrow();
+            if child.is_hidden() {
+                continue;
+            }
             match child.role() {
                 Role::TextRun => {
                     if let Some(child_text) = child.value() {
@@ -853,8 +873,6 @@ impl AccessibilityNode {
         self.parent_node.as_ref().and_then(|weak| weak.upgrade())
     }
 
-    // TODO: use macros to generate getter/setter methods.
-
     fn children(&self) -> impl DoubleEndedIterator<Item = &ArcRefCell<AccessibilityNode>> {
         self.child_nodes.iter()
     }
@@ -866,6 +884,8 @@ impl AccessibilityNode {
     fn child_ids(&self) -> &[NodeId] {
         self.accesskit_node.children()
     }
+
+    // TODO: use macros to generate getter/setter methods.
 
     fn role(&self) -> Role {
         self.accesskit_node.role()
@@ -925,6 +945,29 @@ impl AccessibilityNode {
         self.accesskit_node.set_value(value);
         self.dirty_state |= DirtyState::Updated;
         LocalAccessibilityDamage::TextChanged
+    }
+
+    fn is_hidden(&self) -> bool {
+        self.accesskit_node.is_hidden()
+    }
+
+    fn set_hidden(&mut self) -> LocalAccessibilityDamage {
+        if self.is_hidden() {
+            return LocalAccessibilityDamage::empty();
+        }
+        self.accesskit_node.set_hidden();
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::VisibilityChanged
+    }
+
+    fn clear_hidden(&mut self) -> LocalAccessibilityDamage {
+        if !self.is_hidden() {
+            return LocalAccessibilityDamage::empty();
+        }
+
+        self.accesskit_node.clear_hidden();
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::VisibilityChanged
     }
 
     fn assert_integrity(&self, expected_parent: Option<WeakRefCell<AccessibilityNode>>) {

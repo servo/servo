@@ -3,13 +3,13 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <section>
-  <div id="div1">
-    <div id="div2">
+  <header id="header">
+    <div id="div">
       <h1 id="h1">This is an h1</h1>
       <p id="p">This is a paragraph</p>
     </div>
-  </div>
-  <div id="div3"><h2 id="h2">This is an h2</h2></div>
+  </header>
+  <article id="article"><h2 id="h2">This is an h2</h2></article>
 </section>
 
 <script>
@@ -23,10 +23,10 @@
       assert_equals(initial.nodesUpdatedFromTree, 29, "nodesUpdatedFromTree");
       assert_equals(initial.nodesInTreeUpdate, 29, "nodesInTreeUpdate");
 
-      div3.moveBefore(div2, h2);
-      div3.moveBefore(h1, div2);
+      article.moveBefore(div, h2);
+      article.moveBefore(h1, div);
       p.remove();
-      div1.remove();
+      header.remove();
 
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
@@ -34,15 +34,16 @@
       // - <section> (div1 removed)
       // - div2 (<p> and <h1> removed)
       // - div3 (new children)
-      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
+      // - <h1> (layout box rebuilt due to move)
+      assert_equals(update.nodesUpdatedFromDom, 4, "nodesUpdatedFromDom");
 
-      // <html>, <body>, <section>, div3, div2
-      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
+      // <html>, <body>, <section>, <article>, <div>
+      assert_equals(update.nodesUpdatedFromTree, 6, "nodesUpdatedFromTree");
 
       // Changed nodes:
       // - <section>, children changed
-      // - div2, children changed
-      // - div3, children changed
+      // - <article>, children changed
+      // - <div>, children changed
       assert_equals(update.nodesInTreeUpdate, 3, "nodesInTreeUpdate");
     }, "");
 

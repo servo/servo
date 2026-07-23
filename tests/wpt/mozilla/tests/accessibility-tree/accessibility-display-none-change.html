@@ -1,0 +1,44 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  section.subdued em {
+    display: none;
+  }
+</style>
+
+<section>
+  <h1>We <em>really</em> love the web</h1>
+</section>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(initial.nodesUpdatedFromDom, 22, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 22, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 22, "nodesInTreeUpdate");
+
+      document.querySelector("section").className = "subdued";
+
+      let update = ServoTestUtils.forceAccessibilityUpdate();
+
+      // Updated nodes:
+      // <em> - hidden
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+
+      // <html>, <body>, <section>, <h1>, <em>
+      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
+
+      // Changed nodes:
+      // - <h1>, text changed
+      // - <em>, visibility changed
+      assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");
+    }, "");
+
+    done();
+  };
+</script>
