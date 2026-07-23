@@ -188,6 +188,13 @@ impl<'dom, T: DomObject> ToLayout<'dom, T> for Dom<T> {
     }
 }
 
+impl<'dom, T: DomObject> ToLayout<'dom, T> for MutDom<T> {
+    unsafe fn to_layout(&self) -> LayoutDom<'dom, T> {
+        assert_in_layout();
+        unsafe { self.as_ref_unsafe().to_layout() }
+    }
+}
+
 pub(crate) trait ToLayoutOptional<'dom, T: DomObject> {
     /// Retrieve a copy of the inner optional `Dom<T>` as `LayoutDom<T>`.
     /// For use by layout, which can't use safe types like Temporary.

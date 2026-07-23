@@ -310,18 +310,21 @@ impl Range {
         self.associated_selections
             .borrow()
             .iter()
-            .for_each(|s| s.queue_selectionchange_task());
+            .for_each(|selection| {
+                selection.queue_selectionchange_task();
+                selection.set_visible_selection_dirty();
+            });
     }
 
     fn abstract_range(&self) -> &AbstractRange {
         &self.abstract_range
     }
 
-    fn start(&self) -> &BoundaryPoint {
+    pub(crate) fn start(&self) -> &BoundaryPoint {
         self.abstract_range().start()
     }
 
-    fn end(&self) -> &BoundaryPoint {
+    pub(crate) fn end(&self) -> &BoundaryPoint {
         self.abstract_range().end()
     }
 

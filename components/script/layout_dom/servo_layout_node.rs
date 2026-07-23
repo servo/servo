@@ -7,6 +7,7 @@
 
 use std::borrow::Cow;
 use std::fmt;
+use std::ops::Range;
 
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutDataTrait, LayoutElement, LayoutNode,
@@ -16,6 +17,7 @@ use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use servo_arc::Arc;
 use servo_base::id::{BrowsingContextId, PipelineId};
+use servo_base::text::Utf32CodeUnitLength;
 use servo_url::ServoUrl;
 use style;
 use style::context::SharedStyleContext;
@@ -244,6 +246,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
 
     fn text_content(self) -> Cow<'dom, str> {
         self.node.text_content()
+    }
+
+    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnitLength>> {
+        self.node.document_selection_in_text_node()
     }
 
     fn selection(&self) -> Option<SharedSelection> {

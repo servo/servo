@@ -4,11 +4,13 @@
 
 use std::borrow::Cow;
 use std::iter::repeat_n;
+use std::ops::Range;
 
 use atomic_refcell::AtomicRef;
 use layout_api::LayoutNode;
 use log::warn;
 use servo_arc::Arc;
+use servo_base::text::Utf32CodeUnitLength;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
@@ -50,7 +52,11 @@ impl ResolvedSlotAndLocation<'_> {
 }
 
 pub(crate) enum AnonymousTableContent<'dom> {
-    Text(NodeAndStyleInfo<'dom>, Cow<'dom, str>),
+    Text(
+        NodeAndStyleInfo<'dom>,
+        Cow<'dom, str>,
+        Option<Range<Utf32CodeUnitLength>>,
+    ),
     EnterDisplayContents(SharedInlineStyles),
     LeaveDisplayContents,
     Element {
@@ -65,7 +71,7 @@ impl AnonymousTableContent<'_> {
     fn is_whitespace_only(&self) -> bool {
         match self {
             Self::Element { .. } => false,
-            Self::Text(_, text) => text.chars().all(char_is_whitespace),
+            Self::Text(_, text, _) => text.chars().all(char_is_whitespace),
             Self::EnterDisplayContents(_) | Self::LeaveDisplayContents => true,
         }
     }
@@ -732,8 +738,8 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
                 } => {
                     row_builder.handle_element(&info, display, contents, box_slot);
                 },
-                AnonymousTableContent::Text(info, text) => {
-                    row_builder.handle_text(&info, text);
+                AnonymousTableContent::Text(info, text, document_selection_range) => {
+                    row_builder.handle_text(&info, text, document_selection_range);
                 },
                 AnonymousTableContent::EnterDisplayContents(ref styles) => {
                     row_builder.enter_display_contents(styles.clone());
@@ -775,9 +781,18 @@ impl<'style, 'dom> TableBuilderTraversal<'style, 'dom> {
 }
 
 impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
+    fn handle_text(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+        text: Cow<'dom, str>,
+        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+    ) {
         self.current_anonymous_row_content
-            .push(AnonymousTableContent::Text(info.clone(), text));
+            .push(AnonymousTableContent::Text(
+                info.clone(),
+                text,
+                document_selection_range,
+            ));
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
@@ -1027,8 +1042,8 @@ impl<'style, 'builder, 'dom, 'a> TableRowGroupBuilder<'style, 'builder, 'dom, 'a
                 } => {
                     row_builder.handle_element(&info, display, contents, box_slot);
                 },
-                AnonymousTableContent::Text(info, text) => {
-                    row_builder.handle_text(&info, text);
+                AnonymousTableContent::Text(info, text, document_selection_range) => {
+                    row_builder.handle_text(&info, text, document_selection_range);
                 },
                 AnonymousTableContent::EnterDisplayContents(ref styles) => {
                     row_builder.enter_display_contents(styles.clone());
@@ -1061,9 +1076,18 @@ impl<'style, 'builder, 'dom, 'a> TableRowGroupBuilder<'style, 'builder, 'dom, 'a
 }
 
 impl<'dom> TraversalHandler<'dom> for TableRowGroupBuilder<'_, '_, 'dom, '_> {
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
+    fn handle_text(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+        text: Cow<'dom, str>,
+        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+    ) {
         self.current_anonymous_row_content
-            .push(AnonymousTableContent::Text(info.clone(), text));
+            .push(AnonymousTableContent::Text(
+                info.clone(),
+                text,
+                document_selection_range,
+            ));
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
@@ -1178,8 +1202,8 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
                 } => {
                     builder.handle_element(&info, display, contents, box_slot);
                 },
-                AnonymousTableContent::Text(info, text) => {
-                    builder.handle_text(&info, text);
+                AnonymousTableContent::Text(info, text, document_selection_range) => {
+                    builder.handle_text(&info, text, document_selection_range);
                 },
                 AnonymousTableContent::EnterDisplayContents(ref styles) => {
                     builder.enter_display_contents(styles.clone());
@@ -1219,9 +1243,18 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
 }
 
 impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
+    fn handle_text(
+        &mut self,
+        info: &NodeAndStyleInfo<'dom>,
+        text: Cow<'dom, str>,
+        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+    ) {
         self.current_anonymous_cell_content
-            .push(AnonymousTableContent::Text(info.clone(), text));
+            .push(AnonymousTableContent::Text(
+                info.clone(),
+                text,
+                document_selection_range,
+            ));
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
@@ -1329,7 +1362,13 @@ struct TableColumnGroupBuilder {
 }
 
 impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
-    fn handle_text(&mut self, _info: &NodeAndStyleInfo<'dom>, _text: Cow<'dom, str>) {}
+    fn handle_text(
+        &mut self,
+        _info: &NodeAndStyleInfo<'dom>,
+        _text: Cow<'dom, str>,
+        _document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+    ) {
+    }
     fn enter_display_contents(&mut self, _: SharedInlineStyles) {}
     fn leave_display_contents(&mut self) {}
     fn handle_element(

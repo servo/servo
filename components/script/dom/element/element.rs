@@ -31,6 +31,7 @@ use net_traits::request::{CorsSettings, CredentialsMode};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::AnimationBinding::AnimationMethods;
 use script_bindings::codegen::GenericBindings::KeyframeEffectBinding::KeyframeEffectMethods;
+use script_bindings::dom::UnrootedDom;
 use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
@@ -611,6 +612,17 @@ impl Element {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
+    pub(crate) fn shadow_root_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, ShadowRoot>> {
+        self.rare_data()
+            .as_ref()?
+            .shadow_root
+            .as_ref()
+            .map(|shadow_root| UnrootedDom::from_dom(shadow_root.clone(), no_gc))
+    }
+
     pub(crate) fn is_shadow_host(&self) -> bool {
         self.shadow_root().is_some()
     }
@@ -715,6 +727,12 @@ impl Element {
         if node.is_connected() {
             node.remove_style_and_layout_data_from_subtree(cx.no_gc());
         }
+        if let Some(selection) = self.owner_document().selection() &&
+            node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
+        {
+            selection.set_visible_selection_dirty();
+        }
+
         // Step 6. Set shadow's delegates focus to delegatesFocus
         shadow_root.set_delegates_focus(delegates_focus);
 

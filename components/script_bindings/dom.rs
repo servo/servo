@@ -48,6 +48,29 @@ impl<T: DomObject> MutDom<T> {
         assert_in_script();
         unsafe { DomRoot::from_ref(&*ptr::read(self.val.get())) }
     }
+
+    /// Get the [`DomObject`] without rooting it as an [`UnrootedDom`]. This is safe as
+    /// the return value shares the lifetime of the provided [`NoGC`] This implies that
+    /// while the [`UnrootedDom`] is alive, garbage collection will not happen.
+    pub fn get_unrooted<'a>(&self, _: &'a NoGC) -> UnrootedDom<'a, T> {
+        assert_in_script();
+        UnrootedDom {
+            inner: unsafe { ptr::read(self.val.get()) },
+            _phantom: PhantomData,
+        }
+    }
+
+    /// Get a reference to the traced inner value of this [`MutDom`].
+    ///
+    /// # Safety
+    ///
+    /// - The caller *must not* modify the value of the [`MutDom`] while the
+    ///   reference is alive.
+    /// - The caller *must ensure* that no garbage collection happens while the
+    ///   reference is alive.
+    pub unsafe fn as_ref_unsafe(&self) -> &Dom<T> {
+        unsafe { &*self.val.get() }
+    }
 }
 
 impl<T: DomObject> MallocSizeOf for MutDom<T> {

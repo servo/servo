@@ -97,6 +97,10 @@ impl BoundaryPoint {
         self.set_offset(offset);
     }
 
+    pub(crate) fn offset(&self) -> u32 {
+        self.offset.get()
+    }
+
     pub(crate) fn set_offset(&self, offset: u32) {
         self.offset.set(offset);
     }

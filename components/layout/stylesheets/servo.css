@@ -328,7 +328,7 @@ input[type="radio"] {
   display: inline-block;
 
   /* TODO: According to https://wpt.fyi/results/css/css-grid/stretch-grid-item-radio-input.html,
-     radio buttons should be able to grow / shrink depending of the width/height of the input 
+     radio buttons should be able to grow / shrink depending of the width/height of the input
      element. These values should probably be changed once `aspect-ratio` has been supported
      for non-replaced elements.
   */
@@ -343,7 +343,7 @@ input[type="radio"]::before {
   content: "";
   background: transparent;
 
-  /* TODO: The ring should be able to grow & shrink according to min(width, height). 
+  /* TODO: The ring should be able to grow & shrink according to min(width, height).
     However, this is currently not possible to be implemented as `aspect-ratio` hasn't
     been supported for non-replaced elements.
   */
@@ -364,7 +364,7 @@ input[type="radio"]::after {
   content: "";
   background: transparent;
 
-  /* TODO:  The bullet should be able to grow & shrink according to min(width, height). 
+  /* TODO:  The bullet should be able to grow & shrink according to min(width, height).
   However, this is currently not possible to be implemented as `aspect-ratio` hasn't been supported for non-replaced elements. */
   width: 8px;
   height: 8px;
@@ -547,4 +547,8 @@ progress #-servo-progress-bar {
 
 slot {
   display: contents;
+}
+
+*::selection {
+  background: rgba(176, 214, 255, 1.0);
 }
