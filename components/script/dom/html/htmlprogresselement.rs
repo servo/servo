@@ -106,11 +106,20 @@ impl HTMLProgressElement {
             .expect("UA shadow tree was not created")
     }
 
-    /// Update the visual width of bar
+    /// Update the visual state of the bar
     fn update_state(&self, cx: &mut JSContext) {
         let shadow_tree = self.shadow_tree(cx);
-        let position = (*self.Value() / *self.Max()) * 100.0;
-        let style = format!("width: {}%", position);
+        let element = self.upcast::<Element>();
+        let style = if element.has_attribute(&local_name!("value")) {
+            let width = (*self.Value() / *self.Max()) * 100.0;
+            format!(
+                "display: block; height: 100%; background-color: #7a3; width: {}%",
+                width
+            )
+        } else {
+            "display: block; height: 100%; background-color: #7a3; width: 25%; margin-left: 37.5%"
+                .to_owned()
+        };
 
         shadow_tree
             .progress_bar
