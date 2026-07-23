@@ -1,7 +1,7 @@
 import java.util.regex.Pattern
 
 plugins {
-    id("com.android.library")
+    alias(libs.plugins.android.library)
 }
 
 android {
