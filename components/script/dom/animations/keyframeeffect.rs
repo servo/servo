@@ -29,9 +29,10 @@ use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::UnrestrictedDoubleOrKeyframeEffectOptions;
 use script_bindings::conversions::StringificationBehavior;
 use script_bindings::error::{Error, Fallible};
+use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
-use script_bindings::root::{Dom, DomRoot};
+use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use style::parser::ParserContext;
 use style::properties::generated::PropertyDeclaration;
@@ -57,9 +58,6 @@ use crate::dom::window::Window;
 pub(crate) struct KeyframeEffect {
     animationeffect: AnimationEffect,
 
-    /// The window that this keyframe was constructed in
-    window: Dom<Window>,
-
     /// <https://drafts.csswg.org/web-animations-1/#effect-target-target-element>
     // FIXME: Store a target pseudo-selector
     // to fully match the concept of the effect target
@@ -75,8 +73,7 @@ pub(crate) struct KeyframeEffect {
 impl KeyframeEffect {
     pub(crate) fn new_inherited(window: &Window) -> Self {
         Self {
-            window: Dom::from_ref(window),
-            animationeffect: AnimationEffect::new_inherited(),
+            animationeffect: AnimationEffect::new_inherited(window),
             target_element: Default::default(),
             keyframes: Default::default(),
         }
@@ -142,7 +139,7 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
         cx: &mut JSContext,
         result: &mut RootedVec<'_, Box<Heap<*mut JSObject>>>,
     ) -> Fallible<()> {
-        let mut layout = self.window.layout_mut();
+        let mut layout = self.upcast::<AnimationEffect>().window().layout_mut();
         let stylist = layout.stylist_mut();
 
         // Step 1. Let result be an empty sequence of objects.
@@ -244,7 +241,7 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
         // > This effect’s set of keyframes is replaced with the result of performing the procedure to
         // > process a keyframes argument. If that procedure throws an exception, this effect’s
         // > keyframes are not modified.
-        let document = self.window.Document();
+        let document = self.upcast::<AnimationEffect>().window().Document();
         let Ok(keyframes) = process_a_keyframes_argument(cx, &document, keyframes) else {
             return;
         };
