@@ -22,6 +22,9 @@ use crate::maplike;
 #[dom_struct]
 pub(crate) struct CSSFontFeatureValuesMap {
     reflector: Reflector,
+
+    /// The map from identifiers to font feature values, derived from a single block
+    /// of the `@font-feature-values` rule.
     #[custom_trace]
     internal: DomRefCell<IndexMap<DOMString, Vec<u32>>>,
 }
@@ -78,7 +81,7 @@ impl CSSFontFeatureValuesMapMethods<crate::DomTypeHolder> for CSSFontFeatureValu
     }
 }
 
-/// A trait to generalize over [SingleValue], [PairValues] and [VectorValues`].
+/// A trait to generalize over [SingleValue], [PairValues] and [VectorValues].
 pub(crate) trait AsValues {
     fn as_vec(&self) -> Vec<u32>;
 }
