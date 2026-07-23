@@ -10,7 +10,7 @@ use std::ops::{ControlFlow, Range};
 use icu_properties::BidiClass;
 use icu_segmenter::WordSegmenter;
 use layout_api::{LayoutNode, SharedSelection};
-use servo_base::text::{Utf8CodeUnitLength, Utf32CodeUnitLength, utf8_offset_to_utf32_offset};
+use servo_base::text::Utf32CodeUnits;
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -310,7 +310,7 @@ impl InlineFormattingContextBuilder {
         info: &NodeAndStyleInfo<'dom>,
         container_info: &NodeAndStyleInfo<'dom>,
         layout_context: &LayoutContext,
-        document_selection: Option<Range<Utf32CodeUnitLength>>,
+        document_selection: Option<Range<Utf32CodeUnits>>,
     ) -> bool {
         if self.has_processed_first_letter || !container_info.pseudo_element_chain().is_empty() {
             self.push_text(text, info, document_selection);
@@ -329,7 +329,7 @@ impl InlineFormattingContextBuilder {
             return false;
         }
 
-        let intersect_ranges = |a: Range<Utf32CodeUnitLength>, b: Range<Utf32CodeUnitLength>| {
+        let intersect_ranges = |a: Range<Utf32CodeUnits>, b: Range<Utf32CodeUnits>| {
             let start = a.start.max(b.start);
             let end = b.end.min(b.end);
             if start < end { Some(start..end) } else { None }
@@ -337,15 +337,15 @@ impl InlineFormattingContextBuilder {
 
         // Push any leading white space first.
         let first_letter_range_u32 = LazyCell::new(|| {
-            utf8_offset_to_utf32_offset(&text, Utf8CodeUnitLength(first_letter_range.start))..
-                utf8_offset_to_utf32_offset(&text, Utf8CodeUnitLength(first_letter_range.end))
+            Utf32CodeUnits::length_of(&text[..first_letter_range.start])..
+                Utf32CodeUnits::length_of(&text[..first_letter_range.end])
         });
         if first_letter_range.start != 0 {
             let leading_whitespace_range = 0..first_letter_range.start;
             let leading_whitespace_selection_range =
                 document_selection.clone().and_then(|document_selection| {
                     let leading_whitespace_range_u32 =
-                        Utf32CodeUnitLength::zero()..first_letter_range_u32.start;
+                        Utf32CodeUnits::zero()..first_letter_range_u32.start;
                     intersect_ranges(document_selection, leading_whitespace_range_u32)
                 });
 
@@ -402,7 +402,7 @@ impl InlineFormattingContextBuilder {
         &mut self,
         text: Cow<'dom, str>,
         info: &NodeAndStyleInfo<'dom>,
-        document_selection: Option<Range<Utf32CodeUnitLength>>,
+        document_selection: Option<Range<Utf32CodeUnits>>,
     ) {
         let white_space_collapse = info.style.clone_white_space_collapse();
         let collapsed = WhitespaceCollapse::new(
@@ -530,7 +530,7 @@ impl InlineFormattingContextBuilder {
     fn try_to_push_text_range_to_previous_text_run(
         &mut self,
         info: &NodeAndStyleInfo,
-        new_text_selection: &Option<Range<Utf32CodeUnitLength>>,
+        new_text_selection: &Option<Range<Utf32CodeUnits>>,
         new_range: &Range<usize>,
         new_character_range: &Range<usize>,
     ) -> ControlFlow<()> {
@@ -561,9 +561,9 @@ impl InlineFormattingContextBuilder {
                 }
             } else {
                 // If only the new part of the text run has a selection, we can use it directly.
-                text_run.document_selection = Utf32CodeUnitLength(existing_characters) +
+                text_run.document_selection = Utf32CodeUnits(existing_characters) +
                     next_text_selection.start..
-                    Utf32CodeUnitLength(existing_characters) + next_text_selection.end;
+                    Utf32CodeUnits(existing_characters) + next_text_selection.end;
             }
         }
 

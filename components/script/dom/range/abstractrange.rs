@@ -8,6 +8,7 @@ use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
 use script_bindings::reflector::Reflector;
+use servo_base::text::Utf16CodeUnits;
 
 use crate::dom::bindings::codegen::Bindings::AbstractRangeBinding::AbstractRangeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{NodeConstants, NodeMethods};
@@ -97,8 +98,8 @@ impl BoundaryPoint {
         self.set_offset(offset);
     }
 
-    pub(crate) fn offset(&self) -> u32 {
-        self.offset.get()
+    pub(crate) fn offset(&self) -> Utf16CodeUnits {
+        Utf16CodeUnits::from(self.offset.get())
     }
 
     pub(crate) fn set_offset(&self, offset: u32) {

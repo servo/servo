@@ -10,7 +10,7 @@ use atomic_refcell::AtomicRef;
 use layout_api::LayoutNode;
 use log::warn;
 use servo_arc::Arc;
-use servo_base::text::Utf32CodeUnitLength;
+use servo_base::text::Utf32CodeUnits;
 use style::properties::ComputedValues;
 use style::properties::style_structs::Font;
 use style::selector_parser::PseudoElement;
@@ -55,7 +55,7 @@ pub(crate) enum AnonymousTableContent<'dom> {
     Text(
         NodeAndStyleInfo<'dom>,
         Cow<'dom, str>,
-        Option<Range<Utf32CodeUnitLength>>,
+        Option<Range<Utf32CodeUnits>>,
     ),
     EnterDisplayContents(SharedInlineStyles),
     LeaveDisplayContents,
@@ -785,7 +785,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
         text: Cow<'dom, str>,
-        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+        document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         self.current_anonymous_row_content
             .push(AnonymousTableContent::Text(
@@ -1080,7 +1080,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowGroupBuilder<'_, '_, 'dom, '_> {
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
         text: Cow<'dom, str>,
-        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+        document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         self.current_anonymous_row_content
             .push(AnonymousTableContent::Text(
@@ -1247,7 +1247,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
         text: Cow<'dom, str>,
-        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+        document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         self.current_anonymous_cell_content
             .push(AnonymousTableContent::Text(
@@ -1366,7 +1366,7 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
         &mut self,
         _info: &NodeAndStyleInfo<'dom>,
         _text: Cow<'dom, str>,
-        _document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+        _document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
     }
     fn enter_display_contents(&mut self, _: SharedInlineStyles) {}

@@ -19,7 +19,7 @@ use layout_api::ScriptSelection;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{Utf32CodeUnitLength, is_bidi_control};
+use servo_base::text::{Utf32CodeUnits, is_bidi_control};
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
@@ -464,7 +464,7 @@ pub(crate) struct TextRun {
     pub character_range: Range<usize>,
 
     /// The range of `char` characters in this `TextRun` that overlap the Document’s selection
-    pub document_selection: Range<Utf32CodeUnitLength>,
+    pub document_selection: Range<Utf32CodeUnits>,
 
     /// The [`TextRunItem`]s of this text run. This is produced by segmenting the incoming text
     /// by things such as font and script as well as separating out hard line breaks.
@@ -478,7 +478,7 @@ impl TextRun {
         inline_styles: SharedInlineStyles,
         text_range: Range<usize>,
         character_range: Range<usize>,
-        document_selection: Range<Utf32CodeUnitLength>,
+        document_selection: Range<Utf32CodeUnits>,
         old_text_run: Option<ArcRefCell<TextRun>>,
     ) -> Self {
         // If there was a previous box tree layout of this text run, try to preserve the old shaped text.

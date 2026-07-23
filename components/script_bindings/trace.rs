@@ -20,7 +20,7 @@ use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
 use smallvec::SmallVec;
 use style::author_styles::AuthorStyles;
 use style::stylesheet_set::{AuthorStylesheetSet, DocumentStylesheetSet};
@@ -425,12 +425,12 @@ impl<T: MallocSizeOf> MallocSizeOf for NoTrace<T> {
     }
 }
 
-unsafe impl CustomTraceable for Utf8CodeUnitLength {
+unsafe impl CustomTraceable for Utf8CodeUnits {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {}
 }
 
-unsafe impl CustomTraceable for Utf16CodeUnitLength {
+unsafe impl CustomTraceable for Utf16CodeUnits {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {}
 }

@@ -17,7 +17,7 @@ use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use servo_arc::Arc;
 use servo_base::id::{BrowsingContextId, PipelineId};
-use servo_base::text::Utf32CodeUnitLength;
+use servo_base::text::Utf32CodeUnits;
 use servo_url::ServoUrl;
 use style;
 use style::context::SharedStyleContext;
@@ -248,7 +248,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.text_content()
     }
 
-    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnitLength>> {
+    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnits>> {
         self.node.document_selection_in_text_node()
     }
 

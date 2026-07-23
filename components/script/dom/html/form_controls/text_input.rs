@@ -16,7 +16,7 @@ use script_bindings::match_domstring_ascii;
 use script_bindings::trace::CustomTraceable;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
-use servo_base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
+use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -154,8 +154,8 @@ pub struct TextInput<T: ClipboardProvider> {
     /// The maximum number of UTF-16 code units this text input is allowed to hold.
     ///
     /// <https://html.spec.whatwg.org/multipage/#attr-fe-maxlength>
-    max_length: Option<Utf16CodeUnitLength>,
-    min_length: Option<Utf16CodeUnitLength>,
+    max_length: Option<Utf16CodeUnits>,
+    min_length: Option<Utf16CodeUnits>,
 
     /// Was last change made by set_content?
     was_last_change_by_set_content: bool,
@@ -271,15 +271,15 @@ pub(crate) const CMD_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 /// The length in bytes of the first n code units in a string when encoded in UTF-16.
 ///
 /// If the string is fewer than n code units, returns the length of the whole string.
-fn len_of_first_n_code_units(text: &DOMString, n: Utf16CodeUnitLength) -> Utf8CodeUnitLength {
-    let mut utf8_len = Utf8CodeUnitLength::zero();
-    let mut utf16_len = Utf16CodeUnitLength::zero();
+fn len_of_first_n_code_units(text: &DOMString, n: Utf16CodeUnits) -> Utf8CodeUnits {
+    let mut utf8_len = Utf8CodeUnits::zero();
+    let mut utf16_len = Utf16CodeUnits::zero();
     for c in text.str().chars() {
-        utf16_len += Utf16CodeUnitLength(c.len_utf16());
+        utf16_len += Utf16CodeUnits(c.len_utf16());
         if utf16_len > n {
             break;
         }
-        utf8_len += Utf8CodeUnitLength(c.len_utf8());
+        utf8_len += Utf8CodeUnits(c.len_utf8());
     }
     utf8_len
 }
@@ -319,11 +319,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_direction
     }
 
-    pub fn set_max_length(&mut self, length: Option<Utf16CodeUnitLength>) {
+    pub fn set_max_length(&mut self, length: Option<Utf16CodeUnits>) {
         self.max_length = length;
     }
 
-    pub fn set_min_length(&mut self, length: Option<Utf16CodeUnitLength>) {
+    pub fn set_min_length(&mut self, length: Option<Utf16CodeUnits>) {
         self.min_length = length;
     }
 
@@ -377,12 +377,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    pub(crate) fn selection_start_utf16(&self) -> Utf16CodeUnitLength {
+    pub(crate) fn selection_start_utf16(&self) -> Utf16CodeUnits {
         self.rope.index_to_utf16_offset(self.selection_start())
     }
 
     /// The byte offset of the selection_start()
-    fn selection_start_offset(&self) -> Utf8CodeUnitLength {
+    fn selection_start_offset(&self) -> Utf8CodeUnits {
         self.rope.index_to_utf8_offset(self.selection_start())
     }
 
@@ -395,12 +395,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    pub(crate) fn selection_end_utf16(&self) -> Utf16CodeUnitLength {
+    pub(crate) fn selection_end_utf16(&self) -> Utf16CodeUnits {
         self.rope.index_to_utf16_offset(self.selection_end())
     }
 
     /// The byte offset of the selection_end()
-    pub fn selection_end_offset(&self) -> Utf8CodeUnitLength {
+    pub fn selection_end_offset(&self) -> Utf8CodeUnits {
         self.rope.index_to_utf8_offset(self.selection_end())
     }
 
@@ -415,7 +415,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Return the selection range as byte offsets from the start of the content.
     ///
     /// If there is no selection, returns an empty range at the edit point.
-    pub(crate) fn sorted_selection_offsets_range(&self) -> Range<Utf8CodeUnitLength> {
+    pub(crate) fn sorted_selection_offsets_range(&self) -> Range<Utf8CodeUnits> {
         self.selection_start_offset()..self.selection_end_offset()
     }
 
@@ -472,8 +472,8 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The length of the selected text in UTF-16 code units.
-    fn selection_utf16_len(&self) -> Utf16CodeUnitLength {
-        Utf16CodeUnitLength(
+    fn selection_utf16_len(&self) -> Utf16CodeUnits {
+        Utf16CodeUnits(
             self.selection_slice()
                 .chars()
                 .map(char::len_utf16)
@@ -490,7 +490,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.len_utf16().saturating_sub(self.selection_utf16_len());
             let utf16_length_that_can_be_inserted =
                 max_length.saturating_sub(utf16_length_without_selection);
-            let Utf8CodeUnitLength(last_char_index) =
+            let Utf8CodeUnits(last_char_index) =
                 len_of_first_n_code_units(insert, utf16_length_that_can_be_inserted);
             &insert.str()[..last_char_index]
         } else {
@@ -982,7 +982,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     }
 
     /// The total number of code units required to encode the content in utf16.
-    pub(crate) fn len_utf16(&self) -> Utf16CodeUnitLength {
+    pub(crate) fn len_utf16(&self) -> Utf16CodeUnits {
         self.rope.len_utf16()
     }
 
@@ -1015,8 +1015,8 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub fn set_selection_range_utf16(
         &mut self,
-        start: Utf16CodeUnitLength,
-        end: Utf16CodeUnitLength,
+        start: Utf16CodeUnits,
+        end: Utf16CodeUnits,
         direction: SelectionDirection,
     ) {
         self.set_selection_range_utf8(
@@ -1028,8 +1028,8 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     pub fn set_selection_range_utf8(
         &mut self,
-        mut start: Utf8CodeUnitLength,
-        mut end: Utf8CodeUnitLength,
+        mut start: Utf8CodeUnits,
+        mut end: Utf8CodeUnits,
         direction: SelectionDirection,
     ) {
         let text_end = self.get_content().len_utf8();

@@ -13,7 +13,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::{ScriptSelection, SharedSelection};
 use script_bindings::cell::DomRefCell;
-use servo_base::text::Utf16CodeUnitLength;
+use servo_base::text::Utf16CodeUnits;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
 
@@ -475,7 +475,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart>
     fn SetSelectionStart(&self, _cx: &mut JSContext, start: Option<u32>) -> ErrorResult {
         self.selection()
-            .set_dom_start(start.map(Utf16CodeUnitLength::from))
+            .set_dom_start(start.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
@@ -485,8 +485,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend>
     fn SetSelectionEnd(&self, _cx: &mut JSContext, end: Option<u32>) -> ErrorResult {
-        self.selection()
-            .set_dom_end(end.map(Utf16CodeUnitLength::from))
+        self.selection().set_dom_end(end.map(Utf16CodeUnits::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
@@ -506,8 +505,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
         self.selection().set_dom_range(
-            Utf16CodeUnitLength::from(start),
-            Utf16CodeUnitLength::from(end),
+            Utf16CodeUnits::from(start),
+            Utf16CodeUnits::from(end),
             direction,
         )
     }
@@ -528,8 +527,8 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     ) -> ErrorResult {
         self.selection().set_dom_range_text(
             replacement,
-            Some(Utf16CodeUnitLength::from(start)),
-            Some(Utf16CodeUnitLength::from(end)),
+            Some(Utf16CodeUnits::from(start)),
+            Some(Utf16CodeUnits::from(end)),
             selection_mode,
         )
     }
@@ -651,7 +650,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_max_length(None);
                     } else {
-                        textinput.set_max_length(Some(Utf16CodeUnitLength(value as usize)))
+                        textinput.set_max_length(Some(Utf16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -663,7 +662,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                     if value < 0 {
                         textinput.set_min_length(None);
                     } else {
-                        textinput.set_min_length(Some(Utf16CodeUnitLength(value as usize)))
+                        textinput.set_min_length(Some(Utf16CodeUnits(value as usize)))
                     }
                 },
                 _ => panic!("Expected an AttrValue::Int"),
@@ -903,7 +902,7 @@ impl Validatable for HTMLTextAreaElement {
         let mut failed_flags = ValidationFlags::empty();
 
         let textinput = self.textinput.borrow();
-        let Utf16CodeUnitLength(value_len) = textinput.len_utf16();
+        let Utf16CodeUnits(value_len) = textinput.len_utf16();
         let last_edit_by_user = !textinput.was_last_change_by_set_content();
         let value_dirty = self.value_dirty.get();
 

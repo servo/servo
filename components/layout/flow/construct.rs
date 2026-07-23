@@ -8,7 +8,7 @@ use std::ops::Range;
 use layout_api::LayoutNode;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
-use servo_base::text::Utf32CodeUnitLength;
+use servo_base::text::Utf32CodeUnits;
 use style::properties::ComputedValues;
 use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::selector_parser::PseudoElement;
@@ -436,7 +436,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
         text: Cow<'dom, str>,
-        document_selection_range: Option<Range<Utf32CodeUnitLength>>,
+        document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         if text.is_empty() {
             return;

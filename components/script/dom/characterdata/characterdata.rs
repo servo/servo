@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
+use servo_base::text::Utf16CodeUnits;
 
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
@@ -113,7 +114,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
-        let new_length = data.str().encode_utf16().count() as u32;
+        let new_length = Utf16CodeUnits::length_of(&data.str()).0 as u32;
         *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
         self.content_changed(cx);
 
@@ -125,7 +126,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
     fn Length(&self) -> u32 {
-        self.data.borrow().encode_utf16().count() as u32
+        Utf16CodeUnits::length_of(&self.data.borrow()).0 as u32
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
@@ -266,7 +267,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
                 node,
                 offset,
                 count,
-                arg.str().encode_utf16().count() as u32,
+                Utf16CodeUnits::length_of(&arg.str()).0 as u32,
             );
         }
 

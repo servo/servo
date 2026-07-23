@@ -50,11 +50,8 @@ pub fn is_cjk(codepoint: char) -> bool {
 }
 
 macro_rules! unicode_length_type {
-    ($type_name:ident) => {
-        /// A length in code units of the given text encoding. For instance, `Utf8CodeUnitLength`
-        /// is a length in UTF-8 code units (one byte each). `Utf16CodeUnitLength` is a length in
-        /// UTF-16 code units (two bytes each). This type is used to more reliable work with
-        /// lengths in different encodings.
+    ($( #[$doc:meta] )+ $type_name:ident) => {
+        $( #[$doc] )+
         #[derive(Clone, Copy, Debug, Default, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
         pub struct $type_name(pub usize);
 
@@ -118,42 +115,79 @@ macro_rules! unicode_length_type {
     };
 }
 
-// Note: counting UTF-32 code units is the same as counting code points or scalar values /
-// `char`.
-unicode_length_type!(Utf32CodeUnitLength);
-unicode_length_type!(Utf8CodeUnitLength);
-unicode_length_type!(Utf16CodeUnitLength);
-
-pub fn utf16_offset_to_utf32_offset(
-    string: &str,
-    utf16_offset: Utf16CodeUnitLength,
-) -> Utf32CodeUnitLength {
-    let mut current_utf16_offset = Utf16CodeUnitLength(0);
-    let mut current_utf32_offset = Utf32CodeUnitLength(0);
-    for character in string.chars() {
-        if current_utf16_offset >= utf16_offset {
-            break;
-        }
-        current_utf16_offset.0 += character.len_utf16();
-        current_utf32_offset.0 += 1;
-    }
-    current_utf32_offset
+unicode_length_type! {
+    /// A length or offset counted in 8-bit code units (bytes) in an UTF-8 string.
+    /// This type is used to more reliable work with lengths or offsets in different encodings.
+    Utf8CodeUnits
 }
 
-pub fn utf8_offset_to_utf32_offset(
-    string: &str,
-    utf8_offset: Utf8CodeUnitLength,
-) -> Utf32CodeUnitLength {
-    let mut current_utf8_offset = Utf8CodeUnitLength(0);
-    let mut current_utf32_offset = Utf32CodeUnitLength(0);
-    for character in string.chars() {
-        if current_utf8_offset >= utf8_offset {
-            break;
-        }
-        current_utf8_offset.0 += character.len_utf8();
-        current_utf32_offset.0 += 1;
+unicode_length_type! {
+    /// A length or offset counted in 16-bit code units in an UTF-16 string.
+    /// This type is used to more reliable work with lengths or offsets in different encodings.
+    Utf16CodeUnits
+}
+
+unicode_length_type! {
+    /// A length or offset counted in 32-bit code units in UTF-32.
+    /// This is the same as counting Rust `char`s, Unicode scalar values, or Unicode code points.
+    /// This type is used to more reliable work with lengths or offsets in different encodings.
+    Utf32CodeUnits
+}
+
+impl Utf16CodeUnits {
+    pub fn length_of(string: &str) -> Self {
+        Self(string.bytes().map(len_utf16_for_utf8_byte).sum())
+
+        // TODO: after upgrading to a Rust version (1.99?) that includes that PR,
+        // replace the above with:
+
+        // // `EncodeUtf16::count` is optimized in https://github.com/rust-lang/rust/pull/159467
+        // Self(string.encode_utf16().count())
     }
-    current_utf32_offset
+
+    pub fn to_utf32_code_units_in(self, string: &str) -> Utf32CodeUnits {
+        let mut current_utf16_offset = Utf16CodeUnits(0);
+        let mut current_utf32_offset = Utf32CodeUnits(0);
+        for utf8_byte in string.bytes() {
+            if current_utf16_offset >= self {
+                break;
+            }
+            let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
+            current_utf16_offset.0 += len_utf16;
+            // `len_utf16 != 0` means this byte is the first byte of the UTF-8 byte sequence
+            // for one `char` /  UTF-32 code unit
+            current_utf32_offset.0 += (len_utf16 != 0) as usize;
+        }
+        current_utf32_offset
+    }
+}
+
+fn len_utf16_for_utf8_byte(byte: u8) -> usize {
+    if byte < 0b1000_0000 {
+        // 0b0xxx_xxxx: ASCII-compatible U+0000 to U+007F
+        1
+    } else if byte < 0b1100_0000 {
+        // 0b10xx_xxxx: UTF-8 continuation byte, already accounted for by its non-continuation byte
+        0
+    } else if byte < 0b1111_0000 {
+        // 0b110x_xxxx: start of a 2-byte UTF-8 sequence for U+0080 to U+07FF
+        // 0b1110_xxxx: start of a 3-byte UTF-8 sequence for U+0800 to U+FFFF
+        1
+    } else {
+        // 0b1111_0xxx: start of a 4-byte UTF-8 sequence for U+010000 to U+10FFFF
+        // This is exactly the range encoded as a surrogate pair in UTF-16
+        //
+        // 0b1111_1xxx: would fall here but never occurs in valid UTF-8
+        2
+    }
+}
+
+impl Utf32CodeUnits {
+    pub fn length_of(string: &str) -> Self {
+        // `std::str::Chars::count` is optimized in:
+        // https://github.com/rust-lang/rust/blob/main/library/core/src/str/count.rs
+        Self(string.chars().count())
+    }
 }
 
 #[cfg(test)]
@@ -177,5 +211,62 @@ mod test {
         assert_eq!(is_cjk('a'), false);
         assert_eq!(is_cjk('🙂'), false);
         assert_eq!(is_cjk('©'), false);
+    }
+
+    #[test]
+    fn test_utf16_length() {
+        assert_eq!(Utf16CodeUnits::length_of(""), Utf16CodeUnits(0));
+        assert_eq!(Utf16CodeUnits::length_of("a"), Utf16CodeUnits(1));
+        assert_eq!(Utf16CodeUnits::length_of("é"), Utf16CodeUnits(1));
+        assert_eq!(Utf16CodeUnits::length_of("字"), Utf16CodeUnits(1));
+        assert_eq!(Utf16CodeUnits::length_of("\u{1F4A9}"), Utf16CodeUnits(2));
+        assert_eq!(
+            Utf16CodeUnits::length_of("\u{1F4A9}字éa"),
+            Utf16CodeUnits(5)
+        );
+    }
+
+    #[test]
+    fn test_utf16_to_utf32() {
+        let s = "aé字\u{1F4A9}";
+        assert_eq!(
+            Utf16CodeUnits(0).to_utf32_code_units_in(s),
+            Utf32CodeUnits(0)
+        );
+        assert_eq!(
+            Utf16CodeUnits(1).to_utf32_code_units_in(s),
+            Utf32CodeUnits(1)
+        );
+        assert_eq!(
+            Utf16CodeUnits(2).to_utf32_code_units_in(s),
+            Utf32CodeUnits(2)
+        );
+        assert_eq!(
+            Utf16CodeUnits(3).to_utf32_code_units_in(s),
+            Utf32CodeUnits(3)
+        );
+
+        // This 16-bit offset splits the would-be surrogate pair. We return the 32-bit position
+        // after the whole pair. Should this be an error instead?
+        assert_eq!(
+            Utf16CodeUnits(4).to_utf32_code_units_in(s),
+            Utf32CodeUnits(4)
+        );
+
+        assert_eq!(
+            Utf16CodeUnits(5).to_utf32_code_units_in(s),
+            Utf32CodeUnits(4)
+        );
+
+        // This 16-bit offset is out of bounds. We clamp to the nearest valid 32-bit offset,
+        // a.k.a the UTF-32 length. Should this be an error instead?
+        assert_eq!(
+            Utf16CodeUnits(6).to_utf32_code_units_in(s),
+            Utf32CodeUnits(4)
+        );
+        assert_eq!(
+            Utf16CodeUnits(7).to_utf32_code_units_in(s),
+            Utf32CodeUnits(4)
+        );
     }
 }
