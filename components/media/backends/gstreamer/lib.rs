@@ -90,6 +90,19 @@ impl GStreamerBackend {
             });
         }
 
+        #[cfg(target_os = "linux")]
+        {
+            // Remove the va plugins that have some issues on certain platforms.
+            // When the driver is fixed we will remove this.
+            let registry = gstreamer::Registry::get();
+            if let Some(plugin) = registry.find_plugin("va") {
+                registry.remove_plugin(&plugin);
+            }
+            if let Some(plugin) = registry.find_plugin("vaapi") {
+                registry.remove_plugin(&plugin);
+            }
+        }
+
         let mut errors = vec![];
         for plugin in plugins {
             let mut path = plugin_dir.clone();
