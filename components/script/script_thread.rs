@@ -3466,9 +3466,7 @@ impl ScriptThread {
             self.resource_threads.clone(),
         ));
 
-        let font_resolver = Arc::new(SvgFontResolver {
-            context: font_context.clone(),
-        });
+        let font_resolver = Arc::new(SvgFontResolver::new(font_context.clone()));
 
         let image_cache = self.image_cache_factory.create(
             incomplete.webview_id,
