@@ -64,6 +64,13 @@ impl<T> FlexRelativeSides<T> {
             cross: self.cross_start + self.cross_end,
         }
     }
+
+    pub fn cross_sum(self) -> T::Output
+    where
+        T: std::ops::Add,
+    {
+        self.cross_start + self.cross_end
+    }
 }
 
 /// One of the two bits set by the `flex-direction` property
