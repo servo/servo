@@ -934,8 +934,13 @@ impl Document {
         self.content_type.matches(APPLICATION, "xhtml+xml")
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#fully-active>
     pub(crate) fn is_fully_active(&self) -> bool {
-        self.activity.get() == DocumentActivity::FullyActive
+        // A Document d is said to be fully active when d is the active document of a
+        // navigable, and either navigable is a top-level traversable or navigable's
+        // container document is fully active.
+        // TODO: incorporate status of parent documents.
+        self.activity.get() == DocumentActivity::FullyActive && self.browsing_context().is_some()
     }
 
     pub(crate) fn is_active(&self) -> bool {
