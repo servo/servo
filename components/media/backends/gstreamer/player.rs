@@ -139,6 +139,7 @@ struct PlayerInner {
     last_metadata: Option<Metadata>,
     cat: gstreamer::DebugCategory,
     enough_data: Arc<AtomicBool>,
+    download_buffering: Arc<AtomicBool>,
 }
 
 impl PlayerInner {
@@ -161,6 +162,11 @@ impl PlayerInner {
         if let Some(PlayerSource::Seekable(ref mut source)) = self.source {
             source.set_seekable(seekable);
         }
+        Ok(())
+    }
+
+    pub fn set_download_buffering(&mut self, enable: bool) -> Result<(), PlayerError> {
+        self.download_buffering.store(enable, Ordering::Relaxed);
         Ok(())
     }
 
@@ -451,6 +457,7 @@ pub struct GStreamerPlayer {
     stream_type: StreamType,
     /// Decorator used to setup the video sink and process the produced frames.
     render: Arc<Mutex<GStreamerRender>>,
+    download_buffering: AtomicBool,
 }
 
 impl GStreamerPlayer {
@@ -482,6 +489,7 @@ impl GStreamerPlayer {
             is_ready: Arc::new(Once::new()),
             stream_type,
             render: Arc::new(Mutex::new(GStreamerRender::new(gl_context))),
+            download_buffering: AtomicBool::new(false),
         }
     }
 
@@ -505,35 +513,18 @@ impl GStreamerPlayer {
         let signal_adapter = gstreamer_play::PlaySignalAdapter::new_sync_emit(&player);
         let pipeline = player.pipeline();
 
-        // FIXME(#282): The progressive downloading breaks playback on Windows and Android.
-        if !cfg!(any(target_os = "windows", target_os = "android")) {
-            // Set player to perform progressive downloading. This will make the
-            // player store the downloaded media in a local temporary file for
-            // faster playback of already-downloaded chunks.
-            let flags = pipeline.property_value("flags");
-            let flags_class = match glib::FlagsClass::with_type(flags.type_()) {
-                Some(flags) => flags,
-                None => {
-                    return Err(PlayerError::Backend(
-                        "FlagsClass creation failed".to_owned(),
-                    ));
-                },
-            };
-            let flags_class = match flags_class.builder_with_value(flags) {
-                Some(class) => class,
-                None => {
-                    return Err(PlayerError::Backend(
-                        "FlagsClass creation failed".to_owned(),
-                    ));
-                },
-            };
-            let Some(flags) = flags_class.set_by_nick("download").build() else {
-                return Err(PlayerError::Backend(
-                    "FlagsClass creation failed".to_owned(),
-                ));
-            };
-            pipeline.set_property_from_value("flags", &flags);
-        }
+        let download_buffering = Arc::new(AtomicBool::new(
+            self.download_buffering.load(Ordering::Relaxed),
+        ));
+        let download_flag = download_buffering.clone();
+        let _ = pipeline.connect("deep-element-added", false, move |args| {
+            let element = args[2].get::<gstreamer::Element>().ok()?;
+            let factory = element.factory()?;
+            if factory.name() == "urisourcebin" {
+                element.set_property("download", download_flag.load(Ordering::Relaxed));
+            }
+            None
+        });
 
         // Set max size for the player buffer.
         pipeline.set_property("buffer-size", MAX_BUFFER_SIZE);
@@ -646,6 +637,7 @@ impl GStreamerPlayer {
             last_metadata: None,
             cat: gstreamer::DebugCategory::get("servoplayer").unwrap(),
             enough_data: Arc::new(AtomicBool::new(false)),
+            download_buffering,
         })));
 
         let inner = self.inner.borrow();
@@ -712,13 +704,14 @@ impl GStreamerPlayer {
             // <https://github.com/servo/servo/issues/40740>
             let mut send_pause_event = false;
 
-            if inner.last_metadata.is_none() && metadata.is_seekable {
-                if inner.playback_rate.get() != DEFAULT_PLAYBACK_RATE {
+            if inner.last_metadata.is_none() {
+                if metadata.is_seekable && inner.playback_rate.get() != DEFAULT_PLAYBACK_RATE {
                     // The `paused` state change event will be fired after the
                     // seek initiated by the playback rate change has
                     // completed.
                     inner.player.set_rate(inner.playback_rate.get());
                 } else if inner.play_state == gstreamer_play::PlayState::Paused {
+                    // We need to send the paused event for non seekable push streams.
                     send_pause_event = true;
                 }
             }
@@ -994,6 +987,18 @@ impl Player for GStreamerPlayer {
     inner_player_proxy!(set_stream, stream, &MediaStreamId, only_stream, bool);
     inner_player_proxy!(set_audio_track, stream_index, i32, enabled, bool);
     inner_player_proxy!(set_video_track, stream_index, i32, enabled, bool);
+
+    // We can't use the default implementation because we need to set the download_buffering flag
+    // before calling setup, so that the "deep-element-added" signal handler can set the download
+    // property on the urisourcebin element in time.
+    fn set_download_buffering(&self, enable: bool) -> Result<(), PlayerError> {
+        self.download_buffering.store(enable, Ordering::Relaxed);
+        self.setup()?;
+        if let Some(inner) = self.inner.borrow().as_ref() {
+            inner.lock().unwrap().set_download_buffering(enable)?;
+        }
+        Ok(())
+    }
 
     fn render_use_gl(&self) -> bool {
         self.render.lock().unwrap().is_gl()
