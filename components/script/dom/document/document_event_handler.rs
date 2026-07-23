@@ -2483,7 +2483,9 @@ impl DocumentEventHandler {
         cx: &mut JSContext,
         element: &Element,
     ) {
-        element.upcast::<Node>().run_the_focusing_steps(cx, None);
+        element
+            .upcast::<Node>()
+            .run_the_focusing_steps(cx, None, None);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,
