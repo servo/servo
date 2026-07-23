@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
+        uses: servo/ci-runners/actions/runner-select@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ubuntu-22.04
@@ -77,7 +77,7 @@ jobs:
     name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}

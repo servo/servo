@@ -46,7 +46,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
+        uses: servo/ci-runners/actions/runner-select@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
@@ -84,15 +84,7 @@ jobs:
         with:
           swap-space-path: /swapfile
           swap-size-gb: 12
-      - uses: actions/checkout@v6
-        if: github.event_name != 'pull_request_target'
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v6
-        if: github.event_name == 'pull_request_target'
-        with:
-          ref: refs/pull/${{ github.event.number }}/head
-          allow-unsafe-pr-checkout: true
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-linux
@@ -169,15 +161,8 @@ jobs:
           name: wpt-filtered-logs-linux
           pattern: wpt-filtered-logs-linux-*
           delete-merged: true
-      - uses: actions/checkout@v6
-        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name != 'pull_request_target' }}
-      # This is necessary to checkout the pull request if this run was triggered via a
-      # `pull_request_target` event.
-      - uses: actions/checkout@v6
-        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name == 'pull_request_target' }}
-        with:
-          ref: refs/pull/${{ github.event.number }}/head
-          allow-unsafe-pr-checkout: true
+      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+        if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
       - uses: actions/download-artifact@v8
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
