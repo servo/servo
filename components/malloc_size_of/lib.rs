@@ -737,31 +737,41 @@ impl<T: MallocSizeOf> MallocSizeOf for std::sync::Weak<T> {
 /// contents.
 impl<T: MallocSizeOf> MallocSizeOf for std::sync::Mutex<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (*self.lock().unwrap()).size_of(ops)
+        self.try_lock()
+            .map(|guard| guard.size_of(ops))
+            .unwrap_or_default()
     }
 }
 
 impl<T: MallocSizeOf> MallocSizeOf for std::sync::RwLock<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (*self.read().unwrap()).size_of(ops)
+        self.try_read()
+            .map(|guard| guard.size_of(ops))
+            .unwrap_or_default()
     }
 }
 
 impl<T: MallocSizeOf> MallocSizeOf for parking_lot::Mutex<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (*self.lock()).size_of(ops)
+        self.try_lock()
+            .map(|guard| guard.size_of(ops))
+            .unwrap_or_default()
     }
 }
 
 impl<T: MallocSizeOf> MallocSizeOf for parking_lot::RwLock<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (*self.read()).size_of(ops)
+        self.try_read()
+            .map(|guard| guard.size_of(ops))
+            .unwrap_or_default()
     }
 }
 
 impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for parking_lot::RwLock<T> {
     fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        (*self.read()).conditional_size_of(ops)
+        self.try_read()
+            .map(|guard| guard.conditional_size_of(ops))
+            .unwrap_or_default()
     }
 }
 
