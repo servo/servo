@@ -5,6 +5,7 @@
 // http://w3c.github.io/touch-events/#idl-def-Touch
 [Exposed=Window]
 interface Touch {
+    constructor(TouchInit touchInitDict);
     readonly    attribute long        identifier;
     readonly    attribute EventTarget target;
     readonly    attribute double      screenX;
@@ -17,4 +18,16 @@ interface Touch {
     // readonly    attribute float       radiusY;
     // readonly    attribute float       rotationAngle;
     // readonly    attribute float       force;
+};
+
+// https://w3c.github.io/touch-events/#dom-touchinit
+dictionary TouchInit {
+    required long        identifier;
+    required EventTarget target;
+             double      clientX = 0;
+             double      clientY = 0;
+             double      screenX = 0;
+             double      screenY = 0;
+             double      pageX = 0;
+             double      pageY = 0;
 };
