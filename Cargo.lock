@@ -8458,6 +8458,7 @@ dependencies = [
  "num-complex",
  "num-traits",
  "petgraph",
+ "rustc-hash 2.1.3",
  "serde",
  "servo-base",
  "servo-malloc-size-of",

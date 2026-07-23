@@ -149,6 +149,27 @@ pub(crate) trait AudioNodeEngine: Send + AudioNodeCommon {
 
     fn process(&mut self, inputs: Chunk, info: &BlockInfo) -> Chunk;
 
+    /// <https://webaudio.github.io/web-audio-api/#mute>
+    ///
+    /// Muting an AudioNode means that its output MUST be silence for the
+    /// rendering of this audio block.
+    fn mute_node(&mut self) -> Chunk {
+        let mut chunk = Chunk::default();
+        chunk
+            .blocks
+            .resize(self.input_count() as usize, Default::default());
+
+        let mode = self.channel_count_mode();
+        let count = self.channel_count();
+        let interpretation = self.channel_interpretation();
+        for block in &mut chunk.blocks {
+            if mode == ChannelCountMode::Explicit {
+                block.mix(count, interpretation);
+            }
+        }
+        chunk
+    }
+
     fn message(&mut self, msg: AudioNodeMessage, sample_rate: f32) {
         match msg {
             AudioNodeMessage::GetParamValue(id, tx) => {
