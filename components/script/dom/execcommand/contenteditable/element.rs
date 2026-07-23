@@ -346,9 +346,9 @@ impl Element {
             local_name!("s") | local_name!("strike") | local_name!("u")
         );
         if a_font_or_span || s_strike_or_u {
-            // Note that the shorthand "text-decoration" expands to 3 longhands. Hence we check if the length
-            // is 3 here, instead of 1.
-            if style.len() == 3 &&
+            // Note that the shorthand "text-decoration" expands to N longhands (4 at time of writing).
+            // Hence we check if the length is equal to N here, instead of 1.
+            if style.len() == ShorthandId::TextDecoration.longhands().count() &&
                 style
                     .shorthand_to_css(ShorthandId::TextDecoration, &mut String::new())
                     .is_ok()
