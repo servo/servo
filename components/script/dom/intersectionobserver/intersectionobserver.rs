@@ -43,11 +43,36 @@ use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum UnrootedElementOrDocument {
+    Element(Dom<Element>),
+    Document(Dom<Document>),
+}
+
+impl From<&ElementOrDocument> for UnrootedElementOrDocument {
+    fn from(value: &ElementOrDocument) -> Self {
+        match value {
+            ElementOrDocument::Document(d) => UnrootedElementOrDocument::Document(d.as_traced()),
+            ElementOrDocument::Element(e) => UnrootedElementOrDocument::Element(e.as_traced()),
+        }
+    }
+}
+
+impl From<&UnrootedElementOrDocument> for ElementOrDocument {
+    fn from(value: &UnrootedElementOrDocument) -> Self {
+        match value {
+            UnrootedElementOrDocument::Document(d) => ElementOrDocument::Document(d.as_rooted()),
+            UnrootedElementOrDocument::Element(e) => ElementOrDocument::Element(e.as_rooted()),
+        }
+    }
+}
+
 /// > The intersection root for an IntersectionObserver is the value of its root attribute if the attribute is non-null;
 /// > otherwise, it is the top-level browsing context’s document node, referred to as the implicit root.
 ///
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
-pub type IntersectionRoot = Option<ElementOrDocument>;
+pub type IntersectionRoot = Option<UnrootedElementOrDocument>;
 
 /// The Intersection Observer interface
 ///
@@ -108,14 +133,14 @@ impl IntersectionObserver {
     fn new_inherited(
         window: &Window,
         callback: Rc<IntersectionObserverCallback>,
-        root: IntersectionRoot,
+        root: &Option<ElementOrDocument>,
         root_margin: IntersectionObserverMargin,
         scroll_margin: IntersectionObserverMargin,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             owner_doc: window.Document().as_traced(),
-            root,
+            root: root.as_ref().map(|r| r.into()),
             callback,
             queued_entries: Default::default(),
             observation_targets: Default::default(),
@@ -164,7 +189,7 @@ impl IntersectionObserver {
             Box::new(Self::new_inherited(
                 window,
                 callback,
-                init.root.clone(),
+                &init.root,
                 root_margin,
                 scroll_margin,
             )),
@@ -468,7 +493,7 @@ impl IntersectionObserver {
     // TODO: Currently we are unable to get the cross `ScriptThread` document.
     fn concrete_root(&self) -> Option<ElementOrDocument> {
         match &self.root {
-            Some(root) => Some(root.clone()),
+            Some(root) => Some(root.into()),
             None => self
                 .owner_doc
                 .window()
@@ -497,10 +522,12 @@ impl IntersectionObserver {
         // > If the intersection root is an Element, and target is not a descendant of
         // > the intersection root in the containing block chain, skip to step 11.
         match &self.root {
-            Some(ElementOrDocument::Document(document)) if document != &target.owner_document() => {
+            Some(UnrootedElementOrDocument::Document(document))
+                if document.as_rooted() != target.owner_document() =>
+            {
                 return IntersectionObservationOutput::default_skipped();
             },
-            Some(ElementOrDocument::Element(element)) => {
+            Some(UnrootedElementOrDocument::Element(element)) => {
                 // To ensure consistency, we also check for elements right now, but we can depend on the
                 // layout query later.
                 if element.owner_document() != target.owner_document() {
@@ -711,7 +738,9 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>
     fn GetRoot(&self) -> Option<ElementOrDocument> {
-        self.root.clone()
+        // Convert Dom<T> to DomRoot<T> for both (Document and Element) arms so the binding can
+        // return this attribute to JS.
+        self.root.as_ref().map(|r| r.into())
     }
 
     /// > Offsets applied to the root intersection rectangle, effectively growing or
