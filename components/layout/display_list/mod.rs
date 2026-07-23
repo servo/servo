@@ -1035,7 +1035,8 @@ impl Fragment {
             };
 
             // If zero, return zero.
-            // Else round to the nearest physical pixel; floor at 1 physical pixel.
+            // Else round down to the nearest physical pixel; floor at 1 physical pixel.
+            // See: <https://drafts.csswg.org/css-values-4/#snap-as-a-line-width>
             if resolved == 0.0 {
                 Au::zero()
             } else {
