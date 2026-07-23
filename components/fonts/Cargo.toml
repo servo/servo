@@ -85,7 +85,7 @@ servo-allocator = { workspace = true }
 fontconfig_sys = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
-xml = { workspace = true }
+ndk = { version = "0.9.0", features = ["api-level-29"] }
 
 [target.'cfg(any(target_os = "android",target_env = "ohos"))'.dependencies]
 # Always bundle freetype on android and openharmony
