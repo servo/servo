@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use euclid::Rect;
+use euclid::{Point2D, Rect, Size2D};
 use malloc_size_of_derive::MallocSizeOf;
 use once_cell::race::OnceBox;
 use servo_arc::Arc as ServoArc;
@@ -76,7 +76,7 @@ pub(crate) struct BlockLevelLayoutInfo {
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 }
 
-#[derive(Clone, Default, MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct BoxFragmentRareData {
     /// The resolved box insets if this box is `position: sticky`. These are calculated
     /// during `StackingContextTree` construction because they rely on the size of the
@@ -93,6 +93,14 @@ pub(crate) struct BoxFragmentRareData {
     /// If the associated [`BoxFragment`] establishes a spatial node via CSS this holds the
     /// [`ScrollTreeNodeId`] for the generated node set during stacking context tree construction.
     pub generated_scroll_tree_node_id: Option<ScrollTreeNodeId>,
+
+    /// In the case that this fragment actually represents a piece of an original, larger box which has
+    /// been sliced apart and must be rendered as such, this stores the original size, needed for drawing.
+    pub unfragmented_rect: Option<SyncPhysicalRectAu>,
+    pub is_fragmented_along_top_edge: bool,
+    pub is_fragmented_along_bottom_edge: bool,
+    pub is_fragmented_along_left_edge: bool,
+    pub is_fragmented_along_right_edge: bool,
 }
 
 impl BoxFragmentRareData {
@@ -106,6 +114,11 @@ impl BoxFragmentRareData {
                     specific_layout_info: Some(info),
                     generated_clip_id: None,
                     generated_scroll_tree_node_id: None,
+                    unfragmented_rect: None,
+                    is_fragmented_along_top_edge: false,
+                    is_fragmented_along_bottom_edge: false,
+                    is_fragmented_along_left_edge: false,
+                    is_fragmented_along_right_edge: false,
                 })))
             })
             .unwrap_or_default()
@@ -297,6 +310,35 @@ impl BoxFragment {
         self.ensure_rare_data().generated_scroll_tree_node_id = Some(generated_scroll_tree_node_id);
     }
 
+    pub(crate) fn unfragmented_rect(&self) -> Option<AtomicRef<'_, SyncPhysicalRectAu>> {
+        let rare_data = self.rare_data.get()?.borrow();
+
+        AtomicRef::filter_map(rare_data, |rare_data| rare_data.unfragmented_rect.as_ref())
+    }
+
+    pub(crate) fn set_unfragmented_rect(&self, unfragmented_rect: SyncPhysicalRectAu) {
+        self.ensure_rare_data().unfragmented_rect = Some(unfragmented_rect);
+    }
+
+    pub(crate) fn set_is_fragmented_along_top_edge(&self, is_fragmented_along_top_edge: bool) {
+        self.ensure_rare_data().is_fragmented_along_top_edge = is_fragmented_along_top_edge;
+    }
+
+    pub(crate) fn set_is_fragmented_along_bottom_edge(
+        &self,
+        is_fragmented_along_bottom_edge: bool,
+    ) {
+        self.ensure_rare_data().is_fragmented_along_bottom_edge = is_fragmented_along_bottom_edge;
+    }
+
+    pub(crate) fn set_is_fragmented_along_left_edge(&self, is_fragmented_along_left_edge: bool) {
+        self.ensure_rare_data().is_fragmented_along_left_edge = is_fragmented_along_left_edge;
+    }
+
+    pub(crate) fn set_is_fragmented_along_right_edge(&self, is_fragmented_along_right_edge: bool) {
+        self.ensure_rare_data().is_fragmented_along_right_edge = is_fragmented_along_right_edge;
+    }
+
     pub(crate) fn with_block_level_layout_info(
         mut self,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
@@ -366,6 +408,90 @@ impl BoxFragment {
 
     pub(crate) fn margin_rect(&self) -> PhysicalRect<Au> {
         self.border_rect().outer_rect(self.margin)
+    }
+
+    pub(crate) fn unfragmented_content_rect(&self) -> PhysicalRect<Au> {
+        self.unfragmented_rect()
+            .map_or(self.base.rect(), |r| r.get())
+    }
+
+    pub(crate) fn unfragmented_padding_rect(&self) -> PhysicalRect<Au> {
+        self.unfragmented_content_rect().outer_rect(self.padding)
+    }
+
+    pub(crate) fn unfragmented_border_rect(&self) -> PhysicalRect<Au> {
+        self.unfragmented_padding_rect().outer_rect(self.border)
+    }
+
+    pub(crate) fn unfragmented_margin_rect(&self) -> PhysicalRect<Au> {
+        self.unfragmented_border_rect().outer_rect(self.margin)
+    }
+
+    fn is_fragmented(&self) -> bool {
+        self.is_fragmented_along_top_edge() ||
+            self.is_fragmented_along_bottom_edge() ||
+            self.is_fragmented_along_left_edge() ||
+            self.is_fragmented_along_right_edge()
+    }
+
+    fn is_fragmented_along_top_edge(&self) -> bool {
+        self.rare_data
+            .get()
+            .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_top_edge)
+    }
+
+    fn is_fragmented_along_bottom_edge(&self) -> bool {
+        self.rare_data
+            .get()
+            .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_bottom_edge)
+    }
+
+    fn is_fragmented_along_left_edge(&self) -> bool {
+        self.rare_data
+            .get()
+            .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_left_edge)
+    }
+
+    fn is_fragmented_along_right_edge(&self) -> bool {
+        self.rare_data
+            .get()
+            .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_right_edge)
+    }
+
+    pub(crate) fn fragmentation_clip_rect(&self) -> Option<PhysicalRect<Au>> {
+        if !self.is_fragmented() {
+            return None;
+        }
+        let content_rect = self.content_rect();
+        let border_rect = self.border_rect();
+        let x = if self.is_fragmented_along_left_edge() {
+            content_rect.origin.x
+        } else {
+            border_rect.origin.x
+        };
+        let y = if self.is_fragmented_along_top_edge() {
+            content_rect.origin.y
+        } else {
+            border_rect.origin.y
+        };
+        let mut width = border_rect.width();
+        if self.is_fragmented_along_left_edge() {
+            width -= content_rect.min_x() - border_rect.min_x();
+        }
+        if self.is_fragmented_along_right_edge() {
+            width -= border_rect.max_x() - content_rect.max_x();
+        }
+        let mut height = border_rect.height();
+        if self.is_fragmented_along_top_edge() {
+            height -= content_rect.min_y() - border_rect.min_y();
+        }
+        if self.is_fragmented_along_bottom_edge() {
+            height -= border_rect.max_y() - content_rect.max_y();
+        }
+        Some(PhysicalRect::new(
+            Point2D::new(x, y),
+            Size2D::new(width, height),
+        ))
     }
 
     pub(crate) fn padding_border_margin(&self) -> PhysicalSides<Au> {

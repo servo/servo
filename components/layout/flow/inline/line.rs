@@ -26,7 +26,7 @@ use crate::cell::ArcRefCell;
 use crate::flow::inline::text_run::FontAndScriptInfo;
 use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{
-    LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize, ToLogical,
+    LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSides, PhysicalSize, ToLogical,
     ToLogicalWithContainingBlock,
 };
 use crate::positioned::{
@@ -569,13 +569,33 @@ impl LineItemLayout<'_, '_> {
         // but they need to be made relative to this fragment.
         let physical_content_rect = content_rect.as_physical(Some(containing_block));
 
+        // When creating the fragment, if it's on a line that got made for a block-level box, we zero out the start and
+        // end paddings/borders so that it ends up not being drawn. Otherwise we preserve the box's paddings/borders so
+        // that the fragment gets drawn correctly. This is separate from the calculations above, which mainly determine
+        // where the fragment's contents ends up being positioned. (i.e. they also zero things in response to line
+        // breaks)
+        // See also: https://github.com/w3c/csswg-drafts/issues/14104
         let mut fragment = BoxFragment::new(
             inline_box.base.base_fragment_info,
             style.clone(),
             fragments,
             physical_content_rect,
-            padding.to_physical(containing_block_writing_mode),
-            border.to_physical(containing_block_writing_mode),
+            if self.for_block_level {
+                PhysicalSides::zero()
+            } else {
+                inline_box_state
+                    .pbm
+                    .padding
+                    .to_physical(containing_block_writing_mode)
+            },
+            if self.for_block_level {
+                PhysicalSides::zero()
+            } else {
+                inline_box_state
+                    .pbm
+                    .border
+                    .to_physical(containing_block_writing_mode)
+            },
             margin.to_physical(containing_block_writing_mode),
             None, /* specific_layout_info */
         );

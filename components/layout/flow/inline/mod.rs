@@ -83,6 +83,7 @@ use app_units::{Au, MAX_AU};
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
+use euclid::Rect;
 use fonts::{FontMetrics, FontRef, ShapedTextSlice};
 use icu_locid::LanguageIdentifier;
 use icu_locid::subtags::{Language, language};
@@ -99,11 +100,13 @@ use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
+use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::computed_values::line_break::T as LineBreak;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::context::{QuirksMode, SharedStyleContext};
+use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::properties::style_structs::InheritedText;
 use style::values::computed::BaselineShift;
@@ -132,7 +135,7 @@ use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BaseFragmentInfo, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
 };
-use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
+use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, SyncPhysicalRectAu, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult};
@@ -2151,6 +2154,106 @@ impl InlineFormattingContext {
         }
 
         layout.finish_last_line();
+
+        // For the painting of backgrounds and borders on fragmented boxes, each box needs to know what part of the
+        // unfragmented whole it is. This determines that for all of our inline boxes.
+        for inline_box in self.inline_boxes.iter() {
+            let borrowed_box = inline_box.borrow();
+            if borrowed_box.base.style.get_border().box_decoration_break !=
+                BoxDecorationBreak::Slice
+            {
+                continue;
+            }
+            let fragments = borrowed_box.base.fragments.borrow();
+            let box_fragments: Vec<&Fragment> = fragments
+                .iter()
+                .filter(|fragment| matches!(fragment, Fragment::Box(_)))
+                .collect();
+            if box_fragments.len() <= 1 {
+                continue;
+            }
+
+            let writing_mode = borrowed_box.base.style.writing_mode;
+            let mut total_inline_size = Au::zero();
+            for fragment in &box_fragments {
+                if let Fragment::Box(box_fragment) = fragment {
+                    total_inline_size += box_fragment
+                        .base
+                        .rect()
+                        .size
+                        .to_logical(writing_mode)
+                        .inline;
+                }
+            }
+
+            let mut current_inline_offset = Au::zero();
+            for fragment in &box_fragments {
+                if let Fragment::Box(box_fragment) = fragment {
+                    let fragment_inline_size = box_fragment
+                        .base
+                        .rect()
+                        .size
+                        .to_logical(writing_mode)
+                        .inline;
+
+                    let mut origin = box_fragment.base.rect().origin;
+                    if writing_mode.is_horizontal() {
+                        box_fragment.set_is_fragmented_along_left_edge(true);
+                        box_fragment.set_is_fragmented_along_right_edge(true);
+                        if writing_mode.is_bidi_ltr() {
+                            origin.x -= current_inline_offset;
+                        } else {
+                            origin.x += current_inline_offset;
+                            origin.x -= total_inline_size - fragment_inline_size;
+                        }
+                    } else {
+                        box_fragment.set_is_fragmented_along_top_edge(true);
+                        box_fragment.set_is_fragmented_along_bottom_edge(true);
+                        if writing_mode.is_bidi_ltr() {
+                            origin.y -= current_inline_offset;
+                        } else {
+                            origin.x += current_inline_offset;
+                            origin.x -= total_inline_size - fragment_inline_size;
+                        }
+                    }
+                    box_fragment.set_unfragmented_rect(SyncPhysicalRectAu::new(Rect::new(
+                        origin,
+                        LogicalSize::new(
+                            writing_mode,
+                            total_inline_size,
+                            box_fragment.base.rect().size.to_logical(writing_mode).block,
+                        )
+                        .to_physical(writing_mode)
+                        .cast_unit(),
+                    )));
+
+                    current_inline_offset += fragment_inline_size;
+                }
+            }
+            // Fix up the fragmentation at the very beginning and end
+            if let Some(Fragment::Box(first_fragment)) = box_fragments.first() &&
+                let Some(Fragment::Box(last_fragment)) = box_fragments.last()
+            {
+                if writing_mode.is_horizontal() {
+                    if writing_mode.is_bidi_ltr() {
+                        first_fragment.set_is_fragmented_along_left_edge(false);
+                        last_fragment.set_is_fragmented_along_right_edge(false);
+                    } else {
+                        first_fragment.set_is_fragmented_along_right_edge(false);
+                        last_fragment.set_is_fragmented_along_left_edge(false);
+                    }
+                } else {
+                    if writing_mode.is_bidi_ltr() {
+                        first_fragment.set_is_fragmented_along_top_edge(false);
+                        last_fragment.set_is_fragmented_along_bottom_edge(false);
+                    } else {
+                        first_fragment.set_is_fragmented_along_bottom_edge(false);
+                        last_fragment.set_is_fragmented_along_top_edge(false);
+                    }
+                }
+            }
+        }
+
         let (content_block_size, collapsible_margins_in_children, baselines) =
             layout.placement_state.finish();
 
