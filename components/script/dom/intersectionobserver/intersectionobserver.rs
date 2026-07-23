@@ -53,8 +53,12 @@ pub(crate) enum UnrootedElementOrDocument {
 impl From<&ElementOrDocument> for UnrootedElementOrDocument {
     fn from(value: &ElementOrDocument) -> Self {
         match value {
-            ElementOrDocument::Document(d) => UnrootedElementOrDocument::Document(d.as_traced()),
-            ElementOrDocument::Element(e) => UnrootedElementOrDocument::Element(e.as_traced()),
+            ElementOrDocument::Document(document) => {
+                UnrootedElementOrDocument::Document(document.as_traced())
+            },
+            ElementOrDocument::Element(element) => {
+                UnrootedElementOrDocument::Element(element.as_traced())
+            },
         }
     }
 }
@@ -62,8 +66,12 @@ impl From<&ElementOrDocument> for UnrootedElementOrDocument {
 impl From<&UnrootedElementOrDocument> for ElementOrDocument {
     fn from(value: &UnrootedElementOrDocument) -> Self {
         match value {
-            UnrootedElementOrDocument::Document(d) => ElementOrDocument::Document(d.as_rooted()),
-            UnrootedElementOrDocument::Element(e) => ElementOrDocument::Element(e.as_rooted()),
+            UnrootedElementOrDocument::Document(document) => {
+                ElementOrDocument::Document(document.as_rooted())
+            },
+            UnrootedElementOrDocument::Element(element) => {
+                ElementOrDocument::Element(element.as_rooted())
+            },
         }
     }
 }
@@ -140,7 +148,7 @@ impl IntersectionObserver {
         Self {
             reflector_: Reflector::new(),
             owner_doc: window.Document().as_traced(),
-            root: root.as_ref().map(|r| r.into()),
+            root: root.as_ref().map(|root| root.into()),
             callback,
             queued_entries: Default::default(),
             observation_targets: Default::default(),
@@ -738,9 +746,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-root>
     fn GetRoot(&self) -> Option<ElementOrDocument> {
-        // Convert Dom<T> to DomRoot<T> for both (Document and Element) arms so the binding can
-        // return this attribute to JS.
-        self.root.as_ref().map(|r| r.into())
+        self.root.as_ref().map(|root| root.into())
     }
 
     /// > Offsets applied to the root intersection rectangle, effectively growing or
