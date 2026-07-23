@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ffi::c_void;
+
 use dom_struct::dom_struct;
+use embedder_traits::UntrustedNodeAddress;
 use js::context::JSContext;
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -10,6 +13,7 @@ use servo_url::ServoUrl;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::LargestContentfulPaintBinding::LargestContentfulPaintMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -17,6 +21,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::node;
 
 #[dom_struct]
 pub(crate) struct LargestContentfulPaint {
@@ -27,15 +32,23 @@ pub(crate) struct LargestContentfulPaint {
     render_time: CrossProcessInstant,
     size: usize,
     url: DOMString,
+    element_id: DOMString,
     element: Option<Dom<Element>>,
 }
 
 impl LargestContentfulPaint {
+    #[expect(unsafe_code)]
     pub(crate) fn new_inherited(
         render_time: CrossProcessInstant,
         size: usize,
         url: Option<ServoUrl>,
+        candidate_id: Option<usize>,
     ) -> LargestContentfulPaint {
+        let element_id = candidate_id.and_then(|opaque_node_id| {
+            let address = UntrustedNodeAddress(opaque_node_id as *const c_void);
+            let node = unsafe { node::from_untrusted_node_address(address) };
+            DomRoot::downcast::<Element>(node).map(|element| String::from(element.Id()))
+        });
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(""),
@@ -47,6 +60,7 @@ impl LargestContentfulPaint {
             render_time,
             size,
             url: url.map(|u| DOMString::from(u.as_str())).unwrap_or_default(),
+            element_id: element_id.map(DOMString::from).unwrap_or_default(),
             element: None,
         }
     }
@@ -57,12 +71,14 @@ impl LargestContentfulPaint {
         render_time: CrossProcessInstant,
         size: usize,
         url: Option<ServoUrl>,
+        candidate_id: Option<usize>,
     ) -> DomRoot<LargestContentfulPaint> {
         reflect_dom_object_with_cx(
             Box::new(LargestContentfulPaint::new_inherited(
                 render_time,
                 size,
                 url,
+                candidate_id,
             )),
             global,
             cx,
@@ -88,6 +104,11 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-size>
     fn Size(&self) -> u32 {
         self.size as u32
+    }
+
+    /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-id>
+    fn Id(&self) -> DOMString {
+        self.element_id.clone()
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-url>

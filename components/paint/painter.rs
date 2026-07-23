@@ -536,6 +536,7 @@ impl Painter {
                                         lcp.paint_time,
                                         lcp.area,
                                         lcp.url.clone(),
+                                        lcp.id.map(|id| id.0),
                                     ),
                                 ),
                             );

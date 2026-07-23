@@ -5928,8 +5928,12 @@ where
                 metric_value,
                 first_reflow,
             ),
-            PaintMetricEvent::LargestContentfulPaint(metric_value, area, url) => (
-                ProgressiveWebMetricType::LargestContentfulPaint { area, url },
+            PaintMetricEvent::LargestContentfulPaint(metric_value, area, url, candidate_id) => (
+                ProgressiveWebMetricType::LargestContentfulPaint {
+                    area,
+                    url,
+                    candidate_id,
+                },
                 metric_value,
                 false, // LCP doesn't care about first reflow
             ),

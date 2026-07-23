@@ -247,7 +247,11 @@ impl ProgressiveWebMetrics {
         set_metric(
             self,
             Some(self.make_metadata(false)),
-            ProgressiveWebMetricType::LargestContentfulPaint { area, url: None },
+            ProgressiveWebMetricType::LargestContentfulPaint {
+                area,
+                url: None,
+                candidate_id: None,
+            },
             ProfilerCategory::TimeToLargestContentfulPaint,
             &self.largest_contentful_paint,
             paint_time,

@@ -11,8 +11,8 @@ use servo_url::ServoUrl;
 /// Largest Contentful Paint Candidate, include image and block-level element containing text
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LCPCandidate {
-    /// The identity of the element.
-    pub id: LCPCandidateID,
+    /// The identity of the element, if the candidate has an associated DOM node.
+    pub id: Option<LCPCandidateID>,
     /// The size of the visual area
     pub area: usize,
     /// The candidate's request URL
@@ -20,7 +20,7 @@ pub struct LCPCandidate {
 }
 
 impl LCPCandidate {
-    pub fn new(id: LCPCandidateID, area: usize, url: Option<ServoUrl>) -> Self {
+    pub fn new(id: Option<LCPCandidateID>, area: usize, url: Option<ServoUrl>) -> Self {
         Self { id, area, url }
     }
 }
@@ -30,7 +30,7 @@ pub struct LCPCandidateID(pub usize);
 
 #[derive(Clone, Debug)]
 pub struct LargestContentfulPaint {
-    pub id: LCPCandidateID,
+    pub id: Option<LCPCandidateID>,
     pub area: usize,
     pub paint_time: CrossProcessInstant,
     pub url: Option<ServoUrl>,
