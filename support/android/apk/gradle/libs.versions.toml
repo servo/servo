@@ -1,5 +1,13 @@
+[versions]
+android-gradle-plugin = "9.2.1"
+
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version = "1.13.0" }
 androidx-material3-compose = { module = "androidx.compose.material3:material3", version = "1.4.0" }
 androidx-material3-compose-adaptive = { module = "androidx.compose.material3.adaptive:adaptive", version = "1.2.0" }
 androidx-preference = { module = "androidx.preference:preference-ktx", version = "1.2.1" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }
+android-library = { id = "com.android.library", version.ref = "android-gradle-plugin" }
+compose = { id = "org.jetbrains.kotlin.plugin.compose", version = "2.4.0" }

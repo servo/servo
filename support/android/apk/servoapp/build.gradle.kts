@@ -1,8 +1,8 @@
 import java.util.regex.Pattern
 
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.compose)
 }
 
 android {
