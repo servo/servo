@@ -2322,43 +2322,78 @@ impl Node {
         // Step 2. If node’s parent is non-null, then remove node.
         node.remove_self(cx);
 
-        // Step 3. If document is not oldDocument:
+        // Step 3. If document is not oldDocument, then for each inclusiveDescendant
+        // of node’s shadow-including inclusive descendants, in shadow-including
+        // tree order:
         if &*old_doc != document {
-            // Step 3.1. For each inclusiveDescendant in node’s shadow-including inclusive descendants:
-            for descendant in node.traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes) {
-                // Step 3.1.1 Set inclusiveDescendant’s node document to document.
+            for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
+                // Step 3.1. Set inclusiveDescendant’s node document to document.
                 descendant.set_owner_doc(document);
 
-                // Step 3.1.2 If inclusiveDescendant is an element, then set the node document of each
-                // attribute in inclusiveDescendant’s attribute list to document.
-                if let Some(element) = descendant.downcast::<Element>() {
+                // Step 3.2. If inclusiveDescendant is a shadow root and if any of the following
+                // are true:
+                //   - inclusiveDescendant’s custom element registry is null and
+                //     inclusiveDescendant’s keep custom element registry null is false; or
+                //   - inclusiveDescendant’s custom element registry is a global
+                //     custom element registry,
+                // then set inclusiveDescendant’s custom element registry to document’s
+                // effective global custom element registry.
+                //
+                // Note: `keep custom element registry null` is not yet implemented in servo.
+                if let Some(shadow_root) = descendant.downcast::<ShadowRoot>() {
+                    if shadow_root
+                        .custom_element_registry()
+                        .is_none_or(|registry| {
+                            CustomElementRegistry::is_a_global_element_registry(Some(&*registry))
+                        })
+                    {
+                        shadow_root.set_custom_element_registry(
+                            document
+                                .effective_global_custom_element_registry()
+                                .as_deref(),
+                        );
+                    }
+                }
+                // Step 3.3. Otherwise, if inclusiveDescendant is an element:
+                else if let Some(element) = descendant.downcast::<Element>() {
+                    // Step 3.3.1. Set the node document of each attribute in inclusiveDescendant’s
+                    // attribute list to document.
                     for attribute in element.attrs().borrow().iter() {
                         if let Some(attr) = attribute.as_attr() {
                             attr.upcast::<Node>().set_owner_doc(document);
                         }
                     }
+
+                    // Step 3.3.2. If inclusiveDescendant’s custom element
+                    // registry is null or inclusiveDescendant’s custom element
+                    // registry’s is scoped is false, then set inclusiveDescendant’s
+                    // custom element registry to document’s effective global
+                    // custom element registry.
+                    if element
+                        .custom_element_registry()
+                        .is_none_or(|registry| !registry.is_scoped())
+                    {
+                        element.set_custom_element_registry(
+                            document
+                                .effective_global_custom_element_registry()
+                                .as_deref(),
+                        );
+                    }
+
+                    // Step 3.3.3. If inclusiveDescendant is custom, then enqueue a custom element
+                    // callback reaction with inclusiveDescendant, callback name
+                    // “adoptedCallback”, and « oldDocument, document ».
+                    if element.is_custom() {
+                        ScriptThread::custom_element_reaction_stack().enqueue_callback_reaction(
+                            cx,
+                            element,
+                            CallbackReaction::Adopted(old_doc.clone(), DomRoot::from_ref(document)),
+                            None,
+                        );
+                    }
                 }
-            }
 
-            // Step 3.2 For each inclusiveDescendant in node’s shadow-including inclusive descendants
-            // that is custom, enqueue a custom element callback reaction with inclusiveDescendant,
-            // callback name "adoptedCallback", and « oldDocument, document ».
-            let custom_element_reaction_stack = ScriptThread::custom_element_reaction_stack();
-            for descendant in node
-                .traverse_preorder(ShadowIncluding::Yes)
-                .filter_map(|d| d.as_custom_element())
-            {
-                custom_element_reaction_stack.enqueue_callback_reaction(
-                    cx,
-                    &descendant,
-                    CallbackReaction::Adopted(old_doc.clone(), DomRoot::from_ref(document)),
-                    None,
-                );
-            }
-
-            // Step 3.3 For each inclusiveDescendant in node’s shadow-including inclusive descendants,
-            // in shadow-including tree order, run the adopting steps with inclusiveDescendant and oldDocument.
-            for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
+                // Step 3.4. Run the adopting steps with inclusiveDescendant and oldDocument.
                 vtable_for(&descendant).adopting_steps(cx, &old_doc);
             }
         }
@@ -3094,7 +3129,7 @@ impl Node {
                 // set registry to document’s effective global custom element registry.
                 let registry =
                     if CustomElementRegistry::is_a_global_element_registry(registry.as_deref()) {
-                        document.custom_element_registry()
+                        document.effective_global_custom_element_registry()
                     } else {
                         registry
                     };
