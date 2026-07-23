@@ -69,6 +69,7 @@ impl MixedMessage {
                 ScriptThreadMessage::RefreshCursor(id, ..) => Some(*id),
                 ScriptThreadMessage::GetTitle(id) => Some(*id),
                 ScriptThreadMessage::GetDocumentOrigin(id, _) => Some(*id),
+                ScriptThreadMessage::GetInternalAncestorOriginObjectsList(id, _) => Some(*id),
                 ScriptThreadMessage::SetDocumentActivity(id, ..) => Some(*id),
                 ScriptThreadMessage::SetThrottled(_, id, ..) => Some(*id),
                 ScriptThreadMessage::SetThrottledInContainingIframe(_, id, ..) => Some(*id),

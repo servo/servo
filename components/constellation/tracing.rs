@@ -153,6 +153,9 @@ mod from_script {
                 Self::GetTopForBrowsingContext(..) => target!("GetTopForBrowsingContext"),
                 Self::GetBrowsingContextInfo(..) => target!("GetBrowsingContextInfo"),
                 Self::GetDocumentOrigin(..) => target!("GetDocumentOrigin"),
+                Self::GetInternalAncestorOriginObjectsList(..) => {
+                    target!("GetInternalAncestorOriginObjectsList")
+                },
                 Self::GetChildBrowsingContextId(..) => target!("GetChildBrowsingContextId"),
                 Self::LoadComplete => target!("LoadComplete"),
                 Self::LoadUrl(..) => target!("LoadUrl"),

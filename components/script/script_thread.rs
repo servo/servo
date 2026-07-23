@@ -1832,6 +1832,12 @@ impl ScriptThread {
             ScriptThreadMessage::GetDocumentOrigin(pipeline_id, result_sender) => {
                 self.handle_get_document_origin(pipeline_id, result_sender);
             },
+            ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
+                pipeline_id,
+                result_sender,
+            ) => {
+                self.handle_get_internal_ancestor_origin_objects_list(pipeline_id, result_sender);
+            },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
                 self.handle_set_document_activity_msg(cx, pipeline_id, activity)
@@ -2771,13 +2777,26 @@ impl ScriptThread {
     fn handle_get_document_origin(
         &self,
         id: PipelineId,
-        result_sender: GenericSender<Option<String>>,
+        result_sender: GenericSender<Option<OriginSnapshot>>,
     ) {
         let _ = result_sender.send(
             self.documents
                 .borrow()
                 .find_document(id)
-                .map(|document| document.origin().immutable().ascii_serialization()),
+                .map(|document| document.origin().snapshot()),
+        );
+    }
+
+    fn handle_get_internal_ancestor_origin_objects_list(
+        &self,
+        id: PipelineId,
+        result_sender: GenericSender<Option<Vec<ImmutableOrigin>>>,
+    ) {
+        let _ = result_sender.send(
+            self.documents
+                .borrow()
+                .find_document(id)
+                .and_then(|document| document.internal_ancestor_origin_objects_list().clone()),
         );
     }
 
