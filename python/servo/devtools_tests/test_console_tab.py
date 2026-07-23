@@ -14,7 +14,7 @@ from geckordp.actors.events import Events
 from geckordp.actors.resources import Resources
 from geckordp.actors.web_console import WebConsoleActor
 
-from .utils import Devtools
+from .utils import Devtools, attach_thread, set_breakpoint, wait_for_pause, wait_for_source
 
 
 def evaluate_and_capture_console_log_output(js: str, timeout: float = 1) -> dict:
@@ -190,3 +190,48 @@ class TestConsoleTab:
             assert not result["result"]
             assert result["exception"]
             assert "Not enough arguments" in result["exceptionMessage"]
+
+    def test_global_autocomplete(self, run_servoshell):
+        script_tag = "<script>console_test_value = 5;</script>"
+        run_servoshell(url=f"data:text/html,{script_tag}")
+
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            prompt = "con"
+            result = console.autocomplete(text=prompt, frame_actor=None)
+
+            # TODO: These are not supported yet
+            # assert "console" in result["matches"]
+            # assert "const" in result["matches"]
+            # assert "continue" in result["matches"]
+
+            assert "console_test_value" in result["matches"]
+            assert result["matchProp"] == prompt
+
+    def test_frame_autocomplete(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/console/autocomplete_scoped.html")
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
+            source_actor = wait_for_source(devtools, "console/autocomplete_scoped.html")
+
+            # Get valid breakpoint position
+            positions = devtools.client.send_receive(
+                {"to": source_actor, "type": "getBreakpointPositionsCompressed"}
+            ).get("positions", {})
+
+            line_str = str(6)
+            line, column = int(line_str), positions[line_str][0]
+
+            def trigger():
+                set_breakpoint(devtools, f"{web_server_urls[0]}/console/autocomplete_scoped.html", line, column)
+
+            pause_data = wait_for_pause(devtools.client, thread_actor, trigger)
+            frame_actor = pause_data["frame"]["actor"]
+
+            prompt = "val"
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            result = console.autocomplete(text=prompt, frame_actor=frame_actor)
+
+            assert "valInner" in result["matches"]
+            assert "valOuter" in result["matches"]
+            assert result["matchProp"] == prompt

@@ -8106,6 +8106,7 @@ dependencies = [
  "malloc_size_of_derive",
  "parking_lot",
  "rand 0.10.2",
+ "regex",
  "rustc-hash 2.1.3",
  "serde",
  "serde_json",
@@ -8118,6 +8119,7 @@ dependencies = [
  "servo-net-traits",
  "servo-profile-traits",
  "servo-url",
+ "unicode-segmentation",
  "uuid",
 ]
 
