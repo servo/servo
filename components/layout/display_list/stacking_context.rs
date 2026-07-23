@@ -44,9 +44,34 @@ use crate::fragment_tree::{
     Fragment, FragmentFlags, FragmentTree, PositioningFragment,
 };
 use crate::geom::{
-    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalVec,
+    AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
+    PhysicalVec,
 };
 use crate::style_ext::{ComputedValuesExt, TransformExt};
+
+#[derive(Copy, Clone, Debug)]
+pub(crate) struct StickyData {
+    /// The size of the parent scroll frame of this containing block, used for resolving
+    /// sticky margins.
+    scroll_frame_size: LayoutSize,
+
+    /// Whether the containing block that contains this sticky data
+    /// is in a scroll frame.
+    is_in_scroll_frame: bool,
+}
+
+impl StickyData {
+    pub(crate) fn enter_scroll_frame(scroll_frame_size: LayoutSize) -> Self {
+        Self {
+            scroll_frame_size,
+            is_in_scroll_frame: true,
+        }
+    }
+
+    pub(crate) fn leave_scroll_frame(&mut self) {
+        self.is_in_scroll_frame = false;
+    }
+}
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -54,10 +79,10 @@ pub(crate) struct ContainingBlock {
     /// of this containing block.
     scroll_node_id: ScrollTreeNodeId,
 
-    /// The size of the parent scroll frame of this containing block, used for resolving
-    /// sticky margins. If this is None, then this is a direct descendant of a reference
+    /// The sticky data for this containing block, if any.
+    /// If this is None, then this is a direct descendant of a reference
     /// frame and sticky positioning isn't taken into account.
-    scroll_frame_size: Option<LayoutSize>,
+    sticky_data: Option<StickyData>,
 
     /// The [`ClipId`] to use for the children of this containing block.
     clip_id: ClipId,
@@ -77,13 +102,13 @@ impl ContainingBlock {
     pub(crate) fn new(
         rect: PhysicalRect<Au>,
         scroll_node_id: ScrollTreeNodeId,
-        scroll_frame_size: Option<LayoutSize>,
+        sticky_data: Option<StickyData>,
         clip_id: ClipId,
         accumulated_reference_frame_offset: PhysicalVec<Au>,
     ) -> Self {
         ContainingBlock {
             scroll_node_id,
-            scroll_frame_size,
+            sticky_data,
             clip_id,
             rect,
             accumulated_reference_frame_offset,
@@ -149,7 +174,7 @@ impl StackingContextTree {
         let cb_for_non_fixed_descendants = ContainingBlock::new(
             fragment_tree.initial_containing_block,
             root_scroll_node_id,
-            Some(viewport_size),
+            Some(StickyData::enter_scroll_frame(viewport_size)),
             ClipId::INVALID,
             PhysicalVec::zero(),
         );
@@ -699,14 +724,13 @@ impl BoxFragment {
             return;
         };
 
-        let new_scroll_frame_size = containing_block_info
-            .for_non_absolute_descendants
-            .scroll_frame_size;
         let spatial_id = self.build_sticky_frame_if_necessary(
             stacking_context_tree,
             containing_block.scroll_node_id,
             &containing_block.rect,
-            &new_scroll_frame_size,
+            &containing_block_info
+                .for_non_absolute_descendants
+                .sticky_data,
         );
 
         let clip_id = with_style.build_clip_frame_if_necessary(
@@ -801,9 +825,16 @@ impl BoxFragmentWithStyle<'_> {
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        let mut new_scroll_frame_size = containing_block_info
+        let mut new_sticky_data = containing_block_info
             .for_non_absolute_descendants
-            .scroll_frame_size;
+            .sticky_data;
+        // We want to skip leaving scroll frame for anonymous fragments,
+        // because anonymous fragment belong to same node as its closest non-anonymous child.
+        if let Some(ref mut sticky_data) = new_sticky_data &&
+            !self.base.is_anonymous()
+        {
+            sticky_data.leave_scroll_frame();
+        }
         let mut new_clip_id = containing_block.clip_id;
         if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
             stacking_context_tree,
@@ -816,7 +847,9 @@ impl BoxFragmentWithStyle<'_> {
 
             if let Some(scroll_frame_data) = overflow_frame_data.scroll_frame_data {
                 new_scroll_node_id = scroll_frame_data.scroll_tree_node_id;
-                new_scroll_frame_size = Some(scroll_frame_data.scroll_frame_rect.size());
+                new_sticky_data = Some(StickyData::enter_scroll_frame(
+                    scroll_frame_data.scroll_frame_rect.size(),
+                ));
                 self.set_generated_scroll_tree_node_id(new_scroll_node_id);
             }
         }
@@ -831,14 +864,14 @@ impl BoxFragmentWithStyle<'_> {
         let for_absolute_descendants = ContainingBlock::new(
             padding_rect,
             new_scroll_node_id,
-            new_scroll_frame_size,
+            new_sticky_data,
             new_clip_id,
             containing_block.accumulated_reference_frame_offset,
         );
         let for_non_absolute_descendants = ContainingBlock::new(
             content_rect,
             new_scroll_node_id,
-            new_scroll_frame_size,
+            new_sticky_data,
             new_clip_id,
             containing_block.accumulated_reference_frame_offset,
         );
@@ -1055,15 +1088,15 @@ impl BoxFragment {
         stacking_context_tree: &mut StackingContextTree,
         parent_scroll_node_id: ScrollTreeNodeId,
         containing_block_rect: &PhysicalRect<Au>,
-        scroll_frame_size: &Option<LayoutSize>,
+        sticky_data: &Option<StickyData>,
     ) -> Option<ScrollTreeNodeId> {
         let style = self.style();
         if style.get_box().position != ComputedPosition::Sticky {
             return None;
         }
 
-        let scroll_frame_size_for_resolve = match scroll_frame_size {
-            Some(size) => size,
+        let scroll_frame_size_for_resolve = match sticky_data {
+            Some(data) => &data.scroll_frame_size,
             None => {
                 // This is a direct descendant of a reference frame.
                 &stacking_context_tree
@@ -1087,9 +1120,9 @@ impl BoxFragment {
         );
         self.set_resolved_sticky_insets(offsets);
 
-        if scroll_frame_size.is_none() {
+        let Some(sticky_data) = sticky_data else {
             return None;
-        }
+        };
 
         if offsets.top.is_auto() &&
             offsets.right.is_auto() &&
@@ -1119,17 +1152,39 @@ impl BoxFragment {
         // The logic below is a simplified (but equivalent) version of the description above.
         let border_rect = self.border_rect();
         let computed_margin = style.physical_margin();
-
+        let parent_scroll_node = stacking_context_tree
+            .paint_info
+            .scroll_tree
+            .get_node(parent_scroll_node_id);
+        let sticky_offset_boundary = match parent_scroll_node.info {
+            SpatialTreeNodeInfo::Scroll(ref scrollable_node_info) => {
+                if sticky_data.is_in_scroll_frame {
+                    let content_rect = &scrollable_node_info.content_rect;
+                    &PhysicalRect::new(
+                        PhysicalPoint::new(
+                            Au::from_f32_px(content_rect.min.x),
+                            Au::from_f32_px(content_rect.min.y),
+                        ),
+                        PhysicalSize::new(
+                            Au::from_f32_px(content_rect.max.x - content_rect.min.x),
+                            Au::from_f32_px(content_rect.max.y - content_rect.min.y),
+                        ),
+                    )
+                } else {
+                    containing_block_rect
+                }
+            },
+            _ => containing_block_rect,
+        };
         // Signed distance between each side of the border box to the corresponding side of the
         // containing block. Note that |border_rect| is already in the coordinate system of the
         // containing block.
         let distance_from_border_box_to_cb = PhysicalSides::new(
             border_rect.min_y(),
-            containing_block_rect.width() - border_rect.max_x(),
-            containing_block_rect.height() - border_rect.max_y(),
+            sticky_offset_boundary.width() - border_rect.max_x(),
+            sticky_offset_boundary.height() - border_rect.max_y(),
             border_rect.min_x(),
         );
-
         // Shrinks the signed distance by the margin, producing a limit on how much we can shift
         // the sticky positioned box without forcing the margin to move outside of the containing
         // block.
