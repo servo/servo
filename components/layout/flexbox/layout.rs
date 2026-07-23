@@ -411,7 +411,7 @@ struct FlexItemBoxInlineContentSizesInfo {
 /// This replaces step 1
 /// <https://drafts.csswg.org/css-flexbox-1/#intrinsic-main-sizes-ideal>
 /// Instead of flex fractions, start from the css-sizing-3 outer contribution
-/// and only substitute the outer hypothetical main size when the item 
+/// and only substitute the outer hypothetical main size when the item
 /// cannot flex toward that contribution *and* its used flex base is definite.
 ///
 /// Matches the conservative algorithm from shipped in Chrome 136
