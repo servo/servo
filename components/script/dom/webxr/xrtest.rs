@@ -191,38 +191,46 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
     fn DisconnectAllDevices(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
         // XXXManishearth implement device disconnection and session ending
         let p = Promise::new_in_realm(cx);
-        let mut devices = self.devices_connected.borrow_mut();
-        if devices.is_empty() {
+
+        // restrict borrow scope prior to p.resolve_native(), which can GC
+        let is_empty = self.devices_connected.borrow().is_empty();
+        if is_empty {
             p.resolve_native(cx, &());
-        } else {
-            let mut len = devices.len();
+            return p;
+        }
 
-            let rooted_devices: Vec<_> = devices.iter().map(|x| DomRoot::from_ref(&**x)).collect();
-            devices.clear();
-
-            let mut trusted = Some(TrustedPromise::new(p.clone()));
-            let global = self.global();
-            let task_source = global
-                .task_manager()
-                .dom_manipulation_task_source()
-                .to_sendable();
-
-            let callback =
-                ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |_| {
-                    len -= 1;
-                    if len == 0 {
-                        let trusted = trusted
-                            .take()
-                            .expect("DisconnectAllDevices disconnected more devices than expected");
-                        task_source.queue(trusted.resolve_task(()));
-                    }
-                })
-                .expect("Could not create callback");
-
-            for device in rooted_devices {
-                device.disconnect(callback.clone());
-            }
+        // Collect rooted devices in immutable borrow
+        // and clear connected devices with mutable borrow
+        // so neither spans a GC-capable call.
+        let rooted_devices: Vec<_> = {
+            let devices = self.devices_connected.borrow();
+            devices.iter().map(|x| DomRoot::from_ref(&**x)).collect()
         };
+        self.devices_connected.borrow_mut().clear();
+
+        let mut len = rooted_devices.len();
+        let mut trusted = Some(TrustedPromise::new(p.clone()));
+        let global = self.global();
+        let task_source = global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .to_sendable();
+
+        let callback =
+            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |_| {
+                len -= 1;
+                if len == 0 {
+                    let trusted = trusted
+                        .take()
+                        .expect("DisconnectAllDevices disconnected more devices than expected");
+                    task_source.queue(trusted.resolve_task(()));
+                }
+            })
+            .expect("Could not create callback");
+
+        for device in rooted_devices {
+            device.disconnect(callback.clone());
+        }
         p
     }
 }
