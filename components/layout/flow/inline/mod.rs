@@ -73,6 +73,7 @@ pub mod inline_box;
 pub mod line;
 mod line_breaker;
 pub mod text_run;
+pub mod text_transform;
 
 use std::cell::{Cell, OnceCell};
 use std::mem;

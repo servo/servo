@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod text {
-    use layout::flow::inline::construct::WhitespaceCollapse;
+    use layout::flow::inline::text_transform::WhitespaceCollapse;
     use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 
     #[test]
@@ -14,6 +14,7 @@ mod text {
                 white_space_collapse,
                 trim_beginning_white_space,
             )
+            .filter_map(|iteration| iteration.character)
             .collect::<String>()
         };
 
