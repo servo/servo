@@ -41,6 +41,7 @@ use servo_url::{MutableOrigin, ServoUrl};
 use timers::TimerScheduler;
 use uuid::Uuid;
 
+use crate::dom::Window;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
@@ -96,12 +97,25 @@ use crate::task::TaskCanceller;
 use crate::task_manager::TaskManager;
 use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 
+/// <https://html.spec.whatwg.org/multipage/#animation-frames>
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
     devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
     webgl_chan: Option<WebGLChan>,
 ) -> WorkerGlobalScopeInit {
+    // An AnimationFrameProvider provider is considered supported if any of the following are true:
+    // - provider is a Window.
+    // - provider's owner set contains a Document object.
+    // - Any of the DedicatedWorkerGlobalScope objects in provider's owner set are supported.
+    let animation_frame_provider_supported = if global.downcast::<Window>().is_some() {
+        true
+    } else if let Some(dedicated) = global.downcast::<DedicatedWorkerGlobalScope>() {
+        dedicated.animation_frame_provider_supported()
+    } else {
+        false
+    };
+
     WorkerGlobalScopeInit {
         resource_threads: global.resource_threads().clone(),
         storage_threads: global.storage_threads().clone(),
@@ -112,6 +126,7 @@ pub(crate) fn prepare_workerscope_init(
         script_to_constellation_chan: global.script_to_constellation_chan().sender,
         script_to_embedder_chan: global.script_to_embedder_chan().clone(),
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
+        animation_frame_provider_supported,
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
@@ -1089,7 +1104,18 @@ impl WorkerGlobalScope {
         true
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#close-a-worker>
     pub(crate) fn close(&self) {
+        // Step 1. Discard any tasks that have been added to workerGlobal's relevant
+        // agent's event loop's task queues.
+        //
+        // Worker rAF callbacks are stored outside the task queues.
+        if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
+            dedicated.clear_animation_frame_callbacks_and_unregister();
+        }
+
+        // Step 2. Set workerGlobal's closing flag to true. (This prevents any
+        // further tasks from being queued.)
         self.closing.store(true, Ordering::SeqCst);
         self.upcast::<GlobalScope>()
             .task_manager()

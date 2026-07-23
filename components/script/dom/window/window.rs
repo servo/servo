@@ -103,6 +103,7 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
+use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };
@@ -117,8 +118,7 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, DeferredRequestInit, FrameRequestCallback, ScrollBehavior, WindowMethods,
-    WindowPostMessageOptions,
+    self, DeferredRequestInit, ScrollBehavior, WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
@@ -1817,15 +1817,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
-    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
-        self.Document()
-            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback })
+    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> Fallible<u32> {
+        Ok(self
+            .Document()
+            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback }))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
-    fn CancelAnimationFrame(&self, ident: u32) {
+    fn CancelAnimationFrame(&self, ident: u32) -> ErrorResult {
         let doc = self.Document();
         doc.cancel_animation_frame(ident);
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage>
