@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::iter::repeat_n;
 use std::ops::Range;
 
@@ -23,7 +22,9 @@ use super::{
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
-use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents, TraversalHandler};
+use crate::dom_traversal::{
+    Contents, NodeAndStyleInfo, NonReplacedContents, TextPart, TraversalHandler,
+};
 use crate::flow::inline::SharedInlineStyles;
 use crate::flow::{BlockContainerBuilder, BlockFormattingContext};
 use crate::formatting_contexts::{
@@ -54,7 +55,7 @@ impl ResolvedSlotAndLocation<'_> {
 pub(crate) enum AnonymousTableContent<'dom> {
     Text(
         NodeAndStyleInfo<'dom>,
-        Cow<'dom, str>,
+        TextPart<'dom>,
         Option<Range<Utf32CodeUnits>>,
     ),
     EnterDisplayContents(SharedInlineStyles),
@@ -784,7 +785,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
     fn handle_text(
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
+        text: TextPart<'dom>,
         document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         self.current_anonymous_row_content
@@ -1079,7 +1080,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowGroupBuilder<'_, '_, 'dom, '_> {
     fn handle_text(
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
+        text: TextPart<'dom>,
         document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         self.current_anonymous_row_content
@@ -1246,7 +1247,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
     fn handle_text(
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
+        text: TextPart<'dom>,
         document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         self.current_anonymous_cell_content
@@ -1365,7 +1366,7 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
     fn handle_text(
         &mut self,
         _info: &NodeAndStyleInfo<'dom>,
-        _text: Cow<'dom, str>,
+        _text: TextPart<'dom>,
         _document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
     }

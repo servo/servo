@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use atomic_refcell::AtomicRef;
 use js::context::NoGC;
-use script_bindings::cell::Ref;
 use script_bindings::inheritance::Castable;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 
@@ -18,7 +18,7 @@ use crate::dom::text::Text;
 
 impl Text {
     /// <https://dom.spec.whatwg.org/#concept-cd-data>
-    pub(crate) fn data(&self) -> Ref<'_, String> {
+    pub(crate) fn data(&self) -> AtomicRef<'_, String> {
         self.upcast::<CharacterData>().data()
     }
 

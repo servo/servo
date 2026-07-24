@@ -5,10 +5,10 @@
 #![expect(unsafe_code)]
 #![deny(missing_docs)]
 
-use std::borrow::Cow;
 use std::fmt;
 use std::ops::Range;
 
+use atomic_refcell::AtomicRef;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutDataTrait, LayoutElement, LayoutNode,
     LayoutNodeType, PseudoElementChain, SVGElementData, SharedSelection, TrustedNodeAddress,
@@ -244,7 +244,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
             .filter(|element| element.is_html_element())
     }
 
-    fn text_content(self) -> Cow<'dom, str> {
+    fn text_content(self) -> AtomicRef<'dom, str> {
         self.node.text_content()
     }
 

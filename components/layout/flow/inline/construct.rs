@@ -28,7 +28,7 @@ use super::{
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
-use crate::dom_traversal::NodeAndStyleInfo;
+use crate::dom_traversal::{NodeAndStyleInfo, TextPart};
 use crate::flow::BlockLevelBox;
 use crate::flow::float::FloatBox;
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -306,7 +306,7 @@ impl InlineFormattingContextBuilder {
     /// Note that this should only be used when processing text in block containers.
     pub(crate) fn push_text_with_possible_first_letter<'dom>(
         &mut self,
-        text: Cow<'dom, str>,
+        text: TextPart<'dom>,
         info: &NodeAndStyleInfo<'dom>,
         container_info: &NodeAndStyleInfo<'dom>,
         layout_context: &LayoutContext,
@@ -350,7 +350,7 @@ impl InlineFormattingContextBuilder {
                 });
 
             self.push_text(
-                Cow::Borrowed(&text[leading_whitespace_range]),
+                Cow::Borrowed(&text[leading_whitespace_range]).into(),
                 info,
                 leading_whitespace_selection_range,
             );
@@ -375,7 +375,7 @@ impl InlineFormattingContextBuilder {
                 )
             });
         self.push_text(
-            first_letter_text,
+            first_letter_text.into(),
             &first_letter_info,
             first_letter_selection_range,
         );
@@ -390,7 +390,7 @@ impl InlineFormattingContextBuilder {
             })
         });
         self.push_text(
-            Cow::Borrowed(&text[first_letter_range.end..]),
+            Cow::Borrowed(&text[first_letter_range.end..]).into(),
             info,
             remaining_selection_range,
         );
@@ -400,7 +400,7 @@ impl InlineFormattingContextBuilder {
 
     pub(crate) fn push_text<'dom>(
         &mut self,
-        text: Cow<'dom, str>,
+        text: TextPart<'dom>,
         info: &NodeAndStyleInfo<'dom>,
         document_selection: Option<Range<Utf32CodeUnits>>,
     ) {

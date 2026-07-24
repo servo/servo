@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::ops::Range;
 
 use layout_api::LayoutNode;
@@ -24,7 +23,8 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::dom_traversal::{
-    Contents, NodeAndStyleInfo, NonReplacedContents, PseudoElementContentItem, TraversalHandler,
+    Contents, NodeAndStyleInfo, NonReplacedContents, PseudoElementContentItem, TextPart,
+    TraversalHandler,
 };
 use crate::flow::float::FloatBox;
 use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
@@ -435,7 +435,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     fn handle_text(
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
+        text: TextPart<'dom>,
         document_selection_range: Option<Range<Utf32CodeUnits>>,
     ) {
         if text.is_empty() {
