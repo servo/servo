@@ -22,20 +22,15 @@ public class Servo {
     public Servo(
             ServoOptions options,
             RunCallback runCallback,
-            GfxCallbacks gfxcb,
             Client client,
             Activity activity,
             Surface surface) {
 
         mRunCallback = runCallback;
 
-        mServoCallbacks = new Callbacks(client, gfxcb);
+        mServoCallbacks = new Callbacks(client);
 
         mRunCallback.inGLThread(() -> mJNI.init(activity, options, mServoCallbacks, surface));
-    }
-
-    public void resetGfxCallbacks(GfxCallbacks gfxcb) {
-        mServoCallbacks.resetGfxCallbacks(gfxcb);
     }
 
     public String version() {
@@ -174,40 +169,18 @@ public class Servo {
         void inUIThread(Runnable f);
     }
 
-    public interface GfxCallbacks {
-        void flushGLBuffers();
-
-        void makeCurrent();
-    }
-
     private class Callbacks implements JNIServo.Callbacks, Client {
 
-        private GfxCallbacks mGfxCb;
         Client mClient;
 
-        Callbacks(Client client, GfxCallbacks gfxcb) {
+        Callbacks(Client client) {
             mClient = client;
-            mGfxCb = gfxcb;
-        }
-
-        private void resetGfxCallbacks(GfxCallbacks gfxcb) {
-            mGfxCb = gfxcb;
         }
 
         public void wakeup() {
             if (!mSuspended) {
                 mRunCallback.inGLThread(() -> mJNI.performUpdates());
             }
-        }
-
-        public void flush() {
-            // Up to the callback to execute this in the right thread
-            mGfxCb.flushGLBuffers();
-        }
-
-        public void makeCurrent() {
-            // Up to the callback to execute this in the right thread
-            mGfxCb.makeCurrent();
         }
 
         public void onAlert(String message) {

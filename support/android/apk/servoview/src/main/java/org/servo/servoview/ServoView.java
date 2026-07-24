@@ -23,14 +23,12 @@ import android.view.View;
 import org.servo.servoview.JNIServo.ServoCoordinates;
 import org.servo.servoview.JNIServo.ServoOptions;
 import org.servo.servoview.Servo.Client;
-import org.servo.servoview.Servo.GfxCallbacks;
 import org.servo.servoview.Servo.RunCallback;
 
 import java.util.ArrayList;
 
 public class ServoView extends SurfaceView
         implements
-        GfxCallbacks,
         RunCallback,
         Choreographer.FrameCallback {
     private static final String LOGTAG = "ServoView";
@@ -90,17 +88,6 @@ public class ServoView extends SurfaceView
     @Override
     public void inUIThread(Runnable r) {
         post(r);
-    }
-
-
-    // GfxCallbacks
-    @Override
-    public void flushGLBuffers() {
-    }
-
-
-    @Override
-    public void makeCurrent() {
     }
 
     // View
@@ -232,7 +219,7 @@ public class ServoView extends SurfaceView
             options.density = metrics.density;
             if (mServoView.mServo == null && !mPaused) {
                 mServoView.mServo = new Servo(
-                        options, mServoView, mServoView, mClient, mActivity, surface);
+                        options, mServoView, mClient, mActivity, surface);
             } else {
                 mPaused = false;
                 mServoView.mServo.resumePainting(surface, coords);
