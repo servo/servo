@@ -177,7 +177,7 @@ impl fmt::Debug for Node {
         if let Some(element) = self.downcast::<Element>() {
             element.fmt(f)
         } else if let Some(character_data) = self.downcast::<CharacterData>() {
-            write!(f, "[Text({})]", character_data.data())
+            write!(f, "[Text({})]", &*character_data.data())
         } else {
             write!(f, "[Node({:?})]", self.type_id())
         }

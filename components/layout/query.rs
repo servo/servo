@@ -4,6 +4,7 @@
 
 //! Utilities for querying the layout, as needed by layout.
 use std::cell::LazyCell;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -1181,7 +1182,9 @@ fn rendered_text_collection_steps(
             } else {
                 // If we don't have a parent element then there's no style data available,
                 // in this (pretty unlikely) case we just return the Text fragment as is.
-                items.push(InnerOrOuterTextItem::Text(node.text_content().into()));
+                items.push(InnerOrOuterTextItem::Text(
+                    node.text_content().deref().into(),
+                ));
             }
         },
         Some(LayoutNodeType::Element(LayoutElementType::HTMLBRElement)) => {

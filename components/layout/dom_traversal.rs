@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::ops::Range;
+use std::ops::{Deref, Range};
 
+use atomic_refcell::AtomicRef;
 use layout_api::{
     LayoutElement, LayoutElementType, LayoutNode, LayoutNodeType, PseudoElementChain,
 };
@@ -86,11 +87,47 @@ pub(super) enum PseudoElementContentItem {
     Replaced(ReplacedContents),
 }
 
+/// A piece of text.
+pub(crate) enum TextPart<'a> {
+    /// Text borrowed in its entirety from a DOM node.
+    Ref(AtomicRef<'a, str>),
+    /// Text that exists independent of a particular DOM node.
+    Cow(Cow<'a, str>),
+}
+
+impl<'a> From<AtomicRef<'a, str>> for TextPart<'a> {
+    fn from(text: AtomicRef<'a, str>) -> TextPart<'a> {
+        TextPart::Ref(text)
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for TextPart<'a> {
+    fn from(text: Cow<'a, str>) -> TextPart<'a> {
+        TextPart::Cow(text)
+    }
+}
+
+impl From<String> for TextPart<'_> {
+    fn from(text: String) -> TextPart<'static> {
+        TextPart::Cow(text.into())
+    }
+}
+
+impl Deref for TextPart<'_> {
+    type Target = str;
+    fn deref(&self) -> &str {
+        match self {
+            Self::Ref(ref_) => ref_,
+            Self::Cow(cow) => cow,
+        }
+    }
+}
+
 pub(super) trait TraversalHandler<'dom> {
     fn handle_text(
         &mut self,
         info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
+        text: TextPart<'dom>,
         document_selection: Option<Range<Utf32CodeUnits>>,
     );
 
@@ -129,7 +166,7 @@ fn traverse_children_of<'dom>(
             let info = NodeAndStyleInfo::new(child, child.style(&context.style_context));
             handler.handle_text(
                 &info,
-                child.text_content(),
+                child.text_content().into(),
                 child.document_selection_in_text_node(),
             );
         } else if child.is_element() {

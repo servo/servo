@@ -4,9 +4,9 @@
 
 //! Methods for layout of node
 
-use std::borrow::Cow;
 use std::ops::Range;
 
+use atomic_refcell::AtomicRef;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
     SVGElementData, SharedSelection,
@@ -241,12 +241,11 @@ impl<'dom> LayoutDom<'dom, Node> {
         self.is_single_line_text_inner_editor() || is_single_line_text_inner_placeholder
     }
 
-    pub(crate) fn text_content(self) -> Cow<'dom, str> {
+    pub(crate) fn text_content(self) -> AtomicRef<'dom, str> {
         self.downcast::<Text>()
             .expect("Called LayoutDom::text_content on non-Text node!")
             .upcast()
             .data_for_layout()
-            .into()
     }
 
     #[expect(unsafe_code)]
