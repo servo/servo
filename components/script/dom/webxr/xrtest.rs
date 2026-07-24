@@ -206,7 +206,7 @@ impl XRTestMethods<crate::DomTypeHolder> for XRTest {
             let devices = self.devices_connected.borrow();
             devices.iter().map(|x| DomRoot::from_ref(&**x)).collect()
         };
-        self.devices_connected.borrow_mut().clear();
+        self.devices_connected.safe_borrow_mut(cx).clear();
 
         let mut len = rooted_devices.len();
         let mut trusted = Some(TrustedPromise::new(p.clone()));
