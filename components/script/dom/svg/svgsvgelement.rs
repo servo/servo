@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use atomic_refcell::AtomicRefCell;
 use base64::Engine as _;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
@@ -9,7 +10,6 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
-use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::parser::ParserContext;
@@ -43,7 +43,7 @@ pub(crate) struct SVGSVGElement {
     // a base64 encoded `data:` url. This is cached to avoid recomputation
     // on each layout and must be invalidated when the subtree changes.
     #[no_trace]
-    cached_serialized_data_url: DomRefCell<Option<Result<ServoUrl, ()>>>,
+    cached_serialized_data_url: AtomicRefCell<Option<Result<ServoUrl, ()>>>,
 }
 
 impl SVGSVGElement {
@@ -183,7 +183,6 @@ impl SVGSVGElement {
 }
 
 impl<'dom> LayoutDom<'dom, SVGSVGElement> {
-    #[expect(unsafe_code)]
     pub(crate) fn data(self) -> SVGElementData<'dom> {
         let svg_id = self.unsafe_get().uuid;
         let element = self.upcast::<Element>();
@@ -191,12 +190,11 @@ impl<'dom> LayoutDom<'dom, SVGSVGElement> {
         let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
         let view_box = element.get_attr_for_layout(&ns!(), &local_name!("viewBox"));
         SVGElementData {
-            source: unsafe {
-                self.unsafe_get()
-                    .cached_serialized_data_url
-                    .borrow_for_layout()
-                    .clone()
-            },
+            source: self
+                .unsafe_get()
+                .cached_serialized_data_url
+                .borrow()
+                .clone(),
             width,
             height,
             view_box,
