@@ -3,14 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::ops::Range;
 
 use layout_api::{
     LayoutElement, LayoutElementType, LayoutNode, LayoutNodeType, PseudoElementChain,
 };
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::Utf32CodeUnits;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -87,12 +85,7 @@ pub(super) enum PseudoElementContentItem {
 }
 
 pub(super) trait TraversalHandler<'dom> {
-    fn handle_text(
-        &mut self,
-        info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
-        document_selection: Option<Range<Utf32CodeUnits>>,
-    );
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>);
 
     /// Or pseudo-element
     fn handle_element(
@@ -127,11 +120,7 @@ fn traverse_children_of<'dom>(
     for child in parent_element_info.node.flat_tree_children() {
         if child.is_text_node() {
             let info = NodeAndStyleInfo::new(child, child.style(&context.style_context));
-            handler.handle_text(
-                &info,
-                child.text_content(),
-                child.document_selection_in_text_node(),
-            );
+            handler.handle_text(&info, child.text_content());
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
@@ -227,9 +216,7 @@ fn traverse_pseudo_element_contents<'dom>(
     let mut anonymous_info = None;
     for item in items {
         match item {
-            PseudoElementContentItem::Text(text) => {
-                handler.handle_text(info, text.into(), None /* document_selection_range */)
-            },
+            PseudoElementContentItem::Text(text) => handler.handle_text(info, text.into()),
             PseudoElementContentItem::Replaced(contents) => {
                 let anonymous_info = anonymous_info.get_or_insert_with(|| {
                     info.with_pseudo_element(context, PseudoElement::ServoAnonymousBox)

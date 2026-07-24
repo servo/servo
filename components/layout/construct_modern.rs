@@ -5,11 +5,10 @@
 //! Layout construction code that is shared between modern layout modes (Flexbox and CSS Grid)
 
 use std::borrow::Cow;
-use std::ops::Range;
 use std::sync::OnceLock;
 
+use layout_api::LayoutNode;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use servo_base::text::Utf32CodeUnits;
 use style::selector_parser::PseudoElement;
 
 use crate::PropagatedBoxTreeData;
@@ -85,7 +84,7 @@ impl<'dom> ModernContainerJob<'dom> {
                     inline_formatting_context_builder.push_text(
                         flex_text_run.text,
                         &flex_text_run.info,
-                        flex_text_run.document_selection_range,
+                        flex_text_run.info.node.document_selection_in_text_node(),
                     );
                 }
 
@@ -181,7 +180,6 @@ impl<'dom> ModernContainerJob<'dom> {
 struct ModernContainerTextRun<'dom> {
     info: NodeAndStyleInfo<'dom>,
     text: Cow<'dom, str>,
-    document_selection_range: Option<Range<Utf32CodeUnits>>,
     style_from_display_contents: Option<SharedInlineStyles>,
 }
 
@@ -210,16 +208,10 @@ pub(crate) struct ModernItem<'dom> {
 }
 
 impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
-    fn handle_text(
-        &mut self,
-        info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
-        document_selection_range: Option<Range<Utf32CodeUnits>>,
-    ) {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
         self.contiguous_text_runs.push(ModernContainerTextRun {
             info: info.clone(),
             text,
-            document_selection_range,
             style_from_display_contents: self.display_contents_shared_styles.last().cloned(),
         })
     }
