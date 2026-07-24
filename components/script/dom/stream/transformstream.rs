@@ -435,6 +435,7 @@ impl TransformStream {
 
     /// Creates and set up the newly created transform stream following
     /// <https://streams.spec.whatwg.org/#transformstream-set-up>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_up(
         &self,
         cx: &mut JSContext,
@@ -620,8 +621,11 @@ impl TransformStream {
         transformer: &Transformer,
     ) {
         // Let controller be a new TransformStreamDefaultController.
-        let transformer_type = TransformerType::new_from_js_transformer(transformer);
-        let controller = TransformStreamDefaultController::new(cx, global, transformer_type);
+        let controller = TransformStreamDefaultController::new(
+            cx,
+            global,
+            TransformerType::new_from_js_transformer(transformer),
+        );
 
         // Let transformAlgorithm be the following steps, taking a chunk argument:
         // Let result be TransformStreamDefaultControllerEnqueue(controller, chunk).

@@ -99,11 +99,14 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
         // compress and enqueue a chunk algorithm with this and chunk.
         // Step 4. Let flushAlgorithm be an algorithm which takes no argument and runs the compress
         // flush and enqueue algorithm with this.
-        let transformer_type = TransformerType::Compressor(compression_stream.clone());
 
         // Step 6. Set up this’s transform with transformAlgorithm set to transformAlgorithm and
         // flushAlgorithm set to flushAlgorithm.
-        transform.set_up(cx, global, transformer_type)?;
+        transform.set_up(
+            cx,
+            global,
+            TransformerType::Compressor(compression_stream.as_traced()),
+        )?;
 
         Ok(compression_stream)
     }

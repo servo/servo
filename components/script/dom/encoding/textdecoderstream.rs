@@ -126,10 +126,9 @@ impl TextDecoderStream {
         ignoreBOM: bool,
     ) -> Fallible<DomRoot<Self>> {
         let decoder = Rc::new(TextDecoderCommon::new_inherited(encoding, fatal, ignoreBOM));
-        let transformer_type = TransformerType::Decoder(decoder.clone());
 
         let transform_stream = TransformStream::new_with_proto(cx, global, None);
-        transform_stream.set_up(cx, global, transformer_type)?;
+        transform_stream.set_up(cx, global, TransformerType::Decoder(decoder.clone()))?;
 
         Ok(reflect_dom_object_with_proto(
             cx,
