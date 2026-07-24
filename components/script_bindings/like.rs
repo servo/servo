@@ -6,6 +6,7 @@
 
 use std::hash::Hash;
 
+use atomic_refcell::AtomicRefCell;
 use indexmap::{IndexMap, IndexSet};
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
@@ -162,6 +163,43 @@ where
 }
 
 impl<K> Setlike for DomRefCell<IndexSet<K>>
+where
+    K: ToJSValConvertible + Eq + PartialEq + Hash + Clone,
+{
+    type Key = K;
+
+    #[inline(always)]
+    fn get_index(&self, _cx: &mut JSContext, index: u32) -> Option<Self::Key> {
+        self.borrow().get_index(index as usize).cloned()
+    }
+
+    #[inline(always)]
+    fn size(&self, _cx: &mut JSContext) -> u32 {
+        self.borrow().len() as u32
+    }
+
+    #[inline(always)]
+    fn add(&self, _cx: &mut JSContext, key: Self::Key) {
+        self.borrow_mut().insert(key);
+    }
+
+    #[inline(always)]
+    fn has(&self, _cx: &mut JSContext, key: Self::Key) -> bool {
+        self.borrow().contains(&key)
+    }
+
+    #[inline(always)]
+    fn clear(&self, _cx: &mut JSContext) {
+        self.borrow_mut().clear()
+    }
+
+    #[inline(always)]
+    fn delete(&self, _cx: &mut JSContext, key: Self::Key) -> bool {
+        self.borrow_mut().shift_remove(&key)
+    }
+}
+
+impl<K> Setlike for AtomicRefCell<IndexSet<K>>
 where
     K: ToJSValConvertible + Eq + PartialEq + Hash + Clone,
 {

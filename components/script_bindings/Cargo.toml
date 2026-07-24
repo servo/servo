@@ -20,6 +20,7 @@ name = "script_bindings"
 path = "lib.rs"
 
 [dependencies]
+atomic_refcell = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
 deny_public_fields = { workspace = true }

@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::context::JSContext;
-use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomStateSetMethods;
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::str::DOMString;
-use script_bindings::trace::CustomTraceable;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -22,7 +21,8 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct CustomStateSet {
     reflector: Reflector,
-    internal: DomRefCell<IndexSet<DOMString>>,
+    #[no_trace]
+    internal: AtomicRefCell<IndexSet<DOMString>>,
     owner_element: Dom<HTMLElement>,
 }
 
@@ -30,7 +30,7 @@ impl CustomStateSet {
     fn new_inherited(element: &HTMLElement) -> Self {
         Self {
             reflector: Reflector::new(),
-            internal: DomRefCell::new(Default::default()),
+            internal: Default::default(),
             owner_element: Dom::from_ref(element),
         }
     }
@@ -39,12 +39,8 @@ impl CustomStateSet {
         reflect_dom_object_with_cx(Box::new(Self::new_inherited(element)), window, cx)
     }
 
-    /// Returns a borrowed version of the set without the usual Ref wrapper.
-    /// Mutating the underlying refcell while this value is active is
-    /// undefined behaviour.
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn set_for_layout(&self) -> &IndexSet<DOMString> {
-        unsafe { self.internal.borrow_for_layout() }
+    pub(crate) fn set_for_layout(&self) -> AtomicRef<'_, IndexSet<DOMString>> {
+        self.internal.borrow()
     }
 
     fn states_did_change(&self) {
