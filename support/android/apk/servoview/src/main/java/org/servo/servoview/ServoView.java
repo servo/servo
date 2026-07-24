@@ -106,14 +106,20 @@ public class ServoView extends SurfaceView
     // View
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        mServo.onKeyDown(keyCode, event);
-        return true;
+        if (event.getKeyCode() != KeyEvent.KEYCODE_BACK) {
+            mServo.onKeyDown(keyCode, event);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-        mServo.onKeyUp(keyCode, event);
-        return true;
+        if (event.getKeyCode() != KeyEvent.KEYCODE_BACK) {
+            mServo.onKeyUp(keyCode, event);
+            return true;
+        }
+        return false;
     }
 
     @Override
