@@ -5,12 +5,13 @@
 //! DOM bindings for `CharacterData`.
 use std::cell::LazyCell;
 
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 use servo_base::text::Utf16CodeUnits;
 
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
@@ -33,14 +34,15 @@ use crate::dom::text::Text;
 #[dom_struct]
 pub(crate) struct CharacterData {
     node: Node,
-    data: DomRefCell<String>,
+    #[no_trace]
+    data: AtomicRefCell<String>,
 }
 
 impl CharacterData {
     pub(crate) fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(document),
-            data: DomRefCell::new(String::from(data)),
+            data: AtomicRefCell::new(String::from(data)),
         }
     }
 
@@ -69,7 +71,7 @@ impl CharacterData {
     }
 
     #[inline]
-    pub(crate) fn data(&self) -> Ref<'_, String> {
+    pub(crate) fn data(&self) -> AtomicRef<'_, String> {
         self.data.borrow()
     }
 
@@ -318,10 +320,9 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
 }
 
 impl<'dom> LayoutDom<'dom, CharacterData> {
-    #[expect(unsafe_code)]
     #[inline]
-    pub(crate) fn data_for_layout(self) -> &'dom str {
-        unsafe { self.unsafe_get().data.borrow_for_layout() }
+    pub(crate) fn data_for_layout(self) -> AtomicRef<'dom, str> {
+        AtomicRef::map(self.unsafe_get().data.borrow(), |data| &**data)
     }
 }
 

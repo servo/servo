@@ -4,7 +4,6 @@
 
 //! Layout construction code that is shared between modern layout modes (Flexbox and CSS Grid)
 
-use std::borrow::Cow;
 use std::sync::OnceLock;
 
 use layout_api::LayoutNode;
@@ -14,7 +13,7 @@ use style::selector_parser::PseudoElement;
 use crate::PropagatedBoxTreeData;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
-use crate::dom_traversal::{Contents, NodeAndStyleInfo, TraversalHandler};
+use crate::dom_traversal::{BoxTreeString, Contents, NodeAndStyleInfo, TraversalHandler};
 use crate::flow::inline::SharedInlineStyles;
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 use crate::flow::{BlockContainer, BlockFormattingContext};
@@ -179,7 +178,7 @@ impl<'dom> ModernContainerJob<'dom> {
 
 struct ModernContainerTextRun<'dom> {
     info: NodeAndStyleInfo<'dom>,
-    text: Cow<'dom, str>,
+    text: BoxTreeString<'dom>,
     style_from_display_contents: Option<SharedInlineStyles>,
 }
 
@@ -208,7 +207,7 @@ pub(crate) struct ModernItem<'dom> {
 }
 
 impl<'dom> TraversalHandler<'dom> for ModernContainerBuilder<'_, 'dom> {
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: BoxTreeString<'dom>) {
         self.contiguous_text_runs.push(ModernContainerTextRun {
             info: info.clone(),
             text,

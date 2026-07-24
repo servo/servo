@@ -135,6 +135,7 @@
 #![deny(non_snake_case)]
 
 pub(crate) mod buffer_source;
+pub(crate) mod cell;
 pub(crate) mod constructor;
 pub(crate) mod conversions;
 pub(crate) mod domname;
