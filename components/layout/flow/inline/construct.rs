@@ -310,8 +310,8 @@ impl InlineFormattingContextBuilder {
         info: &NodeAndStyleInfo<'dom>,
         container_info: &NodeAndStyleInfo<'dom>,
         layout_context: &LayoutContext,
-        document_selection: Option<Range<Utf32CodeUnits>>,
     ) -> bool {
+        let document_selection = info.node.document_selection_in_text_node();
         if self.has_processed_first_letter || !container_info.pseudo_element_chain().is_empty() {
             self.push_text(text, info, document_selection);
             return false;

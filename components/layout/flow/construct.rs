@@ -3,12 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::ops::Range;
 
 use layout_api::LayoutNode;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
-use servo_base::text::Utf32CodeUnits;
 use style::properties::ComputedValues;
 use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::selector_parser::PseudoElement;
@@ -373,9 +371,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
         // irrelevant boxes" and "Generate missing parents."
         for content in trailing_contents {
             match content {
-                AnonymousTableContent::Text(info, text, document_selection_range) => {
-                    self.handle_text(&info, text, document_selection_range)
-                },
+                AnonymousTableContent::Text(info, text) => self.handle_text(&info, text),
                 AnonymousTableContent::EnterDisplayContents(styles) => {
                     self.enter_display_contents(styles)
                 },
@@ -432,12 +428,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         }
     }
 
-    fn handle_text(
-        &mut self,
-        info: &NodeAndStyleInfo<'dom>,
-        text: Cow<'dom, str>,
-        document_selection_range: Option<Range<Utf32CodeUnits>>,
-    ) {
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>) {
         if text.is_empty() {
             return;
         }
@@ -447,11 +438,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         // whitespace to the table builder.
         if !self.anonymous_table_content.is_empty() && text.chars().all(char_is_whitespace) {
             self.anonymous_table_content
-                .push(AnonymousTableContent::Text(
-                    info.clone(),
-                    text,
-                    document_selection_range,
-                ));
+                .push(AnonymousTableContent::Text(info.clone(), text));
             return;
         } else {
             self.finish_anonymous_table_if_needed();
@@ -461,13 +448,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         self.inline_formatting_context_builder
             .as_mut()
             .expect("Should be guaranteed by line above")
-            .push_text_with_possible_first_letter(
-                text,
-                info,
-                self.info,
-                self.context,
-                document_selection_range,
-            );
+            .push_text_with_possible_first_letter(text, info, self.info, self.context);
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
