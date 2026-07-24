@@ -4,9 +4,9 @@
 
 //! Methods for layout of node
 
-use std::borrow::Cow;
 use std::ops::Range;
 
+use atomic_refcell::AtomicRef;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
     SVGElementData, SharedSelection,
@@ -241,12 +241,11 @@ impl<'dom> LayoutDom<'dom, Node> {
         self.is_single_line_text_inner_editor() || is_single_line_text_inner_placeholder
     }
 
-    pub(crate) fn text_content(self) -> Cow<'dom, str> {
+    pub(crate) fn text_content(self) -> AtomicRef<'dom, str> {
         self.downcast::<Text>()
             .expect("Called LayoutDom::text_content on non-Text node!")
             .upcast()
             .data_for_layout()
-            .into()
     }
 
     #[expect(unsafe_code)]
@@ -273,15 +272,15 @@ impl<'dom> LayoutDom<'dom, Node> {
         let is_end_node = unsafe { range_end.node().to_layout() } == *self;
 
         let start_offset = if is_start_node {
-            range_start.offset().to_utf32_code_units_in(text)
+            range_start.offset().to_utf32_code_units_in(&text)
         } else {
             Utf32CodeUnits(0)
         };
 
         let end_offset = if is_end_node {
-            range_end.offset().to_utf32_code_units_in(text)
+            range_end.offset().to_utf32_code_units_in(&text)
         } else {
-            Utf32CodeUnits::length_of(text)
+            Utf32CodeUnits::length_of(&text)
         };
 
         Some(start_offset..end_offset)

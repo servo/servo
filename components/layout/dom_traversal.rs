@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
+use std::ops::Deref;
 
+use atomic_refcell::AtomicRef;
 use layout_api::{
     LayoutElement, LayoutElementType, LayoutNode, LayoutNodeType, PseudoElementChain,
 };
@@ -84,8 +86,44 @@ pub(super) enum PseudoElementContentItem {
     Replaced(ReplacedContents),
 }
 
+/// A piece of text.
+pub(crate) enum BoxTreeString<'a> {
+    /// Text borrowed in its entirety from a DOM node.
+    Ref(AtomicRef<'a, str>),
+    /// Text that exists independent of a particular DOM node.
+    Cow(Cow<'a, str>),
+}
+
+impl<'a> From<AtomicRef<'a, str>> for BoxTreeString<'a> {
+    fn from(text: AtomicRef<'a, str>) -> BoxTreeString<'a> {
+        BoxTreeString::Ref(text)
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for BoxTreeString<'a> {
+    fn from(text: Cow<'a, str>) -> BoxTreeString<'a> {
+        BoxTreeString::Cow(text)
+    }
+}
+
+impl From<String> for BoxTreeString<'_> {
+    fn from(text: String) -> BoxTreeString<'static> {
+        BoxTreeString::Cow(text.into())
+    }
+}
+
+impl Deref for BoxTreeString<'_> {
+    type Target = str;
+    fn deref(&self) -> &str {
+        match self {
+            Self::Ref(ref_) => ref_,
+            Self::Cow(cow) => cow,
+        }
+    }
+}
+
 pub(super) trait TraversalHandler<'dom> {
-    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: Cow<'dom, str>);
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: BoxTreeString<'dom>);
 
     /// Or pseudo-element
     fn handle_element(
@@ -120,7 +158,7 @@ fn traverse_children_of<'dom>(
     for child in parent_element_info.node.flat_tree_children() {
         if child.is_text_node() {
             let info = NodeAndStyleInfo::new(child, child.style(&context.style_context));
-            handler.handle_text(&info, child.text_content());
+            handler.handle_text(&info, child.text_content().into());
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
