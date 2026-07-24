@@ -150,6 +150,18 @@ fn traverse_element<'dom>(
     let style = element.style(&context.style_context);
     let info = NodeAndStyleInfo::new(element, style);
 
+    #[cfg(feature = "svg-engine")]
+    if let Some(el) = element.as_element() {
+        if el.is_svg_element() &&
+            !matches!(
+                element.type_id(),
+                Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement))
+            )
+        {
+            return;
+        }
+    }
+
     match Display::from(info.style.get_box().display) {
         Display::None => {},
         Display::Contents => {

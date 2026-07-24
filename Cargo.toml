@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "components/media/examples",
+    "components/svg_engine",
     "components/xpath",
     "ffi/capi",
     "ports/servoshell",
@@ -359,6 +360,7 @@ servo-tracing = { version = "=0.4.0", path = "components/servo_tracing" }
 servo-url = { version = "=0.4.0", path = "components/url" }
 servo-wakelock = { version = "=0.4.0", path = "components/wakelock" }
 servo-webvtt = { version = "=0.4.0", path = "components/webvtt" }
+svg_engine = { version = "=0.4.0", path = "components/svg_engine" }
 storage = { package = "servo-storage", version = "=0.4.0", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "=0.4.0", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "=0.4.0", path = "components/timers" }
