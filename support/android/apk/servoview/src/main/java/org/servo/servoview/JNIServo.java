@@ -97,10 +97,6 @@ public class JNIServo {
     public interface Callbacks {
         void wakeup();
 
-        void flush();
-
-        void makeCurrent();
-
         void onAlert(String message);
 
         void onLoadStarted();
