@@ -76,7 +76,7 @@ use napi_ohos::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallM
 use napi_ohos::{Env, JsString, JsValue};
 use ohos_abilitykit_sys::runtime::application_context;
 use ohos_ime::{
-    AttachOptions, CreateImeProxyError, CreateTextEditorProxyError, Ime, ImeProxy,
+    AttachOptions, CreateImeProxyError, CreateTextEditorProxyError, Ime, ImeProxy, KeyboardStatus,
     RawTextEditorProxy,
 };
 use ohos_ime_sys::types::InputMethod_EnterKeyType;
@@ -345,6 +345,7 @@ pub(super) enum ServoAction {
     ImeDeleteForward(usize),
     ImeDeleteBackward(usize),
     ImeSendEnter,
+    ImeDismiss,
     Vsync,
     Resize {
         width: i32,
@@ -382,6 +383,7 @@ impl std::fmt::Debug for ServoAction {
                 f.debug_tuple("ImeDeleteBackward").field(arg0).finish()
             },
             Self::ImeSendEnter => write!(f, "ImeSendEnter"),
+            Self::ImeDismiss => write!(f, "ImeDismiss"),
             Self::Vsync => write!(f, "Vsync"),
             Self::Resize { width, height } => f
                 .debug_struct("Resize")
@@ -451,7 +453,11 @@ impl ServoAction {
             ImeSendEnter => {
                 servo.key_down(Key::Named(NamedKey::Enter));
                 servo.key_up(Key::Named(NamedKey::Enter));
+                servo.ime_dismissed();
             },
+            ImeDismiss => {
+                servo.ime_dismissed();
+            }
             Vsync => {
                 servo.notify_vsync();
             },
@@ -1104,6 +1110,15 @@ impl Ime for ServoIme {
 
     fn send_enter_key(&self, _enter_key: InputMethod_EnterKeyType) {
         call(ServoAction::ImeSendEnter).unwrap()
+    }
+
+    fn keyboard_status_changed(&self, status: KeyboardStatus) {
+        match status {
+            KeyboardStatus::Hidden => {
+                call(ServoAction::ImeDismiss).unwrap()
+            },
+            _ => (),
+        }
     }
 }
 
