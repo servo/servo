@@ -9064,6 +9064,7 @@ name = "servo-script-bindings"
 version = "0.4.0"
 dependencies = [
  "bitflags 2.13.0",
+ "criterion",
  "crossbeam-channel",
  "encoding_rs",
  "html5ever",
