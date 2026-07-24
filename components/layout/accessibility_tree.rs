@@ -59,6 +59,20 @@ pub struct UpdateCounters {
     pub nodes_in_tree_update: u32,
 }
 
+bitflags! {
+    /// Flags tracking an [`AccessibilityNode`]'s dirty state during an update. All flags which are
+    /// set during the update should be unset by the end of the update.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    struct DirtyState : u16 {
+        /// At least one descendant of this node has unresolved damage from the DOM tree.
+        const DescendantHasDamage = 0b0001;
+        /// This node has unresolved damage from the DOM tree.
+        const HasDamage = 0b0010;
+        /// This node's data changed, but it hasn't yet been added to the [`AccessibilityUpdate`].
+        const Updated = 0b0100;
+    }
+}
+
 struct AccessibilityNode {
     /// The unique ID for the node. This is used both as a key in [`AccessibilityTree`]'s cache of
     /// nodes, and as an identifier in [`accesskit`] datastructures: [`accesskit::Node`]s,
@@ -75,13 +89,8 @@ struct AccessibilityNode {
     /// An accessibility node may not correspond to a DOM node if it corresponds to a
     /// pseudo-element, or in a test.
     opaque_node: Option<OpaqueNode>,
-    /// Whether this node has been updated in the current tree update. This is reset to `false`
-    /// when the node is added to the [`AccessibilityUpdate`] - see [`AccessibilityUpdate::add()`].
-    updated: bool,
-    /// Whether this node has unresolved damage from the DOM tree.
-    is_dirty: bool,
-    /// Whether any descendant of this node has unresolved damage from the DOM tree
-    has_dirty_descendants: bool,
+    /// Any dirty state for the current update.
+    dirty_state: DirtyState,
 }
 
 /// A retained, internal representation of the accessibility tree for a document.
@@ -209,10 +218,10 @@ impl AccessibilityTree {
     ) {
         let mut dom_damage_map = FxHashMap::from(
             damage_from_dom
-                .iter()
+                .into_iter()
                 .filter_map(|(dom_node, dom_node_damage)| {
                     let id = self.existing_id_for_opaque(dom_node.opaque())?;
-                    Some((id, (*dom_node, *dom_node_damage)))
+                    Some((id, (dom_node, dom_node_damage)))
                 })
                 .collect(),
         );
@@ -246,14 +255,14 @@ impl AccessibilityTree {
         for node_id in node_ids {
             let node = self.assert_node_for_id(&node_id);
             let mut node = node.borrow_mut();
-            node.is_dirty = true;
+            node.dirty_state |= DirtyState::HasDamage;
 
             if common_ancestors.is_empty() {
                 // Initialize the list of potential common ancestors.
                 common_ancestors.push(node.id);
                 common_ancestors.extend(node.ancestors().map(|ancestor| {
                     let mut ancestor = ancestor.borrow_mut();
-                    ancestor.has_dirty_descendants = true;
+                    ancestor.dirty_state |= DirtyState::DescendantHasDamage;
                     ancestor.id
                 }));
 
@@ -266,7 +275,7 @@ impl AccessibilityTree {
 
                 // If we find an ancestor we've already seen, discard any potential ancestors deeper
                 // than this one, and go on to the next dirty node.
-                if ancestor.has_dirty_descendants {
+                if ancestor.dirty_state.descendant_has_damage() {
                     if let Some(pos) = common_ancestors.iter().position(|&id| id == ancestor.id) {
                         common_ancestors.truncate(pos + 1);
                     }
@@ -274,7 +283,7 @@ impl AccessibilityTree {
                     break;
                 }
 
-                ancestor.has_dirty_descendants = true;
+                ancestor.dirty_state |= DirtyState::DescendantHasDamage;
             }
         }
 
@@ -336,7 +345,7 @@ impl AccessibilityTree {
             self.assert_removed_nodes_were_rooted(&update, rooted_nodes);
         }
 
-        let ids_to_remove = update
+        let mut ids_to_remove: Vec<_> = update
             .tree_changes
             .iter()
             .filter_map(|(id, change)| match change {
@@ -345,36 +354,23 @@ impl AccessibilityTree {
                 TreeChange::New => None,
                 TreeChange::Moved => None,
             })
-            .cloned();
+            .cloned()
+            .collect();
 
-        let mut pending_changes: Vec<_> = ids_to_remove.zip(repeat(TreeChange::Removed)).collect();
-
-        while let Some((id, mut change)) = pending_changes.pop() {
+        while let Some(id) = ids_to_remove.pop() {
             if update.tree_changes.get(&id) == Some(&TreeChange::PendingMove) {
                 // Mark the move as completed by marking the node as removed from its old position.
                 update.set_tree_state_change(id, TreeChange::Removed);
-                change = TreeChange::PendingMove;
+
+                // Since this node is actually moved, don't continue removing its subtree.
+                continue;
             }
 
-            let node = match change {
-                TreeChange::Removed => {
-                    if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
-                        self.opaque_node_to_id.remove(&opaque_node);
-                    }
-                    self.nodes.remove(&id).expect("Node {id:?} already removed")
-                },
-                TreeChange::PendingMove => self.assert_node_for_id(&id),
-                TreeChange::Moved => unreachable!("Change can't be Moved"),
-                TreeChange::New => unreachable!("Change can't be New"),
-            };
-
-            pending_changes.extend(
-                node.borrow()
-                    .child_ids()
-                    .iter()
-                    .cloned()
-                    .zip(repeat(change)),
-            );
+            if let Some(opaque_node) = self.id_to_opaque_node.remove(&id) {
+                self.opaque_node_to_id.remove(&opaque_node);
+            }
+            let node = self.nodes.remove(&id).expect("Node {id:?} already removed");
+            ids_to_remove.extend(node.borrow().child_ids());
         }
 
         update
@@ -566,9 +562,7 @@ impl AccessibilityNode {
             parent_node: None,
             child_nodes: vec![],
             opaque_node: None,
-            updated: true,
-            is_dirty: false,
-            has_dirty_descendants: false,
+            dirty_state: DirtyState::empty(),
         }
     }
 
@@ -601,14 +595,14 @@ impl AccessibilityNode {
                 update,
             ));
 
-            self.is_dirty = false;
+            self.dirty_state -= DirtyState::HasDamage;
         }
 
-        if self.has_dirty_descendants {
+        if self.dirty_state.contains(DirtyState::DescendantHasDamage) {
             for child_node in self.children() {
                 let strong_child_node = child_node.clone();
                 let mut child_node = child_node.borrow_mut();
-                if !child_node.is_dirty && !child_node.has_dirty_descendants {
+                if !child_node.dirty_state.self_or_descendant_has_damage() {
                     continue;
                 }
                 let child_damage =
@@ -618,10 +612,14 @@ impl AccessibilityNode {
                 }
             }
 
-            self.has_dirty_descendants = false;
+            self.dirty_state -= DirtyState::DescendantHasDamage;
         }
 
         local_damage.insert(self.update_node_local(local_damage, update));
+
+        if self.dirty_state.updated() {
+            update.add(self);
+        }
 
         local_damage
     }
@@ -639,8 +637,8 @@ impl AccessibilityNode {
         for node in self.ancestors() {
             let mut node = node.borrow_mut();
             node.update_node_local(LocalAccessibilityDamage::SubtreeChanged, update);
-            node.has_dirty_descendants = false;
-            if node.updated {
+            node.dirty_state -= DirtyState::DescendantHasDamage;
+            if node.dirty_state.updated() {
                 update.add(&mut node);
             }
         }
@@ -668,10 +666,6 @@ impl AccessibilityNode {
                 ref_self, dom_node, dom_damage, tree, update,
             ),
         );
-
-        if self.updated {
-            update.add(self);
-        }
 
         local_damage
     }
@@ -748,13 +742,14 @@ impl AccessibilityNode {
                 update.set_tree_state_change(child_id, TreeChange::PendingMove);
             }
 
-            self.has_dirty_descendants |= child.is_dirty || child.has_dirty_descendants;
+            self.dirty_state
+                .propagate_descendant_has_damage(child.dirty_state);
         }
 
         // We can't update the AccessKit node's `children` in place, so we build up the full list
         // and then set it here.
         self.accesskit_node.set_children(new_child_ids);
-        self.updated = true;
+        self.dirty_state |= DirtyState::Updated;
 
         LocalAccessibilityDamage::SubtreeChanged
     }
@@ -870,7 +865,7 @@ impl AccessibilityNode {
             return LocalAccessibilityDamage::empty();
         }
         self.accesskit_node.set_role(role);
-        self.updated = true;
+        self.dirty_state |= DirtyState::Updated;
         LocalAccessibilityDamage::RoleChanged
     }
 
@@ -883,7 +878,7 @@ impl AccessibilityNode {
             return LocalAccessibilityDamage::empty();
         }
         self.accesskit_node.set_label(label);
-        self.updated = true;
+        self.dirty_state |= DirtyState::Updated;
         LocalAccessibilityDamage::TextChanged
     }
 
@@ -892,7 +887,7 @@ impl AccessibilityNode {
             return LocalAccessibilityDamage::empty();
         }
         self.accesskit_node.clear_label();
-        self.updated = true;
+        self.dirty_state |= DirtyState::Updated;
         LocalAccessibilityDamage::TextChanged
     }
 
@@ -905,7 +900,7 @@ impl AccessibilityNode {
             return;
         }
         self.accesskit_node.set_html_tag(html_tag);
-        self.updated = true;
+        self.dirty_state |= DirtyState::Updated;
     }
 
     fn value(&self) -> Option<&str> {
@@ -917,7 +912,7 @@ impl AccessibilityNode {
             return LocalAccessibilityDamage::empty();
         }
         self.accesskit_node.set_value(value);
-        self.updated = true;
+        self.dirty_state |= DirtyState::Updated;
         LocalAccessibilityDamage::TextChanged
     }
 
@@ -936,10 +931,10 @@ impl AccessibilityNode {
             );
         }
 
-        assert!(!self.is_dirty, "{self:?} is_dirty");
         assert!(
-            !self.has_dirty_descendants,
-            "{self:?} has_dirty_descendants"
+            self.dirty_state.is_empty(),
+            "{self:?} has dirty state {:?}",
+            self.dirty_state
         );
 
         let children_ids: Vec<_> = self.children().map(|child| child.borrow().id).collect();
@@ -979,8 +974,7 @@ impl AccessibilityUpdate {
 
     fn add(&mut self, node: &mut AccessibilityNode) {
         self.changed_nodes.insert(node.id);
-
-        node.updated = false;
+        node.dirty_state -= DirtyState::Updated;
     }
 
     fn set_tree_state_change(&mut self, node_id: NodeId, change: TreeChange) {
@@ -1050,6 +1044,26 @@ impl AccessibilityUpdate {
         };
 
         (Some(tree_update), counters)
+    }
+}
+
+impl DirtyState {
+    fn updated(&self) -> bool {
+        self.contains(DirtyState::Updated)
+    }
+
+    fn descendant_has_damage(&self) -> bool {
+        self.contains(DirtyState::DescendantHasDamage)
+    }
+
+    fn propagate_descendant_has_damage(&mut self, child_dirty_state: DirtyState) {
+        if child_dirty_state.self_or_descendant_has_damage() {
+            self.insert(DirtyState::DescendantHasDamage)
+        }
+    }
+
+    fn self_or_descendant_has_damage(&self) -> bool {
+        self.intersects(DirtyState::HasDamage | DirtyState::DescendantHasDamage)
     }
 }
 
