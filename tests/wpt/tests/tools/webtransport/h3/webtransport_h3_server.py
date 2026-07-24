@@ -15,7 +15,7 @@ from aioquic.buffer import Buffer
 from aioquic.asyncio import QuicConnectionProtocol, serve
 from aioquic.asyncio.client import connect
 from aioquic.asyncio.protocol import QuicStreamAdapter
-from aioquic.h3.connection import H3_ALPN, FrameType, H3Connection, ProtocolError, SettingsError
+from aioquic.h3.connection import H3_ALPN, FrameType, H3Connection, H3Stream, ProtocolError, SettingsError
 from aioquic.h3.events import H3Event, HeadersReceived, WebTransportStreamDataReceived, DatagramReceived, DataReceived
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.connection import logger as quic_connection_logger
@@ -381,8 +381,14 @@ class WebTransportSession:
         stream_id = self._http.create_webtransport_stream(
             session_id=self.session_id, is_unidirectional=False)
         # TODO(bashi): Remove this workaround when aioquic supports receiving
-        # data on server-initiated bidirectional streams.
-        stream = self._http._get_or_create_stream(stream_id)
+        # data on server-initiated bidirectional streams. The public API for
+        # accessing the stream object differs between aioquic versions, so seed
+        # the internal stream state directly. The stream is freshly created
+        # here, so the seeded state persists for incoming client data.
+        stream = self._http._stream.get(stream_id)
+        if stream is None:
+            stream = H3Stream(stream_id)
+            self._http._stream[stream_id] = stream
         assert stream.frame_type is None
         assert stream.session_id is None
         stream.frame_type = FrameType.WEBTRANSPORT_STREAM
