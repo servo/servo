@@ -767,12 +767,17 @@ impl Extend<char> for DOMString {
 }
 
 impl ToJSValConvertible for DOMString {
-    unsafe fn to_jsval(&self, cx: *mut RawJSContext, mut rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {
+        // TODO: https://github.com/servo/mozjs/issues/764
+        // This is needed until the `RawJSContext` version is removed from the trait.
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        ToJSValConvertible::safe_to_jsval(self, &mut cx, rval);
+    }
+
+    fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         let val = self.0.borrow();
         match *val {
-            DOMStringType::Rust(ref s) => unsafe {
-                s.to_jsval(cx, rval);
-            },
+            DOMStringType::Rust(ref s) => s.safe_to_jsval(cx, rval),
             DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
                 rval.set(StringValue(&*rooted_traceable_box.get()));
             },
@@ -785,7 +790,7 @@ impl ToJSValConvertible for DOMString {
 
                 String::from_utf8(v)
                     .expect("Error in constructin test string")
-                    .to_jsval(cx, rval);
+                    .safe_to_jsval(cx, rval);
             },
         };
     }

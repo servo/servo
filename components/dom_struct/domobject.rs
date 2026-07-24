@@ -45,6 +45,11 @@ pub(crate) fn expand_dom_object(
                 let object = crate::DomObject::reflector(self).get_jsobject();
                 object.to_jsval(cx, rval)
             }
+
+            fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: js::rust::MutableHandleValue) {
+                let object = crate::DomObject::reflector(self).get_jsobject();
+                js::conversions::ToJSValConvertible::safe_to_jsval(&*object, cx, rval);
+            }
         }
 
         impl #impl_generics crate::DomObject for #name #ty_generics #where_clause {

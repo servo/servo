@@ -11,13 +11,11 @@ use js::error::throw_type_error;
 use js::glue::{
     GetProxyHandlerExtra, GetProxyReservedSlot, IsProxyHandlerFamily, IsWrapper, JS_GetReservedSlot,
 };
-use js::jsapi::{
-    Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JS_NewStringCopyN, JSContext, JSObject,
-};
+use js::jsapi::{Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JSContext, JSObject};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::wrappers2::{
     IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength,
-    UnwrapObjectDynamic,
+    JS_NewStringCopyN, UnwrapObjectDynamic,
 };
 use js::rust::{
     HandleId, HandleValue, MutableHandleValue, ToString, get_object_class, is_dom_class,
@@ -65,6 +63,10 @@ pub trait DerivedFrom<T: Castable>: Castable {}
 impl ToJSValConvertible for USVString {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.0.to_jsval(cx, rval);
+    }
+
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+        ToJSValConvertible::safe_to_jsval(&self.0, cx, rval);
     }
 }
 
@@ -120,16 +122,25 @@ impl FromJSValConvertible for USVString {
 
 // http://heycam.github.io/webidl/#es-ByteString
 impl ToJSValConvertible for ByteString {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
-        let jsstr = JS_NewStringCopyN(
-            cx,
-            self.as_ptr() as *const libc::c_char,
-            self.len() as libc::size_t,
-        );
+    unsafe fn to_jsval(&self, _cx: *mut JSContext, rval: MutableHandleValue) {
+        // TODO: https://github.com/servo/mozjs/issues/764
+        // This is needed until the `RawJSContext` version is removed from the trait.
+        let mut cx = unsafe { crate::script_runtime::temp_cx() };
+        ToJSValConvertible::safe_to_jsval(self, &mut cx, rval);
+    }
+
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        let jsstr = unsafe {
+            JS_NewStringCopyN(
+                cx,
+                self.as_ptr() as *const libc::c_char,
+                self.len() as libc::size_t,
+            )
+        };
         if jsstr.is_null() {
             panic!("JS_NewStringCopyN failed");
         }
-        rval.set(StringValue(&*jsstr));
+        unsafe { rval.set(StringValue(&*jsstr)) };
     }
 }
 
@@ -184,6 +195,13 @@ impl<T> ToJSValConvertible for Reflector<T> {
         rval.set(ObjectValue(obj));
         maybe_wrap_value(cx, rval);
     }
+
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        let obj = self.get_jsobject().get();
+        assert!(!obj.is_null());
+        rval.set(ObjectValue(obj));
+        unsafe { maybe_wrap_value(cx.raw_cx(), rval) };
+    }
 }
 
 impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
@@ -204,6 +222,10 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
 impl<T: DomObject> ToJSValConvertible for DomRoot<T> {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
+    }
+
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+        ToJSValConvertible::safe_to_jsval(&self.reflector(), cx, rval);
     }
 }
 
@@ -409,6 +431,12 @@ impl<T: Float + ToJSValConvertible> ToJSValConvertible for Finite<T> {
         let value = **self;
         value.to_jsval(cx, rval);
     }
+
+    #[inline]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+        let value = **self;
+        value.safe_to_jsval(cx, rval);
+    }
 }
 
 impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Finite<T> {
@@ -504,6 +532,12 @@ impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceable
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let value = &**self;
         value.to_jsval(cx, rval);
+    }
+
+    #[inline]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
+        let value = &**self;
+        value.safe_to_jsval(cx, rval);
     }
 }
 
