@@ -1516,7 +1516,7 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
       * 'successCode': the code to run once we have done the conversion.
       * 'pre': code to run before the conversion if rooting is necessary
     """
-    wrap = f"{pre}\n({result}).to_jsval(cx.raw_cx(), {jsvalRef});"
+    wrap = f"{pre}\n({result}).safe_to_jsval(cx, {jsvalRef});"
     if successCode:
         wrap += f"\n{successCode}"
     return wrap
@@ -5434,6 +5434,10 @@ impl ToJSValConvertible for super::{ident} {{
     unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {{
         pairs[*self as usize].0.to_jsval(cx, rval);
     }}
+
+    fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
+        pairs[*self as usize].0.safe_to_jsval(cx, rval);
+    }}
 }}
 
 impl FromJSValConvertible for super::{ident} {{
@@ -5630,7 +5634,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
             for (v, wrapper) in templateVars
         ]
         enumConversions = [
-            f"            {self.type}::{v['name']}(ref inner) => inner.to_jsval(cx, rval),"
+            f"            {self.type}::{v['name']}(ref inner) => inner.safe_to_jsval(cx, rval),"
             for (v, _) in templateVars
         ]
         joinedEnumValues = "\n".join(enumValues)
@@ -5644,7 +5648,14 @@ pub enum {self.type}{self.generic} {{
 }}
 
 impl{self.generic} ToJSValConvertible for {self.type}{self.genericSuffix} {{
-    unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {{
+    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {{
+        // TODO: https://github.com/servo/mozjs/issues/764
+        // This is needed until the `RawJSContext` version is removed from the trait.
+        let mut cx = crate::script_runtime::temp_cx();
+        self.safe_to_jsval(&mut cx, rval);
+    }}
+
+    fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         match *self {{
 {joinedEnumConversions}
         }}
@@ -8650,6 +8661,10 @@ impl<D: DomTypes> ToJSValConvertible for {type} {{
     unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {{
         self.callback().to_jsval(cx, rval);
     }}
+
+    fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
+        self.callback().safe_to_jsval(cx, rval);
+    }}
 }}
 """)
         CGGeneric.__init__(self, impl)
@@ -9084,8 +9099,8 @@ class CGIterableMethodGenerator(CGGeneric):
                 // https://heycam.github.io/webidl/#es-forEach
                 let mut i = 0;
                 while i < (*this).get_iterable_length(cx) {
-                  (*this).get_value_at_index(cx, i).to_jsval(cx.raw_cx(), call_arg1.handle_mut());
-                  (*this).get_key_at_index(cx, i).to_jsval(cx.raw_cx(), call_arg2.handle_mut());
+                  (*this).get_value_at_index(cx, i).safe_to_jsval(cx, call_arg1.handle_mut());
+                  (*this).get_key_at_index(cx, i).safe_to_jsval(cx, call_arg2.handle_mut());
                   call_args.set_index(0, call_arg1.handle().get());
                   call_args.set_index(1, call_arg2.handle().get());
                   let call_args_handle = HandleValueArray::from(&call_args);
