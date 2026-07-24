@@ -4,13 +4,10 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::JSContext as RawJSContext;
-use js::rust::MutableHandleValue;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::{FingerJoint, Hand, Joint};
 
 use crate::dom::bindings::codegen::Bindings::XRHandBinding::{XRHandJoint, XRHandMethods};
-use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
@@ -161,30 +158,19 @@ impl XRHandMethods<crate::DomTypeHolder> for XRHand {
     }
 }
 
-/// A wrapper to work around a crown error—Root<T> has a crown annotation on it that is not present
-/// on the Iterable::Value associated type. The absence is harmless in this case.
-pub(crate) struct ValueWrapper(pub DomRoot<XRJointSpace>);
-
-impl ToJSValConvertible for ValueWrapper {
-    #[expect(unsafe_code)]
-    unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {
-        unsafe { self.0.to_jsval(cx, rval) }
-    }
-}
-
 impl Iterable for XRHand {
     type Key = XRHandJoint;
-    type Value = ValueWrapper;
+    type Value = DomRoot<XRJointSpace>;
 
     fn get_iterable_length(&self, _cx: &mut JSContext) -> u32 {
         JOINT_SPACE_MAP.len() as u32
     }
 
-    fn get_value_at_index(&self, _cx: &mut JSContext, n: u32) -> ValueWrapper {
+    fn get_value_at_index(&self, _cx: &mut JSContext, n: u32) -> DomRoot<XRJointSpace> {
         let joint = JOINT_SPACE_MAP[n as usize].1;
         self.spaces
             .get(joint)
-            .map(|j| ValueWrapper(DomRoot::from_ref(&**j)))
+            .map(|j| DomRoot::from_ref(&**j))
             .expect("Failed to get joint pose")
     }
 
