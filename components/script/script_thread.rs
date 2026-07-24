@@ -2945,24 +2945,21 @@ impl ScriptThread {
                 .get(browsing_context_id)
                 .map(|iframe| iframe.element.as_rooted())
         });
-        let focusable_area = iframe_element
-            .map(|iframe_element| {
-                let kind = iframe_element
-                    .upcast::<Element>()
-                    .focusable_area_kind(cx.no_gc());
-                FocusableArea::IFrameViewport {
-                    iframe_element,
-                    kind,
-                }
-            })
-            .unwrap_or(FocusableArea::Viewport);
 
-        focus_handler.focus_update_steps(
-            cx,
-            focusable_area.focus_chain(),
-            focus_handler.current_focus_chain(),
-            &focusable_area,
+        rooted!(&in(cx) let focusable_area = iframe_element
+            .map(|iframe_element| FocusableArea::IFrameViewport {
+                iframe_element: iframe_element.as_traced(),
+                kind: iframe_element
+                    .upcast::<Element>()
+                    .focusable_area_kind(cx.no_gc()),
+            })
+            .unwrap_or(FocusableArea::Viewport)
         );
+
+        rooted!(&in(cx) let new_focus_chain = focusable_area.focus_chain());
+        rooted!(&in(cx) let old_focus_chain = focus_handler.current_focus_chain());
+
+        focus_handler.focus_update_steps(cx, new_focus_chain, old_focus_chain, &focusable_area);
     }
 
     fn handle_focus_document(
@@ -3012,10 +3009,13 @@ impl ScriptThread {
             return;
         }
 
+        rooted!(&in(cx) let new_focus_chain = vec![]);
+        rooted!(&in(cx) let old_focus_chain = focus_handler.current_focus_chain());
+
         focus_handler.focus_update_steps(
             cx,
-            vec![],
-            focus_handler.current_focus_chain(),
+            new_focus_chain,
+            old_focus_chain,
             &FocusableArea::Viewport,
         );
     }
