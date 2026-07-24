@@ -780,18 +780,24 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
 
     /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-allowelement>
     fn AllowElement(&self, cx: &mut JSContext, element: SanitizerElementWithAttributes) -> bool {
-        // Step 1. Let configuration be this’s configuration.
-        let mut configuration = self.configuration.borrow_mut();
+        let has_configuration_element = {
+            // Step 1. Let configuration be this’s configuration.
+            let configuration = self.configuration.borrow();
 
-        // Step 2. Assert: configuration is valid.
-        debug_assert!(configuration.is_valid());
+            // Step 2. Assert: configuration is valid.
+            debug_assert!(configuration.is_valid());
+
+            configuration.elements.is_some()
+        };
 
         // Step 3. Set element to the result of canonicalize a sanitizer element with attributes
         // with element.
         let mut element = element.canonicalize();
 
         // Step 4. If configuration["elements"] exists:
-        if configuration.elements.is_some() {
+        if has_configuration_element {
+            let mut configuration = self.configuration.safe_borrow_mut(cx);
+
             // Step 4.1. Set modified to the result of remove element from
             // configuration["replaceWithChildrenElements"].
             let modified = if let Some(replace_with_children_elements) =
@@ -952,6 +958,8 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
                 // Step 5.1.2. Return false.
                 return false;
             }
+
+            let mut configuration = self.configuration.safe_borrow_mut(cx);
 
             // Step 5.2. Set modified to the result of remove element from
             // configuration["replaceWithChildrenElements"].
