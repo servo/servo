@@ -14,6 +14,7 @@ import android.system.Os
 import android.util.Log
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -177,6 +178,9 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     factory = { _ -> servoView },
                     modifier = Modifier.padding(innerPadding),
                 )
+                BackHandler(enabled = canGoBackState.value) {
+                    servoView.goBack()
+                }
             }
         }
 
@@ -307,15 +311,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         servoView.onResume()
         super.onResume()
         updateSettingsIfNecessary(false)
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (canGoBackState.value) {
-            servoView.goBack()
-        } else {
-            super.onBackPressed()
-        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
