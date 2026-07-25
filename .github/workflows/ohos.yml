@@ -218,9 +218,16 @@ jobs:
           # to make sure we don't use a previous version if installation failed for some reason.
           hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: actions/checkout@v6
+        if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 0
+      - uses: actions/checkout@v6
+        if: github.event_name == 'pull_request_target'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          allow-unsafe-pr-checkout: true
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Get model name
