@@ -12,89 +12,89 @@ import android.view.Surface;
  * Maps /ports/servoshell API
  */
 @SuppressWarnings("JniMissingFunction")
-public class JNIServo {
+class JNIServo {
     JNIServo() {
         System.loadLibrary("c++_shared");
         System.loadLibrary("servoshell");
     }
 
-    public native String version();
+    native String version();
 
-    public native void init(Activity activity, ServoOptions options, Callbacks callbacks, Surface surface);
+    native void init(Activity activity, ServoOptions options, Callbacks callbacks, Surface surface);
 
-    public native void deinit();
+    native void deinit();
 
-    public native void requestShutdown();
+    native void requestShutdown();
 
-    public native void setBatchMode(boolean mode);
+    native void setBatchMode(boolean mode);
 
-    public native void performUpdates();
+    native void performUpdates();
 
-    public native void resize(ServoCoordinates coords);
+    native void resize(ServoCoordinates coords);
 
-    public native void reload();
+    native void reload();
 
-    public native void stop();
+    native void stop();
 
-    public native void goBack();
+    native void goBack();
 
-    public native void goForward();
+    native void goForward();
 
-    public native void loadUri(String uri);
+    native void loadUri(String uri);
 
-    public native void scroll(int dx, int dy, int x, int y);
+    native void scroll(int dx, int dy, int x, int y);
 
-    public native void keydown(int keycode, int unicode);
+    native void keydown(int keycode, int unicode);
 
-    public native void keyup(int keycode, int unicode);
+    native void keyup(int keycode, int unicode);
 
-    public native void touchDown(float x, float y, int pointer_id);
+    native void touchDown(float x, float y, int pointer_id);
 
-    public native void touchMove(float x, float y, int pointer_id);
+    native void touchMove(float x, float y, int pointer_id);
 
-    public native void touchUp(float x, float y, int pointer_id);
+    native void touchUp(float x, float y, int pointer_id);
 
-    public native void touchCancel(float x, float y, int pointer_id);
+    native void touchCancel(float x, float y, int pointer_id);
 
-    public native void pinchZoomStart(float factor, float x, float y);
+    native void pinchZoomStart(float factor, float x, float y);
 
-    public native void pinchZoom(float factor, float x, float y);
+    native void pinchZoom(float factor, float x, float y);
 
-    public native void pinchZoomEnd(float factor, float x, float y);
+    native void pinchZoomEnd(float factor, float x, float y);
 
-    public native void click(float x, float y);
+    native void click(float x, float y);
 
-    public native void pausePainting();
+    native void pausePainting();
 
-    public native void resumePainting(Surface surface, ServoCoordinates coords);
+    native void resumePainting(Surface surface, ServoCoordinates coords);
 
-    public native void mediaSessionAction(int action);
+    native void mediaSessionAction(int action);
 
-    public native void setExperimentalMode(boolean enable);
+    native void setExperimentalMode(boolean enable);
 
-    public native void doFrame();
+    native void doFrame();
 
-    public static class ServoOptions {
-        public String args;
-        public String url;
-        public ServoCoordinates coordinates;
-        public float density = 1;
-        public boolean enableSubpixelTextAntialiasing = true;
-        public long VRExternalContext = 0;
-        public String logStr;
-        public String gstDebugStr;
-        public boolean enableLogs = false;
-        public boolean experimentalMode = false;
+    static class ServoOptions {
+        String args;
+        String url;
+        ServoCoordinates coordinates;
+        float density = 1;
+        boolean enableSubpixelTextAntialiasing = true;
+        long VRExternalContext = 0;
+        String logStr;
+        String gstDebugStr;
+        boolean enableLogs = false;
+        boolean experimentalMode = false;
     }
 
-    public static class ServoCoordinates {
-        public int x = 0;
-        public int y = 0;
-        public int width = 0;
-        public int height = 0;
+    static class ServoCoordinates {
+        int x = 0;
+        int y = 0;
+        int width = 0;
+        int height = 0;
     }
 
-    public interface Callbacks {
+    interface Callbacks {
         void wakeup();
 
         void onAlert(String message);
