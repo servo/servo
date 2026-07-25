@@ -5,7 +5,7 @@
 
 package org.servo.servoview;
 
-import android.app.Activity;
+import android.content.Context;
 import android.view.Surface;
 
 /**
@@ -20,7 +20,7 @@ class JNIServo {
 
     native String version();
 
-    native void init(Activity activity, ServoOptions options, Callbacks callbacks, Surface surface);
+    native void init(Context context, ServoOptions options, Callbacks callbacks, Surface surface);
 
     native void deinit();
 

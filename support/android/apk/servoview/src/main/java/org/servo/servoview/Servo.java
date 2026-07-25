@@ -5,7 +5,7 @@
 
 package org.servo.servoview;
 
-import android.app.Activity;
+import android.content.Context;
 import android.view.KeyEvent;
 import android.view.Surface;
 
@@ -23,14 +23,14 @@ public class Servo {
             ServoOptions options,
             RunCallback runCallback,
             Client client,
-            Activity activity,
+            Context context,
             Surface surface) {
 
         this.runCallback = runCallback;
 
         servoCallbacks = new Callbacks(client);
 
-        this.runCallback.inGLThread(() -> jni.init(activity, options, servoCallbacks, surface));
+        this.runCallback.inGLThread(() -> jni.init(context, options, servoCallbacks, surface));
     }
 
     public String version() {

@@ -5,7 +5,6 @@
 
 package org.servo.servoview;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -40,7 +39,7 @@ public class ServoView extends SurfaceView
     private String servoArgs;
     private String servoLog;
     private String initialUri;
-    private Activity activity;
+    private Context context;
 
     private boolean experimentalMode;
     private boolean paused = false;
@@ -56,7 +55,7 @@ public class ServoView extends SurfaceView
     }
 
     private void init(Context context) {
-        activity = (Activity) context;
+        this.context = context;
         setFocusable(true);
         setFocusableInTouchMode(true);
         setClickable(true);
@@ -64,7 +63,7 @@ public class ServoView extends SurfaceView
         view.add(this);
         addTouchables(view);
 
-        glThread = new GLThread(activity, this);
+        glThread = new GLThread(context, this);
         getHolder().addCallback(glThread);
         glThread.start();
     }
@@ -197,11 +196,11 @@ public class ServoView extends SurfaceView
     }
 
     class GLThread extends Thread implements SurfaceHolder.Callback {
-        private Activity activity;
+        private Context context;
         private ServoView servoView;
 
-        GLThread(Activity activity, ServoView servoView) {
-            this.activity = activity;
+        GLThread(Context context, ServoView servoView) {
+            this.context = context;
             this.servoView = servoView;
         }
 
@@ -221,11 +220,11 @@ public class ServoView extends SurfaceView
             options.enableSubpixelTextAntialiasing = true;
             options.experimentalMode = servoView.experimentalMode;
 
-            DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
+            DisplayMetrics metrics = context.getResources().getDisplayMetrics();
             options.density = metrics.density;
             if (servoView.servo == null && !paused) {
                 servoView.servo = new Servo(
-                        options, servoView, client, activity, surface);
+                        options, servoView, client, context, surface);
             } else {
                 paused = false;
                 servoView.servo.resumePainting(surface, coords);
