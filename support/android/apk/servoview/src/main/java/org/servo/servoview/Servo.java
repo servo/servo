@@ -14,10 +14,10 @@ import org.servo.servoview.JNIServo.ServoOptions;
 
 public class Servo {
     private static final String LOGTAG = "Servo";
-    private JNIServo mJNI = new JNIServo();
-    private RunCallback mRunCallback;
-    private boolean mSuspended;
-    private Callbacks mServoCallbacks;
+    private JNIServo jni = new JNIServo();
+    private RunCallback runCallback;
+    private boolean suspended;
+    private Callbacks servoCallbacks;
 
     public Servo(
             ServoOptions options,
@@ -26,115 +26,115 @@ public class Servo {
             Activity activity,
             Surface surface) {
 
-        mRunCallback = runCallback;
+        this.runCallback = runCallback;
 
-        mServoCallbacks = new Callbacks(client);
+        servoCallbacks = new Callbacks(client);
 
-        mRunCallback.inGLThread(() -> mJNI.init(activity, options, mServoCallbacks, surface));
+        this.runCallback.inGLThread(() -> jni.init(activity, options, servoCallbacks, surface));
     }
 
     public String version() {
-        return mJNI.version();
+        return jni.version();
     }
 
     public void performUpdates() {
-        mRunCallback.inGLThread(() -> mJNI.performUpdates());
+        runCallback.inGLThread(() -> jni.performUpdates());
     }
 
     public void setBatchMode(boolean mode) {
-        mRunCallback.inGLThread(() -> mJNI.setBatchMode(mode));
+        runCallback.inGLThread(() -> jni.setBatchMode(mode));
     }
 
     public void resize(ServoCoordinates coords) {
-        mRunCallback.inGLThread(() -> mJNI.resize(coords));
+        runCallback.inGLThread(() -> jni.resize(coords));
     }
 
     public void reload() {
-        mRunCallback.inGLThread(() -> mJNI.reload());
+        runCallback.inGLThread(() -> jni.reload());
     }
 
     public void stop() {
-        mRunCallback.inGLThread(() -> mJNI.stop());
+        runCallback.inGLThread(() -> jni.stop());
     }
 
     public void goBack() {
-        mRunCallback.inGLThread(() -> mJNI.goBack());
+        runCallback.inGLThread(() -> jni.goBack());
     }
 
     public void goForward() {
-        mRunCallback.inGLThread(() -> mJNI.goForward());
+        runCallback.inGLThread(() -> jni.goForward());
     }
 
     public void loadUri(String uri) {
-        mRunCallback.inGLThread(() -> mJNI.loadUri(uri));
+        runCallback.inGLThread(() -> jni.loadUri(uri));
     }
 
     public void scroll(int dx, int dy, int x, int y) {
-        mRunCallback.inGLThread(() -> mJNI.scroll(dx, dy, x, y));
+        runCallback.inGLThread(() -> jni.scroll(dx, dy, x, y));
     }
 
     public void onKeyDown(int keyCode, KeyEvent event) {
-        mRunCallback.inGLThread(() -> mJNI.keydown(keyCode, event.getUnicodeChar()));
+        runCallback.inGLThread(() -> jni.keydown(keyCode, event.getUnicodeChar()));
     }
 
     public void onKeyUp(int keyCode, KeyEvent event) {
-        mRunCallback.inGLThread(() -> mJNI.keyup(keyCode, event.getUnicodeChar()));
+        runCallback.inGLThread(() -> jni.keyup(keyCode, event.getUnicodeChar()));
     }
 
     public void touchDown(float x, float y, int pointerId) {
-        mRunCallback.inGLThread(() -> mJNI.touchDown(x, y, pointerId));
+        runCallback.inGLThread(() -> jni.touchDown(x, y, pointerId));
     }
 
     public void touchMove(float x, float y, int pointerId) {
-        mRunCallback.inGLThread(() -> mJNI.touchMove(x, y, pointerId));
+        runCallback.inGLThread(() -> jni.touchMove(x, y, pointerId));
     }
 
     public void touchUp(float x, float y, int pointerId) {
-        mRunCallback.inGLThread(() -> mJNI.touchUp(x, y, pointerId));
+        runCallback.inGLThread(() -> jni.touchUp(x, y, pointerId));
     }
 
     public void touchCancel(float x, float y, int pointerId) {
-        mRunCallback.inGLThread(() -> mJNI.touchCancel(x, y, pointerId));
+        runCallback.inGLThread(() -> jni.touchCancel(x, y, pointerId));
     }
 
     public void pinchZoomStart(float factor, float x, float y) {
-        mRunCallback.inGLThread(() -> mJNI.pinchZoomStart(factor, x, y));
+        runCallback.inGLThread(() -> jni.pinchZoomStart(factor, x, y));
     }
 
     public void pinchZoom(float factor, float x, float y) {
-        mRunCallback.inGLThread(() -> mJNI.pinchZoom(factor, x, y));
+        runCallback.inGLThread(() -> jni.pinchZoom(factor, x, y));
     }
 
     public void pinchZoomEnd(float factor, float x, float y) {
-        mRunCallback.inGLThread(() -> mJNI.pinchZoomEnd(factor, x, y));
+        runCallback.inGLThread(() -> jni.pinchZoomEnd(factor, x, y));
     }
 
     public void click(float x, float y) {
-        mRunCallback.inGLThread(() -> mJNI.click(x, y));
+        runCallback.inGLThread(() -> jni.click(x, y));
     }
 
     public void pausePainting() {
-        mRunCallback.inGLThread(() -> mJNI.pausePainting());
+        runCallback.inGLThread(() -> jni.pausePainting());
     }
 
     public void resumePainting(Surface surface, ServoCoordinates coords) {
-        mRunCallback.inGLThread(() -> mJNI.resumePainting(surface, coords));
+        runCallback.inGLThread(() -> jni.resumePainting(surface, coords));
     }
 
     public void suspend(boolean suspended) {
-        mSuspended = suspended;
+        this.suspended = suspended;
     }
 
     public void mediaSessionAction(int action) {
-        mRunCallback.inGLThread(() -> mJNI.mediaSessionAction(action));
+        runCallback.inGLThread(() -> jni.mediaSessionAction(action));
     }
 
     public void setExperimentalMode(boolean enable) {
-        mRunCallback.inGLThread(() -> mJNI.setExperimentalMode(enable));
+        runCallback.inGLThread(() -> jni.setExperimentalMode(enable));
     }
 
     public void onDoFrame() {
-        mRunCallback.inGLThread(() -> mJNI.doFrame());
+        runCallback.inGLThread(() -> jni.doFrame());
     }
 
     public interface Client {
@@ -171,64 +171,64 @@ public class Servo {
 
     private class Callbacks implements JNIServo.Callbacks, Client {
 
-        Client mClient;
+        Client client;
 
         Callbacks(Client client) {
-            mClient = client;
+            this.client = client;
         }
 
         public void wakeup() {
-            if (!mSuspended) {
-                mRunCallback.inGLThread(() -> mJNI.performUpdates());
+            if (!suspended) {
+                runCallback.inGLThread(() -> jni.performUpdates());
             }
         }
 
         public void onAlert(String message) {
-            mRunCallback.inUIThread(() -> mClient.onAlert(message));
+            runCallback.inUIThread(() -> client.onAlert(message));
         }
 
         public void onImeShow() {
-            mRunCallback.inUIThread(() -> mClient.onImeShow());
+            runCallback.inUIThread(() -> client.onImeShow());
         }
 
         public void onImeHide() {
-            mRunCallback.inUIThread(() -> mClient.onImeHide());
+            runCallback.inUIThread(() -> client.onImeHide());
         }
 
         public void onLoadStarted() {
-            mRunCallback.inUIThread(() -> mClient.onLoadStarted());
+            runCallback.inUIThread(() -> client.onLoadStarted());
         }
 
         public void onLoadEnded() {
-            mRunCallback.inUIThread(() -> mClient.onLoadEnded());
+            runCallback.inUIThread(() -> client.onLoadEnded());
         }
 
         public void onTitleChanged(String title) {
-            mRunCallback.inUIThread(() -> mClient.onTitleChanged(title));
+            runCallback.inUIThread(() -> client.onTitleChanged(title));
         }
 
         public void onUrlChanged(String url) {
-            mRunCallback.inUIThread(() -> mClient.onUrlChanged(url));
+            runCallback.inUIThread(() -> client.onUrlChanged(url));
         }
 
         public void onHistoryChanged(boolean canGoBack, boolean canGoForward) {
-            mRunCallback.inUIThread(() -> mClient.onHistoryChanged(canGoBack, canGoForward));
+            runCallback.inUIThread(() -> client.onHistoryChanged(canGoBack, canGoForward));
         }
 
         public void onRedrawing(boolean redrawing) {
-            mRunCallback.inUIThread(() -> mClient.onRedrawing(redrawing));
+            runCallback.inUIThread(() -> client.onRedrawing(redrawing));
         }
 
         public void onMediaSessionMetadata(String title, String artist, String album) {
-            mRunCallback.inUIThread(() -> mClient.onMediaSessionMetadata(title, artist, album));
+            runCallback.inUIThread(() -> client.onMediaSessionMetadata(title, artist, album));
         }
 
         public void onMediaSessionPlaybackStateChange(int state) {
-            mRunCallback.inUIThread(() -> mClient.onMediaSessionPlaybackStateChange(state));
+            runCallback.inUIThread(() -> client.onMediaSessionPlaybackStateChange(state));
         }
 
         public void onMediaSessionSetPositionState(float duration, float position, float playbackRate) {
-            mRunCallback.inUIThread(() -> mClient.onMediaSessionSetPositionState(duration, position, playbackRate));
+            runCallback.inUIThread(() -> client.onMediaSessionSetPositionState(duration, position, playbackRate));
         }
     }
 }
