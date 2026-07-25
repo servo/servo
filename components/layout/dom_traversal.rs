@@ -86,7 +86,9 @@ pub(super) enum PseudoElementContentItem {
     Replaced(ReplacedContents),
 }
 
-/// A piece of text.
+/// A reference to a string encountered during box tree construction. This
+/// can either be a reference to a borrowed DOM string, a `&str` or an owned
+/// `String`.
 pub(crate) enum BoxTreeString<'a> {
     /// Text borrowed in its entirety from a DOM node.
     Ref(AtomicRef<'a, str>),
