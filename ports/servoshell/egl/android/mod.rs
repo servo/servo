@@ -98,7 +98,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
 pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     mut env: EnvUnowned<'local>,
     _: JClass<'local>,
-    activity: JObject<'local>,
+    context: JObject<'local>,
     opts: JObject<'local>,
     callbacks_obj: JObject<'local>,
     surface: JObject<'local>,
@@ -172,7 +172,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 
         crate::init_crypto();
 
-        if let Err(error) = set_default_config_dir(env, &activity) {
+        if let Err(error) = set_default_config_dir(env, &context) {
             error!("Failed to determine Android config directory: {error:?}");
         }
 
@@ -926,11 +926,11 @@ fn get_field_as_string<'local>(
 
 fn set_default_config_dir<'local>(
     env: &mut Env<'local>,
-    activity: &JObject<'local>,
+    context: &JObject<'local>,
 ) -> Result<(), Error> {
     let files_dir = env
         .call_method(
-            activity,
+            context,
             jni_str!("getFilesDir"),
             jni_sig!("()Ljava/io/File;"),
             &[],
