@@ -862,8 +862,8 @@ impl<'a> TableLayout<'a> {
         let bounds = |sum_a, sum_b| target_inline_size > sum_a && target_inline_size < sum_b;
 
         let blend = |a: &[Au], sum_a: Au, b: &[Au], sum_b: Au| {
-            // First convert the Au units to f32 in order to do floating point division.
-            let weight_a = (target_inline_size - sum_b).to_f32_px() / (sum_a - sum_b).to_f32_px();
+            // First convert the Au units to f64 in order to do floating point division.
+            let weight_a = (target_inline_size - sum_b).to_f64_px() / (sum_a - sum_b).to_f64_px();
             let weight_b = 1.0 - weight_a;
 
             let mut remaining_assignable_width = target_inline_size;
@@ -871,7 +871,9 @@ impl<'a> TableLayout<'a> {
                 .iter()
                 .zip(b.iter())
                 .map(|(guess_a, guess_b)| {
-                    let column_width = guess_a.scale_by(weight_a) + guess_b.scale_by(weight_b);
+                    let column_width = Au::from_f64_px(
+                        guess_a.to_f64_px() * weight_a + guess_b.to_f64_px() * weight_b,
+                    );
                     // Clamp to avoid exceeding the assignable width. This could otherwise
                     // happen when dealing with huge values whose sum is clamped to MAX_AU.
                     let column_width = column_width.min(remaining_assignable_width);
