@@ -904,13 +904,10 @@ fn jni_coordinate_to_rust_viewport_rect<'local>(
     env: &mut Env<'local>,
     obj: &JObject<'local>,
 ) -> Result<Rect<i32, DevicePixel>, Error> {
-    let x = env.get_field(obj, jni_str!("x"), jni_sig!("I"))?.i()?;
-    let y = env.get_field(obj, jni_str!("y"), jni_sig!("I"))?.i()?;
-
     let width = env.get_field(obj, jni_str!("width"), jni_sig!("I"))?.i()?;
     let height = env.get_field(obj, jni_str!("height"), jni_sig!("I"))?.i()?;
 
-    Ok(Rect::new(Point2D::new(x, y), Size2D::new(width, height)))
+    Ok(Rect::new(Point2D::origin(), Size2D::new(width, height)))
 }
 
 fn get_field_as_string<'local>(
