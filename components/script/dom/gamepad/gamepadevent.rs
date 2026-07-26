@@ -10,9 +10,9 @@ use stylo_atoms::Atom;
 
 use super::gamepad::Gamepad;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::GamepadEventBinding;
-use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::GamepadEventMethods;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::codegen::Bindings::GamepadEventBinding::{
+    GamepadEventInit, GamepadEventMethods,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -22,7 +22,7 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct GamepadEvent {
     event: Event,
-    gamepad: Dom<Gamepad>,
+    gamepad: Option<Dom<Gamepad>>,
 }
 
 pub(crate) enum GamepadEventType {
@@ -31,10 +31,10 @@ pub(crate) enum GamepadEventType {
 }
 
 impl GamepadEvent {
-    fn new_inherited(gamepad: &Gamepad) -> GamepadEvent {
+    fn new_inherited(gamepad: Option<&Gamepad>) -> GamepadEvent {
         GamepadEvent {
             event: Event::new_inherited(),
-            gamepad: Dom::from_ref(gamepad),
+            gamepad: gamepad.map(Dom::from_ref),
         }
     }
 
@@ -44,7 +44,7 @@ impl GamepadEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        gamepad: &Gamepad,
+        gamepad: Option<&Gamepad>,
     ) -> DomRoot<GamepadEvent> {
         Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, gamepad)
     }
@@ -56,7 +56,7 @@ impl GamepadEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        gamepad: &Gamepad,
+        gamepad: Option<&Gamepad>,
     ) -> DomRoot<GamepadEvent> {
         let ev = reflect_dom_object_with_proto(
             cx,
@@ -82,7 +82,7 @@ impl GamepadEvent {
             GamepadEventType::Disconnected => "gamepaddisconnected",
         };
 
-        GamepadEvent::new(cx, window, name.into(), false, false, gamepad)
+        GamepadEvent::new(cx, window, name.into(), false, false, Some(gamepad))
     }
 }
 
@@ -93,22 +93,22 @@ impl GamepadEventMethods<crate::DomTypeHolder> for GamepadEvent {
         window: &Window,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: &GamepadEventBinding::GamepadEventInit,
-    ) -> Fallible<DomRoot<GamepadEvent>> {
-        Ok(GamepadEvent::new_with_proto(
+        init: &GamepadEventInit,
+    ) -> DomRoot<GamepadEvent> {
+        GamepadEvent::new_with_proto(
             cx,
             window,
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
-            &init.gamepad,
-        ))
+            init.gamepad.as_deref(),
+        )
     }
 
     /// <https://w3c.github.io/gamepad/#gamepadevent-interface>
-    fn Gamepad(&self) -> DomRoot<Gamepad> {
-        DomRoot::from_ref(&*self.gamepad)
+    fn GetGamepad(&self) -> Option<DomRoot<Gamepad>> {
+        self.gamepad.as_deref().map(DomRoot::from_ref)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
