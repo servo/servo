@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use app_units::Au;
@@ -91,8 +92,8 @@ impl ResizeObserver {
         // NOTE: This happens as part of Step 2.2
 
         // Step 2.2 For each observation in observer.[[observationTargets]] run this step:
-        for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
-            observation.state = Default::default();
+        for (observation, target) in self.observation_targets.borrow().iter() {
+            observation.state.set(Default::default());
 
             // Step 2.2.1 If observation.isActive() is true
             if observation.is_active(target) {
@@ -101,12 +102,12 @@ impl ResizeObserver {
 
                 // Step 2.2.1.2 If targetDepth is greater than depth then add observation to [[activeTargets]].
                 if target_depth > *depth {
-                    observation.state = ObservationState::Active;
+                    observation.state.set(ObservationState::Active);
                     *has_active = true;
                 }
                 // Step 2.2.1.3 Else add observation to [[skippedTargets]].
                 else {
-                    observation.state = ObservationState::Skipped;
+                    observation.state.set(ObservationState::Skipped);
                 }
             }
         }
@@ -128,8 +129,8 @@ impl ResizeObserver {
         let mut entries: Vec<DomRoot<ResizeObserverEntry>> = Default::default();
 
         // Step 2.3 For each observation in [[activeTargets]] perform these steps:
-        for (observation, target) in self.observation_targets.borrow_mut().iter_mut() {
-            let ObservationState::Active = observation.state else {
+        for (observation, target) in self.observation_targets.borrow().iter() {
+            let ObservationState::Active = observation.state.get() else {
                 continue;
             };
             has_active_observation_targets = true;
@@ -137,7 +138,7 @@ impl ResizeObserver {
             let window = target.owner_window();
             let entry = create_and_populate_a_resizeobserverentry(cx, &window, target, observation);
             entries.push(entry);
-            observation.state = ObservationState::Done;
+            observation.state.set(ObservationState::Done);
 
             let target_depth = calculate_depth_for_node(target);
             if target_depth < *shallowest_target_depth {
@@ -163,7 +164,7 @@ impl ResizeObserver {
         self.observation_targets
             .borrow()
             .iter()
-            .any(|(observation, _)| observation.state == ObservationState::Skipped)
+            .any(|(observation, _)| observation.state.get() == ObservationState::Skipped)
     }
 }
 
@@ -172,7 +173,7 @@ fn create_and_populate_a_resizeobserverentry(
     cx: &mut JSContext,
     window: &Window,
     target: &Element,
-    observation: &mut ResizeObservation,
+    observation: &ResizeObservation,
 ) -> DomRoot<ResizeObserverEntry> {
     // Step 3. Set this.borderBoxSize slot to result of calculating box size given target and observedBox of "border-box".
     let border_box_size = calculate_box_size(target, &ResizeObserverBoxOptions::Border_box);
@@ -193,10 +194,14 @@ fn create_and_populate_a_resizeobserverentry(
         ResizeObserverBoxOptions::Device_pixel_content_box => device_pixel_content_box,
     };
     let last_reported_size = ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
-    if observation.last_reported_sizes.is_empty() {
-        observation.last_reported_sizes.push(last_reported_size);
-    } else {
-        observation.last_reported_sizes[0] = last_reported_size;
+
+    {
+        let mut sizes = observation.last_reported_sizes.borrow_mut();
+        if sizes.is_empty() {
+            sizes.push(last_reported_size);
+        } else {
+            sizes[0] = last_reported_size;
+        }
     }
 
     // Step 7. If target is not an SVG element or target is an SVG element with an associated CSS layout box do these steps:
@@ -311,7 +316,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
 }
 
 /// State machine equivalent of active and skipped observations.
-#[derive(Default, MallocSizeOf, PartialEq)]
+#[derive(Copy, Clone, Default, MallocSizeOf, PartialEq)]
 enum ObservationState {
     #[default]
     Done,
@@ -330,10 +335,10 @@ struct ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox>
     observed_box: ResizeObserverBoxOptions,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes>
-    last_reported_sizes: Vec<ResizeObserverSizeImpl>,
+    last_reported_sizes: RefCell<Vec<ResizeObserverSizeImpl>>,
     /// State machine mimicking the "active" and "skipped" targets slots of the observer.
     #[no_trace]
-    state: ObservationState,
+    state: Cell<ObservationState>,
 }
 
 impl ResizeObservation {
@@ -341,14 +346,14 @@ impl ResizeObservation {
     pub(crate) fn new(observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
         ResizeObservation {
             observed_box,
-            last_reported_sizes: vec![],
+            last_reported_sizes: RefCell::new(vec![]),
             state: Default::default(),
         }
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-isactive>
     fn is_active(&self, target: &Element) -> bool {
-        let Some(last_reported_size) = self.last_reported_sizes.first() else {
+        let Some(last_reported_size) = self.last_reported_sizes.borrow().first().copied() else {
             return true;
         };
         let box_size = calculate_box_size(target, &self.observed_box);
