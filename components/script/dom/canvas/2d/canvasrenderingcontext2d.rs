@@ -51,7 +51,7 @@ impl CanvasRenderingContext2D {
     ///
     /// 1. The draw target's backing bitmap in the canvas paint thread
     ///    (`CanvasData::draw_target`, e.g. `pixmap` in `VelloCPUDrawTarget`).
-    /// 2. Additional backend resources (estimated 1 bitmap, actually depends on backend):
+    /// 2. Additional backend resources (approximated with 1 bitmap buffer, actually depends on backend):
     ///    e.g. `ctx` and `resources` in `VelloCPUDrawTarget` for vello_cpu.
     ///    TODO: #46785 tracks getting accurate statistics from the backend.
     /// 3. `CachedImageData::Raw` in WebRender (cpu memory copy).
