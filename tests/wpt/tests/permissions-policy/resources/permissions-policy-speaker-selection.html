@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+
+window.onload = async function() {
+  let enabled = true;
+  try {
+    const ctx = new AudioContext();
+    // Use a non-empty fake device ID to trigger permission check.
+    await ctx.setSinkId("fake_device_id");
+  } catch (e) {
+    if (e.name === 'NotAllowedError') {
+      enabled = false;
+    } else if (e.name === 'NotFoundError') {
+      enabled = true;
+    } else {
+      // Unexpected error
+      enabled = false;
+    }
+  }
+  parent.postMessage({ type: 'availability-result', enabled }, '*');
+}
+</script>

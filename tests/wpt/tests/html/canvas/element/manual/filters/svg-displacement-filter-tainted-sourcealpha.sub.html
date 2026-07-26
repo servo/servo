@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>SVG &lt;feDisplacementMap> filter using a tainted SourceAlpha has no effect</title>
+<script src="/common/reftest-wait.js"></script>
+<link rel="match" href="reference/green-100x100.html">
+<canvas id="canvas" width="100" height="100">
+<svg width="0" height="0">
+  <filter id="disp">
+    <feDisplacementMap in="SourceGraphic" in2="SourceAlpha" scale="100"
+                       yChannelSelector="A"/>
+  </filter>
+</svg>
+<script>
+  const img = new Image();
+  img.onload = () => {
+    const context = canvas.getContext('2d');
+    context.drawImage(img, 0, 0);
+    context.fillStyle = 'red';
+    context.fillRect(0, 0, 100, 100);
+
+    context.fillStyle = 'green';
+    context.filter = 'url(#disp)';
+    context.fillRect(0, 0, 100, 100);
+
+    takeScreenshot();
+  };
+  img.onerror = takeScreenshot;
+  img.src = 'https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/grgr-256x256.png';
+</script>

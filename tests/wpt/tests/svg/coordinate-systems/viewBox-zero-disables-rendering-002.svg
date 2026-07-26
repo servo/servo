@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="200" viewBox="0 0 100 0">
+  <title>A viewBox with zero height disables rendering of the element</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute"/>
+  <h:link rel="match" href="viewBox-zero-disables-rendering-ref.svg"/>
+  <h:meta name="assert" content="A value of zero for the viewBox height disables rendering of the element, so its content is not painted."/>
+  <rect width="100" height="100" fill="green"/>
+</svg>

@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: observe a paragraph with both containertiming and containertiming-ignore</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        checkContainerEntry(entry, 'p_ct', 'my_id', beforeRender);
+        // The exact text size depends on font metrics, so unlike the image
+        // version we only assert the painted area and intersection rect are
+        // non-zero (symmetry with containertiming-and-ignore-on-img-itself).
+        assert_greater_than(entry.size, 0, 'container size should be non-zero');
+        assert_greater_than(
+            entry.intersectionRect.right - entry.intersectionRect.left, 0,
+            'intersection rect width should be non-zero');
+        assert_greater_than(
+            entry.intersectionRect.bottom - entry.intersectionRect.top, 0,
+            'intersection rect height should be non-zero');
+      })
+    );
+    observer.observe({entryTypes: ['container']});
+
+    // Add a paragraph that is itself a container timing root AND has
+    // containertiming-ignore set. containertiming-ignore only blocks upward
+    // propagation to ancestor roots; the element's own text paint still
+    // reports under its own root.
+    const p = document.createElement('p');
+    p.setAttribute('containertiming', 'p_ct');
+    p.setAttribute('containertiming-ignore', '');
+    p.id = 'my_id';
+    p.innerText = "This is a text";
+    document.body.appendChild(p);
+
+    beforeRender = performance.now();
+  }, 'Text element with both containertiming and containertiming-ignore reports its own paint.');
+</script>
+
+</body>

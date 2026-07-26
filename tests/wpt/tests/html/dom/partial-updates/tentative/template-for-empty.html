@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML partial updates: template for with empty for attribute (in-place patching)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <span>Before</span>
+  <template id="empty-for-template" for="">
+    <span id="ok-empty">Allowed</span>
+  </template>
+  <span>After</span>
+</div>
+
+<script>
+test(() => {
+  const container = document.getElementById('container');
+
+  // Verify that empty-for-template behaves as a regular template:
+  // - It remains in the DOM.
+  // - Its children are inside the template's content fragment.
+  const emptyForTemplate = document.getElementById('empty-for-template');
+  assert_not_equals(emptyForTemplate, null);
+  assert_equals(emptyForTemplate.tagName, "TEMPLATE");
+  assert_not_equals(emptyForTemplate.content.querySelector('#ok-empty'), null);
+
+  assert_equals(container.innerHTML.trim().replace(/\s+/g, ' '), '<span>Before</span> <template id="empty-for-template" for=""> <span id="ok-empty">Allowed</span> </template> <span>After</span>');
+}, "A template with an empty for attribute is ignored and attached to the DOM");
+</script>
+</body>

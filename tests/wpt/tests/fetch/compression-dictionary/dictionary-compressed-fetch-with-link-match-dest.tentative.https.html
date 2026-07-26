@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<body>
+<script>
+[
+  "asdf", // invalid destination.
+  "compression-dictionary", // standard request destination for compression dictionaries.
+  "script", // valid but mismatching request destination.
+].forEach(destination => {
+  const registration_should_succeed = destination === "compression-dictionary";
+  compression_dictionary_promise_test(async t => {
+    // Register dictionary 1 with a "compression-dictionary" match dest.
+    const match_dest_1 = encodeURIComponent(`("${destination}")`);
+    const pattern_1 = encodeURIComponent("/fetch/compression-dictionary/resources/register-dictionary.py");
+    const dictionary_url_1 = `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?id=dictionary_1_${token()}&match-dest=${match_dest_1}&match=${pattern_1}`;
+    const dictionary_1 = await (await fetch(dictionary_url_1)).text();
+    assert_equals(dictionary_1, kDefaultDictionaryContent);
+
+    // Register a dummy dictionary to give a chance for dictionary 1 to become available.
+    const echo_headers_pattern_1 = encodeURIComponent("/fetch/compression-dictionary/resources/echo-headers.py");
+    await fetch(`${kRegisterDictionaryPath}?id=echo_headers_1_${token()}&match=${echo_headers_pattern_1}`);
+    assert_equals(await waitUntilAvailableDictionaryHeader(t, {}), kDefaultDictionaryHashBase64);
+
+    // Try and register dictionary 2 (compressed with dictionary 1) via a <link rel="compression-dictionary">.
+    // This should only be successful if destination matches "compression-dictionary".
+    const dictionary_id_2 = `dictionary_2_${token()}`;
+    const dictionary_url_2 = `${SAME_ORIGIN_RESOURCES_URL}/register-dictionary.py?content_encoding=dcb&id=${dictionary_id_2}`;
+    const dictionary_2_loaded = await new Promise((resolve, reject) => {
+      const link = document.createElement("link");
+      t.add_cleanup(_ => link.remove());
+      link.rel = "compression-dictionary";
+      link.href = dictionary_url_2;
+      link.onload = () => resolve(true);
+      link.onerror = () => resolve(false);
+      document.head.appendChild(link);
+    });
+    if (!dictionary_2_loaded) {
+      assert_false(registration_should_succeed);
+      return;
+    }
+    let header = await waitUntilHeader(t, "dictionary-id", {expected_header: `"${dictionary_id_2}"`});
+    if (!registration_should_succeed) {
+      assert_equals(header, '"dictionary-id" header is not available');
+      return;
+    }
+
+    // Now fetch compressed data and verify it's decompressed using dictionary 2.
+    const data_url = `${SAME_ORIGIN_RESOURCES_URL}/compressed-data.py?content_encoding=dcb&id=compressed_data_${token()}`;
+    const data = await (await fetch(data_url)).text();
+    assert_equals(data, kExpectedCompressedData);
+  }, `Dictionary loaded via <link rel="compression-dictionary"> and compressed with another dictionary with "${destination}" match-dest should be ${registration_should_succeed ? 'be registered and usable' : 'not be registered'}.`);
+});
+</script>
+</body>

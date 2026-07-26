@@ -151,6 +151,7 @@
 
 #data
 <svg><title><![CDATA[x]]>
+#errors
 #document
 | <html>
 |   <head>
@@ -161,6 +162,7 @@
 
 #data
 <svg><foreignobject><![CDATA[x]]>
+#errors
 #document
 | <html>
 |   <head>
@@ -171,6 +173,7 @@
 
 #data
 <svg><foreignobject><p><![CDATA[x]]>
+#errors
 #document
 | <html>
 |   <head>
@@ -182,6 +185,7 @@
 
 #data
 <math><![CDATA[x]]>
+#errors
 #document
 | <html>
 |   <head>
@@ -191,6 +195,7 @@
 
 #data
 <math><mtext><![CDATA[x]]>
+#errors
 #document
 | <html>
 |   <head>
@@ -201,6 +206,7 @@
 
 #data
 <math><mtext><i><![CDATA[x]]>
+#errors
 #document
 | <html>
 |   <head>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: stacking axis alignment applied to dense-packed items where a multi-span item splits track openings</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-dense-packing">
+  <link rel="match" href="row-dense-packing-justify-items-multi-span-003-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 16px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row;
+      grid-template-rows: repeat(5, 20px);
+      grid-lanes-pack: dense;
+      width: 240px;
+      padding: 2px;
+      margin: 5px;
+    }
+
+    item {
+      display: block;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes" style="justify-items: end;">
+  <item style="width: 100px; background: salmon;">1</item>
+  <item style="width: 100px; background: salmon; grid-row: 2;">2</item>
+  <item style="width: 40px; background: salmon; grid-row: 3;">3</item>
+  <item style="width: 40px; background: salmon; grid-row: 4;">4</item>
+  <item style="width: 200px; background: salmon; grid-row: 5;">5</item>
+  <item style="width: 40px; background: salmon; grid-row: 1 / span 5;">6</item>
+  <item style="width: 20px; background: darkgreen; grid-row: 1 / span 4;">7</item>
+  <item style="width: 20px; background: darkgreen; grid-row: 3 / span 2;">8</item>
+  <item style="width: 40px; background: yellow; grid-row: span 2;">9</item>
+</div>
+
+<div class="grid-lanes" style="justify-items: stretch;">
+  <item style="width: 100px; background: salmon;">1</item>
+  <item style="width: 100px; background: salmon; grid-row: 2;">2</item>
+  <item style="width: 40px; background: salmon; grid-row: 3;">3</item>
+  <item style="width: 40px; background: salmon; grid-row: 4;">4</item>
+  <item style="width: 200px; background: salmon; grid-row: 5;">5</item>
+  <item style="width: 40px; background: salmon; grid-row: 1 / span 5;">6</item>
+  <item style="background: darkgreen; grid-row: 3 / span 2;">7</item>
+</div>
+
+</body>
+</html>

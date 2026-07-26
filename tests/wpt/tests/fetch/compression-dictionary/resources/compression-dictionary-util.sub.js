@@ -151,7 +151,7 @@ function compression_dictionary_promise_test(func, name, properties) {
 // complete. This is used in tests to confirm that another dictionary's
 // registration process has fully finished.
 async function registerAltDictionaryAndWait(t) {
-  const pattern = "%2Ffetch%2Fcompression-dictionary%2Fresources%2Fecho-headers2.py";
+  const pattern = encodeURIComponent("/fetch/compression-dictionary/resources/echo-headers2.py");
   await fetch(`${kRegisterDictionaryPath}?id=id2&match=${pattern}`);
   assert_equals(
       await waitUntilAvailableDictionaryHeader(t, {use_alt_path: true}),
@@ -164,4 +164,18 @@ function navigateToTestWithCompressionDictionaryEarlyHints(test_url, dictionary_
   params.set("dictionary_url", dictionary_url);
   const url = `${RESOURCES_PATH}/early-hint-for-compression-dictionary-test-loader.h2.py?${params.toString()}`;
   window.location.replace(new URL(url, window.location));
+}
+
+async function fetchStaticResourceWithUseAsDictionaryHeader(
+    dictionary, compressed_resource, destination) {
+  // Register as a dictionary.
+  let use_as_dictionary_value =
+      `match="${RESOURCES_PATH}/static/${compressed_resource}"`;
+  if (destination !== undefined) {
+    use_as_dictionary_value += `\\, match-dest=\\("${destination}"\\)`;
+  }
+  const query_prefix = `${dictionary.includes('?') ? '&' : '?'}pipe=`;
+  const dictionary_url = `./resources/static/${dictionary}${
+      query_prefix}header(Use-As-Dictionary,${use_as_dictionary_value},True)`;
+  await (await fetch(dictionary_url)).bytes();
 }

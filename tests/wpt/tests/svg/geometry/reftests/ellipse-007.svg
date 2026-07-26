@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="200">
+  <title>Both rx and ry negative: the ellipse is not rendered</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#RX"/>
+  <h:link rel="match" href="not-rendered-200-ref.svg"/>
+  <h:meta name="assert" content="When both rx and ry are negative they are treated as auto with no counterpart, so the used radii are 0 and the ellipse is not rendered."/>
+  <ellipse cx="100" cy="100" rx="-40" ry="-40" fill="blue"/>
+</svg>

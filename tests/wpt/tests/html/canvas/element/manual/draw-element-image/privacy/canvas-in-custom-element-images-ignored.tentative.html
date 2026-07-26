@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: Canvas inside a custom element still ignore cross-origin images</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src="support/CanvasWidgetWithImages.https.sub.js"></script>
+
+<script>
+  document.addEventListener('paint-received', (event) => {
+    test(t => {
+      assert_array_equals(event.detail.same, [0, 255, 0, 255], "Same origin should draw");
+      assert_array_equals(event.detail.cross, [0, 0, 255, 255], "Cross origin should not draw");
+    }, "Canvas in a custom element image privacy test");
+  });
+</script>
+
+<canvas-widget id=widget></canvas-widget>
+
+</html>

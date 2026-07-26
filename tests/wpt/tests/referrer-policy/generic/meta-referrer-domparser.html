@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="referrer" content="no-referrer">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    async function fetchAndGetReferrer() {
+      let response = await fetch('/common/security-features/subresource/xhr.py');
+      let data = await response.json();
+      return data.headers.referer;
+    }
+
+    promise_test(async t => {
+      // 1. Initial fetch should not leak referrer.
+      let referrerBefore = await fetchAndGetReferrer();
+      assert_equals(referrerBefore, undefined, 'Initial referrer should be empty');
+
+      // 2. Parse a meta tag that would change referrer policy to unsafe-url.
+      new DOMParser().parseFromString(
+        '<meta name="referrer" content="unsafe-url">',
+        'text/html'
+      );
+
+      // 3. Second fetch should still not leak referrer.
+      let referrerAfter = await fetchAndGetReferrer();
+      assert_equals(referrerAfter, undefined, 'Referrer should still be empty');
+    }, "DOMParser().parseFromString should not affect creator document's referrer policy");
+
+    promise_test(async t => {
+      // 1. Initial fetch should not leak referrer.
+      let referrerBefore = await fetchAndGetReferrer();
+      assert_equals(referrerBefore, undefined, 'Initial referrer should be empty');
+
+      // 2. Parse a template tag containing a meta referrer.
+      let div = document.createElement('div');
+      div.innerHTML = '<template><meta name="referrer" content="unsafe-url"></template>';
+
+      // 3. Second fetch should still not leak referrer.
+      let referrerAfter = await fetchAndGetReferrer();
+      assert_equals(referrerAfter, undefined, 'Referrer should still be empty');
+    }, "Parsing <meta name='referrer'> inside <template> should not affect creator document's referrer policy");
+
+    promise_test(async t => {
+      // 1. Initial fetch should not leak referrer.
+      let referrerBefore = await fetchAndGetReferrer();
+      assert_equals(referrerBefore, undefined, 'Initial referrer should be empty');
+
+      // 2. Parse a meta tag that would change referrer policy to unsafe-url.
+      Document.parseHTMLUnsafe('<meta name="referrer" content="unsafe-url">');
+
+      // 3. Second fetch should still not leak referrer.
+      let referrerAfter = await fetchAndGetReferrer();
+      assert_equals(referrerAfter, undefined, 'Referrer should still be empty');
+    }, "Document.parseHTMLUnsafe() should not affect creator document's referrer policy");
+  </script>
+</body>
+</html>

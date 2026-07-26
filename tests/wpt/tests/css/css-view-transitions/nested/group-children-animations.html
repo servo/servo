@@ -61,11 +61,11 @@ promise_test(async t => {
     "::view-transition-group-children(container)");
   assert_equals(style.borderWidth, "12px");
   assert_equals(style.borderRadius, "20px");
-  assert_equals(style.cornerShape, "bevel");
+  assert_equals(style.cornerShape, "superellipse(0)");
 
   anims[0].finish();
   assert_equals(style.borderWidth, "30px");
   assert_equals(style.borderRadius, "40px");
-  assert_equals(style.cornerShape, "squircle");
+  assert_equals(style.cornerShape, "superellipse(2)");
 });
 </script>

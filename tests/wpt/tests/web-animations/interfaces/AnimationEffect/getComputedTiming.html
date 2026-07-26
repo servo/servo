@@ -14,6 +14,7 @@ test(t => {
   const effect = new KeyframeEffect(null, null);
 
   const ct = effect.getComputedTiming();
+  assert_equals(ct.startTime, 0, 'computed startTime');
   assert_equals(ct.delay, 0, 'computed delay');
   assert_equals(ct.endDelay, 0, 'computed endDelay');
   assert_equals(ct.fill, 'none', 'computed fill');
@@ -85,6 +86,7 @@ for (const stest of gGetComputedTimingTests) {
     };
 
     const ct = effect.getComputedTiming();
+    assert_equals(ct.startTime, 0, 'computed startTime');
     assert_equals(ct.delay, expected('delay', 0),
                   'computed delay');
     assert_equals(ct.endDelay, expected('endDelay', 0),
@@ -209,6 +211,34 @@ for (const stest of gEndTimeTests) {
                   stest.expected);
 
   }, `getComputedTiming().endTime for ${stest.desc}`);
+}
+
+// In the absence of group effects, the start time of a top-level effect is
+// always zero regardless of its timing, delay, or iterations.
+//
+// Once implementations support sequence effects we should add tests for that.
+// https://drafts.csswg.org/web-animations-2/#dom-sequenceeffect-sequenceeffect
+// https://drafts.csswg.org/web-animations-2/#animation-effect-start-time
+const gStartTimeTests = [
+  { desc:  'an empty KeyframeEffectOptions object',
+    input: { } },
+  { desc:  'a non-zero duration and delay',
+    input: { duration: 1000, delay: 1500 } },
+  { desc:  'a negative delay',
+    input: { duration: 1000, delay: -500 } },
+  { desc:  'a non-default iteration count and iterationStart',
+    input: { duration: 1000, iterations: 2.5, iterationStart: 0.5 } },
+  { desc:  'an infinite duration',
+    input: { duration: Infinity } },
+];
+
+for (const stest of gStartTimeTests) {
+  test(t => {
+    const effect = new KeyframeEffect(null, null, stest.input);
+
+    assert_equals(effect.getComputedTiming().startTime, 0);
+
+  }, `getComputedTiming().startTime for ${stest.desc}`);
 }
 </script>
 </body>

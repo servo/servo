@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EyeDropper API: repeated open/select should not freeze the sampler</title>
+<style>
+#canvas {
+  background-color: #ff0000;
+  position: absolute;
+  left: 250px;
+  top: 200px;
+  height: 300px;
+  width: 300px;
+}
+#color {
+  background: url("resources/eye_dropper_icon.svg") no-repeat;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  padding: 10px;
+}
+#color:disabled {
+  visibility: hidden;
+}
+#action {
+  font-weight: bold;
+}
+#logger {
+  position: absolute;
+  top: 540px;
+}
+.passed { color: green; font-size: x-large; }
+.failed { color: red; font-size: x-large; }
+</style>
+</head>
+<body>
+  <p>
+    Manual regression test for crbug.com/509627745. On macOS Tahoe, repeatedly
+    opening and selecting from the eye dropper could freeze the sampler
+    (spinning wait cursor, stuck-open picker). This test asks for 10 round
+    trips. PASS if all 20 selections complete without the sampler hanging.
+  </p>
+  <div id="action">TODO: Click on the eye dropper icon, then click on the red canvas. Repeat 20 times.</div>
+  <div id="canvas"></div>
+  <button id="color"></button>
+  <ol id="logger"></ol>
+
+  <script>
+    const TARGET_CYCLES = 20;
+    let completed = 0;
+
+    function log(str) {
+      const entry = document.createElement("li");
+      entry.innerText = str;
+      logger.appendChild(entry);
+      return entry;
+    }
+
+    function finish(pass, reason) {
+      const span = document.createElement("span");
+      span.innerText = pass ? "PASS" : "FAIL";
+      span.classList.add(pass ? "passed" : "failed");
+      action.innerText = reason;
+      action.prepend(span, " ");
+      color.disabled = true;
+    }
+
+    document.getElementById("color").addEventListener("click", function() {
+      log(`cycle ${completed + 1}: opening eye dropper`);
+      const eyeDropper = new EyeDropper();
+      eyeDropper.open()
+        .then(result => {
+          completed += 1;
+          log(`cycle ${completed}: selected ${result.sRGBHex}`);
+          if (completed >= TARGET_CYCLES) {
+            finish(true, `Completed ${TARGET_CYCLES} cycles without freezing.`);
+          } else {
+            action.innerText =
+              `TODO: Repeat. ${TARGET_CYCLES - completed} cycles remaining.`;
+          }
+        })
+        .catch(() => {
+          log(`cycle ${completed + 1}: cancelled (does not count)`);
+        });
+    });
+  </script>
+</body>
+</html>

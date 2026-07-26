@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Zoom applies to block-step-size</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/">
+<link rel="match" href="reference/block-step-size-ref.html">
+<style>
+.group {
+  border: solid black 1px;
+  padding: 20px;
+  margin: 10px;
+  width: max-content;
+}
+.outer {
+  block-step-size: 50px;
+  display: inline-block;
+  width: 100px;
+  border: solid black 1px;
+}
+.container {
+  block-step-size: 50px;
+  height: 51px;
+}
+.spacer {
+  display: inline-block;
+  width: 20px;
+}
+</style>
+</head>
+<body>
+<p>Each grouping below should have two matching boxes.</p>
+<div class="group">
+  <div class="outer">
+    <div class="container" style="block-step-size: 50px; zoom: 1;">
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="outer">
+    <div class="container" style="block-step-size: inherit; zoom: 1;">
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="outer">
+    <div class="container" style="block-step-size: 50px; zoom: 2;">
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="outer">
+    <div class="container" style="block-step-size: inherit; zoom: 2;">
+    </div>
+  </div>
+</div>
+</body>
+</html>

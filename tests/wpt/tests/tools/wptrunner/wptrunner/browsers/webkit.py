@@ -17,7 +17,8 @@ __wptrunner__ = {"product": "webkit",
                               "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "PytestExecutor",
                               "crashtest": "WebDriverCrashtestExecutor",
-                              "test262": "WebDriverTestharnessExecutor"},
+                              "test262": "WebDriverTestharnessExecutor",
+                              "aamtest": "PytestExecutor"},
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
@@ -79,6 +80,12 @@ def run_info_extras(logger, **kwargs):
 
 class WebKitBrowser(WebDriverBrowser):
     """Generic WebKit browser is backed by WebKit's WebDriver implementation"""
+
+    def restart_on_test_type_change(self, new_test_type, old_test_type):
+        # Restart the test runner when switch from/to wdspec or aamtest tests.
+        # These tests use a different protocol class so a restart is always needed.
+        wdspec_types = {"wdspec", "aamtest"}
+        return old_test_type in wdspec_types or new_test_type in wdspec_types
 
     def make_command(self):
         return [self.webdriver_binary, f"--port={self.port}"] + self.webdriver_args

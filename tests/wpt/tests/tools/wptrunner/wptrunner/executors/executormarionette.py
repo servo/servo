@@ -1355,11 +1355,20 @@ class MarionetteCrashtestExecutor(CrashtestExecutor):
         self.original_pref_values = {}
         self.debug = debug
 
+        self.install_extensions = browser.extensions
+
         with open(os.path.join(here, "test-wait.js")) as f:
             self.wait_script = f.read() % {"classname": "test-wait"}
 
         if marionette is None:
             do_delayed_imports()
+
+    def setup(self, runner, protocol=None):
+        super().setup(runner, protocol)
+        for extension_path in self.install_extensions:
+            self.logger.info("Installing extension from %s" % extension_path)
+            addons = Addons(self.protocol.marionette)
+            addons.install(extension_path)
 
     def is_alive(self):
         return self.protocol.is_alive()

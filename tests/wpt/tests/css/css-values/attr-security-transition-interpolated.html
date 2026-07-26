@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() security limitations</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  @property --n {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+  }
+  @property --p {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+  }
+  #attr1 {
+    --n: attr(data-foo type(<number>));
+    transition: --n 1000s steps(1, start);
+    background-image: if(style(--n: 42): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @starting-style {
+    #attr1 { --n: 0; }
+  }
+  #attr2 {
+    --n: attr(data-foo type(<number>));
+    transition: --n 1000s steps(1, start);
+    background-image: if(style(--n >= 40): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @starting-style {
+    #attr2 { --n: 0; }
+  }
+  #attr3 {
+    --p: attr(data-foo type(<length>));
+    transition: --p 1000s steps(1, start);
+    background-image: if(style(--p: 42px): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @starting-style {
+    #attr3 { --p: 0px; }
+  }
+</style>
+
+<html>
+  <body>
+    <div id="attr1" data-foo="42">div</div>
+    <div id="attr2" data-foo="42">div</div>
+    <div id="attr3" data-foo="42px">div</div>
+  </body>
+</html>
+
+<script>
+    test(() => {
+      var elem = document.getElementById("attr1");
+      assert_equals(window.getComputedStyle(elem).getPropertyValue("--n"), '42');
+      assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
+    }, `Transitioning <number> from attr() should remain attr-tainted in if(style())`);
+
+    test(() => {
+      var elem = document.getElementById("attr2");
+      assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
+    }, `Transitioning <number> from attr() should remain attr-tainted in if(style()) range query`);
+
+    test(() => {
+      var elem = document.getElementById("attr3");
+      assert_equals(window.getComputedStyle(elem).getPropertyValue("--p"), '42px');
+      assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
+    }, `Transitioning <length> from attr() should remain attr-tainted in if(style())`);
+</script>

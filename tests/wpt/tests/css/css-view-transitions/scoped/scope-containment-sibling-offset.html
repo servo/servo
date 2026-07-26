@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #scope {
+      width: min-content;
+      /* height is auto by default */
+      background: lightgray;
+    }
+    #child {
+      width: 100px;
+      height: 100px;
+      background: lightblue;
+    }
+    #sibling {
+      width: 100px;
+      height: 100px;
+      background: green;
+    }
+  </style>
+</head>
+<body>
+  <div id="scope">
+    <div id="child"></div>
+  </div>
+  <div id="sibling"></div>
+
+  <script>
+    promise_test(async t => {
+      const scope = document.querySelector("#scope");
+      const sibling = document.querySelector("#sibling");
+      const initial_top = sibling.getBoundingClientRect().top;
+      const initial_scope_w = scope.offsetWidth;
+      const initial_scope_h = scope.offsetHeight;
+
+      const transition = scope.startViewTransition(() => {
+        const top1 = sibling.getBoundingClientRect().top;
+
+        scope.innerHTML = "";
+
+        const top2 = sibling.getBoundingClientRect().top;
+        const scope_width = scope.offsetWidth;
+        const scope_height = scope.offsetHeight;
+
+        assert_equals(top1, initial_top, "Sibling offset at start of DOM Callback");
+        assert_equals(top2, initial_top, "Sibling offset after deleting child");
+        assert_equals(scope_width, initial_scope_w, "Scope offsetWidth during DOM Callback");
+        assert_equals(scope_height, initial_scope_h, "Scope offsetHeight during DOM Callback");
+      });
+
+      await transition.ready;
+      await transition.finished;
+
+      // After the transition finishes, containment is removed and layout collapses.
+      assert_equals(sibling.getBoundingClientRect().top, 0, "Final sibling offset (after transition finished)");
+    }, "Sibling layout positions are preserved during the DOM callback due to scope size containment");
+  </script>
+</body>
+</html>

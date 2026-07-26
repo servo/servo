@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGSVGElement.viewBox.baseVal for an invalid (negative-dimension) viewBox attribute</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#ViewBoxAttribute">
+<meta name="assert" content="Tentative: SVG 2 does not define viewBox.baseVal when the viewBox attribute is invalid (negative width/height). This documents the current WebKit behavior (reset to {0,0,0,0}); Gecko and Blink retain the raw parsed values, so cross-engine results differ.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<svg id="s" xmlns="http://www.w3.org/2000/svg" width="200" height="100" viewBox="0 0 -100 50">
+  <rect width="10" height="10" fill="red"/>
+</svg>
+<script>
+test(() => {
+  const vb = document.getElementById("s").viewBox.baseVal;
+  assert_equals(vb.x, 0, "x");
+  assert_equals(vb.y, 0, "y");
+  assert_equals(vb.width, 0, "width");
+  assert_equals(vb.height, 0, "height");
+}, "invalid (negative-width) viewBox attribute exposes baseVal {0, 0, 0, 0}");
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for loaded backdrop-filter with multiple mask-image layers</title>
+
+<style>
+  body {
+    margin: 0;
+    background: yellow;
+  }
+
+  #target {
+    width: 120px;
+    height: 60px;
+    backdrop-filter: invert(1);
+    background-color: rgba(255, 255, 255, 0.5);
+    mask-image: linear-gradient(black, black), url('support/50x100-opaque-blue.svg');
+  }
+</style>
+
+<div id="target"></div>

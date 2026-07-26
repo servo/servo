@@ -35,20 +35,20 @@ async def test_isolation(bidi_session, top_context,
 @pytest.mark.parametrize("domain", ["", "alt"],
                          ids=["same_origin", "cross_origin"])
 async def test_frame(bidi_session, url, get_navigator_online,
-        top_context, create_iframe, domain):
-    iframe_id = await create_iframe(top_context, url('/', domain=domain));
+        new_tab, create_iframe, domain):
+    iframe_id = await create_iframe(new_tab, url('/', domain=domain));
 
     assert await get_navigator_online(iframe_id)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=OFFLINE_NETWORK_CONDITIONS,
-        contexts=[top_context["context"]])
+        contexts=[new_tab["context"]])
 
     assert not await get_navigator_online(iframe_id)
 
     await bidi_session.emulation.set_network_conditions(
         network_conditions=None,
-        contexts=[top_context["context"]])
+        contexts=[new_tab["context"]])
 
     assert await get_navigator_online(iframe_id)
 

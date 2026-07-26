@@ -12,7 +12,7 @@
 
 <script>
 test_computed_value("corner-block-start", "0px round", "normal");
-test_computed_value("corner-block-start", "10px bevel");
-test_computed_value("corner-block-start", "normal / 2px round");
-test_computed_value("corner-block-start", "4px 2% squircle / 1em scoop", "4px 2% squircle / 16px scoop");
+test_computed_value("corner-block-start", "10px bevel", "10px superellipse(0)");
+test_computed_value("corner-block-start", "normal / 2px round", "normal / 2px superellipse(1)");
+test_computed_value("corner-block-start", "4px 2% squircle / 1em scoop", "4px 2% superellipse(2) / 16px superellipse(-1)");
 </script>

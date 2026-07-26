@@ -1,0 +1,63 @@
+<!doctype html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-link-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  async_test(function (t) {
+    let reached_end = false;
+    const BAD = "file:///nope-link-load-event-alt-002.css";
+    const BAD_CHILD = "file:///nope-link-load-event-alt-002-child.css";
+    let pendingErrors = 2;
+
+    function addLink(doc, rel, href, title) {
+      const l = doc.createElement("link");
+      l.rel = rel;
+      l.href = href;
+      if (title) l.title = title;
+      doc.head.appendChild(l);
+      return l;
+    }
+
+    function onAltError(t) {
+      assert_true(reached_end, "Shouldn't fire error event synchronously");
+      if (--pendingErrors == 0) {
+        t.done();
+      }
+    }
+
+    const f2 = document.createElement("iframe");
+    document.body.appendChild(f2);
+    const d2 = f2.contentDocument;
+    const f1 = document.createElement("iframe");
+    document.body.appendChild(f1);
+    const d1 = f1.contentDocument;
+
+    // Two ongoing loads on d2 are needed to trigger the deferral codepath for
+    // the alternate stylesheet below.
+    addLink(d2, "stylesheet", "style.css?link-load-event-alt-002-1").onerror =
+      t.unreached_func("Shouldn't error");
+    addLink(d2, "stylesheet", "style.css?link-load-event-alt-002-2").onerror =
+      t.unreached_func("Shouldn't error");
+
+    // This gets deferred, since there are two other loads ongoing in d2.
+    const alt2 = addLink(d2, "alternate stylesheet", BAD, "aaa");
+    alt2.onload = t.unreached_func("Should not load");
+    alt2.onerror = t.step_func(() => onAltError(t));
+
+    // A load for the same URL from a different document coalesces onto d2's
+    // pending entry.
+    const alt1 = addLink(d1, "alternate stylesheet", BAD, "bbb");
+    alt1.onload = t.unreached_func("Should not load");
+    alt1.onerror = t.step_func(() => onAltError(t));
+
+    // An inline stylesheet whose @import fails to open a channel
+    // synchronously. This reentrantly completes the coalesced load above
+    // while d1's loader is still in the middle of parsing this very sheet.
+    const s = d1.createElement("style");
+    s.textContent = '@import url("' + BAD_CHILD + '");';
+    d1.head.appendChild(s);
+
+    reached_end = true;
+  });
+</script>

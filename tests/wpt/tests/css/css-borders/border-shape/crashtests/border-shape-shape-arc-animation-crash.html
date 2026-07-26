@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Borders: crash interpolating border-shape shape() arc radius</title>
+<link rel="author" title="Yinan Long" href="mailto:lynweklm@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-shape">
+<style>
+.container {
+  width: 200px;
+  height: 200px;
+  border: 20px solid green;
+  border-shape: shape(from 0% 50%, arc to 100% 50% of 100%, arc to 0% 50% of 100%);
+  animation: eye 1s infinite;
+}
+@keyframes eye {
+  50% {
+    border-shape: shape(from 0% 50%, arc to 100% 50% of 63%, arc to 0% 50% of 63%);
+  }
+}
+</style>
+<div class="container"></div>

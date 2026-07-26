@@ -20,12 +20,16 @@ async function waitForTool(name) {
 
 // Wait for the active WebMCP tool's input schema to match the expected schema string.
 async function waitForFormToolSchemaToMatch(expected_schema) {
-  await new Promise(resolve => {
+  const [tool] = await document.modelContext.getTools();
+  if (tool && tool.inputSchema === expected_schema) {
+    return tool;
+  }
+  return new Promise(resolve => {
     const ac = new AbortController();
     document.modelContext.addEventListener('toolchange', async e => {
       const [tool] = await document.modelContext.getTools();
       if (tool && tool.inputSchema === expected_schema) {
-        resolve();
+        resolve(tool);
         ac.abort();
       }
     }, {signal: ac.signal});

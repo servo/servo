@@ -34,6 +34,7 @@ promise_test(async function(t) {
   iframe.style.zoom = 2;
   await dpiChangePromise;
   assert_equals(iframe.contentWindow.devicePixelRatio, 2 * parentDpi, "DPI should have doubled on the frame");
+  assert_equals(window.devicePixelRatio, parentDpi, "DPI should not change on parent");
   assert_equals(iframe.getBoundingClientRect().width, origSize.width * 2, "Width should have doubled as well");
   assert_equals(iframe.getBoundingClientRect().height, origSize.height * 2, "Height should have doubled as well");
 });

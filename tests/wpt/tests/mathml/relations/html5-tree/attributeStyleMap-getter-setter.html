@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>MathMLElement attributeStyleMap getter and setter for all elements</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om/#dom-elementcssinlinestyle-attributestylemap">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+
+<body>
+
+</body>
+<script>
+  for (const tag in MathMLFragments) {
+    document.body.insertAdjacentHTML("beforeend",
+      `<div style="display: block;"><math>${MathMLFragments[tag]}</math></div>`)
+
+    let div = document.body.lastElementChild;
+    let element = FragmentHelper.element(div.firstElementChild);
+
+    test(() => {
+      const styleMap = element.attributeStyleMap;
+      assert_true(!!styleMap, `attributeStyleMap should be present on <${tag}>`)
+      assert_true(styleMap.constructor.name.includes("StylePropertyMap"),
+        `attributeStyleMap should be an instance of StylePropertyMap on <${tag}>`);
+
+      styleMap.set('color', 'rgb(0, 255, 0)');
+      styleMap.set('margin-left', CSS.px(10));
+
+      assert_equals(styleMap.get('color').toString(), 'rgb(0, 255, 0)', `Typed OM 'color' get failed on <${tag}>`);
+      assert_equals(styleMap.get('margin-left').value, 10, `Typed OM 'margin-left' value mismatch on <${tag}>`);
+      assert_equals(styleMap.get('margin-left').unit, 'px', `Typed OM 'margin-left' unit mismatch on <${tag}>`);
+
+      assert_equals(element.style.color, 'rgb(0, 255, 0)', `Inline style 'color' did not sync on <${tag}>`);
+      assert_equals(element.style.marginLeft, '10px', `Inline style 'marginLeft' did not sync on <${tag}>`);
+
+      styleMap.clear();
+      assert_equals(element.style.color, '', `Clear failed on <${tag}>`);
+
+    }, `attributeStyleMap getter and setter should function correctly on MathML element <${tag}>`);
+
+    div.style = "display: none;";
+
+  }
+</script>

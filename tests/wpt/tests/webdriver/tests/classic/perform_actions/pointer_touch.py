@@ -45,7 +45,7 @@ def test_pointer_down_closes_browsing_context(
             .perform()
 
 
-def test_touch_pointer_cancel_and_up(session, test_actions_pointer_page, touch_chain):
+def test_touch_pointer_cancel_and_up(session, new_tab_classic, test_actions_pointer_page, touch_chain):
     pointerArea = session.find.css("#pointerArea", all=False)
 
     session.execute_script("""
@@ -72,7 +72,7 @@ def test_touch_pointer_cancel_and_up(session, test_actions_pointer_page, touch_c
     time.sleep(1)
     results = session.execute_script("return window.events;")
 
-    assert results['touchstart']
+    assert results["touchstart"]
     assert results["touchcancel"]
     assert not results["touchend"]
     assert not results["click"]
@@ -87,7 +87,9 @@ def test_stale_element_reference(session, stale_element, touch_chain, as_frame):
 
 
 @pytest.mark.parametrize("origin", ["element", "pointer", "viewport"])
-def test_params_actions_origin_outside_viewport(session, test_actions_page, touch_chain, origin):
+def test_params_actions_origin_outside_viewport(
+    session, test_actions_page, touch_chain, origin
+):
     if origin == "element":
         origin = session.find.css("#outer", all=False)
 
@@ -95,7 +97,7 @@ def test_params_actions_origin_outside_viewport(session, test_actions_page, touc
         touch_chain.pointer_move(-100, -100, origin=origin).perform()
 
 
-def test_move_to_fractional_position(session, inline, touch_chain):
+def test_move_to_fractional_position(session, new_tab_classic, inline, touch_chain):
     session.url = inline("""
         <script>
           var allEvents = { events: [] };
@@ -114,10 +116,10 @@ def test_move_to_fractional_position(session, inline, touch_chain):
         "y": 10.25,
     }
 
-    touch_chain \
-        .pointer_down(button=0) \
-        .pointer_move(target_point["x"], target_point["y"]) \
-        .perform()
+    touch_chain.pointer_down(button=0).pointer_move(
+        target_point["x"],
+        target_point["y"],
+    ).perform()
 
     events = get_events(session)
     assert len(events) == 1
@@ -131,9 +133,7 @@ def test_move_to_fractional_position(session, inline, touch_chain):
 
 @pytest.mark.parametrize("mode", ["open", "closed"])
 @pytest.mark.parametrize("nested", [False, True], ids=["outer", "inner"])
-def test_touch_pointer_in_shadow_tree(
-    session, get_test_page, touch_chain, mode, nested
-):
+def test_touch_pointer_in_shadow_tree(session, new_tab_classic, get_test_page, touch_chain, mode, nested):
     session.url = get_test_page(
         shadow_doc="""
         <div id="pointer-target"
@@ -164,17 +164,20 @@ def test_touch_pointer_in_shadow_tree(
     )
 
 
-def test_touch_pointer_properties(session, test_actions_pointer_page, touch_chain):
+def test_touch_pointer_properties(session, new_tab_classic, test_actions_pointer_page, touch_chain):
     pointerArea = session.find.css("#pointerArea", all=False)
     center = get_inview_center(pointerArea.rect, get_viewport_rect(session))
+
     touch_chain.pointer_move(0, 0, origin=pointerArea) \
         .pointer_down(width=23, height=31, pressure=0.78, twist=355) \
         .pointer_move(10, 10, origin=pointerArea, width=39, height=35, pressure=0.91, twist=345) \
         .pointer_up() \
         .pointer_move(80, 50, origin=pointerArea) \
         .perform()
+
     events = get_events(session)
     assert len(events) == 7
+
     event_types = [e["type"] for e in events]
     assert ["pointerover", "pointerenter", "pointerdown", "pointermove",
             "pointerup", "pointerout", "pointerleave"] == event_types
@@ -197,7 +200,7 @@ def test_touch_pointer_properties(session, test_actions_pointer_page, touch_chai
 
 
 def test_touch_pointer_properties_altitude_and_azimuth_angle(
-    session, test_actions_pointer_page, touch_chain
+    session, new_tab_classic, test_actions_pointer_page, touch_chain
 ):
     pointerArea = session.find.css("#pointerArea", all=False)
 
@@ -223,7 +226,7 @@ def test_touch_pointer_properties_altitude_and_azimuth_angle(
     assert pointermove["tiltY"] == 61
 
 
-def test_touch_pointer_properties_angle_twist(session, test_actions_pointer_page, touch_chain):
+def test_touch_pointer_properties_angle_twist(session, new_tab_classic, test_actions_pointer_page, touch_chain):
     pointerArea = session.find.css("#pointerArea", all=False)
 
     touch_chain.pointer_move(0, 0, origin=pointerArea) \
@@ -249,7 +252,9 @@ def test_touch_pointer_properties_angle_twist(session, test_actions_pointer_page
     assert events[3]["twist"] == 345
 
 
-def test_touch_pointer_properties_tilt_twist(session, test_actions_pointer_page, touch_chain):
+def test_touch_pointer_properties_tilt_twist(
+    session, new_tab_classic, test_actions_pointer_page, touch_chain
+):
     pointerArea = session.find.css("#pointerArea", all=False)
 
     touch_chain.pointer_move(0, 0, origin=pointerArea) \

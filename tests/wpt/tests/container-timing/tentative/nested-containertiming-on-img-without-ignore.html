@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: an image with containertiming (no ignore) inside an outer containertiming root</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 2,
+            'two entries expected: one for the image root, one for the outer root');
+        const entries = entryList.getEntries();
+
+        const entry_outer = entries.find(e => e.identifier == 'outer_ct');
+        checkContainerEntry(entry_outer, 'outer_ct', 'my_id', beforeRender);
+        checkContainerIntersectionRect(entry_outer, [0, 100, 0, 100]);
+        checkContainerSize(entry_outer, 10000);
+
+        const entry_image = entries.find(e => e.identifier == 'image_ct');
+        checkContainerEntry(entry_image, 'image_ct', 'my_id', beforeRender);
+        checkContainerIntersectionRect(entry_image, [0, 100, 0, 100]);
+        checkContainerSize(entry_image, 10000);
+      })
+    );
+    observer.observe({entryTypes: ['container']});
+
+    const outer = document.createElement('div');
+    outer.setAttribute('containertiming', 'outer_ct');
+    document.body.appendChild(outer);
+
+    const img = document.createElement('img');
+    img.src = '/container-timing/resources/square100.png';
+    img.setAttribute('containertiming', 'image_ct');
+    img.setAttribute('id', 'my_id');
+    outer.appendChild(img);
+
+    beforeRender = performance.now();
+  }, 'Image with containertiming (no ignore) inside outer containertiming reports under itself and propagates to the outer root.');
+</script>
+
+</body>

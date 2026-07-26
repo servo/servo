@@ -11,7 +11,7 @@
       min-width: 10px;
       min-height: 10px;
   }
-  iframe {
+  iframe, object {
     border: 0;
     width: 20px;
     height: 20px;
@@ -25,6 +25,9 @@
   <!-- This SVG iframe is treated as cross-origin content. -->
   <iframe id="iframe" src='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><rect height="20" width="20" fill="red" fill-opacity="0.3"/></svg>'>
   </iframe>
+  <!-- This SVG object is treated as cross-origin content. -->
+  <object id="object" data='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><rect height="20" width="20" fill="blue" fill-opacity="0.3"/></svg>' type="image/svg+xml">
+  </object>
   <canvas>
   </canvas>
 </div>
@@ -175,11 +178,11 @@ let testInput = function(overlayElement, session, fakeDeviceController, t) {
   return eventPromise;
 };
 
-let testCrossOriginContent = function(overlayElement, session, fakeDeviceController, t) {
+let testCrossOriginContent = function(elementId, overlayElement, session, fakeDeviceController, t) {
   let debug = xr_debug.bind(this, 'testCrossOriginContent');
 
-  let iframe = document.getElementById('iframe');
-  assert_true(iframe != null);
+  let element = document.getElementById(elementId);
+  assert_true(element != null);
   let inner_b = document.getElementById('inner_b');
   assert_true(inner_b != null);
 
@@ -198,8 +201,8 @@ let testCrossOriginContent = function(overlayElement, session, fakeDeviceControl
     // Press the primary input button and then release it a short time later.
     requestSkipAnimationFrame(session, (time, xrFrame) => {
       debug('got rAF 1');
-      input_source.setOverlayPointerPosition(iframe.offsetLeft + 1,
-                                             iframe.offsetTop + 1);
+      input_source.setOverlayPointerPosition(element.offsetLeft + 1,
+                                             element.offsetTop + 1);
       input_source.startSelection();
 
       session.requestAnimationFrame((time, xrFrame) => {
@@ -289,7 +292,15 @@ xr_session_promise_test(
 
 xr_session_promise_test(
   "Ensures DOM Overlay interactions on cross origin iframe are ignored",
-  testCrossOriginContent.bind(this, document.getElementById('div_overlay')),
+  testCrossOriginContent.bind(this, 'iframe', document.getElementById('div_overlay')),
+  fakeDeviceInitParams, 'immersive-ar', {
+    requiredFeatures: ['dom-overlay'],
+    domOverlay: { root: document.getElementById('div_overlay') }
+  });
+
+xr_session_promise_test(
+  "Ensures DOM Overlay interactions on cross origin object are ignored",
+  testCrossOriginContent.bind(this, 'object', document.getElementById('div_overlay')),
   fakeDeviceInitParams, 'immersive-ar', {
     requiredFeatures: ['dom-overlay'],
     domOverlay: { root: document.getElementById('div_overlay') }

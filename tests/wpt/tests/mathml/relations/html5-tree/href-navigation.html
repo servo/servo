@@ -13,12 +13,12 @@
 promise_test(async t => {
   const channel = new BroadcastChannel('mathml_nav_test');
   const messageReceived = new Promise(resolve => { channel.onmessage = e => resolve(e) });
-  const a = document.querySelector('a')
+  const a = document.querySelector('a');
   a.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
   const message = await messageReceived;
   channel.close();
   const expected = new URL("support/target.html?success", window.location.href).href;
-  assert_equals(event.data, expected, "The new window should report the correct URL");
+  assert_equals(message.data, expected, "The new window should report the correct URL");
 }, "Test MathMLAnchorElement _blank navigation via BroadcastChannel");
 </script>
 </body>

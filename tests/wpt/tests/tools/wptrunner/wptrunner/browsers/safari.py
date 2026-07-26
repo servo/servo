@@ -24,7 +24,8 @@ __wptrunner__ = {"product": "safari",
                               "reftest": "WebDriverRefTestExecutor",
                               "wdspec": "PytestExecutor",
                               "crashtest": "WebDriverCrashtestExecutor",
-                              "test262": "WebDriverTestharnessExecutor"},
+                              "test262": "WebDriverTestharnessExecutor",
+                              "aamtest": "PytestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -193,6 +194,12 @@ class SafariBrowser(WebDriverBrowser):
             return None
 
         return exe_path
+
+    def restart_on_test_type_change(self, new_test_type, old_test_type):
+        # Restart the test runner when switch from/to wdspec or aamtest tests.
+        # These tests use a different protocol class so a restart is always needed.
+        wdspec_types = {"wdspec", "aamtest"}
+        return old_test_type in wdspec_types or new_test_type in wdspec_types
 
     def make_command(self):
         return [self.webdriver_binary, f"--port={self.port}"] + self.webdriver_args

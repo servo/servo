@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+</head>
+<body>
+<script>
+
+[
+  "dcb",
+  "dcz",
+].forEach(format => {
+  [
+    {subframe_dictionary: "subframe-001.html", subframe_compressed: `self-compressed-subframe-001.html.${format}`},
+    {subframe_dictionary: "style-001.css", subframe_compressed: `subframe-001-compressed-by-style-001.html.${format}`},
+    {subframe_dictionary: "script-001.js", subframe_compressed: `subframe-001-compressed-by-script-001.html.${format}`},
+  ].forEach(config => {
+    compression_dictionary_promise_test(async t => {
+      // Load the non-compressed style to register it as a dictionary for itself.
+      await fetchStaticResourceWithUseAsDictionaryHeader(config.subframe_dictionary, config.subframe_compressed, "iframe");
+      await registerAltDictionaryAndWait(t);
+
+      // Append the compressed subframe.
+      const iframe = document.createElement("iframe");
+      iframe.src = `./resources/static/${config.subframe_compressed}`;
+      window.iframeMessageReceived = false;
+      function iframeListener(event) {
+        window.iframeMessageReceived = (event.data === "ready");
+      }
+      window.addEventListener("message", iframeListener);
+      t.add_cleanup(_ => {
+        iframe.remove();
+        window.iframeMessageReceived = undefined;
+        window.removeEventListener("message", iframeListener);
+      });
+      await new Promise((resolve, reject) => {
+        iframe.onload = resolve;
+        iframe.onerror = _ => reject("load failed");
+        document.body.appendChild(iframe);
+      });
+
+      // Verify script in HTML page  was executed.
+      assert_true(window.iframeMessageReceived);
+    }, `Loading ${config.subframe_compressed} using ${config.subframe_dictionary} as a dictionary works`);
+  });
+});
+</script>
+</body>

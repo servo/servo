@@ -60,6 +60,11 @@
     syntax: "*";
     inherits: true;
   }
+  @property --escape-syntax {
+    syntax: "I\\ dent|none";
+    inherits: false;
+    initial-value: I\ dent;
+  }
 </style>
 <script>
 
@@ -140,6 +145,7 @@ test_css_text('--vALId', '@property --vALId { syntax: "<color> | none"; inherits
 test_css_text('--no-initial-universal-value', '@property --no-initial-universal-value { syntax: "*"; inherits: false; }');
 
 test_css_text('--tab\ttab', '@property --tab\\9 tab { syntax: "*"; inherits: true; }');
+test_css_text('--escape-syntax', '@property --escape-syntax { syntax: "I\\\\ dent|none"; inherits: false; initial-value: I\\ dent; }');
 
 // CSSRule.type
 

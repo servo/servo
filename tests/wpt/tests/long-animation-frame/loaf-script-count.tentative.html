@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: scriptCount</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: scriptCount</h1>
+<div id="log"></div>
+<script>
+// `scriptCount` is the number of top-level JavaScript entry points observed
+// within a long-animation-frame entry. Unlike `scripts`, it counts entry points
+// regardless of their individual duration, so it can exceed `scripts.length`
+// (which only lists entry points over the per-script reporting threshold).
+//
+// The member is gated on the LongAnimationFrameWorker feature; run with
+// --enable-blink-features=LongAnimationFrameWorker.
+function loaf_overlapping(t, getReferenceTime) {
+  return new Promise(resolve => {
+    const observer = new PerformanceObserver((entries, obs) => {
+      const reference_time = getReferenceTime();
+      if (reference_time === null) {
+        return;
+      }
+      const entry = entries.getEntries().find(
+          e => e.startTime < reference_time &&
+               reference_time < e.startTime + e.duration);
+      if (entry) {
+        obs.disconnect();
+        resolve(entry);
+      }
+    });
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe({type: "long-animation-frame", buffered: true});
+  });
+}
+
+promise_test(async t => {
+  await windowLoaded;
+  assert_implements(
+      "scriptCount" in PerformanceLongAnimationFrameTiming.prototype,
+      "scriptCount is not supported " +
+          "(run with --enable-blink-features=LongAnimationFrameWorker).");
+
+  const entry = await generate_long_animation_frame();
+  assert_equals(typeof entry.scriptCount, "number",
+      "scriptCount is a number");
+  assert_greater_than_equal(entry.scriptCount, 1,
+      "a long animation frame has at least one script entry point");
+  assert_greater_than_equal(entry.scriptCount, entry.scripts.length,
+      "scriptCount is never smaller than scripts.length");
+}, "A long animation frame reports scriptCount (>= scripts.length)");
+
+promise_test(async t => {
+  await windowLoaded;
+  assert_implements(
+      "scriptCount" in PerformanceLongAnimationFrameTiming.prototype,
+      "scriptCount is not supported " +
+          "(run with --enable-blink-features=LongAnimationFrameWorker).");
+
+  // Short entry points (< the 5 ms per-script threshold) do not appear in
+  // `scripts`, but they still increment `scriptCount`. Produce a rendering
+  // frame that runs a long callback together with several short tasks that
+  // coalesce into the same frame, and assert scriptCount exceeds scripts.length.
+  const SHORT_TASKS = 5;
+  let found = false;
+  for (let attempt = 0; attempt < 10 && !found; ++attempt) {
+    let reference_time = null;
+    const loaf = loaf_overlapping(t, () => reference_time);
+
+    // Several short tasks (< 5 ms each) scheduled before the rendering frame.
+    // While the frame is pending they accumulate into the same LoAF but stay
+    // out of `scripts`.
+    for (let i = 0; i < SHORT_TASKS; ++i) {
+      t.step_timeout(() => busy_wait(1), 0);
+    }
+    // A long rendering-frame callback anchors the LoAF and marks the reference
+    // time in the middle of its busy run.
+    requestAnimationFrame(() => {
+      busy_wait(very_long_frame_duration / 2);
+      reference_time = performance.now();
+      busy_wait(very_long_frame_duration / 2);
+    });
+
+    const entry = await Promise.race([
+      loaf,
+      new Promise(resolve => t.step_timeout(
+          () => resolve(null), waiting_for_long_frame_timeout)),
+    ]);
+
+    if (entry && entry.scriptCount > entry.scripts.length) {
+      found = true;
+    }
+  }
+  assert_true(found,
+      "scriptCount should exceed scripts.length when short entry points run " +
+      "in the same long animation frame");
+}, "scriptCount counts short entry points that are absent from scripts");
+</script>
+</body>
