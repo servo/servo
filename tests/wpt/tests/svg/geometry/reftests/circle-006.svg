@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="200">
+  <title>A negative r is invalid (computes to 0) so the circle is not rendered</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#R"/>
+  <h:link rel="match" href="not-rendered-200-ref.svg"/>
+  <h:meta name="assert" content="A negative value for r is invalid and computes to 0; a circle with r=0 is not rendered."/>
+  <circle cx="100" cy="100" r="-40" fill="blue"/>
+</svg>

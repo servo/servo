@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>image elements should not directly display symbol elements</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#SymbolElement"/>
+    <h:link rel="match" href="reference/green-100x100.svg"/>
+  </metadata>
+  <rect fill="green" width="100" height="100" />
+  <image href="reference/symbol-not-rendered.svg"/>
+</svg>

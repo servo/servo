@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: Assigning an element to a slot draws correctly</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="author" href="mailto:schenney@chromium.org">
+<link rel="match" href="basic-rect-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+#canvas {
+  background: grey;
+}
+</style>
+
+<canvas id=canvas width="200" height="200" layoutsubtree>
+  <div id="shadowHost">
+    <template shadowrootmode="open">
+      <!-- Put the style here to confirm the div is slotted-->
+      <style>
+        ::slotted(div) {
+          width: 100px;
+          height: 100px;
+          background: green;
+        }
+      </style>
+      <slot name="slot1"></slot>
+    </template>
+  </div>
+  <div id="slotted" slot="slot1"></div>
+</canvas>
+
+<script>
+onload = async () => {
+  // Force one paint.
+  await new Promise(resolve => {
+    canvas.addEventListener('paint', resolve, {once: true});
+    canvas.requestPaint();
+  });
+  // This move results in the slotted element actually being slotted.
+  shadowHost.moveBefore(slotted, null);
+  // Wait for a rendering lifecycle to complete the move.
+  await new Promise(resolve => {
+    canvas.addEventListener('paint', resolve, {once: true});
+    canvas.requestPaint();
+  });
+  canvas.getContext("2d").drawElementImage(shadowHost, 20, 30);
+  takeScreenshot();
+};
+</script>
+</html>

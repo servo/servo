@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<body>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/permissions-policy/resources/permissions-policy.js"></script>
+  <script>
+    "use strict";
+    const same_origin_src =
+      "/permissions-policy/resources/permissions-policy-speaker-selection.html";
+    const cross_origin_src =
+      "https://{{hosts[alt][]}}:{{ports[https][0]}}" + same_origin_src;
+    const header = 'permissions policy header "speaker-selection=()"';
+
+    // Test that AudioContext.setSinkId() rejects with NotAllowedError when the
+    // speaker-selection policy is disabled in the top-level document.
+    promise_test((t) => {
+      const ctx = new AudioContext();
+      return promise_rejects_dom(
+        t,
+        "NotAllowedError",
+        ctx.setSinkId("fake_device_id")
+      );
+    }, 'disallows setSinkId in top-level document');
+
+    // Test that AudioContext.setSinkId() is disallowed in a same-origin iframe
+    // when the speaker-selection policy is disabled in the parent document.
+    promise_test((test) => {
+      return test_feature_availability({
+        feature_description: "AudioContext.setSinkId()",
+        test,
+        src: same_origin_src,
+        expect_feature_available: expect_feature_unavailable_default,
+        is_promise_test: true,
+      });
+    }, 'disallows setSinkId in same-origin iframe');
+
+    // Test that AudioContext.setSinkId() is disallowed in a cross-origin iframe
+    // when the speaker-selection policy is disabled in the parent document,
+    // even if the iframe has allow="speaker-selection" attribute.
+    promise_test((test) => {
+      return test_feature_availability({
+        feature_description: "AudioContext.setSinkId()",
+        test,
+        src: cross_origin_src,
+        expect_feature_available: expect_feature_unavailable_default,
+        feature_name: "speaker-selection",
+        is_promise_test: true,
+      });
+    }, 'disallows setSinkId in cross-origin iframe');
+  </script>
+</body>

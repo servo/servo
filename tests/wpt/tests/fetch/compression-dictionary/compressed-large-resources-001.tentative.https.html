@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+</head>
+<body>
+<script>
+
+[
+  "dcb",
+  "dcz",
+].forEach(format => {
+  const image_dictionary = "image-001.png";
+  const image_compressed = `self-compressed-image-001.png.${format}`;
+  compression_dictionary_promise_test(async t => {
+    // Load the non-compressed image to register it as a dictionary for itself.
+    await fetchStaticResourceWithUseAsDictionaryHeader(image_dictionary, image_compressed, "image");
+    await registerAltDictionaryAndWait(t);
+
+    // Append the compressed image.
+    const img = document.createElement("img");
+    img.src = `./resources/static/${image_compressed}`;
+    t.add_cleanup(_ => img.remove());
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = _ => reject("load failed");
+      document.body.appendChild(img);
+    });
+
+    // Verify it has expected size.
+    const epsilon = 0.1;
+    assert_approx_equals(img.clientWidth, 100, epsilon);
+    assert_approx_equals(img.clientHeight, 100, epsilon);
+  }, `Loading ${image_compressed} using ${image_dictionary} as a dictionary works`);
+
+  const script_dictionary = "script-001.js";
+  const script_compressed = `self-compressed-script-001.js.${format}`;
+  compression_dictionary_promise_test(async t => {
+    // Load the non-compressed script to register it as a dictionary for itself.
+    await fetchStaticResourceWithUseAsDictionaryHeader(script_dictionary, script_compressed, "script");
+    await registerAltDictionaryAndWait(t);
+
+    // Append the compressed script.
+    const script = document.createElement("script");
+    script.src = `./resources/static/${script_compressed}`;
+    window.compressionDictionaryScriptLoaded = false;
+    t.add_cleanup(_ => {
+      script.remove();
+      window.compressionDictionaryScriptLoaded = undefined;
+    });
+    await new Promise((resolve, reject) => {
+      script.onload = resolve;
+      script.onerror = _ => reject("load failed");
+      document.body.appendChild(script);
+    });
+
+    // Verify script was executed.
+    assert_true(window.compressionDictionaryScriptLoaded);
+  }, `Loading ${script_compressed} using ${script_dictionary} as a dictionary works`);
+
+  const style_dictionary = "style-001.css";
+  const style_compressed = `self-compressed-style-001.css.${format}`;
+  compression_dictionary_promise_test(async t => {
+    // Load the non-compressed style to register it as a dictionary for itself.
+    await fetchStaticResourceWithUseAsDictionaryHeader(style_dictionary, style_compressed, "style");
+    await registerAltDictionaryAndWait(t);
+
+    // Append the compressed style and test div.
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = `./resources/static/${style_compressed}`;
+    const div = document.createElement("div");
+    div.className = "green_square";
+    t.add_cleanup(_ => {
+      div.remove();
+      link.remove();
+    });
+    await new Promise((resolve, reject) => {
+      link.onload = resolve;
+      link.onerror = _ => reject("load failed");
+      document.body.appendChild(div);
+      document.head.appendChild(link);
+    });
+
+    // Verify style was applied.
+    assert_equals(window.getComputedStyle(div).getPropertyValue("background-color"), "rgb(0, 128, 0)");
+  }, `Loading ${style_compressed} using ${style_dictionary} as a dictionary works`);
+});
+</script>
+</body>

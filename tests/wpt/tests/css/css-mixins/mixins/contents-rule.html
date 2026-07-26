@@ -130,5 +130,46 @@
         assert_equals(getComputedStyle(target).color, 'rgb(0, 128, 0)');
       }, 'Empty @contents parameter does not crash');
     </script>
+
+
+    <style>
+      @mixin --m8() {
+        @result {
+          @contents {
+            color: green;
+          }
+        }
+      }
+      #e8 {
+        @apply --m8;
+      }
+    </style>
+    <div id="e8">This text should be green.</div>
+    <script>
+      test(() => {
+        assert_equals(getComputedStyle(document.getElementById('e8')).color, 'rgb(0, 128, 0)');
+      }, '@apply with no block uses the @contents fallback');
+    </script>
+
+
+    <style>
+      @mixin --m9() {
+        @result {
+          @contents {
+            color: red;
+          }
+        }
+      }
+      #e9 {
+        color: green;
+        @apply --m9 {};
+      }
+    </style>
+    <div id="e9">This text should be green.</div>
+    <script>
+      test(() => {
+        assert_equals(getComputedStyle(document.getElementById('e9')).color, 'rgb(0, 128, 0)');
+      }, 'Empty @apply block suppresses the @contents fallback');
+    </script>
   </body>
 </html>

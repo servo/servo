@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: in a fragmented flex container with flex-direction:
+  column and variably-sized items, a row gap suppressed due to fragmentation
+  in one flex column still consumes a value from the rule pattern, so
+  subsequent flex columns receive the correctly advanced pattern colors.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13850">
+<link rel="match" href="flex-gap-decorations-fragmentation-029-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    columns: 2;
+    column-width: 170px;
+    column-gap: 10px;
+    height: 175px;
+    width: 350px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 170px;
+    height: 290px;
+    row-gap: 10px;
+    column-gap: 10px;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+    row-rule-color: red, green, blue;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+    column-rule-color: purple;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 40px;"></div>
+    <div class="items" style="height: 50px;"></div>
+  </div>
+</div>

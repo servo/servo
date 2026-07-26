@@ -68,6 +68,9 @@ const runQuantumRobustnessTest = (
 
     const source = new ConstantSourceNode(audioContext);
     const node = createTestSetupFunc(audioContext, t);
+    if (!node) {
+      return;
+    }
 
     source.connect(node).connect(audioContext.destination);
     source.start();

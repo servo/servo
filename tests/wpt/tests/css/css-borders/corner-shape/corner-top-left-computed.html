@@ -13,8 +13,8 @@
 <script>
 test_computed_value("corner-top-left", "0px round", "normal");
 test_computed_value("corner-top-left", "normal");
-test_computed_value("corner-top-left", "4px round");
-test_computed_value("corner-top-left", "2% notch");
-test_computed_value("corner-top-left", "4px 2% squircle");
+test_computed_value("corner-top-left", "4px round", "4px superellipse(1)");
+test_computed_value("corner-top-left", "2% notch", "2% superellipse(-infinity)");
+test_computed_value("corner-top-left", "4px 2% squircle", "4px 2% superellipse(2)");
 test_computed_value("corner-top-left", "superellipse(-0.5) 30% 10px", "30% 10px superellipse(-0.5)");
 </script>

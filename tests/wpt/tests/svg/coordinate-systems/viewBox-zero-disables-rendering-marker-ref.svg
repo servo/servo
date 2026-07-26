@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <title>Reference: only the path stroke, no marker</title>
+  <path d="M20,20 L180,20" stroke="black" stroke-width="1" fill="none"/>
+</svg>

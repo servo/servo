@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Backdrop-filter with multiple mask-image layers stays hidden while one mask image is loading</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="match" href="backdrop-filter-mask-image-multi-layer-hidden-ref.html">
+<!-- CSS Masking does not specify behavior while some mask-image layers are still loading. -->
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+  body {
+    margin: 0;
+    background: yellow;
+  }
+
+  #target {
+    width: 120px;
+    height: 60px;
+    backdrop-filter: invert(1);
+    background-color: rgba(255, 255, 255, 0.5);
+  }
+</style>
+
+<div id="target"></div>
+
+<script>
+  onload = async () => {
+    const url = "support/50x100-opaque-blue.svg?pipe=trickle(d1000)";
+    const target = document.getElementById('target');
+    target.style.maskImage = `linear-gradient(black, black), url('${url}')`;
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+    takeScreenshot();
+  };
+</script>

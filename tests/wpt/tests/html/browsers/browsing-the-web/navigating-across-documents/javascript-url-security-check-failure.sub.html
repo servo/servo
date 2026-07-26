@@ -10,7 +10,8 @@
 
 const cases = [
   ["cross-origin", "http://{{hosts[][www]}}:{{ports[http][0]}}/common/blank.html"],
-  ["cross-origin-domain but same-origin", "/html/browsers/windows/resources/document-domain-setter.html"]
+  ["cross-origin-domain but same-origin", "/html/browsers/windows/resources/document-domain-setter.html"],
+  ["cross-site", "http://{{hosts[alt][]}}:{{ports[http][0]}}/common/blank.html"]
 ];
 
 for (const [description, url] of cases) {

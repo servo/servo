@@ -125,3 +125,17 @@ class AxapiWrapper(ApiWrapper[AXUIElement]):
             stack.extend(children)
 
         return None
+
+    def get_dom_identifiers(self, elements: List[AXUIElement]) -> List[str]:
+        """Given AXUIElements, return their AXDOMIdentifier values.
+
+        :param elements: AXUIElements to look up.
+        :return: A list of DOM ids in the same order as the input.
+        """
+        ids: List[str] = []
+        for element in elements:
+            err, value = AXUIElementCopyAttributeValue(
+                element, "AXDOMIdentifier", None
+            )
+            ids.append(value if not err else "[unknown id]")
+        return ids

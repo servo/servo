@@ -326,4 +326,9 @@ test_cssText(`@function --body-result-multi() { result: 10px; result: 20px; }`,
 
 // Escapes (U+0009 CHARACTER TABULATION):
 test_cssText(`@function --escaped-\\9 -tab(--param-\\9 -tab) { --local-\\9 -tab: 1px; }`);
+
+// Escapes ident in syntax
+test_cssText(`@function --identy(--a I\\ dent) returns type(I\\ dent) { }`,
+             `@function --identy(--a I\\ dent) returns I\\ dent { }`);
+
 </script>

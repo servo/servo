@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13850">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    position: relative;
+    columns: 3;
+    column-width: 170px;
+    column-gap: 10px;
+    height: 120px;
+    width: 530px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 170px;
+    height: 360px;
+    row-gap: 10px;
+    column-gap: 10px;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+  }
+  .row-rule {
+    position: absolute;
+    width: 50px;
+    height: 10px;
+  }
+  .col-rule {
+    position: absolute;
+    width: 10px;
+    background: purple;
+  }
+</style>
+<div class="multi-column">
+  <!-- Pattern: red, green, blue (repeating). Suppressed gaps still consume
+       a pattern slot.
+       Col1 (h: 55,50,70,30,60): g1=red @ 55, g2=green* @ 115, g3=blue @ 195, g4=red* @ 235.
+       Col2 (h: 50,55,80,100):   g5=green @ 50, g6=blue* @ 115, g7=red @ 205.
+       Col3 (h: 60,45,65,35,50): g8=green @ 60, g9=blue* @ 115, g10=red @ 190, g11=green* @ 235.
+       Frag lines at flex-y = 120 and 240. -->
+
+  <div class="row-rule" style="top: 55px; left: 0; background: red;"></div>
+  <div class="row-rule" style="top: 50px; left: 60px; background: green;"></div>
+  <div class="row-rule" style="top: 60px; left: 120px; background: green;"></div>
+  <div class="col-rule" style="top: 0; left: 50px; height: 120px;"></div>
+  <div class="col-rule" style="top: 0; left: 110px; height: 120px;"></div>
+
+  <div class="row-rule" style="top: 70px; left: 180px; background: blue;"></div>
+  <div class="row-rule" style="top: 80px; left: 240px; background: red;"></div>
+  <div class="row-rule" style="top: 65px; left: 300px; background: red;"></div>
+  <div class="col-rule" style="top: 0; left: 230px; height: 120px;"></div>
+  <div class="col-rule" style="top: 0; left: 290px; height: 120px;"></div>
+
+  <div class="col-rule" style="top: 0; left: 410px; height: 120px;"></div>
+  <div class="col-rule" style="top: 0; left: 470px; height: 120px;"></div>
+
+  <div id="flexbox">
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 70px;"></div>
+    <div class="items" style="height: 30px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 100px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 45px;"></div>
+    <div class="items" style="height: 65px;"></div>
+    <div class="items" style="height: 35px;"></div>
+    <div class="items" style="height: 50px;"></div>
+  </div>
+</div>

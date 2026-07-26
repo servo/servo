@@ -130,5 +130,32 @@ test(() => {
     assert_in_array(getComputedStyle(target).getPropertyValue('--i').trim(), ['1px', '2px', '3px']);
 }, 'random() and random-item() using auto in one declaration both resolve');
 
+// A bare element-scoped key (no <dashed-ident>) is a null-named key, not a per-instance auto key, so
+// two element-scoped random-item()s with the same list select the same item. This matches random()'s
+// element-scoped keying (both parse <random-key> through the same consumer).
+test(() => {
+    const target = document.getElementById('target');
+    const items = '5px, 15px, 25px, 35px, 45px';
+    target.style.cssText = `--length: random-item(element-scoped, ${items}); --length2: random-item(element-scoped, ${items});`;
+    const a = getComputedStyle(target).getPropertyValue('--length').trim();
+    const b = getComputedStyle(target).getPropertyValue('--length2').trim();
+    assert_equals(b, a, 'element-scoped selects the same item for the same list');
+}, 'A bare element-scoped key selects the same item across random-item() instances');
+
+// random() and random-item() share a base value for the same bare element-scoped key. With
+// width == R * 500px and items 0..400 by 100, random-item() selects index floor(R * 5), whose value
+// is floor(width / 100) * 100. Equality proves both functions resolve the same element-scoped key.
+test(() => {
+    const target = document.getElementById('target');
+    target.style.cssText = 'width: random(element-scoped, 0px, 500px); margin-left: random-item(element-scoped, 0px, 100px, 200px, 300px, 400px);';
+    const w = parseFloat(getComputedStyle(target).width);
+    const m = parseFloat(getComputedStyle(target).marginLeft);
+    assert_equals(m, Math.min(400, Math.floor(w / 100) * 100), 'random() and random-item() share the element-scoped base value');
+}, 'random() and random-item() share the base value for a bare element-scoped key');
+
+// A <dashed-ident> as short as "--" is a valid key (parity with random()); the value resolves rather
+// than becoming guaranteed-invalid.
+test_computed_value('color', 'random-item(--, rgb(1, 0, 0), rgb(0, 1, 0))', ['rgb(1, 0, 0)', 'rgb(0, 1, 0)']);
+
 </script>
 

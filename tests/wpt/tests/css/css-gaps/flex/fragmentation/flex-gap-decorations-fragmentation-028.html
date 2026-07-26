@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: in a fragmented flex container with flex-direction:
+  column and variably-sized items, multiple row gaps suppressed at different
+  positions in different flex columns still each consume a value from the
+  rule pattern, keeping the pattern aligned across fragments.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13850">
+<link rel="match" href="flex-gap-decorations-fragmentation-028-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    columns: 3;
+    column-width: 170px;
+    column-gap: 10px;
+    height: 120px;
+    width: 530px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 170px;
+    height: 360px;
+    row-gap: 10px;
+    column-gap: 10px;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+    row-rule-color: red, green, blue;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+    column-rule-color: purple;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 70px;"></div>
+    <div class="items" style="height: 30px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 100px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 45px;"></div>
+    <div class="items" style="height: 65px;"></div>
+    <div class="items" style="height: 35px;"></div>
+    <div class="items" style="height: 50px;"></div>
+  </div>
+</div>

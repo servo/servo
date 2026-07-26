@@ -18,11 +18,17 @@ def test_atspi(atspi, session, inline):
     assert 'RELATION_ERROR_FOR' in reverse_relations
     assert 'test' in reverse_relations['RELATION_ERROR_FOR']
 
-# def test_axapi(axapi, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Property: AXErrorMessageElements: pointers to accessible nodes matching IDREFs
+def test_axapi(axapi, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Property: AXErrorMessageElements: pointers to accessible nodes matching IDREFs
+
+    node = axapi.find_node("test", session.url)
+    err, elements = axapi.AXUIElementCopyAttributeValue(node, "AXErrorMessageElements", None)
+    assert not err
+    assert elements
+    assert axapi.get_dom_identifiers(elements) == ["error"]
 
 # def test_ia2(ia2, session, inline):
 #     session.url = inline(TEST_HTML)

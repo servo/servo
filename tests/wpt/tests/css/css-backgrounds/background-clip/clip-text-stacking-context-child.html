@@ -27,3 +27,6 @@
 
 <!-- filter creates stacking context -->
 <div class="clip">XXXXX<div style="filter: opacity(1)">XXXXX</div></div>
+
+<!-- fully transparent stacking context does not contribute to the mask -->
+<div class="clip"><div style="opacity: 0">XXXXX</div></div>

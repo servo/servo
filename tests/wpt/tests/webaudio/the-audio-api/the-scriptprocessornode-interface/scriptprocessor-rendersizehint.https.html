@@ -17,12 +17,23 @@ for (const config of ROBUSTNESS_TEST_CONFIGS) {
   runQuantumRobustnessTest(
       config,
       (audioContext, t) => {
+        const renderQuantumSize = audioContext.renderQuantumSize;
+        const isSupported =
+            renderQuantumSize > 0 && (bufferSize % renderQuantumSize === 0);
+
+        if (!isSupported) {
+          assert_throws_dom('NotSupportedError', () => {
+            audioContext.createScriptProcessor(bufferSize, 1, 1);
+          });
+          return null;
+        }
+
         const scriptProcessor =
             audioContext.createScriptProcessor(bufferSize, 1, 1);
         scriptProcessor.onaudioprocess = t.step_func((e) => {
           state.processCalled = true;
           assert_equals(
-              e.inputBuffer.length, bufferSize,
+              e.inputBuffer.length, scriptProcessor.bufferSize,
               'Expected input buffer length to match ' +
                   'ScriptProcessor buffer size');
         });

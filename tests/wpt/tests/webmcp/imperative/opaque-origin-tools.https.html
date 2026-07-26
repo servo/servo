@@ -25,11 +25,37 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'DataError',
     document.modelContext.executeTool(tool, '{}'),
-    'executeTool() must reject with UnknownError in opaque origin documents'
+    'executeTool() must reject with DataError in opaque origin documents'
   );
 }, 'An opaque origin document can register but not execute its own tools');
+
+promise_test(async t => {
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'opaque_tool');
+
+  let events = [];
+  const p = document.modelContext.executeTool(tool, '{}');
+
+  // Since `executeTool()` synchronously rejects the Promise for opaque origins,
+  // the microtask to run the catch reaction is already queued before
+  // `queueMicrotask()` is invoked below.
+  p.catch(() => events.push('rejection'));
+
+  // Queue another microtask immediately after.
+  queueMicrotask(() => events.push('microtask'));
+
+  await promise_rejects_dom(
+    t,
+    'DataError',
+    document.modelContext.executeTool(tool, '{"param1":"value"}'),
+    'executeTool() must reject with DataError in opaque origin documents'
+  );
+
+  assert_array_equals(events, ['rejection', 'microtask'],
+    'returned promise is rejected before custom microtask is queued');
+}, 'executeTool() rejects synchronously for opaque origins');
 </script>
 </body>
 </html>

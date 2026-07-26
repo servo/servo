@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: in a fragmented flex container, row gaps suppressed due
+  to fragmentation still consume a value from the rule pattern.
+</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/pull/13850">
+<link rel="match" href="flex-gap-decorations-fragmentation-024-ref.html">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    columns: 4;
+    column-width: 110px;
+    column-gap: 10px;
+    height: 238px;
+    width: 470px;
+    background: lightgray;
+  }
+  #flexbox {
+    display: flex;
+    flex-wrap: wrap;
+    width: 110px;
+    row-gap: 10px;
+    column-gap: 10px;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+    row-rule-color: red, repeat(auto, green, blue), purple;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+    column-rule-color: orange;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+    height: 50px;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+  </div>
+</div>

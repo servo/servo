@@ -2,6 +2,7 @@
 <style>
 div {
   position: absolute;
+  will-change: opacity;
 }
 .content {
   width: 100px;
@@ -11,7 +12,7 @@ div {
 }
 </style>
 Below should be a light blue square in uniform color.
-<div style="opacity: 0.5; will-change: opacity">
+<div style="opacity: 0.5">
   <div class="content" style="left: 0"></div>
   <div class="content" style="left: 50px"></div>
 </div>

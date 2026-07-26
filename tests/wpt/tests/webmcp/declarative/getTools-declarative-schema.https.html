@@ -4,6 +4,7 @@
 <link rel="author" href="mailto:dom@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
 <body>
 
 <form toolname="search_tool" tooldescription="Search the web">
@@ -14,36 +15,30 @@
 
 <script>
   promise_test(async t => {
-    // Wait for the form to get registered.
-    await new Promise(resolve => document.modelContext.ontoolchange = resolve);
+    let expected_schema_obj = {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "The search query"
+        },
+        limit: {
+          type: "number",
+          multipleOf: 1,
+          description: "Max results count"
+        },
+        safe_search: {
+          type: "boolean",
+          description: "Enable safe search filtering"
+        }
+      },
+      required: ["query"]
+    };
 
-    const tools = await document.modelContext.getTools();
-    assert_equals(tools.length, 1, "Exactly one tool should be registered");
+    const tool = await waitForFormToolSchemaToMatch(JSON.stringify(expected_schema_obj));
 
-    const tool = tools[0];
-    assert_equals(tool.name, "search_tool", "Tool name matches form attribute");
-    assert_equals(tool.description, "Search the web", "Tool description matches form attribute");
-
-    assert_true(!!tool.inputSchema, "inputSchema should be non-empty");
-    const schema = JSON.parse(tool.inputSchema);
-
-    assert_equals(schema.type, "object", "Schema should be an object");
-
-    // 'query' property validation (required string)
-    assert_true("query" in schema.properties, "Schema should contain 'query' property");
-    assert_equals(schema.properties.query.type, "string", "Query property type should be string");
-    assert_equals(schema.properties.query.description, "The search query", "Query property description is correct");
-    assert_array_equals(schema.required, ["query"], "Query should be a required property");
-
-    // 'limit' property validation (optional number)
-    assert_true("limit" in schema.properties, "Schema should contain 'limit' property");
-    assert_equals(schema.properties.limit.type, "number", "Limit property type should be number");
-    assert_equals(schema.properties.limit.description, "Max results count", "Limit property description is correct");
-
-    // 'safe_search' property validation (optional boolean)
-    assert_true("safe_search" in schema.properties, "Schema should contain 'safe_search' property");
-    assert_equals(schema.properties.safe_search.type, "boolean", "safe_search property type should be boolean");
-    assert_equals(schema.properties.safe_search.description, "Enable safe search filtering", "safe_search property description is correct");
-  }, "Test that getTools() returns the correct inputSchema for a declarative tool");
+    assert_equals(tool.name, "search_tool", "Tool name matches");
+    assert_equals(tool.description, "Search the web", "Tool description matches");
+  }, "WebMCP: getTools() retrieves declarative schema at registration time");
 </script>
 </body>

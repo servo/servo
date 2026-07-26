@@ -24,8 +24,9 @@
                 {
                     test.waitForCurrentTimeChange(mediaElement, function ()
                     {
+                        assert_false(mediaElement.seeking, 'mediaElement is no longer seeking');
                         assert_greater_than(mediaElement.currentTime, 0.0, 'Playback has started after seek.');
-                        test.done();
+                        test.waitForCurrentTimeChange(mediaElement, function() { test.done(); });
                     });
                 }
 
@@ -42,6 +43,7 @@
                     test.expectEvent(mediaElement, 'seeking', 'mediaElement');
                     mediaElement.currentTime = 0.0;
                     assert_true(mediaElement.seeking, 'mediaElement is seeking');
+                    assert_equals(mediaElement.currentTime, 0.0, 'Current time is 0.0');
 
                     test.waitForExpectedEvents(finishSeekThenPlay);
                 }

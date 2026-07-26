@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: empty for attribute (in-place streaming)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function getText(containerId) {
+  const container = document.getElementById(containerId).cloneNode(true);
+  for (const script of container.querySelectorAll("script")) {
+    script.remove();
+  }
+  return container.textContent.trim().replace(/\s+/g, ' ');
+}
+</script>
+<body>
+<div id="container1">
+  <span>Before</span>
+  <template for>
+    <span id="target1">Inside 1</span>
+    <span id="target2">Inside 2</span>
+  </template>
+  <span>After</span>
+</div>
+
+<div id="container2">
+  <span id="before-span">Before</span>
+  <template for id="tpl-test">
+    <span>A</span><script>
+      window.step1 = getText("container2");
+      const tpl = document.getElementById("tpl-test");
+      const beforeSpan = document.getElementById("before-span");
+      document.getElementById("container2").insertBefore(tpl, beforeSpan);
+    </script><span>B</span><script>
+      window.step2 = getText("container2");
+      const tpl2 = document.getElementById("tpl-test");
+      if (tpl2) {
+        tpl2.remove();
+      }
+    </script><span>C</span><script>
+      window.step3 = getText("container2");
+    </script></template>
+  <span>After</span>
+</div>
+
+<script>
+test(() => {
+  const container = document.getElementById('container1');
+  // Verify children insertion and order
+  assert_equals(container.innerHTML.trim().replace(/\s+/g, ' '), '<span>Before</span> <span id="target1">Inside 1</span> <span id="target2">Inside 2</span> <span>After</span>');
+  // Verify that the template is not in the DOM
+  assert_equals(container.querySelector('template'), null);
+}, "In-place template with empty for attribute is removed and its children are inserted before it");
+
+test(() => {
+  assert_equals(window.step1, "Before A");
+  assert_equals(window.step2, "BBefore A");
+  assert_equals(window.step3, "BBefore AC");
+
+  const container = document.getElementById("container2");
+  assert_equals(getText("container2"), "BBefore AC After");
+  assert_equals(container.querySelector('template'), null);
+}, "In-place template moving and removal during streaming");
+</script>
+</body>

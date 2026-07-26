@@ -17,13 +17,21 @@ def test_atspi(atspi, session, inline, test_html):
     node = atspi.find_node("test", session.url)
     assert atspi.Accessible.get_role(node) == atspi.Role.TOGGLE_BUTTON
 
-# @pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
-# def test_axapi(axapi, session, inline, test_html):
-#     session.url = inline(test_html)
-#
-#     # Spec:
-#     # AXRole: AXCheckBox
-#     # AXSubrole: AXToggle
+@pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
+def test_axapi(axapi, session, inline, test_html):
+    session.url = inline(test_html)
+
+    # Spec:
+    # AXRole: AXCheckBox
+    # AXSubrole: AXToggle
+
+    node = axapi.find_node("test", session.url)
+    err, role = axapi.AXUIElementCopyAttributeValue(node, "AXRole", None)
+    assert not err
+    assert role == "AXCheckBox"
+    err, subrole = axapi.AXUIElementCopyAttributeValue(node, "AXSubrole", None)
+    assert not err
+    assert subrole == "AXToggle"
 
 # @pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
 # def test_ia2(ia2, session, inline, test_html):

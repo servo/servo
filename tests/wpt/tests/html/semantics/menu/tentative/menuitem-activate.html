@@ -232,8 +232,7 @@ promise_test(async (t) => {
   assert_equals(openStateAfterPointerdown,"open", "mainmenu popover should open after pointer down");
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover should be closed after interaction");
   assert_equals(invokerClicks,0, "the invoking menu didn't get a click");
-  // TODO: Menu items should fire a click event when they are selected.
-  // assert_equals(itemClicks,1, "the invoked menu did get a click");
+  assert_equals(itemClicks,1, "the invoked menu did get a click");
 }, 'A mousedown-drag-mouseup gesture on a normal menuitem picks the item');
 
 promise_test(async (t) => {

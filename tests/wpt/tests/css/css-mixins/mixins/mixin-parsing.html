@@ -42,6 +42,31 @@
     test_valid_child('@mixin --m() { @result { @starting-style {} } }', '@starting-style');
     test_valid_child('@mixin --m() { @result { @scope (.foo) {} } }', '@scope');
     test_valid_child('@mixin --m() { @result { @scope {} } }', '@scope (implicit)');
+
+    // @layer is invalid inside mixins, so it must be dropped at any depth. The
+    // green sibling rule must survive, proving only the @layer was dropped and
+    // not its enclosing container.
+    function test_layer_dropped(css, description) {
+      test(() => {
+        let sheet = new CSSStyleSheet();
+        sheet.replaceSync(css);
+        assert_equals(sheet.cssRules.length, 1, 'mixin is present');
+        let mixin_text = sheet.cssRules[0].cssText;
+        assert_true(mixin_text.includes('color: green'), `sibling rule retained: ${mixin_text}`);
+        assert_false(/@layer/i.test(mixin_text), `@layer dropped: ${mixin_text}`);
+      }, `@layer is dropped within ${description}`);
+    }
+
+    test_layer_dropped('@mixin --m() { @result { @layer bar; div { color: green } } }', '@result (statement)');
+    test_layer_dropped('@mixin --m() { @result { @layer bar {} div { color: green } } }', '@result (block)');
+    test_layer_dropped('@mixin --m() { @result { div { @layer bar; color: green } } }', 'a nested style rule');
+    test_layer_dropped('@mixin --m() { @result { @media (width) { @layer bar; div { color: green } } } }', '@media');
+    test_layer_dropped('@mixin --m() { @result { @supports (width: 0) { @layer bar; div { color: green } } } }', '@supports');
+    test_layer_dropped('@mixin --m() { @result { @container (width) { @layer bar; div { color: green } } } }', '@container');
+    test_layer_dropped('@mixin --m() { @result { @scope (.foo) { @layer bar; div { color: green } } } }', '@scope');
+    test_layer_dropped('@mixin --m() { @media (width) { @layer bar; @result { div { color: green } } } }', 'a body-level @media');
+    test_layer_dropped('@mixin --m() { @supports (width: 0) { @layer bar; @result { div { color: green } } } }', 'a body-level @supports');
+    test_layer_dropped('@mixin --m() { @container (width) { @layer bar; @result { div { color: green } } } }', 'a body-level @container');
   </script>
 
   </body>

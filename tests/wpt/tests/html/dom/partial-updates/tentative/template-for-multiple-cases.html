@@ -178,19 +178,5 @@
       `<template for="a#b">X</template>`,
       `X`,
     );
-    add_test_scenario(
-      "Empty marker name with <?start> and <?end>",
-      `<?start name="">Old<?end>`,
-      `<template for="">New</template>`,
-      `<?start name=""?>Old<?end ?>`,
-      {tail: true}
-    );
-    add_test_scenario(
-      "Empty marker name with <?marker>",
-      `<?marker name="">Old`,
-      `<template for="">New</template>`,
-      `<?marker name=""?>Old`,
-      {tail: true}
-    );
       </script>
 </body>

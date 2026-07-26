@@ -1,0 +1,2 @@
+Cache-Control: max-age=3600
+Vary: available-dictionary,accept-encoding

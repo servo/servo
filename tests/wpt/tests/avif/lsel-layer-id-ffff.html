@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>AVIF: an lsel property with layer_id 0xffff does not prevent rendering</title>
+<link rel="help" href="https://aomediacodec.github.io/av1-avif/#layer-selector-property">
+<link rel="match" href="lsel-layer-id-ffff-ref.html">
+<!-- resources/lsel-layer-id-ffff.avif is a green 100x100 image carrying an
+     essential lsel property with layer_id 0xffff. That value selects no
+     particular layer (it enables, but does not require, progressive
+     rendering), so the image should render like any other AVIF rather than
+     being rejected. -->
+<img src="resources/lsel-layer-id-ffff.avif">

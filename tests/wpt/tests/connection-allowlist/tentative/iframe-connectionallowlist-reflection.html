@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Connection-Allowlist: the connectionallowlist iframe attribute reflects
+       to the connectionAllowlist IDL attribute</title>
+<link rel="help" href="https://github.com/WICG/connection-allowlists/issues/1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The `connectionallowlist` content attribute (Connection-Allowlist embedded
+// enforcement) is reflected by the `connectionAllowlist` IDL attribute via
+// [Reflect], like the `csp` attribute. These tests cover that reflection; they
+// do not exercise enforcement.
+
+test(() => {
+  assert_true('connectionAllowlist' in HTMLIFrameElement.prototype,
+              'connectionAllowlist must be exposed on HTMLIFrameElement');
+}, 'connectionAllowlist IDL attribute is exposed on HTMLIFrameElement');
+
+test(() => {
+  const iframe = document.createElement('iframe');
+  assert_false(iframe.hasAttribute('connectionallowlist'));
+  assert_equals(iframe.connectionAllowlist, '',
+                'an unset attribute reflects as the empty string');
+}, 'connectionAllowlist reflects the empty string when the attribute is unset');
+
+test(() => {
+  const iframe = document.createElement('iframe');
+  iframe.connectionAllowlist = '("https://example.com/")';
+  assert_equals(iframe.getAttribute('connectionallowlist'),
+                '("https://example.com/")',
+                'setting the IDL attribute sets the content attribute');
+}, 'connectionAllowlist setter reflects to the content attribute');
+
+test(() => {
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('connectionallowlist', '(response-origin)');
+  assert_equals(iframe.connectionAllowlist, '(response-origin)',
+                'reading the IDL attribute returns the content attribute');
+}, 'connectionAllowlist getter reflects from the content attribute');
+
+test(() => {
+  const iframe = document.createElement('iframe');
+  iframe.connectionAllowlist = '(response-origin)';
+  assert_equals(iframe.connectionAllowlist, '(response-origin)');
+  // The raw value is reflected verbatim; parsing/validation happens elsewhere.
+  iframe.connectionAllowlist = 'not a valid structured header';
+  assert_equals(iframe.connectionAllowlist, 'not a valid structured header',
+                'the IDL attribute reflects the raw value without validation');
+}, 'connectionAllowlist reflects the raw value verbatim');
+</script>
+</body>
