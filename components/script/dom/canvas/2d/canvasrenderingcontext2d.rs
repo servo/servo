@@ -46,8 +46,22 @@ pub(crate) struct CanvasRenderingContext2D {
 
 impl CanvasRenderingContext2D {
     const RGBA8_BYTES_PER_PIXEL: usize = 4;
-    /// We have two bitmap buffers one in Canvas Paint Thread and one for WebRender
-    const ASSOCIATED_MEMORY_BUFFER_COUNT: usize = 2;
+    /// Ideally this would be two bitmap buffers, unfortunately we currently have ~4 copies
+    /// which are all retained until GC:
+    ///
+    /// 1. The draw target's backing bitmap in the canvas paint thread
+    ///    (`CanvasData::draw_target`, e.g. `pixmap` in `VelloCPUDrawTarget`).
+    /// 2. Additional backend resources (estimated 1 bitmap, actually depends on backend):
+    ///    e.g. `ctx` and `resources` in `VelloCPUDrawTarget` for vello_cpu.
+    ///    TODO: #46785 tracks getting accurate statistics from the backend.
+    /// 3. `CachedImageData::Raw` in WebRender (cpu memory copy).
+    /// 4. GPU memory in webrender / driver (also lives in RAM on unified memory systems).
+    ///
+    /// This metric is only used to inform the GC about memory pressure, so it doesn't need to
+    /// be completely accurate, but undercounting may delay GCs and hence increase memory usage.
+    /// On mobile devices this slightly undercounts (usually unified memory), on desktop this
+    /// slightly overcounts, since GPU memory is separate.
+    const ASSOCIATED_MEMORY_BUFFER_COUNT: usize = 4;
 
     fn associated_memory_size(size: Size2D<u64>) -> usize {
         (size.width as usize)
