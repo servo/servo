@@ -39,23 +39,21 @@ public class ServoView extends SurfaceView
     private String servoArgs;
     private String servoLog;
     private String initialUri;
-    private Context context;
 
     private boolean experimentalMode;
     private boolean paused = false;
 
     public ServoView(Context context) {
         super(context);
-        init(context);
+        init();
     }
 
     public ServoView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init(context);
+        init();
     }
 
-    private void init(Context context) {
-        this.context = context;
+    private void init() {
         setFocusable(true);
         setFocusableInTouchMode(true);
         setClickable(true);
@@ -63,7 +61,7 @@ public class ServoView extends SurfaceView
         view.add(this);
         addTouchables(view);
 
-        glThread = new GLThread(context, this);
+        glThread = new GLThread(this);
         getHolder().addCallback(glThread);
         glThread.start();
     }
@@ -196,11 +194,9 @@ public class ServoView extends SurfaceView
     }
 
     class GLThread extends Thread implements SurfaceHolder.Callback {
-        private Context context;
         private ServoView servoView;
 
-        GLThread(Context context, ServoView servoView) {
-            this.context = context;
+        GLThread(ServoView servoView) {
             this.servoView = servoView;
         }
 
@@ -220,11 +216,11 @@ public class ServoView extends SurfaceView
             options.enableSubpixelTextAntialiasing = true;
             options.experimentalMode = servoView.experimentalMode;
 
-            DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+            DisplayMetrics metrics = servoView.getResources().getDisplayMetrics();
             options.density = metrics.density;
             if (servoView.servo == null && !paused) {
                 servoView.servo = new Servo(
-                        options, servoView, client, context, surface);
+                        options, servoView, client, servoView.getContext(), surface);
             } else {
                 paused = false;
                 servoView.servo.resumePainting(surface, coords);
