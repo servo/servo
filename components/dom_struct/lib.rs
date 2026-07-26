@@ -131,6 +131,15 @@ fn test_valid_dom_struct_generation() {
                 let object = crate::DomObject::reflector(self).get_jsobject();
                 object.to_jsval(cx, rval)
             }
+
+            fn safe_to_jsval(
+                &self,
+                cx: &mut js::context::JSContext,
+                rval: js::rust::MutableHandleValue,
+            ) {
+                let object = crate::DomObject::reflector(self).get_jsobject();
+                js::conversions::ToJSValConvertible::safe_to_jsval(&*object, cx, rval);
+            }
         }
         impl crate::DomObject for DomElement {
             type ReflectorType = crate::AssociatedMemory;
