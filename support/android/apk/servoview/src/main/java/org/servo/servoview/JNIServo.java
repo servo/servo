@@ -22,12 +22,6 @@ class JNIServo {
 
     native void init(Context context, ServoOptions options, Callbacks callbacks, Surface surface);
 
-    native void deinit();
-
-    native void requestShutdown();
-
-    native void setBatchMode(boolean mode);
-
     native void performUpdates();
 
     native void resize(ServoCoordinates coords);
@@ -79,8 +73,6 @@ class JNIServo {
         String url;
         ServoCoordinates coordinates;
         float density = 1;
-        boolean enableSubpixelTextAntialiasing = true;
-        long VRExternalContext = 0;
         String logStr;
         String gstDebugStr;
         boolean enableLogs = false;

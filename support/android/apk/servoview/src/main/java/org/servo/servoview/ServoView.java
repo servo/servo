@@ -217,7 +217,6 @@ public class ServoView extends SurfaceView
             options.url = servoView.initialUri;
             options.coordinates = coords;
             options.enableLogs = true;
-            options.enableSubpixelTextAntialiasing = true;
             options.experimentalMode = servoView.experimentalMode;
 
             DisplayMetrics metrics = context.getResources().getDisplayMetrics();
