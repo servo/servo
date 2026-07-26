@@ -212,6 +212,7 @@ public class ServoView extends SurfaceView
             options.args = servoView.servoArgs;
             options.url = servoView.initialUri;
             options.coordinates = coords;
+            options.logStr = servoLog;
             options.enableLogs = true;
             options.experimentalMode = servoView.experimentalMode;
 
