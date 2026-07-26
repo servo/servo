@@ -41,10 +41,6 @@ public class Servo {
         runCallback.inGLThread(() -> jni.performUpdates());
     }
 
-    public void setBatchMode(boolean mode) {
-        runCallback.inGLThread(() -> jni.setBatchMode(mode));
-    }
-
     public void resize(ServoCoordinates coords) {
         runCallback.inGLThread(() -> jni.resize(coords));
     }
