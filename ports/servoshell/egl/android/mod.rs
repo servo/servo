@@ -104,7 +104,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     surface: JObject<'local>,
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
-        let (init_opts, log, log_str, _gst_debug_str) = get_options(env, &opts, &surface)?;
+        let (init_opts, log, log_str) = get_options(env, &opts, &surface)?;
 
         if log {
             // Note: Android debug logs are stripped from a release build.
@@ -958,11 +958,10 @@ fn get_options<'local>(
     env: &mut Env<'local>,
     opts: &JObject<'local>,
     surface: &JObject<'local>,
-) -> Result<(InitOptions, bool, Option<String>, Option<String>), Error> {
+) -> Result<(InitOptions, bool, Option<String>), Error> {
     let args = get_field_as_string(env, opts, jni_str!("args")).ok();
     let url = get_field_as_string(env, opts, jni_str!("url")).ok();
     let log_str = get_field_as_string(env, opts, jni_str!("logStr")).ok();
-    let gst_debug_str = get_field_as_string(env, opts, jni_str!("gstDebugStr")).ok();
 
     let experimental_mode = env
         .get_field(opts, jni_str!("experimentalMode"), jni_sig!("Z"))?
@@ -1011,7 +1010,7 @@ fn get_options<'local>(
         display_handle,
     };
 
-    Ok((opts, log, log_str, gst_debug_str))
+    Ok((opts, log, log_str))
 }
 
 fn display_and_window_handle(

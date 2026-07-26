@@ -74,7 +74,6 @@ class JNIServo {
         ServoCoordinates coordinates;
         float density = 1;
         String logStr;
-        String gstDebugStr;
         boolean enableLogs = false;
         boolean experimentalMode = false;
     }
