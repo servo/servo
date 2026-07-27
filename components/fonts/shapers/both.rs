@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::io::Write as _;
+use std::sync::atomic::AtomicU64;
+use std::time::Instant;
 
 use skrifa::Tag;
 
@@ -10,6 +12,9 @@ use super::harfbuzz::HarfbuzzGlyphShapingResult;
 use super::harfrust::HarfrustGlyphShapingResult;
 use super::{GlyphShapingResult, HarfBuzzShaper, HarfRustShaper};
 use crate::{Font, FontBaseline, ShapedText, ShapingOptions};
+
+static BUZZ_NS: AtomicU64 = AtomicU64::new(0);
+static RUST_NS: AtomicU64 = AtomicU64::new(0);
 
 pub(crate) struct ShapedGlyphData {
     buzz: HarfbuzzGlyphShapingResult,
@@ -19,6 +24,13 @@ pub(crate) struct ShapedGlyphData {
 pub(crate) struct Shaper {
     buzz: HarfBuzzShaper,
     rust: HarfRustShaper,
+}
+
+fn with_time<T>(cb: impl FnOnce() -> T) -> (T, u64) {
+    let start = Instant::now();
+    let result = cb();
+    let nanos = start.elapsed().as_nanos();
+    (result, nanos as u64)
 }
 
 impl Shaper {
@@ -35,10 +47,15 @@ impl Shaper {
         options: &ShapingOptions,
         font_features: &[(Tag, u32)],
     ) -> ShapedGlyphData {
-        ShapedGlyphData {
-            buzz: self.buzz.shaped_glyph_data(text, options, font_features),
-            rust: self.rust.shaped_glyph_data(text, options, font_features),
-        }
+        let (buzz, ns) =
+            with_time(move || self.buzz.shaped_glyph_data(text, options, font_features));
+        BUZZ_NS.fetch_add(ns, std::sync::atomic::Ordering::Relaxed);
+
+        let (rust, ns) =
+            with_time(move || self.rust.shaped_glyph_data(text, options, font_features));
+        RUST_NS.fetch_add(ns, std::sync::atomic::Ordering::Relaxed);
+
+        ShapedGlyphData { buzz, rust }
     }
 
     pub fn shape_text(
@@ -59,6 +76,18 @@ impl Shaper {
             log_shape_data(&glyph_data.rust);
             println!("========================");
         }
+
+        let buzz_ms = BUZZ_NS.load(std::sync::atomic::Ordering::Relaxed) as f64 / 1_000_000.0;
+        let rust_ms = RUST_NS.load(std::sync::atomic::Ordering::Relaxed) as f64 / 1_000_000.0;
+        let diff = rust_ms - buzz_ms;
+        let percentage = if buzz_ms != 0.0 {
+            (diff / buzz_ms) * 100.0
+        } else {
+            0.0
+        };
+        println!(
+            "Cumulative timings: Buzz: {buzz_ms:.3}ms. Rust: {rust_ms:.3}ms. Diff: {diff:.3}ms {percentage:+.2}%"
+        );
 
         ShapedText::with_shaped_glyph_data(text, options, &glyph_data.rust)
     }
