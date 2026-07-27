@@ -256,6 +256,8 @@ impl Iterator for WhitespaceCollapse<'_> {
                 });
             }
 
+            // Non-whitespace character
+
             // Point 4.1.1:
             // > 2. Any sequence of collapsible spaces and tabs immediately preceding or
             // >    following a segment break is removed.
@@ -335,6 +337,10 @@ pub(crate) fn capitalization_iterator<'a>(
         if at_word_start && (current_byte_index != 0 || allow_word_at_start) {
             output.extend(CharacterTransformIteration::from_char_iter(
                 text_step.consumed_character_count,
+                // TODO: use `character.to_titlecase()` when available:
+                // https://github.com/rust-lang/rust/issues/153892
+                // because of:
+                // https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
                 character.to_uppercase(),
             ));
         } else {
