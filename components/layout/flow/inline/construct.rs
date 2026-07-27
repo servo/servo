@@ -413,55 +413,52 @@ impl InlineFormattingContextBuilder {
         info: &NodeAndStyleInfo<'dom>,
         document_selection: Option<Range<Utf32CodeUnits>>,
     ) {
-        let iterator = TextTransformationIterator::new(
-            &text,
-            &info.style,
-            self.last_inline_box_ended_with_collapsible_white_space,
-            self.on_word_boundary,
-        );
-
         let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
         let mut character_count = 0;
         let mut consumed_characters = 0;
-        let new_text: String = iterator
-            .filter_map(|text_step| {
-                consumed_characters += text_step.consumed_character_count;
+        let mut new_text = String::with_capacity(text.len());
+        for text_step in TextTransformationIterator::new(
+            &text,
+            &info.style,
+            self.last_inline_box_ended_with_collapsible_white_space,
+            self.on_word_boundary,
+        ) {
+            consumed_characters += text_step.consumed_character_count;
 
-                let Some(character) = text_step.character else {
-                    self.offset_map.collapse(text_step.consumed_character_count);
-                    return None;
+            let Some(character) = text_step.character else {
+                self.offset_map.collapse(text_step.consumed_character_count);
+                continue;
+            };
+
+            self.offset_map
+                .process_character(text_step.consumed_character_count, 1);
+            character_count += 1;
+
+            // If this character has a strong right-to-left class the new inline formatting context will
+            // need to be BiDi-aware. This match is derived from the list of strong right-to-left classes
+            // at https://www.unicode.org/reports/tr44/#Bidi_Class_Values.
+            self.has_right_to_left_content = self.has_right_to_left_content ||
+                matches!(
+                    bidi_class_map.get(character),
+                    BidiClass::RightToLeft |
+                        BidiClass::ArabicLetter |
+                        BidiClass::RightToLeftEmbedding |
+                        BidiClass::RightToLeftIsolate |
+                        BidiClass::RightToLeftOverride
+                );
+
+            self.is_empty = self.is_empty &&
+                match white_space_collapse {
+                    WhiteSpaceCollapse::Collapse => Self::is_document_white_space(character),
+                    WhiteSpaceCollapse::PreserveBreaks => {
+                        Self::is_document_white_space(character) && character != '\n'
+                    },
+                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
                 };
 
-                self.offset_map
-                    .process_character(text_step.consumed_character_count, 1);
-                character_count += 1;
-
-                // If this character has a strong right-to-left class the new inline formatting context will
-                // need to be BiDi-aware. This match is derived from the list of strong right-to-left classes
-                // at https://www.unicode.org/reports/tr44/#Bidi_Class_Values.
-                self.has_right_to_left_content = self.has_right_to_left_content ||
-                    matches!(
-                        bidi_class_map.get(character),
-                        BidiClass::RightToLeft |
-                            BidiClass::ArabicLetter |
-                            BidiClass::RightToLeftEmbedding |
-                            BidiClass::RightToLeftIsolate |
-                            BidiClass::RightToLeftOverride
-                    );
-
-                self.is_empty = self.is_empty &&
-                    match white_space_collapse {
-                        WhiteSpaceCollapse::Collapse => Self::is_document_white_space(character),
-                        WhiteSpaceCollapse::PreserveBreaks => {
-                            Self::is_document_white_space(character) && character != '\n'
-                        },
-                        WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
-                    };
-
-                Some(character)
-            })
-            .collect();
+            new_text.push(character)
+        }
 
         if new_text.is_empty() {
             self.current_original_character_offset += consumed_characters;
