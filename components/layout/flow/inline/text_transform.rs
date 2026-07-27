@@ -19,7 +19,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
-use style::values::specified::text::TextTransformCase;
+use style::values::specified::text::{TextTransform, TextTransformCase};
 
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 
@@ -52,27 +52,40 @@ impl<'a> TextTransformationIterator<'a> {
         on_word_boundary: bool,
     ) -> Self {
         let white_space_collapse = style.clone_white_space_collapse();
-        let iterator = Box::new(WhitespaceCollapse::new(
-            text.chars(),
-            white_space_collapse,
-            trim_leading_white_space,
-        ));
+        let mut iterator: Box<dyn Iterator<Item = CharacterTransformIteration>> = Box::new(
+            WhitespaceCollapse::new(text.chars(), white_space_collapse, trim_leading_white_space),
+        );
 
         // TODO: Not all text transforms are about case, this logic should stop ignoring
         // TextTransform::FULL_WIDTH and TextTransform::FULL_SIZE_KANA.
-        let text_transform = style.clone_text_transform().case();
-        let iterator = match text_transform {
-            TextTransformCase::None => iterator,
-            _ => text_transform_iterator(iterator, text_transform, on_word_boundary),
-        };
+        let text_transform = style.clone_text_transform();
+        match text_transform.case() {
+            TextTransformCase::None => {},
+            TextTransformCase::Lowercase => {
+                iterator = Box::new(simple_case_transform_iterator(iterator, char::to_lowercase))
+            },
+            TextTransformCase::Uppercase => {
+                iterator = Box::new(simple_case_transform_iterator(iterator, char::to_uppercase))
+            },
+            TextTransformCase::Capitalize => {
+                iterator = Box::new(capitalization_iterator(iterator, on_word_boundary))
+            },
+            // TODO: implement `math-auto` and enable it in Stylo
+        }
+        if text_transform.intersects(TextTransform::FULL_WIDTH) {
+            // TODO: implement `full-width`
+            // iterator = Box::new(full_width_iterator(iterator));
+        }
+        if text_transform.intersects(TextTransform::FULL_SIZE_KANA) {
+            // TODO: implement `full-size-kana`
+            // iterator = Box::new(full_size_kana_iterator(iterator));
+        }
 
         let text_security = style.clone__webkit_text_security();
-        let char_iterator: Box<dyn Iterator<Item = CharacterTransformIteration>> =
-            match text_security {
-                WebKitTextSecurity::None => iterator,
-                _ => Box::new(TextSecurityTransform::new(iterator, text_security)),
-            };
-        Self(char_iterator)
+        if text_security != WebKitTextSecurity::None {
+            iterator = Box::new(TextSecurityTransform::new(iterator, text_security));
+        }
+        Self(iterator)
     }
 }
 
@@ -258,27 +271,6 @@ impl Iterator for WhitespaceCollapse<'_> {
 
     fn count(self) -> usize {
         self.input_iterator.count()
-    }
-}
-
-fn text_transform_iterator<'a>(
-    input_iterator: Box<dyn Iterator<Item = CharacterTransformIteration> + 'a>,
-    text_transform: TextTransformCase,
-    allow_word_at_start: bool,
-) -> Box<dyn Iterator<Item = CharacterTransformIteration> + 'a> {
-    match text_transform {
-        TextTransformCase::Lowercase => Box::new(simple_case_transform_iterator(
-            input_iterator,
-            char::to_lowercase,
-        )),
-        TextTransformCase::Uppercase => Box::new(simple_case_transform_iterator(
-            input_iterator,
-            char::to_uppercase,
-        )),
-        TextTransformCase::None => input_iterator,
-        TextTransformCase::Capitalize => {
-            Box::new(capitalization_iterator(input_iterator, allow_word_at_start))
-        },
     }
 }
 
