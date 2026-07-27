@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.getSystemService
 import androidx.preference.PreferenceManager
+import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.launch
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoView
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
         updateSettingsIfNecessary(true)
 
         setContent {
-            val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(600)
+            val isWindowWidthAtLeastMedium = currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
             Scaffold(
                 topBar = {
