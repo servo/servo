@@ -348,6 +348,11 @@ impl ShapedText {
         self.glyphs.len()
     }
 
+    /// Get the number of characters that were shaped to produce this [`ShapedText`].
+    pub fn character_count(&self) -> usize {
+        self.character_count
+    }
+
     /// Adds glyph that corresponds to a single character (as far we know) in the originating string.
     #[inline]
     pub(crate) fn add_glyph(&mut self, character: char, glyph: &ShapedGlyph) {
@@ -572,12 +577,6 @@ pub struct ShapedTextSlice {
 }
 
 impl ShapedTextSlice {
-    /// Return the [`ShapedText`] that backs this [`ShapedTextSlice`].
-    #[inline]
-    pub fn shaped_text(&self) -> Arc<ShapedText> {
-        self.shaped_text.clone()
-    }
-
     /// Return the number of glyphs represented by this [`ShapedTextSlice`].
     #[inline]
     pub fn glyph_count(&self) -> usize {
@@ -625,6 +624,7 @@ impl ShapedTextSlice {
 /// A data structure used to efficiently slice up a [`ShapedText`] into [`ShapedTextSlice`]s.
 pub struct ShapedTextSlicer {
     current_glyph_offset: usize,
+    current_character_offset: usize,
     shaped_text: Arc<ShapedText>,
 }
 
@@ -638,24 +638,29 @@ impl ShapedTextSlicer {
 
         Self {
             current_glyph_offset,
+            current_character_offset: 0,
             shaped_text,
         }
     }
 
-    /// Given a desired character count, consume that number of characters worth
-    /// of glyphs from the [`ShapedText`] of this [`ShapedTextSlicer`]. In addition,
-    /// tag the resulting [`ShapedTextSlice`] with the given whitespace-related
-    /// properties.
-    pub fn slice_for_character_count(
+    /// Given a desired character offset, consume glyphs until that character offset
+    /// is reached (inclusive of glyphs that come from zero characters). Return those
+    /// glyphs as a [`ShapedTextSlice`] tagged with the given whitespace-related
+    /// properties. Returns `None` if the resulting slice would not hold any glyphs.
+    pub fn slice_until_character_offset(
         &mut self,
-        desired_character_count: usize,
+        desired_character_offset: usize,
         is_whitespace: bool,
         ends_with_whitespace: bool,
-    ) -> Arc<ShapedTextSlice> {
+    ) -> Option<Arc<ShapedTextSlice>> {
         let mut glyph_count = 0;
-        let mut character_count = 0;
         let mut total_word_separators = 0;
         let mut total_advance = Au::zero();
+        let original_character_offset = self.current_character_offset;
+
+        if self.current_character_offset >= desired_character_offset {
+            return None;
+        }
 
         // In `ShapedText` glyphs are stored in physical left-to-right order, which means that the
         // indices of the characters that they represent might decrease. Since we want to consume
@@ -675,17 +680,16 @@ impl ShapedTextSlicer {
         };
 
         for glyph in iterator {
-            // When one character produces multiple glyphs, only the first glyph has a character
-            // count of one and the rest have a character count of 0. This checks the potential
-            // total before accumulating a glyph, which allows merging glyphs with a 0 character
-            // count into the slice with the first glyph.
-            let glyph_character_count = glyph.character_count();
-            if character_count + glyph_character_count > desired_character_count {
+            // When glyphs span two character slices, prioritize the first slice and also
+            // ensure that glyphs that span zero characters are also included there.
+            if self.current_character_offset >= desired_character_offset &&
+                glyph.character_count() > 0
+            {
                 break;
             }
 
             glyph_count += 1;
-            character_count += glyph_character_count;
+            self.current_character_offset += glyph.character_count();
             total_advance += glyph.advance();
             if glyph.char_is_word_separator() {
                 total_word_separators += 1;
@@ -707,15 +711,19 @@ impl ShapedTextSlicer {
             )
         };
 
+        if glyph_count == 0 {
+            return None;
+        }
+
         self.current_glyph_offset = new_glyph_offset;
-        Arc::new(ShapedTextSlice {
+        Some(Arc::new(ShapedTextSlice {
             shaped_text: self.shaped_text.clone(),
             glyph_range,
             total_advance,
-            character_count,
+            character_count: self.current_character_offset - original_character_offset,
             is_whitespace,
             ends_with_whitespace,
             total_word_separators,
-        })
+        }))
     }
 }
