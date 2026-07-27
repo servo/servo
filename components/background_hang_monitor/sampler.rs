@@ -39,7 +39,14 @@ impl Default for NativeStack {
 }
 
 impl NativeStack {
-    #[cfg_attr(any(target_os = "windows", target_env = "ohos"), expect(dead_code))]
+    #[cfg_attr(
+        any(
+            target_os = "windows",
+            target_env = "ohos",
+            all(target_os = "linux", target_arch = "aarch64")
+        ),
+        expect(dead_code)
+    )]
     pub fn process_register(
         &mut self,
         instruction_ptr: *mut std::ffi::c_void,
