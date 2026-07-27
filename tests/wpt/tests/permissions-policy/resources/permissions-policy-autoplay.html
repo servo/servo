@@ -5,7 +5,7 @@
 
 window.addEventListener('load', () => {
   isAutoplayAllowed().then((result) => {
-    window.parent.postMessage({ enabled: result }, '*');
+    window.parent.postMessage({ enabled: result, type: 'availability-result' }, '*');
   });
 }, { once: true });
 </script>
