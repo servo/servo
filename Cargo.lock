@@ -8403,6 +8403,7 @@ dependencies = [
 name = "servo-constellation-traits"
 version = "0.6.0"
 dependencies = [
+ "accesskit",
  "base64 0.23.1",
  "content-security-policy",
  "encoding_rs",
@@ -8725,6 +8726,7 @@ dependencies = [
 name = "servo-layout-api"
 version = "0.6.0"
 dependencies = [
+ "accesskit",
  "app_units",
  "atomic_refcell",
  "bitflags 2.13.2",
@@ -9287,6 +9289,7 @@ dependencies = [
 name = "servo-script"
 version = "0.6.0"
 dependencies = [
+ "accesskit",
  "aes",
  "aes-gcm",
  "aes-kw",

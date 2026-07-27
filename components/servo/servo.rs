@@ -8,6 +8,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::time::Duration;
 
+use accesskit::ActionRequest;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
@@ -1114,6 +1115,12 @@ impl Servo {
 
     pub fn site_data_manager(&self) -> &SiteDataManager {
         &self.0.site_data_manager
+    }
+
+    pub fn forward_accessibility_action(&self, action_request: ActionRequest) {
+        self.0.constellation_proxy.send(
+            EmbedderToConstellationMessage::ForwardAccessibilityAction(action_request),
+        );
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
