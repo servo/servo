@@ -27,7 +27,6 @@ use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
 
-use crate::dom::WorkletControl;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::csp::Violation;
@@ -35,6 +34,7 @@ use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
 use crate::dom::sharedworkerglobalscope::SharedWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
+use crate::dom::{WorkletControl, WorkletExecutor};
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -215,7 +215,7 @@ pub(crate) enum ScriptEventLoopSender {
     /// A sender that sends to a `ServiceWorker` event loop.
     ServiceWorker(Sender<ServiceWorkerScriptMsg>),
     /// A sender that sends to a `Worklet` event loop.
-    Worklet(Sender<WorkletControl>),
+    Worklet(WorkletExecutor),
     /// A sender that sends to a dedicated worker (such as a generic Web Worker) event loop.
     /// Note that this sender keeps the main thread Worker DOM object alive as long as it or
     /// or any message it sends is not dropped.
@@ -254,9 +254,11 @@ impl ScriptEventLoopSender {
                     ))
                     .map_err(|_| SendError(()))
             },
-            Self::Worklet(sender) => sender
-                .send(WorkletControl::Common(message))
-                .map_err(|_| SendError(())),
+            Self::Worklet(executor) => {
+                executor.send_control_message(WorkletControl::Common(message));
+
+                Ok(())
+            },
         }
     }
 }

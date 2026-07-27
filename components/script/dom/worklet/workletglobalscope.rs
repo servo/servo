@@ -22,7 +22,6 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
 
-use crate::dom::WorkletControl;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -34,7 +33,7 @@ use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
-use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopSender};
+use crate::messaging::MainThreadScriptMsg;
 use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
 use crate::task::TaskCanceller;
@@ -78,7 +77,6 @@ impl WorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
-        sender: Sender<WorkletControl>,
         microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
@@ -90,7 +88,6 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
-                sender,
                 microtask_queue,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
@@ -100,7 +97,6 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
-                sender,
                 microtask_queue,
             )),
         };
@@ -119,10 +115,11 @@ impl WorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
-        event_loop_sender: Option<ScriptEventLoopSender>,
         closing: Arc<AtomicBool>,
         microtask_queue: Rc<MicrotaskQueue>,
     ) -> Self {
+        let script_event_loop_sender = executor.event_loop_sender();
+
         Self {
             globalscope: GlobalScope::new_inherited(
                 init.devtools_chan.clone(),
@@ -145,7 +142,7 @@ impl WorkletGlobalScope {
             executor,
             pipeline_id,
             task_manager: Rc::new(TaskManager::new(
-                event_loop_sender,
+                Some(script_event_loop_sender),
                 pipeline_id,
                 Some(TaskCanceller { cancelled: closing }),
             )),
@@ -209,13 +206,8 @@ impl WorkletGlobalScope {
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
-        // Only perform the checkpoint if we're not shutting down.
-        // if !self.is_closing() {
-        self.microtask_queue.checkpoint(
-            cx,
-            vec![DomRoot::from_ref(&self.globalscope)],
-        );
-        // }
+        self.microtask_queue
+            .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
     }
 }
 

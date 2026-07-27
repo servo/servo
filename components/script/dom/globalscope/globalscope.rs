@@ -3179,7 +3179,6 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.Performance(cx);
         }
-        println!("{:?}", std::backtrace::Backtrace::capture());
         unreachable!()
     }
 

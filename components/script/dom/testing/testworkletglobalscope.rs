@@ -16,14 +16,12 @@ use script_bindings::interfaces::HasOrigin;
 use servo_base::id::PipelineId;
 use servo_url::{MutableOrigin, ServoUrl};
 
-use crate::dom::WorkletControl;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
-use crate::messaging::ScriptEventLoopSender;
 use crate::microtask::MicrotaskQueue;
 
 // check-tidy: no specs after this line
@@ -44,7 +42,6 @@ impl TestWorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
-        own_sender: Sender<WorkletControl>,
         microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<TestWorkletGlobalScope> {
         debug!(
@@ -60,7 +57,6 @@ impl TestWorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
-                Some(ScriptEventLoopSender::Worklet(own_sender)),
                 closing,
                 microtask_queue,
             ),

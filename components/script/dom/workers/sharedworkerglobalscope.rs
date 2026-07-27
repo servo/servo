@@ -57,9 +57,9 @@ use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::script_module::fetch_a_module_worker_script_graph;
-use crate::script_runtime::Runtime;
+use crate::script_module::fetch_a_module_script_graph;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
+use crate::script_runtime::{IntroductionType, Runtime};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -536,7 +536,7 @@ impl SharedWorkerGlobalScope {
                     },
                     WorkerType::Module => {
                         let worker_scope = DomRoot::from_ref(scope);
-                        fetch_a_module_worker_script_graph(
+                        fetch_a_module_script_graph(
                             cx,
                             global_scope,
                             worker_url,
@@ -544,6 +544,7 @@ impl SharedWorkerGlobalScope {
                             Destination::SharedWorker,
                             referrer,
                             credentials,
+                            Some(IntroductionType::WORKER),
                             move |cx, module_tree| {
                                 worker_scope.on_complete(cx, module_tree.map(Script::Module));
                             },

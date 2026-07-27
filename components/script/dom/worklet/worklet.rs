@@ -10,7 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
-use std::cell::OnceCell;
+use std::cell::{OnceCell, RefCell, RefMut};
 use std::cmp::max;
 use std::collections::hash_map;
 use std::rc::Rc;
@@ -22,7 +22,6 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{GCReason, JSGCParamKey, JSTracer};
-use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
@@ -55,11 +54,11 @@ use crate::dom::window::Window;
 use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
 };
-use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
+use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg, ScriptEventLoopSender};
 use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
-use crate::script_module::fetch_a_module_worker_script_graph;
-use crate::script_runtime::{Runtime, ScriptThreadEventCategory};
+use crate::script_module::fetch_a_module_script_graph;
+use crate::script_runtime::{IntroductionType, Runtime, ScriptThreadEventCategory};
 use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSourceName;
 
@@ -569,11 +568,6 @@ impl WorkletThread {
                 },
             }
 
-            println!(
-                "Right before entering cold backup; is_cold_backup: {}; thread_id: {:?}",
-                self.role.is_cold_backup,
-                std::thread::current().id()
-            );
             for scope in self.global_scopes.values() {
                 scope.perform_a_microtask_checkpoint(cx);
             }
@@ -582,12 +576,15 @@ impl WorkletThread {
             // otherwise if there are outstanding control messages,
             // try to become the cold backup.
             if self.role.is_cold_backup {
-                println!("Enters cold backup");
                 if let Some(control) = self.control_buffer.take() {
                     self.process_control(control, cx);
                 }
                 while let Ok(control) = self.control_receiver.try_recv() {
                     self.process_control(control, cx);
+                }
+
+                for scope in self.global_scopes.values() {
+                    scope.perform_a_microtask_checkpoint(cx);
                 }
 
                 self.gc(cx);
@@ -656,7 +653,15 @@ impl WorkletThread {
             hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
             hash_map::Entry::Vacant(entry) => {
                 debug!("Creating new worklet global scope.");
-                let executor = WorkletExecutor::new(worklet_id, self.primary_sender.clone());
+
+                let executor = WorkletExecutor {
+                    worklet_id,
+                    primary_sender: self.primary_sender.clone(),
+                    hot_backup_sender: self.hot_backup_sender.clone(),
+                    cold_backup_sender: self.cold_backup_sender.clone(),
+                    control_sender: self.control_sender.clone(),
+                };
+
                 let result = WorkletGlobalScope::new(
                     global_type,
                     pipeline_id,
@@ -665,7 +670,6 @@ impl WorkletThread {
                     executor,
                     &self.global_init,
                     cx,
-                    self.control_sender.clone(),
                     microtask_queue,
                 );
                 entry.insert(Dom::from_ref(&*result));
@@ -714,11 +718,11 @@ impl WorkletThread {
 
         let referrer = global.get_referrer();
         let credentials_mode = credentials.convert();
-        let promise_task = Rc::new(promise);
+        let promise_task = Rc::new(RefCell::new(Some(promise)));
         let script_thread_sender = self.global_init.to_script_thread_sender.clone();
         let rooted_global = DomRoot::from_ref(global);
 
-        fetch_a_module_worker_script_graph(
+        fetch_a_module_script_graph(
             cx,
             global,
             script_url,
@@ -726,9 +730,8 @@ impl WorkletThread {
             Destination::Script,
             referrer,
             credentials_mode,
+            Some(IntroductionType::WORKLET),
             move |cx, module_tree| {
-                println!("Step 1. we go inside the closure");
-
                 // Step 4.
                 // NOTE: the spec parses and executes the script in separate steps,
                 // but our JS API doesn't separate these, so we do the steps out of order.
@@ -737,65 +740,47 @@ impl WorkletThread {
                 // https://github.com/w3c/css-houdini-drafts/issues/407
                 match module_tree {
                     None => {
-                        println!("Step 2. None Branch of module_tree");
                         // Step 3.
                         debug!("Failed to load script.");
-                        let old_counter = pending_tasks_struct.set_counter_to(-1);
-                        if old_counter > 0 {
-                            let task = Rc::into_inner(promise_task)
-                                .expect("no promise found" as &str)
-                                .reject_task(Error::Abort(None));
 
-                            // NOTE: It's unclear which task source should be used here:
-                            // https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
-                            let msg = CommonScriptMsg::Task(
-                                ScriptThreadEventCategory::WorkletEvent,
-                                Box::new(task),
-                                None,
-                                TaskSourceName::DOMManipulation,
-                            );
-                            let msg = MainThreadScriptMsg::Common(msg);
-                            script_thread_sender
-                                .send(msg)
-                                .expect("Worklet thread outlived script thread.");
-                        }
+                        reject_promise(
+                            &pending_tasks_struct,
+                            promise_task.borrow_mut(),
+                            script_thread_sender.clone(),
+                        );
                     },
                     Some(script) => {
-                        println!("Step 2. Script Branch of module_tree");
                         let mut realm = enter_auto_realm(cx, &*rooted_global);
                         let cx = &mut realm.current_realm();
 
-                        let record = script.get_record().map(|record| record.handle());
-                        if let Some(record) = record {
-                            rooted!(&in(cx) let mut rval = UndefinedValue());
-
-                            let evaluated = script.execute_module(
-                                cx,
-                                &rooted_global,
-                                record,
-                                rval.handle_mut(),
+                        // 2. If script's error to rethrow is not null:
+                        if script.get_rethrow_error().take().is_some() {
+                            // 1. Queue a global task on the networking task source given workletInstance's relevant global object
+                            reject_promise(
+                                &pending_tasks_struct,
+                                promise_task.borrow_mut(),
+                                script_thread_sender.clone(),
                             );
 
-                            if let Err(exception) = evaluated {
-                                script.set_rethrow_error(exception);
-                                script.report_error(cx, &rooted_global);
-                            }
+                            // 2. Abort these steps.
+                            return;
                         }
+
+                        rooted_global.run_a_module_script(cx, script, false);
 
                         // Step 5.
                         let old_counter = pending_tasks_struct.decrement_counter_by(1);
-                        println!(
-                            "Finished adding script; old_counter's value: {}",
-                            old_counter
-                        );
                         if old_counter == 1 {
-                            println!("Resolving promise.");
+                            debug!("Resolving promise.");
+
                             let msg = MainThreadScriptMsg::WorkletLoaded(pipeline_id);
                             script_thread_sender
                                 .send(msg)
                                 .expect("Worklet thread outlived script thread.");
 
-                            let task = Rc::into_inner(promise_task)
+                            let task = promise_task
+                                .borrow_mut()
+                                .take()
                                 .expect("no promise found" as &str)
                                 .resolve_task(());
 
@@ -881,20 +866,62 @@ impl WorkletThread {
     }
 }
 
+pub(crate) fn reject_promise(
+    pending_tasks_struct: &PendingTasksStruct,
+    mut promise_task: RefMut<'_, Option<TrustedPromise>>,
+    script_thread_sender: Sender<MainThreadScriptMsg>,
+) {
+    // 1. Set pendingTasks to −1.
+    let old_counter = pending_tasks_struct.set_counter_to(-1);
+
+    //      1. If pendingTasks is not −1:
+    if old_counter > 0 {
+        //  2. Reject promise with script's error to rethrow.
+        // NOTE: `reject_task` should take a `rethrow_error`
+        // The RethrowError type is incompatible with the Error type
+        // The types need work in order to be coerced properly
+        let task = promise_task
+            .take()
+            .expect("no promise found" as &str)
+            .reject_task(Error::Abort(None));
+
+        //  1. Queue a global task on the networking task source given workletInstance's relevant global object
+        // NOTE: It's unclear which task source should be used here:
+        // https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
+        let msg = CommonScriptMsg::Task(
+            ScriptThreadEventCategory::WorkletEvent,
+            Box::new(task),
+            None,
+            TaskSourceName::DOMManipulation,
+        );
+
+        let msg = MainThreadScriptMsg::Common(msg);
+        script_thread_sender
+            .send(msg)
+            .expect("Worklet thread outlived script thread.");
+    }
+}
+
 /// An executor of worklet tasks
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct WorkletExecutor {
     worklet_id: WorkletId,
     #[no_trace]
     primary_sender: Sender<WorkletData>,
+    #[no_trace]
+    hot_backup_sender: Sender<WorkletData>,
+    #[no_trace]
+    cold_backup_sender: Sender<WorkletData>,
+    #[no_trace]
+    control_sender: Sender<WorkletControl>,
 }
 
 impl WorkletExecutor {
-    fn new(worklet_id: WorkletId, primary_sender: Sender<WorkletData>) -> WorkletExecutor {
-        WorkletExecutor {
-            worklet_id,
-            primary_sender,
-        }
+    pub fn wake_threads(&self) {
+        // If any of the threads are blocked waiting on data, wake them up.
+        let _ = self.cold_backup_sender.send(WorkletData::WakeUp);
+        let _ = self.hot_backup_sender.send(WorkletData::WakeUp);
+        let _ = self.primary_sender.send(WorkletData::WakeUp);
     }
 
     /// Schedule a worklet task to be peformed by the worklet thread pool.
@@ -902,5 +929,14 @@ impl WorkletExecutor {
         let _ = self
             .primary_sender
             .send(WorkletData::Task(self.worklet_id, task));
+    }
+
+    pub(crate) fn send_control_message(&self, control_message: WorkletControl) {
+        let _ = self.control_sender.send(control_message);
+        self.wake_threads();
+    }
+
+    pub(crate) fn event_loop_sender(&self) -> ScriptEventLoopSender {
+        ScriptEventLoopSender::Worklet(self.clone())
     }
 }
