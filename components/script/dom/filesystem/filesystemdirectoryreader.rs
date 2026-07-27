@@ -27,7 +27,7 @@ pub(crate) struct FileSystemDirectoryReader {
 }
 
 impl FileSystemDirectoryReader {
-    pub(crate) fn new_inherited(dir: &FileSystemDirectoryEntry) -> FileSystemDirectoryReader {
+    fn new_inherited(dir: &FileSystemDirectoryEntry) -> FileSystemDirectoryReader {
         FileSystemDirectoryReader {
             reflector_: Reflector::new(),
             dir: Dom::from_ref(dir),

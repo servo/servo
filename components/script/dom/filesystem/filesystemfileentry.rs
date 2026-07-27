@@ -26,11 +26,7 @@ pub(crate) struct FileSystemFileEntry {
 }
 
 impl FileSystemFileEntry {
-    pub(crate) fn new_inherited(
-        name: USVString,
-        full_path: USVString,
-        file: &File,
-    ) -> FileSystemFileEntry {
+    fn new_inherited(name: USVString, full_path: USVString, file: &File) -> FileSystemFileEntry {
         FileSystemFileEntry {
             filesystementry: FileSystemEntry::new_inherited(name, full_path, true),
             file: Dom::from_ref(file),
