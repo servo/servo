@@ -109,7 +109,7 @@ jobs:
         if: ${{ matrix.target == 'x86_64-linux-android' }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          # This should be kept in sync with the `minSdk` version in `servo.properties`.
+          # This should be kept in sync with the `android-sdk-min` version in `libs.versions.toml`.
           # DO NOT INCREASE THIS without prior discussion on zulip!
           api-level: 29
           arch: x86_64

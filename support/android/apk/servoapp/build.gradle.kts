@@ -13,7 +13,7 @@ android {
 
     defaultConfig {
         applicationId = "org.servo.servoshell"
-        minSdk = getServoMinSdk()
+        minSdk = libs.versions.android.sdk.min.get().toInt()
         targetSdk = 34
         versionCode = generatedVersionCode
         versionName = "0.4.0"
