@@ -52,26 +52,27 @@ impl<'a> TextTransformationIterator<'a> {
         on_word_boundary: bool,
     ) -> Self {
         let white_space_collapse = style.clone_white_space_collapse();
-        let mut iterator: Box<dyn Iterator<Item = CharacterTransformIteration>> = Box::new(
-            WhitespaceCollapse::new(text.chars(), white_space_collapse, trim_leading_white_space),
-        );
+        let iterator =
+            WhitespaceCollapse::new(text.chars(), white_space_collapse, trim_leading_white_space);
 
         // TODO: Not all text transforms are about case, this logic should stop ignoring
         // TextTransform::FULL_WIDTH and TextTransform::FULL_SIZE_KANA.
         let text_transform = style.clone_text_transform();
-        match text_transform.case() {
-            TextTransformCase::None => {},
+        let mut iterator = match text_transform.case() {
+            TextTransformCase::None => {
+                Box::new(iterator) as Box<dyn Iterator<Item = CharacterTransformIteration>>
+            },
             TextTransformCase::Lowercase => {
-                iterator = Box::new(simple_case_transform_iterator(iterator, char::to_lowercase))
+                Box::new(simple_case_transform_iterator(iterator, char::to_lowercase))
             },
             TextTransformCase::Uppercase => {
-                iterator = Box::new(simple_case_transform_iterator(iterator, char::to_uppercase))
+                Box::new(simple_case_transform_iterator(iterator, char::to_uppercase))
             },
             TextTransformCase::Capitalize => {
-                iterator = Box::new(capitalization_iterator(iterator, on_word_boundary))
+                Box::new(capitalization_iterator(iterator, on_word_boundary))
             },
             // TODO: implement `math-auto` and enable it in Stylo
-        }
+        };
         if text_transform.intersects(TextTransform::FULL_WIDTH) {
             // TODO: implement `full-width`
             // iterator = Box::new(full_width_iterator(iterator));
@@ -290,8 +291,8 @@ impl Iterator for WhitespaceCollapse<'_> {
     }
 }
 
-fn simple_case_transform_iterator<'a, CharacterIterator>(
-    input_iterator: Box<dyn Iterator<Item = CharacterTransformIteration> + 'a>,
+fn simple_case_transform_iterator<CharacterIterator>(
+    input_iterator: impl Iterator<Item = CharacterTransformIteration>,
     mapping: impl Fn(char) -> CharacterIterator,
 ) -> impl Iterator<Item = CharacterTransformIteration>
 where
@@ -311,8 +312,8 @@ where
 
 /// Given a string and whether the start of the string represents a word boundary, create a copy of
 /// the string with letters after word boundaries capitalized.
-pub(crate) fn capitalization_iterator<'a>(
-    input_iterator: Box<dyn Iterator<Item = CharacterTransformIteration> + 'a>,
+pub(crate) fn capitalization_iterator(
+    input_iterator: impl Iterator<Item = CharacterTransformIteration>,
     allow_word_at_start: bool,
 ) -> impl Iterator<Item = CharacterTransformIteration> {
     let steps: Vec<_> = input_iterator.collect();
