@@ -5,12 +5,13 @@
 use std::collections::HashMap;
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::EnvironmentInfo;
+use devtools_traits::{DebuggerValue, EnvironmentInfo};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::Value;
 
 use crate::actor::{Actor, ActorEncode, ActorRegistry, new_actor_name};
+use crate::actors::console::ConsoleActor;
 use crate::actors::object::ObjectPropertyDescriptor;
 use crate::debugger_value_to_json;
 
@@ -82,6 +83,54 @@ impl EnvironmentActor {
         };
         registry.register(environment_actor);
         environment_name
+    }
+
+    /// Recursively searches for property and variable names in this lineage of environments.
+    /// The resulting vec is sorted and deduplicated. Intended for autocomplete.
+    pub(crate) fn search_identifiers_recursive(
+        &self,
+        registry: &ActorRegistry,
+        prefix: &str,
+    ) -> Vec<String> {
+        let mut names: Vec<String> = vec![];
+        self.recurse_identifiers(registry, prefix, &mut names);
+
+        names.sort_unstable();
+        names.dedup();
+        names
+    }
+
+    fn recurse_identifiers(&self, registry: &ActorRegistry, prefix: &str, names: &mut Vec<String>) {
+        let environment = self.environment.borrow();
+        names.extend(
+            environment
+                .binding_variables
+                .iter()
+                .map(|bind| &bind.name)
+                .filter(|name| ConsoleActor::autocomplete_match(prefix, name))
+                .cloned(),
+        );
+
+        if let Some(DebuggerValue::ObjectValue {
+            preview: Some(preview),
+            ..
+        }) = &environment.object &&
+            let Some(props) = &preview.own_properties
+        {
+            names.extend(
+                props
+                    .iter()
+                    .map(|p| &p.name)
+                    .filter(|name| ConsoleActor::autocomplete_match(prefix, name))
+                    .cloned(),
+            );
+        }
+
+        if let Some(parent_name) = &self.parent_name {
+            registry
+                .find::<EnvironmentActor>(parent_name)
+                .recurse_identifiers(registry, prefix, names);
+        }
     }
 }
 

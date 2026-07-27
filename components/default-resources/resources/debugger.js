@@ -50,6 +50,16 @@ function findKeyByValue(map, search) {
     return undefined;
 }
 
+// The === operator isn't really applicable to pipelineId
+function findDebuggeeByPipelineId(search) {
+    for (const [key, value] of debuggeesToPipelineIds) {
+        if (value.namespaceId == search.namespaceId && value.index == search.index) {
+            return key;
+        }
+    }
+    return undefined;
+}
+
 dbg.uncaughtExceptionHook = function(error) {
     console.error(`[debugger] Uncaught exception at ${error.fileName}:${error.lineNumber}:${error.columnNumber}: ${error.name}: ${error.message}`);
 };
@@ -401,7 +411,7 @@ addEventListener("eval", event => {
     } else {
         const object = workerId !== undefined ?
             findKeyByValue(debuggeesToWorkerIds, workerId) :
-            findKeyByValue(debuggeesToPipelineIds, pipelineId);
+            findDebuggeeByPipelineId(pipelineId);
         completionValue = object.executeInGlobal(code);
     }
 
@@ -776,10 +786,15 @@ function buildBindings(environment) {
 // Get a `Debugger.Environment` instance within which evaluation is taking place.
 // <https://searchfox.org/firefox-main/source/devtools/server/actors/frame.js#109>
 addEventListener("getEnvironment", event => {
-    const {frameActorId} = event;
-    frame = frameActorsToFrames.get(frameActorId);
+    const { frameActorId, pipelineId } = event;
+    let environment;
+    if (frameActorId) {
+        environment = frameActorsToFrames.get(frameActorId).environment;
+    } else {
+        environment = findDebuggeeByPipelineId(pipelineId).asEnvironment();
+    }
 
-    const actor = createEnvironmentActor(frame.environment);
+    const actor = createEnvironmentActor(environment);
     getEnvironmentResult(actor);
 });
 

@@ -483,9 +483,15 @@ pub enum DevtoolScriptControlMsg {
     Interrupt,
     Resume(Option<String>, Option<String>),
     ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
-    GetEnvironment(String, GenericSender<String>),
+    GetEnvironment(GetEnvironmentRequest, GenericSender<String>),
     Blackbox(u32, BlackboxCoverage),
     Unblackbox(u32, BlackboxCoverage),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum GetEnvironmentRequest {
+    Global(PipelineId),
+    Frame(String),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

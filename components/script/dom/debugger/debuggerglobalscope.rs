@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 use devtools_traits::{
     BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
-    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    GetEnvironmentRequest, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -301,7 +301,7 @@ impl DebuggerGlobalScope {
     pub(crate) fn fire_get_environment(
         &self,
         cx: &mut JSContext,
-        frame_actor_id: String,
+        request: GetEnvironmentRequest,
         result_sender: GenericSender<String>,
     ) {
         assert!(
@@ -311,11 +311,8 @@ impl DebuggerGlobalScope {
         );
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
-        let event = DomRoot::upcast::<Event>(DebuggerGetEnvironmentEvent::new(
-            cx,
-            self.upcast(),
-            frame_actor_id.into(),
-        ));
+
+        let event = DomRoot::upcast::<Event>(DebuggerGetEnvironmentEvent::new(cx, self, request));
         assert!(
             event.fire(cx, self.upcast()),
             "Guaranteed by DebuggerGetEnvironmentEvent::new"
