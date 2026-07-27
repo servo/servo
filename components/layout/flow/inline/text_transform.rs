@@ -110,6 +110,20 @@ impl CharacterTransformIteration {
             ..self
         }
     }
+
+    /// `character_iter` must be non-empty
+    fn from_char_iter(
+        mut consumed_character_count: usize,
+        character_iter: impl Iterator<Item = char>,
+    ) -> impl Iterator<Item = Self> {
+        character_iter.map(move |transformed_character| {
+            CharacterTransformIteration {
+                // Iterations after the first use zero:
+                consumed_character_count: std::mem::take(&mut consumed_character_count),
+                character: Some(transformed_character),
+            }
+        })
+    }
 }
 
 pub struct WhitespaceCollapse<'a> {
@@ -282,24 +296,14 @@ where
     CharacterIterator: Iterator<Item = char>,
 {
     input_iterator.flat_map(move |text_step| {
-        let Some(character) = text_step.character else {
-            return Either::Left(std::iter::once(text_step));
-        };
-
-        let mut transformed_iter = mapping(character);
-        let mut first = true;
-        Either::Right(std::iter::from_fn(move || {
-            transformed_iter
-                .next()
-                .map(|transformed_character| CharacterTransformIteration {
-                    consumed_character_count: if std::mem::take(&mut first) {
-                        text_step.consumed_character_count
-                    } else {
-                        0
-                    },
-                    character: Some(transformed_character),
-                })
-        }))
+        if let Some(character) = text_step.character {
+            Either::Right(CharacterTransformIteration::from_char_iter(
+                text_step.consumed_character_count,
+                mapping(character),
+            ))
+        } else {
+            Either::Left(std::iter::once(text_step))
+        }
     })
 }
 
@@ -329,18 +333,10 @@ pub(crate) fn capitalization_iterator<'a>(
         }
 
         if at_word_start && (current_byte_index != 0 || allow_word_at_start) {
-            let transformed_characters = character.to_uppercase();
-            let mut first = true;
-            for transformed_character in transformed_characters {
-                output.push(CharacterTransformIteration {
-                    consumed_character_count: if std::mem::take(&mut first) {
-                        text_step.consumed_character_count
-                    } else {
-                        0
-                    },
-                    character: Some(transformed_character),
-                });
-            }
+            output.extend(CharacterTransformIteration::from_char_iter(
+                text_step.consumed_character_count,
+                character.to_uppercase(),
+            ));
         } else {
             output.push(text_step);
         }
