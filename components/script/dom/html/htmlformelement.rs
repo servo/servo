@@ -1575,19 +1575,30 @@ pub(crate) enum FormSubmitterElement<'a> {
 }
 
 impl FormSubmitterElement<'_> {
+    /// <https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#concept-fs-action>
     fn action(&self) -> DOMString {
         match *self {
             FormSubmitterElement::Form(form) => form.Action(),
-            FormSubmitterElement::Input(input_element) => input_element.get_form_attribute(
-                &local_name!("formaction"),
-                |i| i.FormAction(),
-                |f| f.Action(),
-            ),
-            FormSubmitterElement::Button(button_element) => button_element.get_form_attribute(
-                &local_name!("formaction"),
-                |i| i.FormAction(),
-                |f| f.Action(),
-            ),
+            FormSubmitterElement::Input(input_element) => {
+                input_element
+                    .form_owner()
+                    .map(|form| form.Action())
+                    .unwrap_or_default()
+            },
+            FormSubmitterElement::Button(button_element) => {
+                if button_element.is_submit_button() {
+                    let action = button_element
+                        .to_element()
+                        .get_string_attribute(&local_name!("formaction"));
+                    if !action.is_empty() {
+                        return action;
+                    }
+                }
+                button_element
+                    .form_owner()
+                    .map(|form| form.Action())
+                    .unwrap_or_default()
+            },
         }
     }
 
