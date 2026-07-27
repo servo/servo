@@ -6,7 +6,6 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use ipc_channel::ipc;
 use js::context::JSContext;
 use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
@@ -25,6 +24,7 @@ use net_traits::{
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
 use serde::{Deserialize, Serialize};
+use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
@@ -716,7 +716,7 @@ pub(crate) fn load_whole_resource(
     csp_violations_processor: &dyn CspViolationsProcessor,
     cx: &mut JSContext,
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let (action_sender, action_receiver) = GenericCallback::new_blocking().unwrap();
     let url = request.url.url();
     core_resource_thread
         .send(CoreResourceMsg::Fetch(

@@ -16,7 +16,6 @@ use http::{HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
@@ -361,7 +360,7 @@ impl FetchMetadata {
     }
 }
 
-impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
+impl FetchTaskTarget for GenericCallback<FetchResponseMsg> {
     fn process_request_body(&mut self, request: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestBody(request.id));
     }
@@ -691,7 +690,7 @@ pub enum WebSocketNetworkEvent {
 #[derive(Debug, Deserialize, Serialize)]
 /// IPC channels to communicate with the script thread about network or DOM events.
 pub enum FetchChannels {
-    ResponseMsg(IpcSender<FetchResponseMsg>),
+    ResponseMsg(GenericCallback<FetchResponseMsg>),
     WebSocket {
         event_sender: IpcSender<WebSocketNetworkEvent>,
         action_receiver: CallbackSetter<WebSocketDomAction>,
@@ -706,7 +705,11 @@ pub enum CoreResourceMsg {
     Fetch(RequestBuilder, FetchChannels),
     Cancel(Vec<RequestId>),
     /// Initiate a fetch in response to processing a redirection
-    FetchRedirect(RequestBuilder, ResponseInit, IpcSender<FetchResponseMsg>),
+    FetchRedirect(
+        RequestBuilder,
+        ResponseInit,
+        GenericCallback<FetchResponseMsg>,
+    ),
     /// Store a cookie for a given originating URL.
     /// If a sender is provided, the caller will block until the cookie is stored.
     SetCookieForUrl(
@@ -851,22 +854,19 @@ pub struct FetchThread {
     receiver: Receiver<ToFetchThreadMessage>,
     /// An [`IpcSender`] that's sent with every fetch request and leads back to our
     /// router proxy.
-    to_fetch_sender: IpcSender<FetchResponseMsg>,
+    to_fetch_sender: GenericCallback<FetchResponseMsg>,
 }
 
 impl FetchThread {
     fn spawn() -> FetchThreadHandle {
         let (sender, receiver) = unbounded();
-        let (to_fetch_sender, from_fetch_sender) = ipc::channel().unwrap();
 
         let sender_clone = sender.clone();
-        ROUTER.add_typed_route(
-            from_fetch_sender,
-            Box::new(move |message| {
-                let message: FetchResponseMsg = message.unwrap();
-                let _ = sender_clone.send(ToFetchThreadMessage::FetchResponse(message));
-            }),
-        );
+        let to_fetch_sender = GenericCallback::new(move |message| {
+            let message: FetchResponseMsg = message.unwrap();
+            let _ = sender_clone.send(ToFetchThreadMessage::FetchResponse(message));
+        })
+        .expect("Couldn't create fetch callback");
         let join_handle = thread::Builder::new()
             .name("FetchThread".to_owned())
             .spawn(move || {
