@@ -20,7 +20,7 @@ pub(crate) struct FileSystem {
 }
 
 impl FileSystem {
-    pub(crate) fn new_inherited(name: USVString, root: &FileSystemDirectoryEntry) -> FileSystem {
+    fn new_inherited(name: USVString, root: &FileSystemDirectoryEntry) -> FileSystem {
         FileSystem {
             reflector_: Reflector::new(),
             name,

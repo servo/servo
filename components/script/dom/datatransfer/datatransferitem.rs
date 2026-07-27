@@ -160,17 +160,17 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         if !self.can_read() {
             return None;
         }
-
+        let global = self.global();
         // Step 3. Let item be the item in store’s drag data store item list that this represents.
         // Step 4. If item’s kind is not `File`, then return null and abort these steps.
-        let file = self.item_kind()?.as_file(cx, &self.global())?;
+        let file = self.item_kind()?.as_file(cx, &global)?;
 
         // Step 5: Return a new FileSystemEntry object representing the entry.
         let name = file.Name().to_string();
 
         let file_entry = FileSystemFileEntry::new(
             cx,
-            &self.global(),
+            &global,
             USVString::from(name.clone()),
             USVString::from(format!("/{}", name)),
             &file,
@@ -178,7 +178,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
 
         let root = FileSystemDirectoryEntry::new(
             cx,
-            &self.global(),
+            &global,
             USVString::default(),
             USVString::from(String::from("/")),
         );
@@ -187,7 +187,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
 
         let fs = FileSystem::new(
             cx,
-            &self.global(),
+            &global,
             USVString::from(String::from("filesystem")),
             &root,
         );
@@ -195,6 +195,6 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         root.set_filesystem(&fs);
         file_entry.set_filesystem(&fs);
 
-        Some(DomRoot::from_ref(file_entry.upcast::<FileSystemEntry>()))
+        Some(DomRoot::upcast::<FileSystemEntry>(file_entry))
     }
 }

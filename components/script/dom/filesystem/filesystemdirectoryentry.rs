@@ -30,7 +30,7 @@ pub(crate) struct FileSystemDirectoryEntry {
 }
 
 impl FileSystemDirectoryEntry {
-    pub(crate) fn new_inherited(name: USVString, full_path: USVString) -> FileSystemDirectoryEntry {
+    fn new_inherited(name: USVString, full_path: USVString) -> FileSystemDirectoryEntry {
         FileSystemDirectoryEntry {
             filesystementry: FileSystemEntry::new_inherited(name, full_path, false),
             children: DomRefCell::new(Vec::new()),

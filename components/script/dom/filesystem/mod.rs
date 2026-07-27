@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub(crate) use self::filesystem::*;
+#[allow(clippy::module_inception, reason = "The interface name is FileSystem")]
 pub(crate) mod filesystem;
 pub(crate) mod filesystemdirectoryentry;
 pub(crate) mod filesystemdirectoryreader;
