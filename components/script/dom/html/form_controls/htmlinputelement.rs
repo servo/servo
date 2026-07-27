@@ -2271,15 +2271,9 @@ impl VirtualMethods for HTMLInputElement {
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         // We make sure that when currently focused input element is removed, keyboard is hidden
-        let doc = self.owner_document();
-        if doc
-            .focus_handler()
-            .focused_area()
-            .element()
-            .is_some_and(|e| e == self.upcast::<Element>())
-        {
-            doc.embedder_controls().hide_embedder_control(self.upcast());
-        }
+        self.owner_document()
+            .embedder_controls()
+            .hide_embedder_control(self.upcast());
 
         let form_owner = self.form_owner();
         self.super_type().unwrap().unbind_from_tree(cx, context);

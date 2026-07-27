@@ -457,7 +457,7 @@ impl ServoAction {
             },
             ImeDismiss => {
                 servo.ime_dismissed();
-            }
+            },
             Vsync => {
                 servo.notify_vsync();
             },
@@ -1114,9 +1114,7 @@ impl Ime for ServoIme {
 
     fn keyboard_status_changed(&self, status: KeyboardStatus) {
         match status {
-            KeyboardStatus::Hidden => {
-                call(ServoAction::ImeDismiss).unwrap()
-            },
+            KeyboardStatus::Hidden => call(ServoAction::ImeDismiss).unwrap(),
             _ => (),
         }
     }
