@@ -19,7 +19,7 @@
 //! Measurements show the current reflector comparison is consistently
 //! faster than `std::ptr::eq`, which is counter-intuitive.
 //!
-//! For results, see https://github.com/servo/servo/wiki/DOM-%60PartialEq%60-benchmark
+//! For results, see <https://github.com/servo/servo/wiki/DOM-%60PartialEq%60-benchmark>
 
 #![cfg_attr(crown, feature(register_tool))]
 #![cfg_attr(crown, register_tool(crown))]
