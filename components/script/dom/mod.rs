@@ -262,6 +262,8 @@ pub(crate) mod fetch;
 pub(crate) use self::fetch::*;
 pub(crate) mod file;
 pub(crate) use self::file::*;
+pub(crate) mod filesystem;
+pub(crate) use self::filesystem::*;
 pub(crate) mod form;
 pub(crate) use self::form::*;
 pub(crate) mod fullscreen;
