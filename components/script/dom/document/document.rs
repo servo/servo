@@ -219,7 +219,7 @@ use crate::fetch::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
 use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
-use crate::script_runtime::get_size;
+use crate::script_runtime::compute_size;
 use crate::tasks::task::NonSendTaskBox;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::TaskSourceName;
@@ -3682,13 +3682,13 @@ impl Document {
         self.upcast::<Node>().child_elements_unrooted(no_gc).next()
     }
 
-    pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, _ops: &mut MallocSizeOfOps) {
+    pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
         let mut sizes = DocumentSizes::default();
 
         for node in self.upcast::<Node>().children() {
             let type_id = node.type_id();
-            #[expect(unsafe_code)]
-            let size = unsafe { get_size(node.jsobject()) };
+            // TODO(pylbrecht): record pointer
+            let size = compute_size(node.jsobject(), ops);
             match type_id {
                 NodeTypeId::Attr => sizes.attribute_nodes_size += size,
                 NodeTypeId::Element(_) => sizes.element_nodes_size += size,
