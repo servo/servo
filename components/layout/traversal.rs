@@ -4,14 +4,16 @@
 
 use std::sync::Arc;
 
+use bitflags::Flags;
 use layout_api::{
     AccessibilityDamage, DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement,
-    LayoutNode, NodeRenderingType,
+    LayoutNode,
 };
+use parking_lot::Mutex;
 use rustc_hash::FxHashMap;
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
-use style::dom::{NodeInfo, TElement, TNode};
+use style::dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
@@ -22,11 +24,18 @@ use crate::layout_root::LayoutRoot;
 
 pub struct RecalcStyle<'a> {
     context: &'a LayoutContext<'a>,
+    accessibility_damage: Option<Mutex<&'a mut FxHashMap<OpaqueNode, AccessibilityDamage>>>,
 }
 
 impl<'a> RecalcStyle<'a> {
-    pub(crate) fn new(context: &'a LayoutContext<'a>) -> Self {
-        RecalcStyle { context }
+    pub(crate) fn new(
+        context: &'a LayoutContext<'a>,
+        accessibility_damage: Option<&'a mut FxHashMap<OpaqueNode, AccessibilityDamage>>,
+    ) -> Self {
+        RecalcStyle {
+            context,
+            accessibility_damage: accessibility_damage.map(Mutex::new),
+        }
     }
 
     pub(crate) fn context(&self) -> &LayoutContext<'a> {
@@ -69,6 +78,20 @@ where
             &mut element_data,
             note_child,
         );
+
+        if had_style_data && let Some(accessibility_damage_map) = &self.accessibility_damage {
+            let mut accessibility_damage =
+                AccessibilityDamage::from_bits_retain(element_data.damage.bits() >> 4);
+            accessibility_damage.truncate();
+
+            if !accessibility_damage.is_empty() {
+                accessibility_damage_map
+                    .lock()
+                    .entry(node.opaque())
+                    .or_insert(AccessibilityDamage::empty())
+                    .insert(accessibility_damage);
+            }
+        }
     }
 
     #[inline]
@@ -93,7 +116,6 @@ pub(crate) fn compute_damage_and_rebuild_box_tree<'dom>(
     root_node: ServoLayoutNode<'dom>,
     damage_from_environment: LayoutDamage,
     layout_roots: &mut Vec<LayoutRoot<'dom>>,
-    accessibility_damage: Option<&mut FxHashMap<ServoLayoutNode<'dom>, AccessibilityDamage>>,
 ) -> LayoutDamage {
     // First process damage below the dirty root, returning the damage that
     // should be propagated upward into the clean part of the tree.
@@ -102,7 +124,6 @@ pub(crate) fn compute_damage_and_rebuild_box_tree<'dom>(
         dirty_root,
         damage_from_environment,
         layout_roots,
-        accessibility_damage,
     );
 
     // If there was no box tree at all at this point, a full box tree / fragment
@@ -182,7 +203,6 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
     node: ServoLayoutNode<'dom>,
     damage_from_parent: LayoutDamage,
     layout_roots: &mut Vec<LayoutRoot<'dom>>,
-    mut accessibility_damage: Option<&mut FxHashMap<ServoLayoutNode<'dom>, AccessibilityDamage>>,
 ) -> LayoutDamage {
     // Don't do any kind of damage propagation or box tree construction for non-Element
     // nodes, such as text and comments.
@@ -207,26 +227,9 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
     };
 
     if is_display_none {
-        if let Some(accessibility_damage) = accessibility_damage &&
-            !matches!(node.rendering_type(), NodeRenderingType::NotRendered)
-        {
-            accessibility_damage
-                .entry(node)
-                .or_insert(AccessibilityDamage::empty())
-                .insert(AccessibilityDamage::Box);
-        }
         node.unset_all_boxes();
         // TODO: accessibility damage?
         return element_damage | damage_from_parent;
-    } else {
-        if let Some(accessibility_damage) = accessibility_damage.as_deref_mut() &&
-            matches!(node.rendering_type(), NodeRenderingType::NotRendered)
-        {
-            accessibility_damage
-                .entry(node)
-                .or_insert(AccessibilityDamage::empty())
-                .insert(AccessibilityDamage::Box);
-        }
     }
 
     let mut damage_set = ElementDamageSet {
@@ -247,7 +250,6 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
         has_dirty_descendants,
         damage_for_children,
         layout_roots,
-        accessibility_damage,
     );
 
     // Apply the calculated damage to this element (perhaps triggering box tree layout),
@@ -317,7 +319,6 @@ impl<'a> ElementDamageSet<'a> {
         has_dirty_descendants: bool,
         damage_for_children: LayoutDamage,
         layout_roots: &mut Vec<LayoutRoot<'a>>,
-        mut accessibility_damage: Option<&mut FxHashMap<ServoLayoutNode<'a>, AccessibilityDamage>>,
     ) {
         // Propagate damage into children, but only if:
         //  1. There is a descendant that was dirty / possibly restyled.
@@ -336,7 +337,6 @@ impl<'a> ElementDamageSet<'a> {
                         child,
                         damage_for_children,
                         layout_roots,
-                        accessibility_damage.as_deref_mut(),
                     );
                 }
             }

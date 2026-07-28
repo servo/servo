@@ -933,7 +933,7 @@ impl Node {
                     .dirty(NodeDamage::ContentOrHeritage);
 
                 if damage == NodeDamage::Other {
-                    self.add_pending_accessibility_damage(AccessibilityDamage::Text);
+                    self.add_pending_accessibility_damage(AccessibilityDamage::Node);
                 }
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),

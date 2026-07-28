@@ -18,13 +18,29 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(initial.nodesUpdatedFromDom, 22, "nodesUpdatedFromDom");
-      assert_equals(initial.nodesUpdatedFromTree, 22, "nodesUpdatedFromTree");
-      assert_equals(initial.nodesInTreeUpdate, 22, "nodesInTreeUpdate");
+      assert_equals(initial.nodesUpdatedFromDom, 14, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 14, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 14, "nodesInTreeUpdate");
 
       document.querySelector("section").className = "subdued";
 
       let update = ServoTestUtils.forceAccessibilityUpdate();
+
+      // Updated nodes:
+      // <em> - hidden
+      assert_equals(update.nodesUpdatedFromDom, 1, "nodesUpdatedFromDom");
+
+      // <html>, <body>, <section>, <h1>, <em>
+      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
+
+      // Changed nodes:
+      // - <h1>, text changed
+      // - <em>, visibility changed
+      assert_equals(update.nodesInTreeUpdate, 2, "nodesInTreeUpdate");
+
+      document.querySelector("section").removeAttribute("class");
+
+      update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Updated nodes:
       // <em> - hidden

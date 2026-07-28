@@ -16,9 +16,9 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(initial.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
-      assert_equals(initial.nodesUpdatedFromTree, 23, "nodesUpdatedFromTree");
-      assert_equals(initial.nodesInTreeUpdate, 23, "nodesInTreeUpdate");
+      assert_equals(initial.nodesUpdatedFromDom, 18, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 18, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 18, "nodesInTreeUpdate");
 
       div1.moveBefore(h1, null);
       div2.appendChild(h2);
@@ -28,9 +28,7 @@
       // - div1 (child added)
       // - div2 (child added)
       // - <section> (children removed)
-      // - <h1> (box rebuilt due to move)
-      // - <h2> (box rebuilt due to move)
-      assert_equals(update.nodesUpdatedFromDom, 5, "nodesUpdatedFromDom");
+      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
 
       // Nodes checked for changes based on the tree:
       // - <html>
@@ -38,7 +36,7 @@
       // - <section>
       // - div1
       // - div2
-      assert_equals(update.nodesUpdatedFromTree, 7, "nodesUpdatedFromTree");
+      assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
 
       //  updated nodes:
       // - <section>, which had 2 children removed

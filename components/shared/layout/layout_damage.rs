@@ -8,7 +8,7 @@ use style::selector_parser::RestyleDamage;
 bitflags! {
     /// Individual layout actions that may be necessary after restyling. This is an extension
     /// of `RestyleDamage` from stylo, which only uses the 4 lower bits.
-    #[derive(Clone, Copy, Debug,Default, Eq, PartialEq)]
+    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
     pub struct LayoutDamage: u16 {
         // Layout Modes
         //
@@ -31,10 +31,10 @@ bitflags! {
         /// Rebuild this box and all of its ancestors. Do not rebuild any children. This
         /// is used when a box's content (such as text content) changes or a descendant
         /// has box damage ([`Self::BOX_DAMAGE`]).
-        const DescendantHasBoxDamage = 0b0011_1111_1111_0000;
+        const DescendantHasBoxDamage = 0b0011_0000_0000_0000;
         /// Rebuild this box, all of its ancestors and all of its descendants. This is the
         /// most a box can be damaged.
-        const BoxDamage = 0b1111_1111_1111_0000;
+        const BoxDamage = 0b1111_0000_0000_0000;
     }
 }
 
@@ -59,11 +59,10 @@ impl From<LayoutDamage> for RestyleDamage {
 bitflags! {
     #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
     pub struct AccessibilityDamage: u16 {
-        const Text = 0b0000_0001;
-        const Children = 0b0000_0010;
-        const Subtree = 0b0000_0100;
-        const Box = 0b0000_1000;
-        const Rebuild = 0b1111_1111;
+        const Node = 0b0001;
+        const Children = 0b0010;
+        const Box = 0b0100;
+        const Rebuild = 0b1111;
     }
 }
 malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);

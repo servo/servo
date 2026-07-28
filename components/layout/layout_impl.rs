@@ -22,10 +22,11 @@ use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locid::subtags::Language;
 use layout_api::{
     AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode,
-    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
-    NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
-    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
+    IFrameSizes, Layout, LayoutAccessibilityDamage, LayoutConfig, LayoutDamage, LayoutElement,
+    LayoutFactory, LayoutNode, NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg,
+    ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult,
+    ReflowStatistics, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    with_layout_state,
 };
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -38,7 +39,7 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::{
     ServoDangerousStyleDocument, ServoDangerousStyleElement, ServoLayoutElement, ServoLayoutNode,
 };
@@ -753,6 +754,23 @@ impl Layout for LayoutThread {
     fn set_needs_accessibility_update(&self) {
         self.needs_accessibility_update.set(true);
     }
+
+    fn update_accessibility_tree(
+        &self,
+        document: TrustedNodeAddress,
+        rooted_nodes: Option<FxHashSet<OpaqueNode>>,
+        accessibility_damage: Vec<(TrustedNodeAddress, AccessibilityDamage)>,
+        reflow_statistics: &mut ReflowStatistics,
+    ) {
+        with_layout_state(|| {
+            self.update_accessibility_tree(
+                document,
+                rooted_nodes,
+                accessibility_damage,
+                reflow_statistics,
+            )
+        })
+    }
 }
 
 impl LayoutThread {
@@ -920,31 +938,38 @@ impl LayoutThread {
         }
     }
 
-    fn handle_accessibility_tree_update(
+    fn update_accessibility_tree(
         &self,
-        root_element: &ServoLayoutNode,
-        accessibility_damage: Option<FxHashMap<ServoLayoutNode, AccessibilityDamage>>,
-        reflow_request: &mut ReflowRequest,
+        document: TrustedNodeAddress,
+        rooted_nodes: Option<FxHashSet<OpaqueNode>>,
+        accessibility_damage: Vec<(TrustedNodeAddress, AccessibilityDamage)>,
         reflow_statistics: &mut ReflowStatistics,
-    ) -> bool {
-        let Some(accessibility_damage) = accessibility_damage else {
-            return false;
-        };
+    ) {
         if !self.needs_accessibility_update() && accessibility_damage.is_empty() {
-            return false;
+            return;
         }
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
-            return false;
+            return;
         };
 
         let accessibility_tree = &mut *accessibility_tree;
-        let rooted_nodes =
-            std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
+
+        let document = unsafe { ServoLayoutNode::new(&document) };
+        let document = unsafe { document.dangerous_style_node() }
+            .as_document()
+            .unwrap();
+        let Some(root_element) = document.root_element() else {
+            return;
+        };
+        let accessibility_damage = accessibility_damage
+            .into_iter()
+            .map(|(address, damage)| unsafe { (ServoLayoutNode::new(&address), damage) })
+            .collect();
 
         let (tree_update, counters) = accessibility_tree.update_tree(
-            root_element,
-            accessibility_damage.into_iter().collect(),
+            &root_element.as_node(),
+            accessibility_damage,
             rooted_nodes,
         );
         if let Some(tree_update) = tree_update {
@@ -965,7 +990,6 @@ impl LayoutThread {
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
         self.needs_accessibility_update.set(false);
-        true
     }
 
     /// The high-level routine that performs layout.
@@ -1010,23 +1034,8 @@ impl LayoutThread {
         });
         let mut reflow_statistics = Default::default();
 
-        let mut accessibility_damage = None;
-        if let Some(damage) = std::mem::take(&mut reflow_request.accessibility_damage) {
-            accessibility_damage = Some(
-                damage
-                    .into_iter()
-                    .map(|(address, damage)| unsafe { (ServoLayoutNode::new(&address), damage) })
-                    .collect(),
-            );
-        };
-        let (mut reflow_phases_run, iframe_sizes, changed_web_fonts) = self
-            .restyle_and_build_trees(
-                &mut reflow_request,
-                document,
-                root_element,
-                &image_resolver,
-                accessibility_damage.as_mut(),
-            );
+        let (mut reflow_phases_run, iframe_sizes, changed_web_fonts, accessibility_damage) = self
+            .restyle_and_build_trees(&mut reflow_request, document, root_element, &image_resolver);
         if self.build_stacking_context_tree_for_reflow(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
@@ -1035,14 +1044,6 @@ impl LayoutThread {
         }
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
-        }
-        if self.handle_accessibility_tree_update(
-            &root_element.as_node(),
-            accessibility_damage,
-            &mut reflow_request,
-            &mut reflow_statistics,
-        ) {
-            reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
 
         if self.debug.is_enabled(DiagnosticsLoggingOption::FlowTree) &&
@@ -1082,6 +1083,7 @@ impl LayoutThread {
             changed_web_fonts,
             lcp_candidate,
             lcp_node_address,
+            accessibility_damage,
         })
     }
 
@@ -1153,14 +1155,18 @@ impl LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn restyle_and_build_trees<'dom>(
+    fn restyle_and_build_trees(
         &mut self,
         reflow_request: &mut ReflowRequest,
-        document: ServoDangerousStyleDocument<'dom>,
-        root_element: ServoLayoutElement<'dom>,
+        document: ServoDangerousStyleDocument<'_>,
+        root_element: ServoLayoutElement<'_>,
         image_resolver: &Arc<ImageResolver>,
-        accessibility_damage: Option<&mut FxHashMap<ServoLayoutNode<'dom>, AccessibilityDamage>>,
-    ) -> (ReflowPhasesRun, IFrameSizes, WebFontSetDifference) {
+    ) -> (
+        ReflowPhasesRun,
+        IFrameSizes,
+        WebFontSetDifference,
+        Option<LayoutAccessibilityDamage>,
+    ) {
         let mut snapshot_map = SnapshotMap::new();
         let _snapshot_setter = match reflow_request.restyle.as_mut() {
             Some(restyle) => SnapshotSetter::new(restyle, &mut snapshot_map),
@@ -1236,6 +1242,10 @@ impl LayoutThread {
 
         let recalc_style_traversal;
         let dirty_root;
+        let mut accessibility_damage = match self.accessibility_active() {
+            true => Some(FxHashMap::default()),
+            false => None,
+        };
         {
             let _span = profile_traits::trace_span!("Styling").entered();
 
@@ -1246,7 +1256,8 @@ impl LayoutThread {
                     .dangerous_style_element()
             };
 
-            recalc_style_traversal = RecalcStyle::new(&layout_context);
+            recalc_style_traversal =
+                RecalcStyle::new(&layout_context, accessibility_damage.as_mut());
             let token = {
                 let shared = DomTraversal::<ServoDangerousStyleElement>::shared_context(
                     &recalc_style_traversal,
@@ -1273,7 +1284,7 @@ impl LayoutThread {
         let mut layout_roots = Vec::new();
         let damage = {
             let box_tree = &mut *box_tree;
-            let compute_damage_and_build_box_tree = || {
+            let mut compute_damage_and_build_box_tree = || {
                 compute_damage_and_rebuild_box_tree(
                     box_tree,
                     &layout_context,
@@ -1281,7 +1292,6 @@ impl LayoutThread {
                     root_node,
                     damage_from_environment,
                     &mut layout_roots,
-                    accessibility_damage,
                 )
             };
 
@@ -1316,6 +1326,7 @@ impl LayoutThread {
                     ReflowPhasesRun::empty(),
                     IFrameSizes::default(),
                     stylist_update.changed_web_fonts,
+                    accessibility_damage.map(|map| map.into_iter().collect()),
                 );
             }
 
@@ -1328,6 +1339,7 @@ impl LayoutThread {
                     ReflowPhasesRun::RanLayout,
                     std::mem::take(&mut *layout_context.iframe_sizes.lock()),
                     stylist_update.changed_web_fonts,
+                    accessibility_damage.map(|map| map.into_iter().collect()),
                 );
             }
 
@@ -1379,6 +1391,7 @@ impl LayoutThread {
             ReflowPhasesRun::RanLayout,
             std::mem::take(&mut *iframe_sizes),
             stylist_update.changed_web_fonts,
+            accessibility_damage.map(|map| map.into_iter().collect()),
         )
     }
 

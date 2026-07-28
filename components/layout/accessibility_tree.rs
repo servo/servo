@@ -208,6 +208,8 @@ impl AccessibilityTree {
     ) {
         let (root_id, root_node) = self.get_or_create_node(root_dom_node, update);
         if update.is_new(&root_id) {
+            // We're going to rebuild the whole tree, so ignore any incoming damage.
+            damage_from_dom.clear();
             damage_from_dom.push_front((*root_dom_node, AccessibilityDamage::Rebuild));
         }
         self.root_node = Some(root_node);
@@ -614,7 +616,7 @@ impl AccessibilityNode {
             self.dirty_state -= DirtyState::HasDamage;
         }
 
-        if self.dirty_state.descendant_has_damage() {
+        if !self.is_hidden() && self.dirty_state.descendant_has_damage() {
             for child_node in self.children() {
                 let strong_child_node = child_node.clone();
                 let mut child_node = child_node.borrow_mut();
@@ -679,7 +681,12 @@ impl AccessibilityNode {
         local_damage.insert(self.update_properties_from_dom_node(dom_node, dom_damage));
         local_damage.insert(
             self.update_children_and_populate_new_descendants_from_dom_node(
-                ref_self, dom_node, dom_damage, tree, update,
+                ref_self,
+                dom_node,
+                dom_damage,
+                local_damage,
+                tree,
+                update,
             ),
         );
 
@@ -693,10 +700,14 @@ impl AccessibilityNode {
         ref_self: ArcRefCell<AccessibilityNode>,
         dom_node: &ServoLayoutNode<'dom>,
         dom_damage: AccessibilityDamage,
+        local_damage: LocalAccessibilityDamage,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
-        if !dom_damage.contains(AccessibilityDamage::Children) {
+        let children_damaged = dom_damage.contains(AccessibilityDamage::Children);
+        let was_hidden =
+            local_damage.contains(LocalAccessibilityDamage::VisibilityChanged) && !self.is_hidden();
+        if self.is_hidden() || (!children_damaged && !was_hidden) {
             return LocalAccessibilityDamage::empty();
         }
 
@@ -778,7 +789,7 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        if dom_damage.contains(AccessibilityDamage::Text) &&
+        if dom_damage.contains(AccessibilityDamage::Node) &&
             dom_node.type_id() == Some(LayoutNodeType::Text)
         {
             let text_content = dom_node.text_content();
@@ -787,10 +798,12 @@ impl AccessibilityNode {
             local_damage.insert(self.set_value(&text_content));
         }
 
-        if matches!(dom_node.rendering_type(), NodeRenderingType::NotRendered) {
-            local_damage.insert(self.set_hidden());
-        } else {
-            local_damage.insert(self.clear_hidden());
+        if dom_damage.contains(AccessibilityDamage::Box) {
+            if matches!(dom_node.rendering_type(), NodeRenderingType::NotRendered) {
+                local_damage.insert(self.set_hidden());
+            } else {
+                local_damage.insert(self.clear_hidden());
+            }
         }
 
         // TODO: We may need to track role from DOM node and role from ARIA separately since
