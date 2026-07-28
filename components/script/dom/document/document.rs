@@ -215,7 +215,7 @@ use crate::image_animation::ImageAnimationManager;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::script_runtime::get_size;
+use crate::script_runtime::compute_size;
 use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -3601,13 +3601,13 @@ impl Document {
         self.upcast::<Node>().child_elements_unrooted(no_gc).next()
     }
 
-    pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, _ops: &mut MallocSizeOfOps) {
+    pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
         let mut sizes = DocumentSizes::default();
 
         for node in self.upcast::<Node>().children() {
             let type_id = node.type_id();
-            #[expect(unsafe_code)]
-            let size = unsafe { get_size(node.jsobject()) };
+            // TODO(pylbrecht): record pointer
+            let size = compute_size(node.jsobject(), ops);
             match type_id {
                 NodeTypeId::Attr => sizes.attribute_nodes_size += size,
                 NodeTypeId::Element(_) => sizes.element_nodes_size += size,

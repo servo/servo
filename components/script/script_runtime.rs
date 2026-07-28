@@ -1236,6 +1236,14 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
 
 #[expect(unsafe_code)]
+pub(crate) fn compute_size(obj: *mut JSObject, ops: &mut MallocSizeOfOps) -> usize {
+    MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
+    let size = unsafe { get_size(obj) };
+    MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
+    size
+}
+
+#[expect(unsafe_code)]
 pub(crate) fn get_reports(
     cx: &mut JSContext,
     path_seg: String,
