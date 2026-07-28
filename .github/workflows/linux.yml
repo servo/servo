@@ -119,8 +119,10 @@ jobs:
       # Before updating the GH action runner image for the nightly job, ensure
       # that the system has a glibc version that is compatible with the one
       # used by the wpt.fyi runners.
-      github-runner-label: ubuntu-22.04
       uploaded-artifact-name: ${{ inputs.profile }}-binary-linux
+      github-runner-label: ubuntu-22.04
+      self-hosted-image-name: servo-ubuntu2204
+      force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
       profile: ${{ inputs.profile }}
       build-args: ${{ inputs.build-args }}
       wpt: ${{ inputs.wpt }}
