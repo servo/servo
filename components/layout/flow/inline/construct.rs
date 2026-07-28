@@ -285,14 +285,16 @@ impl InlineFormattingContextBuilder {
     /// a single box tree items may be produced for a single inline box when that inline
     /// box is split around a block-level element.
     pub(crate) fn end_inline_box(&mut self) {
-        self.shared_inline_styles_stack.pop();
-        self.inline_items.push(InlineItem::EndInlineBox);
         let identifier = self
             .inline_box_stack
             .pop()
             .expect("Ended non-existent inline box");
-        self.inline_boxes.end_inline_box(identifier);
         let inline_level_box = self.inline_boxes.get(&identifier);
+
+        self.shared_inline_styles_stack.pop();
+        self.inline_items
+            .push(InlineItem::EndInlineBox(inline_level_box.clone()));
+        self.inline_boxes.end_inline_box(identifier);
         let bidi_control_chars = inline_level_box.borrow().base.style.bidi_control_chars();
         self.push_control_character_string(bidi_control_chars.1);
     }
