@@ -117,6 +117,8 @@ jobs:
     with:
       arch: arm64
       github-runner-label: ubuntu-22.04-arm
+      self-hosted-image-name: "" # We don't have any self-hosted arm64 runners.
+      force-github-hosted-runner: true
       uploaded-artifact-name: ${{ inputs.profile }}-binary-linux-arm64
       profile: ${{ inputs.profile }}
       build-args: ${{ inputs.build-args }}
