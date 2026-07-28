@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>button.action</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#concept-fs-action">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<form id="form1">
+	<button id="submit-button1" type="submit" value="Submit" formaction="a.html">
+	</button>
+</form>
+<form id="form2" action="a.html">
+	<button id="submit-button2" type="submit" value="Submit" formaction="">
+	</button>
+</form>
+<form id="form3" action="a.html">
+	<button id="submit-button3" type="submit" value="Submit">
+	</button>
+</form>
+<form id="form4">
+	<button id="submit-button4" type="submit" value="Submit">
+	</button>
+</form>
+<form id="form5" action="a.html">
+</form>
+<form id="form6">
+	<button id="submit-button5" type="submit" value="Submit" form="form5">
+	</button>
+</form>
+
+<script>
+"use strict";
+
+async_test(t => {
+const frame = document.createElement("iframe");
+frame.name = "form-test-frame1";
+document.body.appendChild(frame);
+
+document.getElementById("form1").target = frame.name;
+
+  frame.addEventListener("load", t.step_func_done(() => {
+    const expected = new URL(
+      "a.html",
+      location.href
+    );
+
+    assert_equals(
+      new URL(frame.contentWindow.location.href).pathname,
+      expected.pathname
+    );
+  }));
+
+  document.getElementById("submit-button1").click();
+}, "submit button action should return its formaction if it exists");
+
+async_test(t => {
+const frame = document.createElement("iframe");
+frame.name = "form-test-frame2";
+document.body.appendChild(frame);
+
+document.getElementById("form2").target = frame.name;
+
+  frame.addEventListener("load", t.step_func_done(() => {
+    const expected = new URL(document.URL);
+
+    assert_equals(
+      new URL(frame.contentWindow.location.href).pathname,
+      expected.pathname
+    );
+  }));
+
+  document.getElementById("submit-button2").click();
+}, "A submit button with an empty string as its formaction should navigate to the document's URL (= the document's base URL in this case)");
+
+async_test(t => {
+const frame = document.createElement("iframe");
+frame.name = "form-test-frame3";
+document.body.appendChild(frame);
+
+document.getElementById("form3").target = frame.name;
+
+  frame.addEventListener("load", t.step_func_done(() => {
+    const expected = new URL(
+      "a.html",
+      location.href
+    );
+
+    assert_equals(
+      new URL(frame.contentWindow.location.href).pathname,
+      expected.pathname
+    );
+  }));
+
+  document.getElementById("submit-button3").click();
+}, "submit button should return form owner action if it has no formaction attribute");
+
+async_test(t => {
+const frame = document.createElement("iframe");
+frame.name = "form-test-frame4";
+document.body.appendChild(frame);
+
+document.getElementById("form4").target = frame.name;
+
+  frame.addEventListener("load", t.step_func_done(() => {
+    const expected = new URL(document.URL);
+
+    assert_equals(
+      new URL(frame.contentWindow.location.href).pathname,
+      expected.pathname
+    );
+  }));
+
+  document.getElementById("submit-button4").click();
+}, "A submit button with no formaction attribute and with a form owner with a missing action attribute should navigate to the document's URL (= the document's base URL in this case)");
+
+async_test(t => {
+const frame = document.createElement("iframe");
+frame.name = "form-test-frame5";
+document.body.appendChild(frame);
+
+document.getElementById("form5").target = frame.name;
+
+  frame.addEventListener("load", t.step_func_done(() => {
+    const expected = new URL(
+      "a.html",
+      location.href
+    );
+
+    assert_equals(
+      new URL(frame.contentWindow.location.href).pathname,
+      expected.pathname
+    );
+  }));
+
+  document.getElementById("submit-button5").click();
+}, "A submit button with its form owner specified will return the action of its form owner, and not that of the nearest containing form");
+
+</script>

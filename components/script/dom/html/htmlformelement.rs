@@ -1580,24 +1580,28 @@ impl FormSubmitterElement<'_> {
         match *self {
             FormSubmitterElement::Form(form) => form.Action(),
             FormSubmitterElement::Input(input_element) => {
-                input_element
-                    .form_owner()
-                    .map(|form| form.Action())
-                    .unwrap_or_default()
+                match input_element
+                    .to_element()
+                    .get_nullable_string_attribute(&local_name!("formaction"))
+                {
+                    Some(action) => action,
+                    None => input_element
+                        .form_owner()
+                        .map(|form| form.Action())
+                        .unwrap_or_default(),
+                }
             },
             FormSubmitterElement::Button(button_element) => {
-                if button_element.is_submit_button() {
-                    let action = button_element
-                        .to_element()
-                        .get_string_attribute(&local_name!("formaction"));
-                    if !action.is_empty() {
-                        return action;
-                    }
+                match button_element
+                    .to_element()
+                    .get_nullable_string_attribute(&local_name!("formaction"))
+                {
+                    Some(action) => action,
+                    None => button_element
+                        .form_owner()
+                        .map(|form| form.Action())
+                        .unwrap_or_default(),
                 }
-                button_element
-                    .form_owner()
-                    .map(|form| form.Action())
-                    .unwrap_or_default()
             },
         }
     }
