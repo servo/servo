@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
 
@@ -47,6 +47,34 @@ pub fn is_cjk(codepoint: char) -> bool {
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Tertiary_Ideographic_Plane
     unicode_plane(codepoint) == 2 || unicode_plane(codepoint) == 3
+}
+
+/// Equivalent to either `Range`, `RangeTo`, `RangeFrom`, or `RangeFull`
+#[derive(Clone, Copy)]
+pub struct RangeAny<T> {
+    /// `None` means zero
+    pub start: Option<T>,
+    /// `None` means the full available length
+    pub end: Option<T>,
+}
+
+impl<T> RangeAny<T> {
+    pub fn map<U>(self, f: impl Fn(T) -> U + Copy) -> RangeAny<U> {
+        let Self { start, end } = self;
+        RangeAny {
+            start: start.map(f),
+            end: end.map(f),
+        }
+    }
+}
+
+impl<T> From<Range<T>> for RangeAny<T> {
+    fn from(value: Range<T>) -> Self {
+        Self {
+            start: Some(value.start),
+            end: Some(value.end),
+        }
+    }
 }
 
 macro_rules! unicode_length_type {
