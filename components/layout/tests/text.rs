@@ -9,13 +9,15 @@ mod text {
     #[test]
     fn test_collapse_whitespace() {
         let collapse = |input: &str, white_space_collapse, trim_beginning_white_space| {
-            WhitespaceCollapse::new(
+            let mut string = String::new();
+            for iteration in WhitespaceCollapse::new(
                 input.chars(),
                 white_space_collapse,
                 trim_beginning_white_space,
-            )
-            .filter_map(|iteration| iteration.character)
-            .collect::<String>()
+            ) {
+                iteration.push_chars_to(&mut string);
+            }
+            string
         };
 
         let output = collapse("H ", WhiteSpaceCollapse::Collapse, false);

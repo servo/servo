@@ -1130,14 +1130,15 @@ fn rendered_text_collection_steps(
                 // rules are slightly modified: collapsible spaces at the end of lines are always
                 // collapsed, but they are only removed if the line is the last line of the block,
                 // or it ends with a br element. Soft hyphens should be preserved.
-                let mut transformed_text: String = TextTransformationIterator::new(
+                let mut transformed_text = String::with_capacity(text_content.len());
+                for iteration in TextTransformationIterator::new(
                     &text_content,
                     style,
                     trim_leading_white_space,
                     on_word_boundary,
-                )
-                .filter_map(|text_step| text_step.character)
-                .collect();
+                ) {
+                    iteration.push_chars_to(&mut transformed_text);
+                }
 
                 let is_preformatted_element =
                     white_space_collapse == WhiteSpaceCollapseValue::Preserve;
