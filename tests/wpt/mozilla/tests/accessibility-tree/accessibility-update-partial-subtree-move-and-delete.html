@@ -31,11 +31,10 @@
       let update = ServoTestUtils.forceAccessibilityUpdate();
 
       // Updated nodes:
-      // - div1 (div2 removed - redundant update, since div1 is removed!)
       // - <section> (div1 removed)
       // - div2 (<p> and <h1> removed)
       // - div3 (new children)
-      assert_equals(update.nodesUpdatedFromDom, 4, "nodesUpdatedFromDom");
+      assert_equals(update.nodesUpdatedFromDom, 3, "nodesUpdatedFromDom");
 
       // <html>, <body>, <section>, div3, div2
       assert_equals(update.nodesUpdatedFromTree, 5, "nodesUpdatedFromTree");
