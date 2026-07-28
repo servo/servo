@@ -246,34 +246,42 @@ impl AccessibilityTree {
     /// - return the lowest common ancestor node of all the damaged nodes.
     fn mark_nodes_and_ancestors_dirty(
         &mut self,
-        node_ids: impl Iterator<Item = NodeId>,
+        mut dirty_node_ids: impl Iterator<Item = NodeId>,
     ) -> Option<ArcRefCell<AccessibilityNode>> {
         // An ordered list of common ancestors for the nodes seen so far, from shallowest to
         // deepest. At the end of the loop, the lowest common ancestor is the last node in this vec.
         let mut common_ancestors: Vec<NodeId> = Vec::new();
 
-        for node_id in node_ids {
-            let node = self.assert_node_for_id(&node_id);
-            let mut node = node.borrow_mut();
-            node.dirty_state |= DirtyState::HasDamage;
+        {
+            // Initialize the list of potential common ancestors.
+            let first_node = self.assert_node_for_id(&dirty_node_ids.next()?);
+            let mut first_node = first_node.borrow_mut();
+            first_node.dirty_state |= DirtyState::HasDamage;
+            common_ancestors.push(first_node.id);
+            common_ancestors.extend(first_node.ancestors().map(|ancestor| {
+                let mut ancestor = ancestor.borrow_mut();
+                ancestor.dirty_state |= DirtyState::DescendantHasDamage;
+                ancestor.id
+            }));
+            common_ancestors.reverse();
+        }
 
+        let mut truncate_ancestors = |node: &AccessibilityNode| -> bool {
             if node.dirty_state.descendant_has_damage() {
                 if let Some(pos) = common_ancestors.iter().position(|&id| id == node.id) {
                     common_ancestors.truncate(pos + 1);
                 }
-                continue;
+                return true;
             }
+            false
+        };
 
-            if common_ancestors.is_empty() {
-                // Initialize the list of potential common ancestors.
-                common_ancestors.push(node.id);
-                common_ancestors.extend(node.ancestors().map(|ancestor| {
-                    let mut ancestor = ancestor.borrow_mut();
-                    ancestor.dirty_state |= DirtyState::DescendantHasDamage;
-                    ancestor.id
-                }));
+        for node_id in dirty_node_ids {
+            let node = self.assert_node_for_id(&node_id);
+            let mut node = node.borrow_mut();
+            node.dirty_state |= DirtyState::HasDamage;
 
-                common_ancestors.reverse();
+            if truncate_ancestors(&node) {
                 continue;
             }
 
@@ -282,11 +290,7 @@ impl AccessibilityTree {
 
                 // If we find an ancestor we've already seen, discard any potential ancestors deeper
                 // than this one, and go on to the next dirty node.
-                if ancestor.dirty_state.descendant_has_damage() {
-                    if let Some(pos) = common_ancestors.iter().position(|&id| id == ancestor.id) {
-                        common_ancestors.truncate(pos + 1);
-                    }
-
+                if truncate_ancestors(&ancestor) {
                     break;
                 }
 
