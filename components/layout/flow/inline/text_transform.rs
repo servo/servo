@@ -351,6 +351,10 @@ pub(crate) fn capitalization_iterator(
             bounds.next();
         }
 
+        // TODO: currently we titlecase the first `char` of each word,
+        // instead it should be the first typographic letter unit:
+        // https://drafts.csswg.org/css-text-4/#typographic-letter-unit
+        // WPT /css/css-text/text-transform/text-transform-capitalize-026.html
         if at_word_start &&
             let CharacterTransformIteration::OneToOne(_) = iteration &&
             (current_byte_index != 0 || allow_word_at_start)
