@@ -11,7 +11,6 @@
 //! IFC text and vice-versa.
 
 use std::cmp::Ordering;
-use std::str::Chars;
 
 use icu_segmenter::WordSegmenter;
 use itertools::Either;
@@ -51,14 +50,18 @@ impl<'a> TextTransformationIterator<'a> {
         trim_leading_white_space: bool,
         on_word_boundary: bool,
     ) -> Self {
+        let text_security = style.clone__webkit_text_security();
+        let chars = text
+            .chars()
+            .map(move |character| text_security_map_character(text_security, character));
         let white_space_collapse = style.clone_white_space_collapse();
         let iterator =
-            WhitespaceCollapse::new(text.chars(), white_space_collapse, trim_leading_white_space);
+            WhitespaceCollapse::new(chars, white_space_collapse, trim_leading_white_space);
 
         // TODO: Not all text transforms are about case, this logic should stop ignoring
         // TextTransform::FULL_WIDTH and TextTransform::FULL_SIZE_KANA.
         let text_transform = style.clone_text_transform();
-        let mut iterator = match text_transform.case() {
+        let iterator = match text_transform.case() {
             TextTransformCase::None => {
                 Box::new(iterator) as Box<dyn Iterator<Item = CharacterTransformIteration>>
             },
@@ -82,10 +85,6 @@ impl<'a> TextTransformationIterator<'a> {
             // iterator = Box::new(full_size_kana_iterator(iterator));
         }
 
-        let text_security = style.clone__webkit_text_security();
-        if text_security != WebKitTextSecurity::None {
-            iterator = Box::new(TextSecurityTransform::new(iterator, text_security));
-        }
         Self(iterator)
     }
 }
@@ -105,13 +104,6 @@ impl CharacterTransformIteration {
         }
     }
 
-    fn with_character(self, character: char) -> Self {
-        Self {
-            character: Some(character),
-            ..self
-        }
-    }
-
     /// `character_iter` must be non-empty
     fn from_char_iter(
         mut consumed_character_count: usize,
@@ -127,8 +119,8 @@ impl CharacterTransformIteration {
     }
 }
 
-pub struct WhitespaceCollapse<'a> {
-    input_iterator: Chars<'a>,
+pub struct WhitespaceCollapse<InputIterator> {
+    input_iterator: InputIterator,
     white_space_collapse: WhiteSpaceCollapse,
 
     /// Whether or not we are in the process of collapse leading white space. This is true
@@ -147,9 +139,9 @@ pub struct WhitespaceCollapse<'a> {
     character_pending_to_return: Option<char>,
 }
 
-impl<'a> WhitespaceCollapse<'a> {
+impl<InputIterator: Iterator<Item = char>> WhitespaceCollapse<InputIterator> {
     pub fn new(
-        input_iterator: Chars<'a>,
+        input_iterator: InputIterator,
         white_space_collapse: WhiteSpaceCollapse,
         should_trim_leading_white_space: bool,
     ) -> Self {
@@ -184,7 +176,7 @@ impl<'a> WhitespaceCollapse<'a> {
     }
 }
 
-impl Iterator for WhitespaceCollapse<'_> {
+impl<InputIterator: Iterator<Item = char>> Iterator for WhitespaceCollapse<InputIterator> {
     type Item = CharacterTransformIteration;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -354,53 +346,29 @@ pub(crate) fn capitalization_iterator(
     output.into_iter()
 }
 
-pub struct TextSecurityTransform<InputIterator> {
-    /// The input character iterator.
-    iterator: InputIterator,
-    /// The `-webkit-text-security` value to use.
-    text_security: WebKitTextSecurity,
-}
-
-impl<InputIterator> TextSecurityTransform<InputIterator> {
-    pub fn new(iterator: InputIterator, text_security: WebKitTextSecurity) -> Self {
-        Self {
-            iterator,
-            text_security,
-        }
-    }
-}
-
-impl<InputIterator> Iterator for TextSecurityTransform<InputIterator>
-where
-    InputIterator: Iterator<Item = CharacterTransformIteration>,
-{
-    type Item = CharacterTransformIteration;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // The behavior of `-webkit-text-security` isn't specified, so we have some
-        // flexibility in the implementation. We just need to maintain a rough
-        // compatibility with other browsers.
-        let text_step = self.iterator.next()?;
-        let Some(character) = text_step.character else {
-            return Some(text_step);
-        };
-
-        let mapped_character = match character {
+// The behavior of `-webkit-text-security` isn't specified, so we have some
+// flexibility in the implementation. We just need to maintain a rough
+// compatibility with other browsers.
+fn text_security_map_character(mode: WebKitTextSecurity, character: char) -> char {
+    if let WebKitTextSecurity::None = mode {
+        character
+    } else {
+        // TODO: when MSRV is 1.95+
+        // std::hint::cold_path();
+        match character {
             // This is not ideal, but zero width space is used for some special reasons in
             // `<input>` fields, so these remain untransformed, otherwise they would show up
             // in empty text fields.
             '\u{200B}' => '\u{200B}',
             // Newlines are preserved, so that `<br>` keeps working as expected.
             '\n' => '\n',
-            character => match self.text_security {
-                WebKitTextSecurity::None => character,
+            _ => match mode {
+                WebKitTextSecurity::None => character, // unreachable
                 WebKitTextSecurity::Circle => '○',
                 WebKitTextSecurity::Disc => '●',
                 WebKitTextSecurity::Square => '■',
             },
-        };
-
-        Some(text_step.with_character(mapped_character))
+        }
     }
 }
 
