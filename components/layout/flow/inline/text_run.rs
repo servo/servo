@@ -62,10 +62,30 @@ enum SegmentStartSoftWrapPolicy {
 /// A data structure which contains information used when shaping a [`TextRunSegment`].
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub(crate) struct FontAndScriptInfo {
-    /// The font used when shaping a [`TextRunSegment`].
-    pub font: FontRef,
     /// The script used when shaping a [`TextRunSegment`].
     pub script: Script,
+    /// The rest of the font information which is never modified.
+    #[conditional_malloc_size_of]
+    pub font_info: Arc<FontInfo>,
+}
+
+impl FontAndScriptInfo {
+    /// Creates a minimal [`FontAndScriptInfo`] for a single font, with generic language settings
+    /// and the default shaping configuration. This is only used to generate placeholders for
+    /// text carets on otherwise empty lines.
+    pub(crate) fn simple_for_font(font: FontRef) -> Self {
+        Self {
+            script: Script::Common,
+            font_info: Arc::new(FontInfo::simple_for_font(font)),
+        }
+    }
+}
+
+/// A data structure which contains information used when shaping a [`TextRunSegment`].
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+pub(crate) struct FontInfo {
+    /// The font used when shaping a [`TextRunSegment`].
+    pub font: FontRef,
     /// The BiDi [`Level`] used when shaping a [`TextRunSegment`].
     pub bidi_level: Level,
     /// The [`Language`] used when shaping a [`TextRunSegment`].
@@ -97,14 +117,10 @@ pub(crate) struct FontAndScriptInfo {
     pub alternates: ResolvedFontVariantAlternates,
 }
 
-impl FontAndScriptInfo {
-    /// Creates a minimal [`FontAndScriptInfo`] for a single font, with generic language settings
-    /// and the default shaping configuration. This is only used to generate placeholders for
-    /// text carets on otherwise empty lines.
-    pub(crate) fn simple_for_font(font: FontRef) -> Self {
+impl FontInfo {
+    fn simple_for_font(font: FontRef) -> Self {
         Self {
             font,
-            script: Script::Common,
             bidi_level: Level::ltr(),
             language: Language::UND,
             letter_spacing: None,
@@ -123,9 +139,9 @@ impl FontAndScriptInfo {
 
 impl From<&FontAndScriptInfo> for ShapingOptions {
     fn from(info: &FontAndScriptInfo) -> Self {
-        let mut ligatures = info.ligatures;
+        let mut ligatures = info.font_info.ligatures;
         let mut flags = ShapingFlags::empty();
-        if info.bidi_level.is_rtl() {
+        if info.font_info.bidi_level.is_rtl() {
             flags.insert(ShapingFlags::RTL_FLAG);
         }
 
@@ -133,33 +149,34 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
         // Cursive scripts do not admit gaps between their letters for either
         // justification or letter-spacing.
         let letter_spacing = info
+            .font_info
             .letter_spacing
             .filter(|_| !is_cursive_script(info.script));
         if letter_spacing.is_some() {
             ligatures = FontVariantLigatures::NONE;
         };
-        if info.text_rendering == TextRendering::Optimizespeed {
+        if info.font_info.text_rendering == TextRendering::Optimizespeed {
             ligatures = FontVariantLigatures::NONE;
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
         }
 
         // We currently always leave kerning enabled for "font-kerning: auto".
-        if info.kerning == FontKerning::None {
+        if info.font_info.kerning == FontKerning::None {
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG);
         }
 
         Self {
             letter_spacing,
-            word_spacing: info.word_spacing,
+            word_spacing: info.font_info.word_spacing,
             script: info.script,
-            language: info.language,
+            language: info.font_info.language,
             ligatures,
-            numeric: info.numeric,
-            east_asian: info.east_asian,
-            feature_settings: info.feature_settings.clone(),
-            position: info.position,
+            numeric: info.font_info.numeric,
+            east_asian: info.font_info.east_asian,
+            feature_settings: info.font_info.feature_settings.clone(),
+            position: info.font_info.position,
             flags,
-            alternates: info.alternates.clone(),
+            alternates: info.font_info.alternates.clone(),
         }
     }
 }
@@ -168,8 +185,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
 pub(crate) struct TextRunSegment {
     /// Information about the font and language used in this text run. This is produced by
     /// segmenting the inline formatting context's text content by font, script, and bidi level.
-    #[conditional_malloc_size_of]
-    pub info: Arc<FontAndScriptInfo>,
+    pub info: FontAndScriptInfo,
 
     /// The range of bytes in the parent [`super::InlineFormattingContext`]'s text content.
     pub byte_range: Range<usize>,
@@ -188,7 +204,7 @@ pub(crate) struct TextRunSegment {
 
 impl TextRunSegment {
     fn new(
-        info: Arc<FontAndScriptInfo>,
+        info: FontAndScriptInfo,
         byte_range: Range<usize>,
         character_range: Range<usize>,
     ) -> Self {
@@ -209,12 +225,12 @@ impl TextRunSegment {
         new_script: Script,
         new_bidi_level: Level,
     ) -> bool {
-        if self.info.bidi_level != new_bidi_level {
+        if self.info.font_info.bidi_level != new_bidi_level {
             return false;
         }
         if new_font
             .as_ref()
-            .is_some_and(|new_font| !Arc::ptr_eq(&self.info.font, new_font))
+            .is_some_and(|new_font| !Arc::ptr_eq(&self.info.font_info.font, new_font))
         {
             return false;
         }
@@ -228,10 +244,10 @@ impl TextRunSegment {
     /// make the Script specific and will not change it otherwise.
     fn update(&mut self, next_byte_index: usize, next_character_index: usize, new_script: Script) {
         if !script_is_specific(self.info.script) && script_is_specific(new_script) {
-            self.info = Arc::new(FontAndScriptInfo {
+            self.info = FontAndScriptInfo {
                 script: new_script,
-                ..(*self.info).clone()
-            });
+                font_info: self.info.font_info.clone(),
+            };
         }
         self.character_range.end = next_character_index;
         self.byte_range.end = next_byte_index;
@@ -301,7 +317,7 @@ impl TextRunSegment {
         let linebreaks = linebreaker.advance_to_linebreaks_in_range(self.byte_range.clone());
         let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
 
-        let options: ShapingOptions = (&*self.info).into();
+        let options: ShapingOptions = (&self.info).into();
         let shaped_text = old_text_run_item
             .and_then(|old_text_run_item| {
                 let TextRunItem::TextSegment(old_text_segment) = old_text_run_item else {
@@ -314,6 +330,7 @@ impl TextRunSegment {
             })
             .unwrap_or_else(|| {
                 self.info
+                    .font_info
                     .font
                     .shape_text(&formatting_context_text[range.clone()], &options)
             });
@@ -417,7 +434,7 @@ impl TextRunSegment {
     }
 
     fn is_compatible_with_old_shaping_result(&self, old_segment: &Self) -> bool {
-        *old_segment.info == *self.info && self.byte_range == old_segment.byte_range
+        old_segment.info == self.info && self.byte_range == old_segment.byte_range
     }
 }
 
@@ -647,27 +664,29 @@ impl TextRun {
                     layout_context.style_context.stylist,
                 );
             let info = FontAndScriptInfo {
-                font,
                 script,
-                bidi_level,
-                language: language_for_shaping,
-                word_spacing,
-                letter_spacing,
-                text_rendering,
-                kerning,
-                ligatures,
-                numeric,
-                east_asian,
-                feature_settings: feature_settings.clone(),
-                alternates,
-                position,
+                font_info: Arc::new(FontInfo {
+                    font,
+                    bidi_level,
+                    language: language_for_shaping,
+                    word_spacing,
+                    letter_spacing,
+                    text_rendering,
+                    kerning,
+                    ligatures,
+                    numeric,
+                    east_asian,
+                    feature_settings: feature_settings.clone(),
+                    alternates,
+                    position,
+                }),
             };
 
             finish_current_segment(&mut current, &mut results);
             assert!(current.is_none());
 
             current = Some(TextRunSegment::new(
-                Arc::new(info),
+                info,
                 current_byte_index..next_byte_index,
                 current_character_index..current_character_index + 1,
             ));
