@@ -116,17 +116,8 @@ impl AnimationEffect {
             ));
         }
 
-        // Step 3. If the duration member of input exists, and is less than zero or is the value NaN,
-        // throw a TypeError and abort this procedure.
-        //
-        // Note: "auto" values are treated as zero: https://drafts.csswg.org/web-animations-1/#dom-animationeffect-updatetiming
-        // > In this level of this specification, the string value auto is treated as the value zero
-        // > for the purpose of timing model calculations and for the result of the duration member returned
-        // > from getComputedTiming(). If the author specifies the auto value, user agents must, however,
-        // > return auto for the duration member returned from getTiming().
-        //
-        // Note: It is unspecified how non-"auto" strings should be treated. We choose to throw a TypeError.
-        //       See also https://github.com/w3c/csswg-drafts/issues/14206
+        // Step 3. If the duration member of input exists, and is less than zero, is the value NaN,
+        // or is a string other than the lowercase auto, throw a TypeError and abort this procedure.
         let Ok(duration) = input
             .duration
             .as_ref()
