@@ -1,138 +1,82 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
+<!doctype html>
+<meta charset="utf-8" />
 <title>button.action</title>
-<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#concept-fs-action">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#concept-fs-action" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="./resources/form-with-submitter.js"></script>
+<body>
+    <script>
+        "use strict";
 
-<form id="form1">
-	<button id="submit-button1" type="submit" value="Submit" formaction="a.html">
-	</button>
-</form>
-<form id="form2" action="a.html">
-	<button id="submit-button2" type="submit" value="Submit" formaction="">
-	</button>
-</form>
-<form id="form3" action="a.html">
-	<button id="submit-button3" type="submit" value="Submit">
-	</button>
-</form>
-<form id="form4">
-	<button id="submit-button4" type="submit" value="Submit">
-	</button>
-</form>
-<form id="form5" action="a.html">
-</form>
-<form id="form6">
-	<button id="submit-button5" type="submit" value="Submit" form="form5">
-	</button>
-</form>
+        const test_cases = [
+            {
+                name: "formaction specified, expecting to navigate to formaction",
+                formAction: null,
+                submitterFormAction: "a.html",
+                formOwnerAction: null,
+                expected: "a.html",
+            },
+            {
+                name: "no formaction, expect to navigate to document URL (base URL in this case)",
+                formAction: "a.html",
+                submitterFormAction: "",
+                formOwnerAction: null,
+                expected: null,
+            },
+            {
+                name: "fallback to form action",
+                formAction: "a.html",
+                submitterFormAction: null,
+                formOwnerAction: null,
+                expected: "a.html",
+            },
+            {
+                name: "missing form action",
+                formAction: null,
+                submitterFormAction: null,
+                formOwnerAction: null,
+                expected: null,
+            },
+            {
+                name: "form owner is different from parent form",
+                formAction: null,
+                submitterFormAction: null,
+                formOwnerAction: "a.html",
+                expected: "a.html",
+            },
+        ];
 
-<script>
-"use strict";
+        for (const elementType of ["button", "input"]) {
+            let id = 1;
+            for (const testCase of test_cases) {
+                async_test((t) => {
+                    if (testCase.formOwnerAction !== null) {
+                        id++;
+                    }
+                    let frame = populateForm(
+                        id,
+                        elementType,
+                        testCase.formAction,
+                        testCase.submitterFormAction,
+                        testCase.formOwnerAction
+                    );
+                    frame.addEventListener(
+                        "load",
+                        t.step_func_done(() => {
+                            let expected = new URL(document.URL);
+                            if (testCase.expected !== null) {
+                                expected = new URL(testCase.expected, location.href);
+                            }
 
-async_test(t => {
-const frame = document.createElement("iframe");
-frame.name = "form-test-frame1";
-document.body.appendChild(frame);
+                            assert_equals(new URL(frame.contentWindow.location.href).pathname, expected.pathname);
+                        })
+                    );
 
-document.getElementById("form1").target = frame.name;
-
-  frame.addEventListener("load", t.step_func_done(() => {
-    const expected = new URL(
-      "a.html",
-      location.href
-    );
-
-    assert_equals(
-      new URL(frame.contentWindow.location.href).pathname,
-      expected.pathname
-    );
-  }));
-
-  document.getElementById("submit-button1").click();
-}, "submit button action should return its formaction if it exists");
-
-async_test(t => {
-const frame = document.createElement("iframe");
-frame.name = "form-test-frame2";
-document.body.appendChild(frame);
-
-document.getElementById("form2").target = frame.name;
-
-  frame.addEventListener("load", t.step_func_done(() => {
-    const expected = new URL(document.URL);
-
-    assert_equals(
-      new URL(frame.contentWindow.location.href).pathname,
-      expected.pathname
-    );
-  }));
-
-  document.getElementById("submit-button2").click();
-}, "A submit button with an empty string as its formaction should navigate to the document's URL (= the document's base URL in this case)");
-
-async_test(t => {
-const frame = document.createElement("iframe");
-frame.name = "form-test-frame3";
-document.body.appendChild(frame);
-
-document.getElementById("form3").target = frame.name;
-
-  frame.addEventListener("load", t.step_func_done(() => {
-    const expected = new URL(
-      "a.html",
-      location.href
-    );
-
-    assert_equals(
-      new URL(frame.contentWindow.location.href).pathname,
-      expected.pathname
-    );
-  }));
-
-  document.getElementById("submit-button3").click();
-}, "submit button should return form owner action if it has no formaction attribute");
-
-async_test(t => {
-const frame = document.createElement("iframe");
-frame.name = "form-test-frame4";
-document.body.appendChild(frame);
-
-document.getElementById("form4").target = frame.name;
-
-  frame.addEventListener("load", t.step_func_done(() => {
-    const expected = new URL(document.URL);
-
-    assert_equals(
-      new URL(frame.contentWindow.location.href).pathname,
-      expected.pathname
-    );
-  }));
-
-  document.getElementById("submit-button4").click();
-}, "A submit button with no formaction attribute and with a form owner with a missing action attribute should navigate to the document's URL (= the document's base URL in this case)");
-
-async_test(t => {
-const frame = document.createElement("iframe");
-frame.name = "form-test-frame5";
-document.body.appendChild(frame);
-
-document.getElementById("form5").target = frame.name;
-
-  frame.addEventListener("load", t.step_func_done(() => {
-    const expected = new URL(
-      "a.html",
-      location.href
-    );
-
-    assert_equals(
-      new URL(frame.contentWindow.location.href).pathname,
-      expected.pathname
-    );
-  }));
-
-  document.getElementById("submit-button5").click();
-}, "A submit button with its form owner specified will return the action of its form owner, and not that of the nearest containing form");
-
-</script>
+                    document.getElementById(`submit-${elementType}-${id}`).click();
+                }, `${elementType} - ${testCase.name}`);
+                id++;
+            }
+        }
+    </script>
+</body>

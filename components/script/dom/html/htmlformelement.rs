@@ -1575,7 +1575,7 @@ pub(crate) enum FormSubmitterElement<'a> {
 }
 
 impl FormSubmitterElement<'_> {
-    /// <https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#concept-fs-action>
+    /// <https://html.spec.whatwg.org/multipage/#concept-fs-action>
     fn action(&self) -> DOMString {
         match *self {
             FormSubmitterElement::Form(form) => form.Action(),
