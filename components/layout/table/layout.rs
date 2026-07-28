@@ -3060,8 +3060,11 @@ impl RowspanToDistribute<'_> {
         self.coordinates.y..self.coordinates.y + self.cell.rowspan
     }
 
+    /// Returns true if other is a proper subset of [`self`].
     fn fully_encloses(&self, other: &RowspanToDistribute) -> bool {
-        other.coordinates.y > self.coordinates.y && other.range().end < self.range().end
+        self.range() != other.range() &&
+            other.coordinates.y >= self.coordinates.y &&
+            other.range().end <= self.range().end
     }
 }
 
