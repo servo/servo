@@ -2302,6 +2302,7 @@ impl FlexItemBox {
                     preferred_aspect_ratio,
                     automatic_cross_size_for_intrinsic_sizing,
                     IntrinsicSizingMode::Size,
+                    true,
                 )
                 .into()
             }
@@ -2459,6 +2460,7 @@ impl FlexItemBox {
                     preferred_aspect_ratio,
                     automatic_cross_size_for_intrinsic_sizing,
                     IntrinsicSizingMode::Contribution,
+                    flex_base_size_is_definite,
                 );
                 (size.into(), true)
             },
@@ -2553,6 +2555,7 @@ impl FlexItemBox {
         preferred_aspect_ratio: Option<AspectRatio>,
         automatic_inline_size: Size<Au>,
         intrinsic_sizing_mode: IntrinsicSizingMode,
+        flex_base_size_is_definite: bool,
     ) -> Au {
         let content_block_size = || {
             let mut positioning_context = PositioningContext::default();
@@ -2604,6 +2607,11 @@ impl FlexItemBox {
         };
         match intrinsic_sizing_mode {
             IntrinsicSizingMode::Contribution => {
+                // When the flex-basis is `content`, the item's main size property must not affect its intrinsic contribution (flex-basis-010.html)
+                if !flex_base_size_is_definite {
+                    return content_block_size() + pbm_auto_is_zero.main;
+                }
+
                 let stretch_size = flex_context
                     .containing_block
                     .size
