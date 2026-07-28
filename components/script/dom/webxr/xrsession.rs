@@ -286,9 +286,10 @@ impl XRSession {
                 // Step 5: We currently do not have any such promises
                 // Step 6 is happening n the XR session
                 // https://immersive-web.github.io/webxr/#dom-xrsession-end step 3
-                for promise in self.end_promises.borrow_mut().drain(..) {
+                for promise in self.end_promises.borrow().iter() {
                     promise.resolve_native(cx, &());
                 }
+                self.end_promises.safe_borrow_mut(cx.no_gc()).clear();
                 // Step 7
                 let event = XRSessionEvent::new(
                     cx,
