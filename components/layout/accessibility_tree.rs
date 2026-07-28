@@ -257,6 +257,13 @@ impl AccessibilityTree {
             let mut node = node.borrow_mut();
             node.dirty_state |= DirtyState::HasDamage;
 
+            if node.dirty_state.descendant_has_damage() {
+                if let Some(pos) = common_ancestors.iter().position(|&id| id == node.id) {
+                    common_ancestors.truncate(pos + 1);
+                }
+                continue;
+            }
+
             if common_ancestors.is_empty() {
                 // Initialize the list of potential common ancestors.
                 common_ancestors.push(node.id);
@@ -425,7 +432,7 @@ impl AccessibilityTree {
     /// If we got `rooted_nodes` from the document's `AccessibilityData`, assert that any nodes
     /// which were rooted but not marked as `TreeChange::Removed` are no longer in the tree after
     /// dropping all nodes which were removed from the tree. They may have been part of a subtree
-    /// which was marked `TreeChange::Removed` on an ancestor node, or may have never made it in to
+    /// which was marked `TreeChange::Removed` on an ancestor node, or may have never made it into
     /// the accessibility tree to begin with.
     fn assert_remaining_rooted_nodes_not_in_tree(&self, rooted_nodes: FxHashSet<OpaqueNode>) {
         for leftover_node in rooted_nodes {
@@ -598,7 +605,7 @@ impl AccessibilityNode {
             self.dirty_state -= DirtyState::HasDamage;
         }
 
-        if self.dirty_state.contains(DirtyState::DescendantHasDamage) {
+        if self.dirty_state.descendant_has_damage() {
             for child_node in self.children() {
                 let strong_child_node = child_node.clone();
                 let mut child_node = child_node.borrow_mut();
