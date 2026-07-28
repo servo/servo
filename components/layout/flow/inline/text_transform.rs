@@ -12,6 +12,7 @@
 
 use icu_segmenter::WordSegmenter;
 use malloc_size_of_derive::MallocSizeOf;
+use servo_base::text::Utf32CodeUnits;
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
@@ -391,205 +392,252 @@ fn text_security_map_character(mode: WebKitTextSecurity, character: char) -> cha
     }
 }
 
-#[derive(PartialEq, MallocSizeOf)]
-enum OffsetMapEntryType {
-    // Represents text that is the same size in the original string as in the final
-    // string.
-    Identity,
-    // Represents text that is shorter in the final string than in the original
-    // string.
-    Collapse,
-    // Represents text that is longer in the final string than in the original
-    // string.
-    Expand,
+#[derive(MallocSizeOf, Clone, Copy)]
+struct OffsetMapKnownPosition {
+    original_offset: Utf32CodeUnits,
+    final_offset: Utf32CodeUnits,
 }
-
-#[derive(MallocSizeOf)]
-struct OffsetMapEntry(OffsetMapEntryType, usize);
 
 #[derive(Default, MallocSizeOf)]
 pub struct OffsetMap {
-    total_original_size: usize,
-    total_final_size: usize,
-    entries: Vec<OffsetMapEntry>,
+    /// Not including `IMPLICIT_KNOWN_POSITION_AT_START`
+    known_positions: Vec<OffsetMapKnownPosition>,
+    /// `Default` initializes to `false`
+    last_range_maps_one_to_one: bool,
 }
 
 impl std::fmt::Debug for OffsetMap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OffsetMap")
-            .field("total_original_size", &self.total_original_size)
-            .field("total_final_size", &self.total_final_size)
+            .field("total_original_size", &self.total_original_size())
+            .field("total_final_size", &self.total_final_size())
             .finish()
     }
 }
 
+static IMPLICIT_KNOWN_POSITION_AT_START: OffsetMapKnownPosition = OffsetMapKnownPosition {
+    original_offset: Utf32CodeUnits(0),
+    final_offset: Utf32CodeUnits(0),
+};
+
 impl OffsetMap {
-    pub fn total_final_size(&self) -> usize {
-        self.total_final_size
+    fn last_known_position(&self) -> &OffsetMapKnownPosition {
+        self.known_positions
+            .last()
+            .unwrap_or(&IMPLICIT_KNOWN_POSITION_AT_START)
     }
 
-    fn add_or_ammend_entry(&mut self, entry_type: OffsetMapEntryType, length: usize) {
-        if length == 0 {
-            return;
-        }
-
-        match self.entries.last_mut() {
-            Some(OffsetMapEntry(old_entry_type, old_length)) if *old_entry_type == entry_type => {
-                *old_length += length
-            },
-            _ => self.entries.push(OffsetMapEntry(entry_type, length)),
-        }
+    pub fn total_original_size(&self) -> Utf32CodeUnits {
+        self.last_known_position().original_offset
     }
 
-    fn collapse(&mut self, length: usize) {
-        self.add_or_ammend_entry(OffsetMapEntryType::Collapse, length);
-        self.total_original_size += length;
+    pub fn total_final_size(&self) -> Utf32CodeUnits {
+        self.last_known_position().final_offset
     }
 
-    fn expand(&mut self, length: usize) {
-        self.add_or_ammend_entry(OffsetMapEntryType::Expand, length);
-        self.total_final_size += length;
+    fn push_range(
+        &mut self,
+        additional_original_length: Utf32CodeUnits,
+        additional_final_length: Utf32CodeUnits,
+    ) {
+        let last = self.last_known_position();
+        self.known_positions.push(OffsetMapKnownPosition {
+            original_offset: last.original_offset + additional_original_length,
+            final_offset: last.final_offset + additional_final_length,
+        })
     }
 
-    fn identity(&mut self, length: usize) {
-        self.add_or_ammend_entry(OffsetMapEntryType::Identity, length);
-        self.total_original_size += length;
-        self.total_final_size += length;
+    pub(crate) fn push_synthetic_control_characters(&mut self, count: Utf32CodeUnits) {
+        self.push_range(Utf32CodeUnits(0), count);
     }
 
-    fn case_map(&mut self, new_length: usize) {
-        self.identity(1);
-        if new_length > 1 {
-            self.expand(new_length - 1);
-        }
-    }
-
-    pub(crate) fn push_synthetic_control_characters(&mut self, count: usize) {
-        self.expand(count);
+    fn push_mapped_char(&mut self, new_length: usize) {
+        self.push_range(Utf32CodeUnits(1), Utf32CodeUnits(new_length));
     }
 
     pub(crate) fn push_iteration(&mut self, iteration: &CharacterTransformIteration) {
         match *iteration {
-            CharacterTransformIteration::OneToOne(_) => self.identity(1),
-            CharacterTransformIteration::WhitespaceCharsCollapsedToOneSpace(count) |
-            CharacterTransformIteration::WhitespaceCharsCollapsedToOneNewline(count) => {
-                self.identity(1);
-                if count > 1 {
-                    self.collapse(count - 1);
+            CharacterTransformIteration::OneToOne(_) => {
+                if self.last_range_maps_one_to_one &&
+                    let Some(last) = self.known_positions.last_mut()
+                {
+                    last.original_offset += Utf32CodeUnits(1);
+                    last.final_offset += Utf32CodeUnits(1);
+                } else {
+                    self.push_range(Utf32CodeUnits(1), Utf32CodeUnits(1));
+                    self.last_range_maps_one_to_one = true;
                 }
+                return; // skip `self.last_range_maps_one_to_one = false` below
             },
-            CharacterTransformIteration::WhitespaceCharsCollapsedToNothing(count) => {
-                self.collapse(count)
+            CharacterTransformIteration::WhitespaceCharsCollapsedToOneSpace(original_length) |
+            CharacterTransformIteration::WhitespaceCharsCollapsedToOneNewline(original_length) => {
+                self.push_range(Utf32CodeUnits(original_length), Utf32CodeUnits(1));
             },
-            CharacterTransformIteration::ToLowercase(c) => self.case_map(c.to_lowercase().len()),
-            CharacterTransformIteration::ToUppercase(c) => self.case_map(c.to_uppercase().len()),
-            CharacterTransformIteration::ToTitlecase(c) => self.case_map(to_titlecase(c).len()),
+            CharacterTransformIteration::WhitespaceCharsCollapsedToNothing(original_length) => {
+                self.push_range(Utf32CodeUnits(original_length), Utf32CodeUnits(0));
+            },
+            CharacterTransformIteration::ToLowercase(original_character) => {
+                self.push_mapped_char(original_character.to_lowercase().len())
+            },
+            CharacterTransformIteration::ToUppercase(original_character) => {
+                self.push_mapped_char(original_character.to_uppercase().len())
+            },
+            CharacterTransformIteration::ToTitlecase(original_character) => {
+                self.push_mapped_char(to_titlecase(original_character).len())
+            },
         }
+        // In all cases except `OneToOne`
+        self.last_range_maps_one_to_one = false;
     }
 
-    pub fn map(&self, target_original_offset: usize) -> usize {
-        // Allow mapping one index past the size of the map, as this can be used for
-        // selection which can index one character past the end of the last character
-        // in the string.
-        if target_original_offset > self.total_original_size {
-            return self.total_final_size;
-        }
+    pub fn map(&self, target_original_offset: Utf32CodeUnits) -> Utf32CodeUnits {
+        self.map_common(
+            target_original_offset,
+            |position| position.original_offset,
+            |position| position.final_offset,
+        )
+    }
 
-        let mut offset_in_original_string = 0;
-        let mut offset_in_final_string = 0;
-        for entry in self.entries.iter() {
-            match entry.0 {
-                OffsetMapEntryType::Identity
-                    if offset_in_original_string + entry.1 > target_original_offset =>
-                {
-                    return offset_in_final_string +
-                        (target_original_offset - offset_in_original_string);
-                },
-                OffsetMapEntryType::Identity => {
-                    offset_in_final_string += entry.1;
-                    offset_in_original_string += entry.1;
-                },
-                OffsetMapEntryType::Collapse
-                    if offset_in_original_string + entry.1 > target_original_offset =>
-                {
-                    return offset_in_final_string;
-                },
-                OffsetMapEntryType::Collapse => offset_in_original_string += entry.1,
-                OffsetMapEntryType::Expand => offset_in_final_string += entry.1,
-            }
-        }
+    pub fn reverse_map(&self, target_final_offset: Utf32CodeUnits) -> Utf32CodeUnits {
+        self.map_common(
+            target_final_offset,
+            |position| position.final_offset,
+            |position| position.original_offset,
+        )
+    }
 
-        offset_in_final_string
+    fn map_common(
+        &self,
+        target_offset: Utf32CodeUnits,
+        get_input_offset: impl Copy + Fn(&OffsetMapKnownPosition) -> Utf32CodeUnits,
+        get_output_offset: impl Fn(&OffsetMapKnownPosition) -> Utf32CodeUnits,
+    ) -> Utf32CodeUnits {
+        if target_offset.0 == 0 {
+            // Implict known position
+            return Utf32CodeUnits(0);
+        }
+        match self
+            .known_positions
+            .binary_search_by_key(&target_offset, get_input_offset)
+        {
+            Ok(index) => {
+                // Exact known position
+                get_output_offset(&self.known_positions[index])
+            },
+            Err(index) => {
+                // `index` is where inserting a new position would keep the `Vec` sorted
+                if let Some(position_after) = self.known_positions.get(index) {
+                    let position_before = if index > 0 {
+                        &self.known_positions[index - 1]
+                    } else {
+                        &IMPLICIT_KNOWN_POSITION_AT_START
+                    };
+                    debug_assert!(target_offset > get_input_offset(position_before));
+                    debug_assert!(target_offset < get_input_offset(position_after));
+                    let offset_within_range = target_offset - get_input_offset(position_before);
+                    let candidate = get_output_offset(position_before) + offset_within_range;
+                    // If the output range is shorter, to go beyond it
+                    let upper_bound = get_output_offset(position_after);
+                    upper_bound.min(candidate)
+                } else {
+                    // `target_offset` at or past the end of the text covered by this map
+                    get_output_offset(self.last_known_position())
+                }
+            },
+        }
     }
 }
 
 #[test]
 fn test_offsetmap_basic_expansion() {
-    let _original_string = "abcde";
-    let final_string = "aabbbccccde";
+    use servo_base::text::Utf32CodeUnits as c;
+
+    let original_string = "aßΰb";
+    let final_string = "ASS\u{3a5}\u{308}\u{301}B";
+    assert_eq!(original_string.to_uppercase(), final_string);
 
     let mut offset_map = OffsetMap::default();
-    offset_map.identity(1);
-    offset_map.expand(1);
-    offset_map.identity(1);
-    offset_map.expand(2);
-    offset_map.identity(1);
-    offset_map.expand(3);
-    offset_map.identity(1);
-    offset_map.identity(1);
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('a'));
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('ß'));
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('ΰ'));
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('b'));
 
-    assert_eq!(offset_map.map(0), 0);
-    assert_eq!(offset_map.map(1), 2);
-    assert_eq!(offset_map.map(2), 5);
-    assert_eq!(offset_map.map(3), 9);
-    assert_eq!(offset_map.map(4), 10);
+    assert_eq!(offset_map.map(c(0)).0, 0);
+    assert_eq!(offset_map.map(c(1)).0, 1);
+    assert_eq!(offset_map.map(c(2)).0, 3);
+    assert_eq!(offset_map.map(c(3)).0, 6);
+    assert_eq!(offset_map.map(c(4)).0, 7);
 
     // Beyond the last index should always map to the index after the last character
     // (for handling selections).
-    assert_eq!(offset_map.map(5), 11);
-    assert_eq!(offset_map.map(100), 11);
+    assert_eq!(offset_map.map(c(5)).0, 7);
+    assert_eq!(offset_map.map(c(100)).0, 7);
 
-    let map_substring =
-        |offset, length| &final_string[offset_map.map(offset)..offset_map.map(offset + length)];
-    assert_eq!(map_substring(0, 1), "aa");
-    assert_eq!(map_substring(0, 2), "aabbb");
-    assert_eq!(map_substring(0, 3), "aabbbcccc");
-    assert_eq!(map_substring(0, 4), "aabbbccccd");
-    assert_eq!(map_substring(1, 1), "bbb");
+    let map_substring = |offset: usize, length: usize| {
+        let start = offset_map
+            .map(c(offset))
+            .to_utf8_code_units_in(final_string);
+        let end = offset_map
+            .map(c(offset + length))
+            .to_utf8_code_units_in(final_string);
+        &final_string[start.0..end.0]
+    };
+    assert_eq!(map_substring(0, 1), "A");
+    assert_eq!(map_substring(0, 2), "ASS");
+    assert_eq!(map_substring(0, 3), "ASS\u{3a5}\u{308}\u{301}");
+    assert_eq!(map_substring(0, 4), "ASS\u{3a5}\u{308}\u{301}B");
+    assert_eq!(map_substring(1, 1), "SS");
 }
 
 #[test]
 fn test_offsetmap_basic_collapse() {
-    let _original_string = "AABBBcDDDDe";
-    let final_string = "abcde";
+    use servo_base::text::Utf32CodeUnits as c;
+
+    let _original_string = "  aaa  b \nc";
+    let final_string = "aaa b\nc";
 
     let mut offset_map = OffsetMap::default();
-    offset_map.identity(1);
-    offset_map.collapse(1);
-    offset_map.identity(1);
-    offset_map.collapse(2);
-    offset_map.identity(1);
-    offset_map.identity(1);
-    offset_map.collapse(3);
-    offset_map.identity(1);
+    offset_map.push_iteration(&CharacterTransformIteration::WhitespaceCharsCollapsedToNothing(2));
+    offset_map.push_iteration(&CharacterTransformIteration::OneToOne('a'));
+    offset_map.push_iteration(&CharacterTransformIteration::OneToOne('a'));
+    offset_map.push_iteration(&CharacterTransformIteration::OneToOne('a'));
+    assert_eq!(offset_map.known_positions.len(), 2); // merging consecutive `OneToOne`
+    offset_map.push_iteration(&CharacterTransformIteration::WhitespaceCharsCollapsedToOneSpace(2));
+    offset_map.push_iteration(&CharacterTransformIteration::OneToOne('b'));
+    offset_map
+        .push_iteration(&CharacterTransformIteration::WhitespaceCharsCollapsedToOneNewline(2));
+    offset_map.push_iteration(&CharacterTransformIteration::OneToOne('c'));
 
-    assert_eq!(offset_map.map(0), 0);
-    // Mapping between characters should map to the index after the final one.
-    assert_eq!(offset_map.map(1), 1);
-    assert_eq!(offset_map.map(2), 1);
-    assert_eq!(offset_map.map(5), 2);
-    assert_eq!(offset_map.map(6), 3);
-    assert_eq!(offset_map.map(10), 4);
+    assert_eq!(offset_map.map(c(0)).0, 0);
+    assert_eq!(offset_map.map(c(1)).0, 0);
+    assert_eq!(offset_map.map(c(2)).0, 0);
+    assert_eq!(offset_map.map(c(3)).0, 1);
+    assert_eq!(offset_map.map(c(4)).0, 2);
+    assert_eq!(offset_map.map(c(5)).0, 3);
+    // Mapping from the middle of the collapsed sequence should map to after the replacement.
+    assert_eq!(offset_map.map(c(6)).0, 4);
+    assert_eq!(offset_map.map(c(7)).0, 4);
+    assert_eq!(offset_map.map(c(8)).0, 5);
+    // Mapping from the middle of the collapsed sequence should map to after the replacement.
+    assert_eq!(offset_map.map(c(9)).0, 6);
+    assert_eq!(offset_map.map(c(10)).0, 6);
+    assert_eq!(offset_map.map(c(11)).0, 7);
 
     // Beyond the last index should always map to the index after the last character
     // (for handling selections).
-    assert_eq!(offset_map.map(11), 5);
-    assert_eq!(offset_map.map(100), 5);
+    assert_eq!(offset_map.map(c(12)).0, 7);
+    assert_eq!(offset_map.map(c(100)).0, 7);
 
-    let map_substring =
-        |offset, length| &final_string[offset_map.map(offset)..offset_map.map(offset + length)];
-    assert_eq!(map_substring(0, 2), "a");
-    assert_eq!(map_substring(0, 3), "ab");
-    assert_eq!(map_substring(0, 6), "abc");
-    assert_eq!(map_substring(0, 10), "abcd");
+    let map_substring = |offset: usize, length: usize| {
+        let start = offset_map.map(c(offset)).0;
+        let end = offset_map.map(c(offset + length)).0;
+        &final_string[start..end]
+    };
+    assert_eq!(map_substring(0, 1), "");
+    assert_eq!(map_substring(0, 3), "a");
+    assert_eq!(map_substring(0, 5), "aaa");
+    assert_eq!(map_substring(0, 6), "aaa ");
+    assert_eq!(map_substring(0, 7), "aaa ");
+    assert_eq!(map_substring(0, 8), "aaa b");
+    assert_eq!(map_substring(0, 11), "aaa b\nc");
 }

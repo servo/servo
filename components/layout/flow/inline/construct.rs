@@ -155,8 +155,8 @@ impl InlineFormattingContextBuilder {
         self.text_segments.push(string_to_push.to_owned());
         self.current_text_offset += string_to_push.len();
 
-        let new_characters = string_to_push.chars().count();
-        self.current_character_offset += new_characters;
+        let new_characters = Utf32CodeUnits::length_of(string_to_push);
+        self.current_character_offset += new_characters.0;
         self.offset_map
             .push_synthetic_control_characters(new_characters);
     }
@@ -464,14 +464,9 @@ impl InlineFormattingContextBuilder {
         }
 
         let document_selection = document_selection.map(|document_selection| {
-            Utf32CodeUnits(
-                self.offset_map
-                    .map(self.current_original_character_offset + document_selection.start.0),
-            )..
-                Utf32CodeUnits(
-                    self.offset_map
-                        .map(self.current_original_character_offset + document_selection.end.0),
-                )
+            let current = Utf32CodeUnits(self.current_original_character_offset);
+            self.offset_map.map(current + document_selection.start)..
+                self.offset_map.map(current + document_selection.end)
         });
         self.current_original_character_offset += consumed_characters;
 
@@ -598,7 +593,7 @@ impl InlineFormattingContextBuilder {
 
         assert!(self.inline_box_stack.is_empty());
         assert_eq!(
-            self.offset_map.total_final_size(),
+            self.offset_map.total_final_size().0,
             self.current_character_offset
         );
 

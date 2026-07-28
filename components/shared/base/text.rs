@@ -188,6 +188,21 @@ impl Utf32CodeUnits {
         // https://github.com/rust-lang/rust/blob/main/library/core/src/str/count.rs
         Self(string.chars().count())
     }
+
+    pub fn to_utf8_code_units_in(self, string: &str) -> Utf8CodeUnits {
+        let mut current_utf32_offset = Utf32CodeUnits(0);
+        for (current_utf8_offset, byte) in string.bytes().enumerate() {
+            if (byte & 0b1100_0000) == 0b1000_0000 {
+                // UTF-8 continuation byte
+                continue;
+            }
+            if current_utf32_offset >= self {
+                return Utf8CodeUnits(current_utf8_offset);
+            }
+            current_utf32_offset.0 += 1;
+        }
+        Utf8CodeUnits(string.len())
+    }
 }
 
 #[cfg(test)]
