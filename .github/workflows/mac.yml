@@ -105,7 +105,7 @@ jobs:
           # <https://github.com/servo/servo/settings/variables/actions>
           NO_SELF_HOSTED_RUNNERS: ${{ vars.NO_SELF_HOSTED_RUNNERS }}
           # Any other boolean conditions that disable self-hosted runners go here.
-          force-github-hosted-runner: ${{ inputs.force-github-hosted-runner }}
+          force-github-hosted-runner: true # until we get new enough self-hosted macOS runners
 
   build:
     needs:
@@ -127,6 +127,10 @@ jobs:
       - if: runner.environment != 'self-hosted'
         name: Setup Python
         uses: ./.github/actions/setup-python
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26"
 
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
