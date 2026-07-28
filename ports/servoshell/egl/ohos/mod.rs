@@ -562,6 +562,9 @@ fn main_thread(init_opts: InitOpts) {
 
     let servo = init_app(init_opts, wakeup).expect("Servo initialization failed");
 
+    // After init_app so the thread affinity mask doesn't affect all children spawned in init_app.
+    servo_base::threadboost::mark_thread_as_critical();
+
     while let Ok(action) = rx.recv() {
         trace!("Wakeup message received!");
         action.do_action(&servo);
