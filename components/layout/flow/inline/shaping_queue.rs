@@ -5,7 +5,7 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use fonts::{ShapedText, ShapedTextSlice, ShapedTextSlicer, ShapingOptions};
+use fonts::{ShapedText, ShapedTextSlice, ShapedTextSliceType, ShapedTextSlicer, ShapingOptions};
 use icu_segmenter::LineBreakOptions;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
@@ -125,7 +125,7 @@ impl BatchSlicer<'_> {
             let mut whitespace = slice.end..slice.end;
             let rev_char_indices = word.char_indices().rev().peekable();
 
-            let mut non_whitespace_slice_ends_with_whitespace = false;
+            let mut slice_type = ShapedTextSliceType::Word;
             let mut ends_with_whitespace = false;
             if let Some((first_white_space_index, first_white_space_character)) = rev_char_indices
                 .take_while(|&(_, character)| char_is_whitespace(character))
@@ -143,7 +143,7 @@ impl BatchSlicer<'_> {
                     !can_break_anywhere
                 {
                     whitespace.start += first_white_space_character.len_utf8();
-                    non_whitespace_slice_ends_with_whitespace = true;
+                    slice_type = ShapedTextSliceType::WordAndWhiteSpace;
                 }
 
                 slice.end = whitespace.start;
@@ -165,11 +165,10 @@ impl BatchSlicer<'_> {
             // Push the non-whitespace part of the range.
             if !slice.is_empty() {
                 current_character_offset += self.text[slice].chars().count();
-                maybe_push_run(self.slicer.slice_until_character_offset(
-                    current_character_offset,
-                    false, /* is_whitespace */
-                    non_whitespace_slice_ends_with_whitespace,
-                ));
+                maybe_push_run(
+                    self.slicer
+                        .slice_until_character_offset(current_character_offset, slice_type),
+                );
             }
 
             if whitespace.is_empty() {
@@ -183,8 +182,7 @@ impl BatchSlicer<'_> {
                     current_character_offset += 1;
                     maybe_push_run(self.slicer.slice_until_character_offset(
                         current_character_offset,
-                        true, /* is_whitespace */
-                        true, /* ends_with_whitespace */
+                        ShapedTextSliceType::WhiteSpace,
                     ));
                 }
                 continue;
@@ -193,8 +191,7 @@ impl BatchSlicer<'_> {
             current_character_offset += self.text[whitespace].chars().count();
             maybe_push_run(self.slicer.slice_until_character_offset(
                 current_character_offset,
-                true, /* is_whitespace */
-                true, /* ends_with_whitespace */
+                ShapedTextSliceType::WhiteSpace,
             ));
         }
 
