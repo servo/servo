@@ -250,10 +250,10 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_setExperimentalMode<'local>(
 pub extern "C" fn Java_org_servo_servoview_JNIServo_resize<'local>(
     mut env: EnvUnowned<'local>,
     _: JClass<'local>,
-    coordinates: JObject<'local>,
+    size: JObject<'local>,
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
-        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &coordinates)?;
+        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
         debug!("resize {viewport_rect:#?}");
         call(env, |s| s.resize(viewport_rect));
         Ok(())
@@ -600,11 +600,11 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resumePainting<'local>(
     mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     surface: JObject<'local>,
-    coordinates: JObject<'local>,
+    size: JObject<'local>,
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
         debug!("resumePainting");
-        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &coordinates)?;
+        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
         let (_, window_handle) = display_and_window_handle(env, &surface);
 
         call(env, |s| {
@@ -902,10 +902,14 @@ fn new_string_as_jvalue<'local>(
 
 fn jni_coordinate_to_rust_viewport_rect<'local>(
     env: &mut Env<'local>,
-    obj: &JObject<'local>,
+    size: &JObject<'local>,
 ) -> Result<Rect<i32, DevicePixel>, Error> {
-    let width = env.get_field(obj, jni_str!("width"), jni_sig!("I"))?.i()?;
-    let height = env.get_field(obj, jni_str!("height"), jni_sig!("I"))?.i()?;
+    let width = env
+        .call_method(size, jni_str!("getWidth"), jni_sig!("()I"), &[])?
+        .i()?;
+    let height = env
+        .call_method(size, jni_str!("getHeight"), jni_sig!("()I"), &[])?
+        .i()?;
 
     Ok(Rect::new(Point2D::origin(), Size2D::new(width, height)))
 }
@@ -975,15 +979,11 @@ fn get_options<'local>(
         .get_field(opts, jni_str!("enableLogs"), jni_sig!("Z"))?
         .z()?;
 
-    let coordinates = env
-        .get_field(
-            opts,
-            jni_str!("coordinates"),
-            jni_sig!("Lorg/servo/servoview/JNIServo$ServoCoordinates;"),
-        )?
+    let size = env
+        .get_field(opts, jni_str!("size"), jni_sig!("Landroid/util/Size;"))?
         .l()?;
 
-    let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &coordinates)?;
+    let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
 
     let mut args: Vec<String> = args
         .and_then(|args| {

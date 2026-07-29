@@ -11,6 +11,7 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.Size;
 import android.view.Choreographer;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -19,7 +20,6 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 
-import org.servo.servoview.JNIServo.ServoCoordinates;
 import org.servo.servoview.JNIServo.ServoOptions;
 import org.servo.servoview.Servo.Client;
 import org.servo.servoview.Servo.RunCallback;
@@ -203,15 +203,13 @@ public class ServoView extends SurfaceView
         public void surfaceCreated(SurfaceHolder holder) {
             Log.d(LOGTAG, "GLThread::surfaceCreated");
 
-            ServoCoordinates coords = new ServoCoordinates();
-            coords.width = servoView.getWidth();
-            coords.height = servoView.getHeight();
+            Size size = new Size(servoView.getWidth(), servoView.getHeight());
 
             Surface surface = holder.getSurface();
             ServoOptions options = new ServoOptions();
             options.args = servoView.servoArgs;
             options.url = servoView.initialUri;
-            options.coordinates = coords;
+            options.size = size;
             options.logStr = servoLog;
             options.enableLogs = true;
             options.experimentalMode = servoView.experimentalMode;
@@ -223,7 +221,7 @@ public class ServoView extends SurfaceView
                         options, servoView, client, servoView.getContext(), surface);
             } else {
                 paused = false;
-                servoView.servo.resumePainting(surface, coords);
+                servoView.servo.resumePainting(surface, size);
             }
 
             Choreographer.getInstance().postFrameCallback(servoView);
@@ -232,10 +230,7 @@ public class ServoView extends SurfaceView
 
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
             Log.d(LOGTAG, "GLThread::surfaceChanged");
-            ServoCoordinates coords = new ServoCoordinates();
-            coords.width = width;
-            coords.height = height;
-            servoView.servo.resize(coords);
+            servoView.servo.resize(new Size(width, height));
         }
 
         public void surfaceDestroyed(SurfaceHolder holder) {
