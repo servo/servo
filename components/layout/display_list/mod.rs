@@ -401,7 +401,7 @@ impl DisplayListBuilder<'_> {
             return false;
         }
 
-        let is_blend_container = stacking_context.children.iter().any(|child| {
+        let mut is_blend_container = stacking_context.children.iter().any(|child| {
             child.fragment().is_some_and(|fragment| {
                 fragment.style().clone_mix_blend_mode() != ComputedMixBlendMode::Normal
             })
@@ -429,12 +429,11 @@ impl DisplayListBuilder<'_> {
                 //
                 // TODO: Would it be cleaner to paint the root background at the root fragment
                 // instead of the root stacking context?
-                let needs_blend_container = is_blend_container &&
-                    !fragment.base.flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
+                is_blend_container &= !fragment.base.flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
 
                 // WebRender only uses the stacking context to apply certain effects. If we don't
                 // actually need to create a stacking context, just avoid creating one.
-                if !needs_blend_container &&
+                if !is_blend_container &&
                     effects.filter.0.is_empty() &&
                     effects.opacity == 1.0 &&
                     effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
@@ -459,25 +458,21 @@ impl DisplayListBuilder<'_> {
                         effects.opacity,
                     ));
                 }
-
-                if needs_blend_container {
-                    stacking_context_flags.insert(StackingContextFlags::IS_BLEND_CONTAINER);
-                }
             },
-            StackingContextFragments::Root => {
-                // WebRender only needs a stacking context at the root when the root stacking
-                // context itself is a blend container. Adding the IS_BLEND_CONTAINER here seems to
-                // trigger a bug in WebRender though. It's harmless to not enable it as the root
-                // stacking context already contains all other display items.
-                if !is_blend_container {
-                    return false;
-                }
+            // WebRender only needs a stacking context at the root when the root stacking
+            // context itself is a blend container.
+            StackingContextFragments::Root if is_blend_container => {
                 transform_style = TransformStyle::Flat;
                 primitive_flags = PrimitiveFlags::empty();
                 mix_blend_mode = MixBlendMode::Normal;
                 filters = Vec::new();
             },
+            _ => return false,
         };
+
+        if is_blend_container {
+            stacking_context_flags.insert(StackingContextFlags::IS_BLEND_CONTAINER);
+        }
 
         // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID
         // should be used for primitives, but `None` is used for stacking contexts and
