@@ -488,7 +488,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         // Step 2. Let promise be a new promise.
         let promise = Promise::new_in_realm(cx);
 
-        // optional Nullable callbacks: omitted/undefined → None, null → Some(None), fn → Some(Some(cb))
+        // flatten the optionally nullable callbacks 
         let decode_success_callback = decode_success_callback.flatten();
         let decode_error_callback = decode_error_callback.flatten();
 
