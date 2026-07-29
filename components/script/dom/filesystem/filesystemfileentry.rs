@@ -104,7 +104,7 @@ impl FileSystemFileEntryMethods<crate::DomTypeHolder> for FileSystemFileEntry {
                 if let Some(index) = maybe_index {
                     let callback = this
                         .pending_callbacks
-                        .borrow_mut()
+                        .safe_borrow_mut(cx.no_gc())
                         .swap_remove(index)
                         .callback;
                     let file = DomRoot::from_ref(&*this.file);
