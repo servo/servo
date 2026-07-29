@@ -15,7 +15,7 @@ mod text {
                 white_space_collapse,
                 trim_beginning_white_space,
             ) {
-                iteration.push_chars_to(&mut string);
+                string.extend(iteration.characters());
             }
             string
         };

@@ -44,7 +44,7 @@ pub struct CharacterTransformIteration {
 
 impl CharacterTransformIteration {
     fn case_mapped(iterator: impl ExactSizeIterator<Item = char>) -> Self {
-        debug_assert!(iterator.len() <= 3);
+        debug_assert!(iterator.len() <= MAX_CASE_MAPPING_LENGTH);
         Self {
             consumed: Utf32CodeUnits(1),
             characters: iterator.collect(),
@@ -69,7 +69,7 @@ impl CharacterTransformIteration {
         self.characters.len() == 1 && self.consumed.0 == 1
     }
 
-    pub(crate) fn characters(&self) -> &[char] {
+    pub fn characters(&self) -> &[char] {
         &self.characters
     }
 }
