@@ -59,7 +59,7 @@ pub(crate) struct WorkletGlobalScope {
     #[no_trace]
     origin: MutableOrigin,
 
-    /// A [`TaskManager`] for this [`WorkerGlobalScope`].
+    /// The [`TaskManager`] for this [`WorkletGlobalScope`].
     #[conditional_malloc_size_of]
     task_manager: Rc<TaskManager>,
 
@@ -97,12 +97,12 @@ impl WorkletGlobalScope {
                 microtask_queue,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
+                cx,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,
                 executor,
                 init,
-                cx,
                 closing,
                 microtask_queue,
             )),

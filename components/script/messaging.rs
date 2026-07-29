@@ -174,7 +174,7 @@ pub(crate) enum MainThreadScriptMsg {
     ForwardEmbedderControlResponseFromFileManager(EmbedderControlId, EmbedderControlResponse),
 }
 
-/// Common messages used to control the event loops in both the scrip, the worker, and the
+/// Common messages used to control the event loops in both the script, the worker, and the
 /// worklet
 pub(crate) enum CommonScriptMsg {
     /// Requests that the script thread measure its memory usage. The results are sent back via the
@@ -214,7 +214,7 @@ pub(crate) enum ScriptEventLoopSender {
     SharedWorker(Sender<SharedWorkerScriptMsg>),
     /// A sender that sends to a `ServiceWorker` event loop.
     ServiceWorker(Sender<ServiceWorkerScriptMsg>),
-    /// A sender that sends to a `Worklet` event loop.
+    /// A wrapper that sends to the event loops of all threads belonging to a `Worklet`
     Worklet(WorkletExecutor),
     /// A sender that sends to a dedicated worker (such as a generic Web Worker) event loop.
     /// Note that this sender keeps the main thread Worker DOM object alive as long as it or

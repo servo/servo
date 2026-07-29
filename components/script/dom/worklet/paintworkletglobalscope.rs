@@ -89,12 +89,12 @@ pub(crate) struct PaintWorkletGlobalScope {
 impl PaintWorkletGlobalScope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut JSContext,
         pipeline_id: PipelineId,
         base_url: ServoUrl,
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
-        cx: &mut JSContext,
         closing: Arc<AtomicBool>,
         microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<PaintWorkletGlobalScope> {

@@ -348,7 +348,7 @@ pub(crate) struct WorkerGlobalScope {
     /// <https://w3c.github.io/ServiceWorker/#global-caches-attribute>
     caches: MutNullableDom<CacheStorage>,
 
-    /// A [`TaskManager`] for this [`WorkerGlobalScope`].
+    /// The [`TaskManager`] for this [`WorkerGlobalScope`].
     #[conditional_malloc_size_of]
     task_manager: Rc<TaskManager>,
 
