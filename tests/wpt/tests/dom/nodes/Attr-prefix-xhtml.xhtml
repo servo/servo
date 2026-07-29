@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:a="testnamespace">
+<head>
+<title>Attr.prefix</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="attributes.js"></script>
+</head>
+<body>
+<div id="log"/>
+<div id="test" a:testwithprefix="value with prefix" testwithoutprefix="value without prefix"/>
+<script>
+test(function() {
+  var element = document.getElementById("test");
+  attr_is(
+    element.getAttributeNodeNS("testnamespace", "testwithprefix"),
+    "value with prefix",
+    "testwithprefix",
+    "testnamespace",
+    "a",
+    "a:testwithprefix",
+    "Parser-inserted attribute with prefix"
+  );
+}, "Attr.prefix present");
+
+test(function() {
+  var element = document.getElementById("test");
+  attr_is(
+    element.getAttributeNodeNS(null, "testwithoutprefix"),
+    "value without prefix",
+    "testwithoutprefix",
+    null,
+    null,
+    "testwithoutprefix",
+    "Parser-inserted attribute without prefix"
+  );
+}, "Attr.prefix absent");
+</script>
+</body>
+</html>
