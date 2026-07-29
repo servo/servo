@@ -488,7 +488,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         // Step 2. Let promise be a new promise.
         let promise = Promise::new_in_realm(cx);
 
-        // flatten the optionally nullable callbacks 
+        // flatten the optionally nullable callbacks
         let decode_success_callback = decode_success_callback.flatten();
         let decode_error_callback = decode_error_callback.flatten();
 
@@ -613,7 +613,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 return promise;
             }
         } else {
-            // Step 4. 
+            // Step 4.
             // Else, execute the following error steps:
             // - Let error be a DataCloneError.
             // - Reject promise with error, and remove it from [[pending promises]].
