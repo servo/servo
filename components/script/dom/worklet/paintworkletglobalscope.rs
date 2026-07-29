@@ -87,6 +87,7 @@ pub(crate) struct PaintWorkletGlobalScope {
 }
 
 impl PaintWorkletGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         pipeline_id: PipelineId,
         base_url: ServoUrl,

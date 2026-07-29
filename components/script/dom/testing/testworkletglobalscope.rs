@@ -35,6 +35,7 @@ pub(crate) struct TestWorkletGlobalScope {
 }
 
 impl TestWorkletGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         pipeline_id: PipelineId,
         base_url: ServoUrl,
