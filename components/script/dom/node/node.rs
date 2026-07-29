@@ -116,8 +116,7 @@ use crate::dom::node::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::range::WeakRangeVec;
 use crate::dom::raredata::NodeRareData;
-use crate::dom::servoparser::html::HtmlSerialize;
-use crate::dom::servoparser::serialize_html_fragment;
+use crate::dom::servoparser::{serialize_html_fragment, serialize_xml};
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
@@ -3392,24 +3391,10 @@ impl Node {
         &self,
         traversal_scope: xml_serialize::TraversalScope,
     ) -> Fallible<DOMString> {
-        let mut writer = vec![];
-        xml_serialize::serialize(
-            &mut writer,
-            &HtmlSerialize::new(self),
-            xml_serialize::SerializeOpts { traversal_scope },
-        )
-        .map_err(|error| {
+        serialize_xml(self, traversal_scope).map_err(|error| {
             error!("Cannot serialize node: {error}");
             Error::InvalidState(Some("Cannot serialize node".into()))
-        })?;
-
-        // FIXME(ajeffrey): Directly convert UTF8 to DOMString
-        let string = DOMString::from(String::from_utf8(writer).map_err(|error| {
-            error!("Cannot serialize node: {error}");
-            Error::InvalidState(Some("Cannot serialize node".into()))
-        })?);
-
-        Ok(string)
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fragment-serializing-algorithm-steps>
