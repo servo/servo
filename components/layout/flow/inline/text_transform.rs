@@ -10,6 +10,7 @@
 //! handle this as well as code to map from offsets in the original DOM node to the final
 //! IFC text and vice-versa.
 
+use arrayvec::ArrayVec;
 use icu_segmenter::WordSegmenter;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::text::Utf32CodeUnits;
@@ -26,62 +27,43 @@ use crate::flow::inline::construct::InlineFormattingContextBuilder;
 /// produce zero or more characters (up to 3). Consumption of characters greater than the
 /// characters produced by [`CharacterTransformIteration`] indicate that those characters
 /// have been collapsed.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct CharacterTransformIteration {
     /// The number of characters consumed during this iteration of character transformation.
     consumed: Utf32CodeUnits,
-    /// The number of characters actually produced during this iteration.
-    produced: Utf32CodeUnits,
     /// The characters that were produced during this iteration.
-    characters: [char; 3],
+    characters: ArrayVec<char, 3>,
 }
 
 impl CharacterTransformIteration {
     fn case_mapped(iterator: impl ExactSizeIterator<Item = char>) -> Self {
         debug_assert!(iterator.len() <= 3);
-
-        let mut characters = ['\0'; 3];
-        let mut produced = 0;
-        for (array_entry, character) in characters.iter_mut().zip(iterator) {
-            *array_entry = character;
-            produced += 1;
-        }
-
         Self {
             consumed: Utf32CodeUnits(1),
-            produced: Utf32CodeUnits(produced),
-            characters,
+            characters: iterator.collect(),
         }
     }
 
     fn one_to_one(character: char) -> Self {
         Self {
             consumed: Utf32CodeUnits(1),
-            produced: Utf32CodeUnits(1),
-            characters: [character, '\0', '\0'],
+            characters: std::iter::once(character).collect(),
         }
     }
 
     fn collapse(character: Option<char>, amount_collapsed: usize) -> Self {
         Self {
             consumed: Utf32CodeUnits(amount_collapsed),
-            produced: Utf32CodeUnits(if character.is_some() { 1 } else { 0 }),
-            characters: [character.unwrap_or_default(), '\0', '\0'],
+            characters: character.into_iter().collect(),
         }
     }
 
     fn is_one_to_one(&self) -> bool {
-        self.produced.0 == 1 && self.consumed.0 == 1
+        self.characters.len() == 1 && self.consumed.0 == 1
     }
 
-    pub(crate) fn each_char(self, mut each: impl FnMut(char)) {
-        for character in &self.characters[..self.produced.0] {
-            each(*character)
-        }
-    }
-
-    pub fn push_chars_to(self, string: &mut String) {
-        self.each_char(|character| string.push(character));
+    pub(crate) fn characters(&self) -> &[char] {
+        &self.characters
     }
 }
 
@@ -300,15 +282,6 @@ impl Iterator for TextTransformationIterator<'_> {
     }
 }
 
-// TODO: replace this function with `character.to_titlecase()` when available:
-// https://github.com/rust-lang/rust/issues/153892
-// because of:
-// https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
-fn to_titlecase(character: char) -> ToTitleCase {
-    character.to_uppercase()
-}
-type ToTitleCase = std::char::ToUppercase;
-
 fn simple_case_transform_iterator(
     input_iterator: impl Iterator<Item = CharacterTransformIteration>,
     mapping: impl Fn(char) -> CharacterTransformIteration,
@@ -332,7 +305,7 @@ pub(crate) fn capitalization_iterator(
     let mut iterations: Vec<_> = input_iterator.collect();
     let mut string = String::with_capacity(size_hint);
     for iteration in &iterations {
-        iteration.push_chars_to(&mut string);
+        string.extend(iteration.characters());
     }
 
     let word_segmenter = WordSegmenter::new_auto();
@@ -340,8 +313,11 @@ pub(crate) fn capitalization_iterator(
 
     let mut current_byte_index = 0;
     for iteration in iterations.iter_mut() {
-        let mut bytes_to_advance = 0;
-        iteration.each_char(|character| bytes_to_advance += character.len_utf8());
+        let bytes_to_advance: usize = iteration
+            .characters()
+            .iter()
+            .map(|character| character.len_utf8())
+            .sum();
         if bytes_to_advance == 0 {
             continue;
         }
@@ -359,8 +335,11 @@ pub(crate) fn capitalization_iterator(
             at_word_start &&
             (current_byte_index != 0 || allow_word_at_start)
         {
+            // TODO: Replace this with a call to `character.to_titlecase()` when available:
+            // See: https://github.com/rust-lang/rust/issues/153892
+            // See: https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
             *iteration =
-                CharacterTransformIteration::case_mapped(to_titlecase(iteration.characters[0]));
+                CharacterTransformIteration::case_mapped(iteration.characters[0].to_uppercase());
         }
 
         current_byte_index += bytes_to_advance;
@@ -464,7 +443,10 @@ impl OffsetMap {
     }
 
     pub(crate) fn push_iteration(&mut self, iteration: &CharacterTransformIteration) {
-        self.push_range(iteration.consumed, iteration.produced);
+        self.push_range(
+            iteration.consumed,
+            Utf32CodeUnits(iteration.characters.len()),
+        );
     }
 
     pub fn map(&self, target_original_offset: Utf32CodeUnits) -> Utf32CodeUnits {

@@ -1137,7 +1137,7 @@ fn rendered_text_collection_steps(
                     trim_leading_white_space,
                     on_word_boundary,
                 ) {
-                    iteration.push_chars_to(&mut transformed_text);
+                    transformed_text.extend(iteration.characters());
                 }
 
                 let is_preformatted_element =

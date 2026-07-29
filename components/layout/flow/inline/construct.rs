@@ -421,8 +421,7 @@ impl InlineFormattingContextBuilder {
             self.on_word_boundary,
         ) {
             self.offset_map.push_iteration(&iteration);
-
-            iteration.each_char(|character| {
+            for &character in iteration.characters() {
                 character_count += 1;
 
                 // If this character has a strong right-to-left class the new inline formatting context will
@@ -448,7 +447,7 @@ impl InlineFormattingContextBuilder {
                     };
 
                 new_text.push(character)
-            });
+            }
         }
 
         if new_text.is_empty() {
