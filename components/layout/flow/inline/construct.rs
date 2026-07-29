@@ -53,11 +53,6 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// different from the UTF-8 code point offset.
     current_character_offset: usize,
 
-    /// The current character (UTF32 code unit) offsets in the input text string for this
-    /// [`InlineFormattingContextBuilder`]. This can be used to map to final offsets using
-    /// [`Self::offset_map`].
-    current_original_character_offset: usize,
-
     /// If the [`InlineFormattingContext`] that we are building has a selection shared with its
     /// originating node in the DOM, this will not be `None`.
     pub shared_selection: Option<SharedSelection>,
@@ -416,8 +411,8 @@ impl InlineFormattingContextBuilder {
     ) {
         let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
+        let original_size_before = self.offset_map.total_original_size();
         let mut character_count = 0;
-        let mut consumed_characters = 0;
         let mut new_text = String::with_capacity(text.len());
         for iteration in TextTransformationIterator::new(
             &text,
@@ -425,8 +420,6 @@ impl InlineFormattingContextBuilder {
             self.last_inline_box_ended_with_collapsible_white_space,
             self.on_word_boundary,
         ) {
-            consumed_characters += iteration.consumed_character_count();
-
             self.offset_map.push_iteration(&iteration);
 
             iteration.each_char(|character| {
@@ -459,16 +452,15 @@ impl InlineFormattingContextBuilder {
         }
 
         if new_text.is_empty() {
-            self.current_original_character_offset += consumed_characters;
             return;
         }
 
         let document_selection = document_selection.map(|document_selection| {
-            let current = Utf32CodeUnits(self.current_original_character_offset);
-            self.offset_map.map(current + document_selection.start)..
-                self.offset_map.map(current + document_selection.end)
+            self.offset_map
+                .map(original_size_before + document_selection.start)..
+                self.offset_map
+                    .map(original_size_before + document_selection.end)
         });
-        self.current_original_character_offset += consumed_characters;
 
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();
