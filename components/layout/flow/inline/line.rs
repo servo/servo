@@ -355,7 +355,7 @@ impl LineItemLayout<'_, '_> {
             .iter()
             .map(|item| {
                 let level = match item {
-                    LineItem::TextRun(_, text_run) => text_run.info.bidi_level,
+                    LineItem::TextRun(_, text_run) => text_run.info.font_info.bidi_level,
                     // TODO: This level needs either to be last_level, or if there were
                     // unicode characters inserted for the inline box, we need to get the
                     // level from them.
@@ -677,7 +677,7 @@ impl LineItemLayout<'_, '_> {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relative alignment, it might be different.
-        let font_metrics = &text_item.info.font.metrics;
+        let font_metrics = &text_item.info.font_info.font.metrics;
         let start_corner = LogicalVec2 {
             inline: self.current_state.inline_advance,
             block: self.current_state.baseline_offset -
@@ -692,7 +692,7 @@ impl LineItemLayout<'_, '_> {
             },
         };
 
-        let font_key = text_item.info.font.key(
+        let font_key = text_item.info.font_info.font.key(
             self.layout.layout_context.painter_id,
             &self.layout.layout_context.font_context,
         );
@@ -975,7 +975,7 @@ pub(crate) struct TextRunOffsets {
 }
 
 pub(super) struct TextRunLineItem {
-    pub info: Arc<FontAndScriptInfo>,
+    pub info: FontAndScriptInfo,
     pub base_fragment_info: BaseFragmentInfo,
     pub inline_styles: SharedInlineStyles,
     pub text: Vec<Arc<ShapedTextSlice>>,
@@ -1048,13 +1048,13 @@ impl TextRunLineItem {
 
     pub(crate) fn merge_if_possible(
         &mut self,
-        new_info: &Arc<FontAndScriptInfo>,
+        new_info: &FontAndScriptInfo,
         new_glyph_store: &Arc<ShapedTextSlice>,
         new_offsets: &Option<TextRunOffsets>,
         new_inline_styles: &SharedInlineStyles,
     ) -> bool {
-        if !Arc::ptr_eq(&self.info.font, &new_info.font) ||
-            self.info.bidi_level != new_info.bidi_level ||
+        if !Arc::ptr_eq(&self.info.font_info.font, &new_info.font_info.font) ||
+            self.info.font_info.bidi_level != new_info.font_info.bidi_level ||
             !self.inline_styles.ptr_eq(new_inline_styles)
         {
             return false;

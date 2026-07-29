@@ -1632,7 +1632,7 @@ impl InlineFormattingContextLayout<'_> {
         &mut self,
         glyph_store: Arc<ShapedTextSlice>,
         text_run: &TextRun,
-        info: &Arc<FontAndScriptInfo>,
+        info: &FontAndScriptInfo,
         offsets: Option<TextRunOffsets>,
     ) {
         let inline_advance = glyph_store.total_advance();
@@ -1656,7 +1656,7 @@ impl InlineFormattingContextLayout<'_> {
         // If the metrics of this font don't match the default font, we are likely using another
         // font from the font list or a fallback and should incorporate its block size into the block
         // size of the container.
-        let font_metrics = &info.font.metrics;
+        let font_metrics = &info.font_info.font.metrics;
         if current_inline_container_state
             .font_metrics
             .block_metrics_meaningfully_differ(font_metrics)
@@ -1736,7 +1736,7 @@ impl InlineFormattingContextLayout<'_> {
                 text: Default::default(),
                 base_fragment_info: BaseFragmentInfo::anonymous(),
                 inline_styles: self.ifc.shared_inline_styles.clone(),
-                info: Arc::new(FontAndScriptInfo::simple_for_font(font)),
+                info: FontAndScriptInfo::simple_for_font(font),
                 offsets: Some(Box::new(offsets)),
                 is_empty_for_text_cursor: true,
             },
