@@ -263,7 +263,7 @@ impl BlockLevelBox {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) enum InlineItem {
     StartInlineBox(ArcRefCell<InlineBox>),
-    EndInlineBox,
+    EndInlineBox(ArcRefCell<InlineBox>),
     TextRun(ArcRefCell<TextRun>),
     OutOfFlowAbsolutelyPositionedBox(
         ArcRefCell<AbsolutelyPositionedBox>,
@@ -291,7 +291,7 @@ impl InlineItem {
                     .borrow_mut()
                     .repair_style(context, node, new_style);
             },
-            InlineItem::EndInlineBox => {},
+            InlineItem::EndInlineBox(..) => {},
             // TextRun holds a handle the `InlineSharedStyles` which is updated when repairing inline box
             // and `display: contents` styles.
             InlineItem::TextRun(..) => {},
@@ -315,7 +315,7 @@ impl InlineItem {
     pub(crate) fn with_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> T {
         match self {
             InlineItem::StartInlineBox(inline_box) => callback(&inline_box.borrow().base),
-            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+            InlineItem::EndInlineBox(..) | InlineItem::TextRun(..) => {
                 unreachable!("Should never have these kind of fragments attached to a DOM node")
             },
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
@@ -332,7 +332,7 @@ impl InlineItem {
     pub(crate) fn with_base_mut<T>(&self, callback: impl FnOnce(&mut LayoutBoxBase) -> T) -> T {
         match self {
             InlineItem::StartInlineBox(inline_box) => callback(&mut inline_box.borrow_mut().base),
-            InlineItem::EndInlineBox | InlineItem::TextRun(..) => {
+            InlineItem::EndInlineBox(..) | InlineItem::TextRun(..) => {
                 unreachable!("Should never have these kind of fragments attached to a DOM node")
             },
             InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
@@ -350,7 +350,7 @@ impl InlineItem {
 
     pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
         match self {
-            Self::StartInlineBox(_) | InlineItem::EndInlineBox => {
+            Self::StartInlineBox(_) | InlineItem::EndInlineBox(..) => {
                 // The parentage of inline items within an inline box is handled when the entire
                 // inline formatting context is attached to the tree.
             },
@@ -373,7 +373,7 @@ impl InlineItem {
             Self::StartInlineBox(inline_box) => {
                 WeakInlineItem::StartInlineBox(inline_box.downgrade())
             },
-            Self::EndInlineBox => WeakInlineItem::EndInlineBox,
+            Self::EndInlineBox(inline_box) => WeakInlineItem::EndInlineBox(inline_box.downgrade()),
             Self::TextRun(text_run) => WeakInlineItem::TextRun(text_run.downgrade()),
             Self::OutOfFlowAbsolutelyPositionedBox(positioned_box, offset_in_text) => {
                 WeakInlineItem::OutOfFlowAbsolutelyPositionedBox(
@@ -395,7 +395,7 @@ impl InlineItem {
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) enum WeakInlineItem {
     StartInlineBox(WeakRefCell<InlineBox>),
-    EndInlineBox,
+    EndInlineBox(WeakRefCell<InlineBox>),
     TextRun(WeakRefCell<TextRun>),
     OutOfFlowAbsolutelyPositionedBox(
         WeakRefCell<AbsolutelyPositionedBox>,
@@ -414,7 +414,7 @@ impl WeakInlineItem {
     pub(crate) fn upgrade(&self) -> Option<InlineItem> {
         Some(match self {
             Self::StartInlineBox(inline_box) => InlineItem::StartInlineBox(inline_box.upgrade()?),
-            Self::EndInlineBox => InlineItem::EndInlineBox,
+            Self::EndInlineBox(inline_box) => InlineItem::EndInlineBox(inline_box.upgrade()?),
             Self::TextRun(text_run) => InlineItem::TextRun(text_run.upgrade()?),
             Self::OutOfFlowAbsolutelyPositionedBox(positioned_box, offset_in_text) => {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(
@@ -2006,7 +2006,7 @@ impl InlineFormattingContext {
                 },
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(..) |
                 InlineItem::OutOfFlowFloatBox(_) |
-                InlineItem::EndInlineBox |
+                InlineItem::EndInlineBox(..) |
                 InlineItem::BlockLevel { .. } => {},
             }
         }
@@ -2112,7 +2112,7 @@ impl InlineFormattingContext {
 
         for item in self.inline_items.iter() {
             // Any new box should flush a pending hard line break.
-            if !matches!(item, InlineItem::EndInlineBox) {
+            if !matches!(item, InlineItem::EndInlineBox(..)) {
                 layout.possibly_flush_deferred_forced_line_break();
             }
 
@@ -2120,7 +2120,7 @@ impl InlineFormattingContext {
                 InlineItem::StartInlineBox(inline_box) => {
                     layout.start_inline_box(&inline_box.borrow());
                 },
-                InlineItem::EndInlineBox => layout.finish_inline_box(),
+                InlineItem::EndInlineBox(..) => layout.finish_inline_box(),
                 InlineItem::TextRun(run) => run.borrow().layout_into_line_items(&mut layout),
                 InlineItem::Atomic(atomic_formatting_context, offset_in_text, bidi_level) => {
                     atomic_formatting_context.borrow().layout_into_line_items(
@@ -2170,7 +2170,7 @@ impl InlineFormattingContext {
             .iter()
             .map(|item| match item {
                 InlineItem::StartInlineBox(..) => 1,
-                InlineItem::EndInlineBox => 0,
+                InlineItem::EndInlineBox(..) => 0,
                 InlineItem::TextRun(..) => 1,
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(absolutely_positioned_box, _) => {
                     absolutely_positioned_box
@@ -2211,7 +2211,6 @@ impl InlineFormattingContext {
         // > Line boxes that contain no text, no preserved white space, no inline boxes with non-zero
         // > inline-axis margins, padding, or borders, and no other in-flow content (such as atomic
         // > inlines or ruby annotations), and do not end with a forced line break are phantom line boxes.
-        let mut nesting_levels_from_nonzero_end_pbm: u32 = 1;
         let mut items_iter = self.inline_items.iter();
         items_iter.all(|inline_item| match inline_item {
             InlineItem::StartInlineBox(inline_box) => {
@@ -2219,25 +2218,18 @@ impl InlineFormattingContext {
                     .borrow()
                     .layout_style()
                     .padding_border_margin(containing_block_for_children);
-                if pbm.padding.inline_end.is_zero() &&
-                    pbm.border.inline_end.is_zero() &&
-                    pbm.margin.inline_end.auto_is(Au::zero).is_zero()
-                {
-                    nesting_levels_from_nonzero_end_pbm += 1;
-                } else {
-                    nesting_levels_from_nonzero_end_pbm = 0;
-                }
                 pbm.padding.inline_start.is_zero() &&
                     pbm.border.inline_start.is_zero() &&
                     pbm.margin.inline_start.auto_is(Au::zero).is_zero()
             },
-            InlineItem::EndInlineBox => {
-                if nesting_levels_from_nonzero_end_pbm == 0 {
-                    false
-                } else {
-                    nesting_levels_from_nonzero_end_pbm -= 1;
-                    true
-                }
+            InlineItem::EndInlineBox(inline_box) => {
+                let pbm = inline_box
+                    .borrow()
+                    .layout_style()
+                    .padding_border_margin(containing_block_for_children);
+                pbm.padding.inline_end.is_zero() &&
+                    pbm.border.inline_end.is_zero() &&
+                    pbm.margin.inline_end.auto_is(Au::zero).is_zero()
             },
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
@@ -2284,7 +2276,7 @@ impl InlineFormattingContext {
                         WeakInlineItem::StartInlineBox(inline_box.downgrade()),
                     ));
                 },
-                InlineItem::EndInlineBox => {
+                InlineItem::EndInlineBox(..) => {
                     parent_box_stack.pop();
                 },
                 InlineItem::TextRun(text_run) => {
@@ -2904,7 +2896,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                 self.add_inline_size(pbm.inline_start);
                 self.ending_inline_pbm_stack.push(pbm.inline_end);
             },
-            InlineItem::EndInlineBox => {
+            InlineItem::EndInlineBox(..) => {
                 let length = self.ending_inline_pbm_stack.pop().unwrap_or_else(Au::zero);
                 self.add_inline_size(length);
             },
