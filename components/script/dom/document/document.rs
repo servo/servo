@@ -3606,7 +3606,6 @@ impl Document {
 
         for node in self.upcast::<Node>().children() {
             let type_id = node.type_id();
-            // TODO(pylbrecht): record pointer
             let size = compute_size(node.jsobject(), ops);
             match type_id {
                 NodeTypeId::Attr => sizes.attribute_nodes_size += size,

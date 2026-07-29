@@ -155,7 +155,8 @@ use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::enter_auto_realm;
 use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
-    IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
+    IntroductionType, Runtime, SEEN_JSOBJECTS, ScriptThreadEventCategory, ThreadSafeJSContext,
+    get_reports,
 };
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::svg_font::SvgFontResolver;
@@ -2789,6 +2790,12 @@ impl ScriptThread {
         });
 
         reports_chan.send(ProcessReports::new(reports));
+
+        SEEN_JSOBJECTS.with(|objects| {
+            let mut objects = objects.borrow_mut();
+            objects.clear();
+            objects.shrink_to_fit();
+        });
     }
 
     /// Updates iframe element after a change in visibility

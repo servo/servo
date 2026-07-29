@@ -8,7 +8,8 @@
 #![expect(dead_code)]
 
 use core::ffi::c_char;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell, RefCell};
+use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
@@ -1113,6 +1114,10 @@ thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Ce
 
 #[expect(unsafe_code)]
 pub unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
+    if SEEN_JSOBJECTS.with(|objects| !objects.borrow_mut().insert(obj)) {
+        return 0;
+    }
+
     match unsafe { get_dom_class(obj) } {
         Ok(v) => {
             let dom_object = unsafe { private_from_object(obj) as *const c_void };
@@ -1234,6 +1239,10 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[expect(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
+
+thread_local!(pub(crate) static SEEN_JSOBJECTS: LazyCell<RefCell<HashSet<*const JSObject>>> = const {
+    LazyCell::new(Default::default)
+});
 
 #[expect(unsafe_code)]
 pub(crate) fn compute_size(obj: *mut JSObject, ops: &mut MallocSizeOfOps) -> usize {
