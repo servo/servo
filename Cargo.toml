@@ -41,7 +41,7 @@ argon2 = { version = "=0.6.0-rc.8", features = ["alloc"] }
 arrayvec = "0.7"
 async-compression = { version = "0.4.12", default-features = false }
 async-recursion = "1.1"
-async-tungstenite = { version = "0.34", features = ["tokio-rustls-webpki-roots"] }
+async-tungstenite = { version = "0.35", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.14"
 aws-lc-rs = { version = "1.17", default-features = false, features = ["aws-lc-sys"] }
 backtrace = "0.3"
@@ -260,7 +260,7 @@ tower = { version = "0.5", default-features = false, features = ["util"] }
 tracing = "0.1.44"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.23"
-tungstenite = "0.29"
+tungstenite = "0.30"
 turboshake = "0.7"
 unicode-bidi = "0.3.18"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
