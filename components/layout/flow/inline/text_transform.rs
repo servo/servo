@@ -26,16 +26,16 @@ use crate::flow::inline::construct::InlineFormattingContextBuilder;
 /// and produce an optional character. Consumption of characters greater than
 /// the characters stored in [`CharacterTransformIteration`] indicate that those
 /// characters have been collapsed.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum CharacterTransformIteration {
     /// A character mapped from exactly one character in a DOM text node
     OneToOne(char),
     WhitespaceCharsCollapsedToOneSpace(usize),
     WhitespaceCharsCollapsedToOneNewline(usize),
     WhitespaceCharsCollapsedToNothing(usize),
-    ToLowercase(char),
-    ToUppercase(char),
-    ToTitlecase(char),
+    ToLowercase(std::char::ToLowercase),
+    ToUppercase(std::char::ToUppercase),
+    ToTitlecase(ToTitleCase),
 }
 
 pub(crate) struct TextTransformationIterator<'a>(
@@ -64,14 +64,16 @@ impl<'a> TextTransformationIterator<'a> {
             TextTransformCase::None => {
                 Box::new(iterator) as Box<dyn Iterator<Item = CharacterTransformIteration>>
             },
-            TextTransformCase::Lowercase => Box::new(simple_case_transform_iterator(
-                iterator,
-                CharacterTransformIteration::ToLowercase,
-            )),
-            TextTransformCase::Uppercase => Box::new(simple_case_transform_iterator(
-                iterator,
-                CharacterTransformIteration::ToUppercase,
-            )),
+            TextTransformCase::Lowercase => {
+                Box::new(simple_case_transform_iterator(iterator, |c| {
+                    CharacterTransformIteration::ToLowercase(c.to_lowercase())
+                }))
+            },
+            TextTransformCase::Uppercase => {
+                Box::new(simple_case_transform_iterator(iterator, |c| {
+                    CharacterTransformIteration::ToUppercase(c.to_uppercase())
+                }))
+            },
             TextTransformCase::Capitalize => Box::new(capitalization_iterator(
                 text.len(),
                 iterator,
@@ -112,19 +114,19 @@ impl CharacterTransformIteration {
         }
     }
 
-    pub(crate) fn each_char(&self, mut each: impl FnMut(char)) {
-        match *self {
+    pub(crate) fn each_char(self, mut each: impl FnMut(char)) {
+        match self {
             CharacterTransformIteration::OneToOne(c) => each(c),
             CharacterTransformIteration::WhitespaceCharsCollapsedToOneSpace(_) => each(' '),
             CharacterTransformIteration::WhitespaceCharsCollapsedToOneNewline(_) => each('\n'),
             CharacterTransformIteration::WhitespaceCharsCollapsedToNothing(_) => {},
-            CharacterTransformIteration::ToLowercase(c) => c.to_lowercase().for_each(each),
-            CharacterTransformIteration::ToUppercase(c) => c.to_uppercase().for_each(each),
-            CharacterTransformIteration::ToTitlecase(c) => to_titlecase(c).for_each(each),
+            CharacterTransformIteration::ToLowercase(iter) => iter.for_each(each),
+            CharacterTransformIteration::ToUppercase(iter) => iter.for_each(each),
+            CharacterTransformIteration::ToTitlecase(iter) => iter.for_each(each),
         }
     }
 
-    pub fn push_chars_to(&self, string: &mut String) {
+    pub fn push_chars_to(self, string: &mut String) {
         self.each_char(|character| string.push(character));
     }
 }
@@ -133,9 +135,10 @@ impl CharacterTransformIteration {
 // https://github.com/rust-lang/rust/issues/153892
 // because of:
 // https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
-fn to_titlecase(character: char) -> impl ExactSizeIterator<Item = char> {
+fn to_titlecase(character: char) -> ToTitleCase {
     character.to_uppercase()
 }
+type ToTitleCase = std::char::ToUppercase;
 
 pub struct WhitespaceCollapse<InputIterator> {
     input_iterator: InputIterator,
@@ -324,7 +327,7 @@ pub(crate) fn capitalization_iterator(
     let iterations: Vec<_> = input_iterator.collect();
     let mut string = String::with_capacity(size_hint);
     for iteration in &iterations {
-        iteration.push_chars_to(&mut string);
+        iteration.clone().push_chars_to(&mut string);
     }
 
     let word_segmenter = WordSegmenter::new_auto();
@@ -359,7 +362,9 @@ pub(crate) fn capitalization_iterator(
             let CharacterTransformIteration::OneToOne(_) = iteration &&
             (current_byte_index != 0 || allow_word_at_start)
         {
-            output.push(CharacterTransformIteration::ToTitlecase(character));
+            output.push(CharacterTransformIteration::ToTitlecase(to_titlecase(
+                character,
+            )));
         } else {
             output.push(iteration);
         }
@@ -470,26 +475,20 @@ impl OffsetMap {
     }
 
     pub(crate) fn push_iteration(&mut self, iteration: &CharacterTransformIteration) {
-        match *iteration {
+        match iteration {
             CharacterTransformIteration::OneToOne(_) => {
                 self.push_range(Utf32CodeUnits(1), Utf32CodeUnits(1));
             },
             CharacterTransformIteration::WhitespaceCharsCollapsedToOneSpace(original_length) |
             CharacterTransformIteration::WhitespaceCharsCollapsedToOneNewline(original_length) => {
-                self.push_range(Utf32CodeUnits(original_length), Utf32CodeUnits(1));
+                self.push_range(Utf32CodeUnits(*original_length), Utf32CodeUnits(1));
             },
             CharacterTransformIteration::WhitespaceCharsCollapsedToNothing(original_length) => {
-                self.push_range(Utf32CodeUnits(original_length), Utf32CodeUnits(0));
+                self.push_range(Utf32CodeUnits(*original_length), Utf32CodeUnits(0));
             },
-            CharacterTransformIteration::ToLowercase(original_character) => {
-                self.push_mapped_char(original_character.to_lowercase().len())
-            },
-            CharacterTransformIteration::ToUppercase(original_character) => {
-                self.push_mapped_char(original_character.to_uppercase().len())
-            },
-            CharacterTransformIteration::ToTitlecase(original_character) => {
-                self.push_mapped_char(to_titlecase(original_character).len())
-            },
+            CharacterTransformIteration::ToLowercase(iter) => self.push_mapped_char(iter.len()),
+            CharacterTransformIteration::ToUppercase(iter) => self.push_mapped_char(iter.len()),
+            CharacterTransformIteration::ToTitlecase(iter) => self.push_mapped_char(iter.len()),
         }
     }
 
@@ -560,10 +559,18 @@ fn test_offsetmap_basic_expansion() {
     assert_eq!(original_string.to_uppercase(), final_string);
 
     let mut offset_map = OffsetMap::default();
-    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('a'));
-    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('ß'));
-    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('ΰ'));
-    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase('b'));
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase(
+        'a'.to_uppercase(),
+    ));
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase(
+        'ß'.to_uppercase(),
+    ));
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase(
+        'ΰ'.to_uppercase(),
+    ));
+    offset_map.push_iteration(&CharacterTransformIteration::ToUppercase(
+        'b'.to_uppercase(),
+    ));
 
     assert_eq!(offset_map.map(c(0)).0, 0);
     assert_eq!(offset_map.map(c(1)).0, 1);
