@@ -21,6 +21,13 @@ use style::values::specified::text::{TextTransform, TextTransformCase};
 
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 
+/// <https://github.com/rust-lang/rust/blob/1.97.1/library/core/src/char/mod.rs#L523>
+///
+/// This is the maximum amount of characters that can be produced from case mapping,
+/// and by consequence the maximum amount of characters that can be produced during
+/// inline formatting context text transformation.
+const MAX_CASE_MAPPING_LENGTH: usize = 3;
+
 /// A single iteration in a pipeline of character iterators, that handle things like
 /// whitespace collapse and `text-transform` processing for text in an
 /// [`InlineFormattingContext`]. Each iteration can consume multiple characters and
@@ -32,7 +39,7 @@ pub struct CharacterTransformIteration {
     /// The number of characters consumed during this iteration of character transformation.
     consumed: Utf32CodeUnits,
     /// The characters that were produced during this iteration.
-    characters: ArrayVec<char, 3>,
+    characters: ArrayVec<char, MAX_CASE_MAPPING_LENGTH>,
 }
 
 impl CharacterTransformIteration {
