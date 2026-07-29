@@ -185,4 +185,33 @@ impl FragmentTree {
 
         find_body(&self.root_fragments)
     }
+
+    /// Clear cached spatial tree node ids from all fragments.
+    /// This must be called before rebuilding the scroll tree to prevent stale ids.
+    pub(crate) fn clear_all_spatial_tree_node_ids(&self) {
+        self.clear_spatial_nodes_in_fragments(&self.root_fragments);
+    }
+
+    fn clear_spatial_nodes_in_fragments(&self, fragments: &[Fragment]) {
+        for fragment in fragments {
+            match fragment {
+                Fragment::Box(box_fragment) => {
+                    box_fragment.spatial_tree_node.set(None);
+                    self.clear_spatial_nodes_in_fragments(&box_fragment.children);
+                }
+                Fragment::Float(box_fragment) => {
+                    box_fragment.spatial_tree_node.set(None);
+                    self.clear_spatial_nodes_in_fragments(&box_fragment.children);
+                }
+                Fragment::Positioning(positioning) => {
+                    self.clear_spatial_nodes_in_fragments(&positioning.children);
+                }
+                Fragment::LayoutRoot(layout_root) => {
+                    let inner = layout_root.inner();
+                    self.clear_spatial_nodes_in_fragments(&[inner.clone()]);
+                }
+                _ => {} // Text, Image, IFrame don't have spatial_tree_node
+            }
+        }
+    }
 }
