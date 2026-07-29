@@ -153,7 +153,7 @@ impl InlineFormattingContextBuilder {
         let new_characters = Utf32CodeUnits::length_of(string_to_push);
         self.current_character_offset += new_characters.0;
         self.offset_map
-            .push_synthetic_control_characters(new_characters);
+            .push_range(Utf32CodeUnits(0), new_characters);
     }
 
     fn shared_inline_styles(&self) -> SharedInlineStyles {

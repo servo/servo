@@ -423,7 +423,7 @@ impl OffsetMap {
         self.last_known_position().final_offset
     }
 
-    fn push_range(
+    pub fn push_range(
         &mut self,
         additional_original_length: Utf32CodeUnits,
         additional_final_length: Utf32CodeUnits,
@@ -443,10 +443,6 @@ impl OffsetMap {
             });
         }
         self.last_range_maps_one_to_one = this_range_maps_one_to_one;
-    }
-
-    pub(crate) fn push_synthetic_control_characters(&mut self, count: Utf32CodeUnits) {
-        self.push_range(Utf32CodeUnits(0), count);
     }
 
     pub(crate) fn push_iteration(&mut self, iteration: &CharacterTransformIteration) {
