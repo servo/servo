@@ -15,7 +15,7 @@ use std::cmp::max;
 use std::collections::hash_map;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use std::thread;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
@@ -456,7 +456,7 @@ struct WorkletThread {
 
     /// The thread's receiver for control messages
     control_receiver: Receiver<WorkletControl>,
-    /// add a control sender
+    /// The sender for sending CommonScriptMsg to the event loop
     control_sender: Sender<WorkletControl>,
 
     /// Senders
@@ -472,6 +472,9 @@ struct WorkletThread {
 
     /// A one-place buffer for control messages
     control_buffer: Option<WorkletControl>,
+
+    /// The closing for when a WorkletThread stops recieving messages
+    closing: Arc<AtomicBool>,
 
     /// The JS runtime
     runtime: Runtime,
@@ -519,6 +522,7 @@ impl WorkletThread {
                     control_buffer: None,
                     runtime,
                     should_gc: false,
+                    closing: Arc::new(AtomicBool::new(false)),
                     gc_threshold: MIN_GC_THRESHOLD,
                 });
                 thread.run(&mut cx);
@@ -594,10 +598,8 @@ impl WorkletThread {
                 self.control_buffer = Some(control);
                 let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
                 let _ = self.cold_backup_sender.send(msg);
-            } else if !self.runtime.microtask_queue.empty() {
-                let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
-                let _ = self.cold_backup_sender.send(msg);
             }
+
             // If we are tight on memory, and we're a backup then perform a gc.
             // If we are tight on memory, and we're the primary then try to become the hot backup.
             // Hopefully this happens soon!
@@ -639,6 +641,7 @@ impl WorkletThread {
 
     /// Get the worklet global scope for a given worklet.
     /// Creates the worklet global scope if it doesn't exist.
+    #[expect(clippy::too_many_arguments)]
     fn get_worklet_global_scope(
         &mut self,
         pipeline_id: PipelineId,
@@ -670,6 +673,7 @@ impl WorkletThread {
                     executor,
                     &self.global_init,
                     cx,
+                    self.closing.clone(),
                     microtask_queue,
                 );
                 entry.insert(Dom::from_ref(&*result));
@@ -703,21 +707,15 @@ impl WorkletThread {
         // TODO: Caching.
         let global = global_scope.upcast::<GlobalScope>();
 
-        let insecure_requests_policy = global.insecure_requests_policy();
-        let has_trustworthy_ancestor_origin = global.has_trustworthy_ancestor_origin();
-        let is_nested_browsing_context = global.is_nested_browsing_context();
-
         let request_client = RequestClient {
             preloaded_resources: PreloadedResources::default(),
             policy_container,
             origin: Origin::Origin(origin),
-            is_nested_browsing_context,
-            insecure_requests_policy,
-            has_trustworthy_ancestor_origin,
+            is_nested_browsing_context: global.is_nested_browsing_context(),
+            insecure_requests_policy: global.insecure_requests_policy(),
+            has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
         };
 
-        let referrer = global.get_referrer();
-        let credentials_mode = credentials.convert();
         let promise_task = Rc::new(RefCell::new(Some(promise)));
         let script_thread_sender = self.global_init.to_script_thread_sender.clone();
         let rooted_global = DomRoot::from_ref(global);
@@ -727,9 +725,9 @@ impl WorkletThread {
             global,
             script_url,
             request_client,
-            Destination::Script,
-            referrer,
-            credentials_mode,
+            Destination::PaintWorklet,
+            global.get_referrer(),
+            credentials.convert(),
             Some(IntroductionType::WORKLET),
             move |cx, module_tree| {
                 // Step 4.
@@ -739,6 +737,7 @@ impl WorkletThread {
                 // to the main script thread.
                 // https://github.com/w3c/css-houdini-drafts/issues/407
                 match module_tree {
+                    // 1. If script is null:
                     None => {
                         // Step 3.
                         debug!("Failed to load script.");
@@ -766,10 +765,12 @@ impl WorkletThread {
                             return;
                         }
 
+                        // Step 4. Run a module script given script.
                         rooted_global.run_a_module_script(cx, script, false);
 
                         // Step 5.
                         let old_counter = pending_tasks_struct.decrement_counter_by(1);
+                        // Step 2. If pendingTasks is 0 then, resolve promise.
                         if old_counter == 1 {
                             debug!("Resolving promise.");
 
@@ -852,13 +853,7 @@ impl WorkletThread {
                 )
             },
             WorkletControl::Common(script_msg) => {
-                if let CommonScriptMsg::Task(
-                    _worklet_event,
-                    task,
-                    _pipeline_id,
-                    _task_source_name,
-                ) = script_msg
-                {
+                if let CommonScriptMsg::Task(_, task, _, _) = script_msg {
                     task.run_box(cx);
                 }
             },

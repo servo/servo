@@ -174,7 +174,7 @@ pub(crate) enum MainThreadScriptMsg {
     ForwardEmbedderControlResponseFromFileManager(EmbedderControlId, EmbedderControlResponse),
 }
 
-/// Common messages used to control the event loops in both the script and the worker and the
+/// Common messages used to control the event loops in both the scrip, the worker, and the
 /// worklet
 pub(crate) enum CommonScriptMsg {
     /// Requests that the script thread measure its memory usage. The results are sent back via the

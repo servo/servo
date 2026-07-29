@@ -42,13 +42,13 @@ impl TestWorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        closing: Arc<AtomicBool>,
         microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<TestWorkletGlobalScope> {
         debug!(
             "Creating test worklet global scope for pipeline {}.",
             pipeline_id
         );
-        let closing = Arc::new(AtomicBool::new(false));
 
         let global = Box::new(TestWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(

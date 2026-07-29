@@ -3179,7 +3179,7 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.Performance(cx);
         }
-        unreachable!()
+        unreachable!();
     }
 
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>

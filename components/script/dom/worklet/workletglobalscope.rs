@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -65,10 +65,14 @@ pub(crate) struct WorkletGlobalScope {
 
     #[conditional_malloc_size_of]
     microtask_queue: Rc<MicrotaskQueue>,
+
+    #[conditional_malloc_size_of]
+    closing: Arc<AtomicBool>,
 }
 
 impl WorkletGlobalScope {
     /// Create a new heap-allocated `WorkletGlobalScope`.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
         pipeline_id: PipelineId,
@@ -77,6 +81,7 @@ impl WorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        closing: Arc<AtomicBool>,
         microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
@@ -88,6 +93,7 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
+                closing,
                 microtask_queue,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
@@ -97,6 +103,7 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
+                closing,
                 microtask_queue,
             )),
         };
@@ -144,10 +151,13 @@ impl WorkletGlobalScope {
             task_manager: Rc::new(TaskManager::new(
                 Some(script_event_loop_sender),
                 pipeline_id,
-                Some(TaskCanceller { cancelled: closing }),
+                Some(TaskCanceller {
+                    cancelled: closing.clone(),
+                }),
             )),
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
             microtask_queue,
+            closing,
         }
     }
 
@@ -206,8 +216,10 @@ impl WorkletGlobalScope {
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
-        self.microtask_queue
-            .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
+        if !self.closing.load(Ordering::SeqCst) {
+            self.microtask_queue
+                .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
+        }
     }
 }
 

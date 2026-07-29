@@ -94,13 +94,13 @@ impl PaintWorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        closing: Arc<AtomicBool>,
         microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<PaintWorkletGlobalScope> {
         debug!(
             "Creating paint worklet global scope for pipeline {}.",
             pipeline_id
         );
-        let closing = Arc::new(AtomicBool::new(false));
         let global = Box::new(PaintWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
                 pipeline_id,
