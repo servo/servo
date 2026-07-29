@@ -28,8 +28,8 @@ interface BaseAudioContext : EventTarget {
                                     unsigned long length,
                                     float sampleRate);
   Promise<AudioBuffer> decodeAudioData(ArrayBuffer audioData,
-                                       optional DecodeSuccessCallback successCallback,
-                                       optional DecodeErrorCallback errorCallback);
+                                       optional DecodeSuccessCallback? successCallback,
+                                       optional DecodeErrorCallback? errorCallback);
   [Throws] AudioBufferSourceNode createBufferSource();
   [Throws] ConstantSourceNode createConstantSource();
   // ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,

@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::jsapi::IsDetachedArrayBufferObject;
 use js::realm::CurrentRealm;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
@@ -59,6 +60,7 @@ use crate::dom::bindings::codegen::Bindings::IIRFilterNodeBinding::IIRFilterOpti
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
 use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerOptions;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -165,6 +167,12 @@ impl BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
     pub(crate) fn is_allowed_to_start(&self) -> bool {
         self.state.get() == AudioContextState::Suspended
+    }
+
+    // Reads the JSObject pointer to check if the array buffer is detached.
+    #[expect(unsafe_code)]
+    fn is_detached_array_buffer(array_buffer: &ArrayBuffer) -> bool {
+        unsafe { IsDetachedArrayBufferObject(*array_buffer.underlying_object()) }
     }
 
     fn push_pending_resume_promise(&self, promise: &Rc<Promise>) {
@@ -461,121 +469,200 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         &self,
         cx: &mut CurrentRealm,
         audio_data: CustomAutoRooterGuard<ArrayBuffer>,
-        decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
-        decode_error_callback: Option<Rc<DecodeErrorCallback>>,
+        decode_success_callback: Option<Option<Rc<DecodeSuccessCallback>>>,
+        decode_error_callback: Option<Option<Rc<DecodeErrorCallback>>>,
     ) -> Rc<Promise> {
-        // Step 1.
-        let promise = Promise::new_in_realm(cx);
-
-        if let Some(audio_data) = audio_data.to_vec() {
-            // Step 2.
-            // XXX detach array buffer.
-            let uuid = Uuid::new_v4().simple().to_string();
-            let uuid_ = uuid.clone();
-            self.decode_resolvers.safe_borrow_mut(cx.no_gc()).insert(
-                uuid.clone(),
-                DecodeResolver {
-                    promise: promise.clone(),
-                    success_callback: decode_success_callback,
-                    error_callback: decode_error_callback,
-                },
+        // Step 1. If this's relevant global object's associated Document is NOT fully active,
+        // return a promise rejected with "InvalidStateError".
+        if !self.global().as_window().Document().is_fully_active() {
+            let promise = Promise::new_in_realm(cx);
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some(
+                    "Cannot call decodeAudioData() when the document is not fully active.".into(),
+                )),
             );
-            let decoded_audio = Arc::new(Mutex::new(Vec::new()));
-            let decoded_audio_ = decoded_audio.clone();
-            let decoded_audio__ = decoded_audio.clone();
-            // servo-media returns an audio channel position along
-            // with the AudioDecoderCallback progress callback, which
-            // may not be the same as the index of the decoded_audio
-            // Vec.
-            let channels = Arc::new(Mutex::new(HashMap::new()));
-            let this = Trusted::new(self);
-            let this_ = this.clone();
-            let task_source = self
-                .global()
-                .task_manager()
-                .dom_manipulation_task_source()
-                .to_sendable();
-            let task_source_clone = task_source.clone();
-            let callbacks = AudioDecoderCallbacksBuilder::default()
-                .ready(move |channel_count| {
-                    decoded_audio
-                        .lock()
-                        .unwrap()
-                        .resize(channel_count as usize, Vec::new());
-                })
-                .progress(move |buffer, channel_pos_mask| {
-                    let mut decoded_audio = decoded_audio_.lock().unwrap();
-                    let mut channels = channels.lock().unwrap();
-                    let channel = match channels.entry(channel_pos_mask) {
-                        Entry::Occupied(entry) => *entry.get(),
-                        Entry::Vacant(entry) => {
-                            let x = (channel_pos_mask as f32).log2() as usize;
-                            *entry.insert(x)
-                        },
-                    };
-                    decoded_audio[channel].extend_from_slice((*buffer).as_ref());
-                })
-                .eos(move || {
-                    task_source.queue(task!(audio_decode_eos: move |cx| {
-                        let this = this.root();
-                        let decoded_audio = decoded_audio__.lock().unwrap();
-                        let length = if !decoded_audio.is_empty() {
-                            decoded_audio[0].len()
-                        } else {
-                            0
-                        };
-                        let buffer = AudioBuffer::new(
-                            cx,
-                            this.global().as_window(),
-                            decoded_audio.len() as u32 /* number of channels */,
-                            length as u32,
-                            this.sample_rate,
-                            Some(decoded_audio.as_slice()),
-                        );
-                        // Potential borrow hazard
-                        let resolver = {
-                            let mut resolvers = this.decode_resolvers.safe_borrow_mut(cx.no_gc());
-                            assert!(resolvers.contains_key(&uuid_));
-                            resolvers.remove(&uuid_).unwrap()
-                        };
-                        if let Some(callback) = resolver.success_callback {
-                            let _ = callback.Call__(cx, &buffer, ExceptionHandling::Report);
-                        }
-                        resolver.promise.resolve_native(cx, &buffer);
-                    }));
-                })
-                .error(move |error| {
-                    task_source_clone.queue(task!(audio_decode_eos: move |cx| {
-                        let this = this_.root();
-                        // potential borrow hazard
-                        let resolver = {
-                            let mut resolvers = this.decode_resolvers.safe_borrow_mut(cx.no_gc());
-                            assert!(resolvers.contains_key(&uuid));
-                            resolvers.remove(&uuid).unwrap()
-                        };
-                        if let Some(callback) = resolver.error_callback {
-                            let exception = DOMException::new(cx,
-                                &this.global(),
-                                DOMErrorName::DataCloneError,
-                            );
-                            let _ = callback.Call__(cx, &exception, ExceptionHandling::Report);
-                        }
-                        let error = cformat!("Audio decode error {:?}", error);
-                        resolver.promise.reject_error(cx, Error::Type(error));
-                    }));
-                })
-                .build();
-            self.audio_context_impl
-                .lock()
-                .unwrap()
-                .decode_audio_data(audio_data, callbacks);
-        } else {
-            // Step 3.
-            promise.reject_error(cx, Error::DataClone(None));
             return promise;
         }
 
-        // Step 4.
+        // Step 2. Let promise be a new promise.
+        let promise = Promise::new_in_realm(cx);
+
+        // optional Nullable callbacks: omitted/undefined → None, null → Some(None), fn → Some(Some(cb))
+        let decode_success_callback = decode_success_callback.flatten();
+        let decode_error_callback = decode_error_callback.flatten();
+
+        // Step 3. If audio_data is NOT detached, execute the following steps:
+        // - Append promise to [[pending promises]].
+        // - Detach the audio_data ArrayBuffer. If this operation throws, jump to step 4.1.
+        // - Queue a decoding operation to be performed on another thread.
+        if !Self::is_detached_array_buffer(&audio_data) {
+            if let Some(audio_data) = audio_data.to_vec() {
+                // XXX detach array buffer.
+                let uuid = Uuid::new_v4().simple().to_string();
+                let uuid_ = uuid.clone();
+                self.decode_resolvers.safe_borrow_mut(cx.no_gc()).insert(
+                    uuid.clone(),
+                    DecodeResolver {
+                        promise: promise.clone(),
+                        success_callback: decode_success_callback,
+                        error_callback: decode_error_callback,
+                    },
+                );
+                let decoded_audio = Arc::new(Mutex::new(Vec::new()));
+                let decoded_audio_ = decoded_audio.clone();
+                let decoded_audio__ = decoded_audio.clone();
+                // servo-media returns an audio channel position along
+                // with the AudioDecoderCallback progress callback, which
+                // may not be the same as the index of the decoded_audio
+                // Vec.
+                let channels = Arc::new(Mutex::new(HashMap::new()));
+                let this = Trusted::new(self);
+                let this_ = this.clone();
+                let task_source = self
+                    .global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .to_sendable();
+                let task_source_clone = task_source.clone();
+                let callbacks = AudioDecoderCallbacksBuilder::default()
+                    .ready(move |channel_count| {
+                        decoded_audio
+                            .lock()
+                            .unwrap()
+                            .resize(channel_count as usize, Vec::new());
+                    })
+                    .progress(move |buffer, channel_pos_mask| {
+                        let mut decoded_audio = decoded_audio_.lock().unwrap();
+                        let mut channels = channels.lock().unwrap();
+                        let channel = match channels.entry(channel_pos_mask) {
+                            Entry::Occupied(entry) => *entry.get(),
+                            Entry::Vacant(entry) => {
+                                let x = (channel_pos_mask as f32).log2() as usize;
+                                *entry.insert(x)
+                            },
+                        };
+                        decoded_audio[channel].extend_from_slice((*buffer).as_ref());
+                    })
+                    .eos(move || {
+                        task_source.queue(task!(audio_decode_eos: move |cx| {
+                            let this = this.root();
+                            let decoded_audio = decoded_audio__.lock().unwrap();
+                            let length = if !decoded_audio.is_empty() {
+                                decoded_audio[0].len()
+                            } else {
+                                0
+                            };
+                            let buffer = AudioBuffer::new(
+                                cx,
+                                this.global().as_window(),
+                                decoded_audio.len() as u32 /* number of channels */,
+                                length as u32,
+                                this.sample_rate,
+                                Some(decoded_audio.as_slice()),
+                            );
+                            // Potential borrow hazard
+                            let resolver = {
+                                let mut resolvers =
+                                    this.decode_resolvers.safe_borrow_mut(cx.no_gc());
+                                assert!(resolvers.contains_key(&uuid_));
+                                resolvers.remove(&uuid_).unwrap()
+                            };
+                            if let Some(callback) = resolver.success_callback {
+                                let _ = callback.Call__(cx, &buffer, ExceptionHandling::Report);
+                            }
+                            resolver.promise.resolve_native(cx, &buffer);
+                        }));
+                    })
+                    .error(move |error| {
+                        task_source_clone.queue(task!(audio_decode_eos: move |cx| {
+                            let this = this_.root();
+                            // potential borrow hazard
+                            let resolver = {
+                                let mut resolvers =
+                                    this.decode_resolvers.safe_borrow_mut(cx.no_gc());
+                                assert!(resolvers.contains_key(&uuid));
+                                resolvers.remove(&uuid).unwrap()
+                            };
+                            if let Some(callback) = resolver.error_callback {
+                                let exception = DOMException::new(
+                                    cx,
+                                    &this.global(),
+                                    DOMErrorName::DataCloneError,
+                                );
+                                let _ =
+                                    callback.Call__(cx, &exception, ExceptionHandling::Report);
+                            }
+                            let error = cformat!("Audio decode error {:?}", error);
+                            resolver.promise.reject_error(cx, Error::Type(error));
+                        }));
+                    })
+                    .build();
+                self.audio_context_impl
+                    .lock()
+                    .unwrap()
+                    .decode_audio_data(audio_data, callbacks);
+            } else {
+                debug_assert!(false, "ArrayBuffer::to_vec failed on non-detached buffer");
+                promise.reject_error(
+                    cx,
+                    Error::DataClone(Some(
+                        "Failed to detach the ArrayBuffer while decoding audio data.".into(),
+                    )),
+                );
+                return promise;
+            }
+        } else {
+            // Step 4. 
+            // Else, execute the following error steps:
+            // - Let error be a DataCloneError.
+            // - Reject promise with error, and remove it from [[pending promises]].
+            // - Queue a media element task to invoke errorCallback with error.
+            promise.reject_error(
+                cx,
+                Error::DataClone(Some(
+                    "Cannot decode audio data from a detached ArrayBuffer.".into(),
+                )),
+            );
+
+            if let Some(callback) = decode_error_callback {
+                // Build the Task object using a unique uuid as a key to remove the callback resolver entry.
+                // Stash the callback with clone of uuid in the decode_resolvers map.
+                // Enqueue the task after the callback is stashed.
+                let uuid = Uuid::new_v4().simple().to_string();
+                let uuid_ = uuid.clone();
+                let this = Trusted::new(self);
+                let task = task!(decode_audio_data_detached_buffer: move |cx| {
+                    let this = this.root();
+                    let resolver = {
+                        let mut resolvers = this.decode_resolvers.safe_borrow_mut(cx.no_gc());
+                        resolvers.remove(&uuid).unwrap()
+                    };
+                    if let Some(callback) = resolver.error_callback {
+                        let exception = DOMException::new(
+                            cx,
+                            &this.global(),
+                            DOMErrorName::DataCloneError,
+                        );
+                        let _ = callback.Call__(cx, &exception, ExceptionHandling::Report);
+                    }
+                });
+                self.decode_resolvers.safe_borrow_mut(cx.no_gc()).insert(
+                    uuid_,
+                    DecodeResolver {
+                        promise: promise.clone(),
+                        success_callback: None,
+                        error_callback: Some(callback),
+                    },
+                );
+                self.global()
+                    .task_manager()
+                    .media_element_task_source()
+                    .queue(task);
+            }
+        }
+
+        // Step 5. Return promise.
         promise
     }
 
