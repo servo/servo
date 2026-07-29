@@ -444,11 +444,21 @@ impl OffsetMap {
         additional_original_length: Utf32CodeUnits,
         additional_final_length: Utf32CodeUnits,
     ) {
-        let last = self.last_known_position();
-        self.known_positions.push(OffsetMapKnownPosition {
-            original_offset: last.original_offset + additional_original_length,
-            final_offset: last.final_offset + additional_final_length,
-        })
+        let this_range_maps_one_to_one = additional_original_length == additional_final_length;
+        if this_range_maps_one_to_one &&
+            self.last_range_maps_one_to_one &&
+            let Some(last) = self.known_positions.last_mut()
+        {
+            last.original_offset += additional_original_length;
+            last.final_offset += additional_final_length;
+        } else {
+            let last = self.last_known_position();
+            self.known_positions.push(OffsetMapKnownPosition {
+                original_offset: last.original_offset + additional_original_length,
+                final_offset: last.final_offset + additional_final_length,
+            });
+        }
+        self.last_range_maps_one_to_one = this_range_maps_one_to_one;
     }
 
     pub(crate) fn push_synthetic_control_characters(&mut self, count: Utf32CodeUnits) {
@@ -462,16 +472,7 @@ impl OffsetMap {
     pub(crate) fn push_iteration(&mut self, iteration: &CharacterTransformIteration) {
         match *iteration {
             CharacterTransformIteration::OneToOne(_) => {
-                if self.last_range_maps_one_to_one &&
-                    let Some(last) = self.known_positions.last_mut()
-                {
-                    last.original_offset += Utf32CodeUnits(1);
-                    last.final_offset += Utf32CodeUnits(1);
-                } else {
-                    self.push_range(Utf32CodeUnits(1), Utf32CodeUnits(1));
-                    self.last_range_maps_one_to_one = true;
-                }
-                return; // skip `self.last_range_maps_one_to_one = false` below
+                self.push_range(Utf32CodeUnits(1), Utf32CodeUnits(1));
             },
             CharacterTransformIteration::WhitespaceCharsCollapsedToOneSpace(original_length) |
             CharacterTransformIteration::WhitespaceCharsCollapsedToOneNewline(original_length) => {
@@ -490,8 +491,6 @@ impl OffsetMap {
                 self.push_mapped_char(to_titlecase(original_character).len())
             },
         }
-        // In all cases except `OneToOne`
-        self.last_range_maps_one_to_one = false;
     }
 
     pub fn map(&self, target_original_offset: Utf32CodeUnits) -> Utf32CodeUnits {
