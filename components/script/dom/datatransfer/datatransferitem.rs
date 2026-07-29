@@ -130,9 +130,10 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                 .task_manager()
                 .dom_manipulation_task_source()
                 .queue(task!(invoke_callback: move |cx| {
-                    let maybe_index = this.root().pending_callbacks.borrow().iter().position(|val| val.id == id);
+                    let this = this.root();
+                    let maybe_index = this.pending_callbacks.borrow().iter().position(|val| val.id == id);
                     if let Some(index) = maybe_index {
-                        let callback = this.root().pending_callbacks.borrow_mut().swap_remove(index).callback;
+                        let callback = this.pending_callbacks.safe_borrow_mut(cx.no_gc()).swap_remove(index).callback;
                         let _ = callback.Call__(cx, DOMString::from(string), ExceptionHandling::Report);
                     }
                 }));
