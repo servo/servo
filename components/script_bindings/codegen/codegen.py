@@ -5431,10 +5431,6 @@ impl std::str::FromStr for super::{ident} {{
 }}
 
 impl ToJSValConvertible for super::{ident} {{
-    unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {{
-        pairs[*self as usize].0.to_jsval(cx, rval);
-    }}
-
     fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         pairs[*self as usize].0.safe_to_jsval(cx, rval);
     }}
@@ -5648,13 +5644,6 @@ pub enum {self.type}{self.generic} {{
 }}
 
 impl{self.generic} ToJSValConvertible for {self.type}{self.genericSuffix} {{
-    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {{
-        // TODO: https://github.com/servo/mozjs/issues/764
-        // This is needed until the `RawJSContext` version is removed from the trait.
-        let mut cx = crate::script_runtime::temp_cx();
-        self.safe_to_jsval(&mut cx, rval);
-    }}
-
     fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         match *self {{
 {joinedEnumConversions}
@@ -7836,13 +7825,6 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "}\n"
             "\n"
             f"impl{self.generic} ToJSValConvertible for {selfName}{self.genericSuffix} {{\n"
-            "    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {\n"
-            "       // TODO: https://github.com/servo/mozjs/issues/764\n"
-            "       // This is needed until the `RawJSContext` version is removed from the trait.\n"
-            "       let mut cx = crate::script_runtime::temp_cx();\n"
-            "        self.safe_to_jsval(&mut cx, rval);\n"
-            "    }\n"
-            "\n"
             "    fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {\n"
             "        rooted!(&in(cx) let mut obj = unsafe { JS_NewObject(cx, ptr::null()) });\n"
             "        self.to_jsobject(cx, obj.handle_mut());\n"
@@ -8658,10 +8640,6 @@ impl<D: DomTypes> CallbackContainer<D> for {type} {{
 }}
 
 impl<D: DomTypes> ToJSValConvertible for {type} {{
-    unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {{
-        self.callback().to_jsval(cx, rval);
-    }}
-
     fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         self.callback().safe_to_jsval(cx, rval);
     }}

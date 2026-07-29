@@ -10,6 +10,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -20,7 +21,6 @@ use js::rust::{
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::MessagePortImpl;

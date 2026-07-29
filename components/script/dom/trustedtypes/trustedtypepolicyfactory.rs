@@ -6,9 +6,9 @@ use std::cell::RefCell;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 
 use crate::conversions::Convert;

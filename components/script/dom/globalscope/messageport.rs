@@ -8,12 +8,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers2::JS_NewObject;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use servo_base::id::{MessagePortId, MessagePortIndex};
 use servo_constellation_traits::{MessagePortImpl, PortMessageTask};

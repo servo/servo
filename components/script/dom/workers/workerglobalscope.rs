@@ -16,6 +16,7 @@ use encoding_rs::UTF_8;
 use fonts::FontContext;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSContext as RawJSContext, Value};
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
@@ -28,7 +29,7 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use profile_traits::mem::{ProcessReports, perform_memory_report};
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::conversions::{SafeToJSValConvertible, root_from_handlevalue};
+use script_bindings::conversions::root_from_handlevalue;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::rooted_heap_handle;
 use script_bindings::trace::CustomTraceable;

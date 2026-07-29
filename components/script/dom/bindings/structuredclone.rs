@@ -9,6 +9,7 @@ use std::os::raw;
 use std::ptr::{self, NonNull};
 
 use js::context::{JSContext, NoGC};
+use js::conversions::ToJSValConvertible;
 use js::gc::RootedVec;
 use js::glue::{
     CopyJSStructuredCloneData, GetLengthOfJSStructuredCloneData, WriteBytesToJSStructuredCloneData,
@@ -26,7 +27,7 @@ use js::rust::{
     CustomAutoRooterGuard, HandleValue, JSAutoStructuredCloneBufferWrapper, MutableHandleValue,
 };
 use rustc_hash::FxHashMap;
-use script_bindings::conversions::{IDLInterface, SafeToJSValConvertible};
+use script_bindings::conversions::IDLInterface;
 use servo_base::id::{
     BlobId, CryptoKeyId, DomExceptionId, DomMatrixId, DomPointId, DomQuadId, DomRectId, FileId,
     FileListId, ImageBitmapId, ImageDataId, Index, MessagePortId, NamespaceIndex,

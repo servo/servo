@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::conversions::{ConversionResult, FromJSValConvertibleRc};
+use js::conversions::{ConversionResult, FromJSValConvertibleRc, ToJSValConvertible};
 use js::jsapi::{
     CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSContext as RawJSContext,
     JSObject, PromiseState, PromiseUserInputEventHandlingState, RemoveRawValueRoot,
@@ -33,7 +33,6 @@ use js::rust::wrappers2::{
     SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_bindings::settings_stack::run_a_script;
 
@@ -160,7 +159,7 @@ impl Promise {
     pub(crate) fn new_resolved(
         cx: &mut JSContext,
         global: &GlobalScope,
-        value: impl SafeToJSValConvertible,
+        value: impl ToJSValConvertible,
     ) -> Rc<Promise> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
@@ -175,7 +174,7 @@ impl Promise {
     pub(crate) fn new_rejected(
         cx: &mut JSContext,
         global: &GlobalScope,
-        value: impl SafeToJSValConvertible,
+        value: impl ToJSValConvertible,
     ) -> Rc<Promise> {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
@@ -188,7 +187,7 @@ impl Promise {
 
     pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
     where
-        T: SafeToJSValConvertible,
+        T: ToJSValConvertible,
     {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
@@ -208,7 +207,7 @@ impl Promise {
 
     pub(crate) fn reject_native<T>(&self, cx: &mut JSContext, val: &T)
     where
-        T: SafeToJSValConvertible,
+        T: ToJSValConvertible,
     {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();

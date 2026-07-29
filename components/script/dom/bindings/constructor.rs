@@ -6,12 +6,12 @@ use std::ptr;
 
 use html5ever::interface::QualName;
 use html5ever::{LocalName, local_name, ns};
+use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, JSObject};
 use js::realm::AutoRealm;
 use js::rust::wrappers2::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interface::get_desired_proto;
 use script_bindings::reflector::DomObject;
 

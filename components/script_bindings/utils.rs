@@ -875,7 +875,7 @@ pub fn to_frozen_array<T: ToJSValConvertible>(
     convertibles: &[T],
     mut rval: MutableHandleValue,
 ) {
-    crate::conversions::SafeToJSValConvertible::safe_to_jsval(convertibles, cx, rval.reborrow());
+    convertibles.safe_to_jsval(cx, rval.reborrow());
 
     rooted!(&in(cx) let obj = rval.to_object());
     unsafe { JS_FreezeObject(cx, obj.handle()) };
