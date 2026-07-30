@@ -5,7 +5,7 @@
 mod snapshot;
 
 use std::borrow::Cow;
-use std::io::Cursor;
+use std::io::{Cursor, Read, Seek};
 use std::num::NonZeroU32;
 use std::ops::Range;
 use std::sync::Arc;
@@ -13,14 +13,11 @@ use std::time::Duration;
 use std::{cmp, fmt, vec};
 
 use euclid::default::{Point2D, Rect, Size2D};
-use image::codecs::{bmp, gif, ico, jpeg, png, webp};
-use image::error::ImageFormatHint;
+use ico as rust_ico;
+use image::codecs::{bmp, gif, ico as image_ico, jpeg, png, webp};
 use image::imageops::{self, FilterType};
 use image::metadata::LoopCount;
-use image::{
-    AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
-    ImageResult, Limits, Rgba,
-};
+use image::{AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageResult, Limits, Rgba};
 use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -577,6 +574,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
                 GenericImageDecoder::Ico(image_decoder) => {
                     decode_static_image(cors_status, *image_decoder)
                 },
+                GenericImageDecoder::Cur(reader) => decode_cur_image(cors_status, *reader),
             }
         },
     }
@@ -596,6 +594,8 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
         Ok(ImageFormat::Bmp)
     } else if is_ico(buffer) {
         Ok(ImageFormat::Ico)
+    } else if is_cur(buffer) {
+        Ok(ImageFormat::Cur)
     } else {
         Err("Image Format Not Supported")
     }
@@ -698,6 +698,16 @@ pub fn generic_transform_inplace<
     }
 }
 
+pub enum ImageFormat {
+    Gif,
+    Jpeg,
+    Png,
+    WebP,
+    Bmp,
+    Ico,
+    Cur,
+}
+
 fn is_gif(buffer: &[u8]) -> bool {
     buffer.starts_with(b"GIF87a") || buffer.starts_with(b"GIF89a")
 }
@@ -716,6 +726,10 @@ fn is_bmp(buffer: &[u8]) -> bool {
 
 fn is_ico(buffer: &[u8]) -> bool {
     buffer.starts_with(&[0x00, 0x00, 0x01, 0x00])
+}
+
+fn is_cur(buffer: &[u8]) -> bool {
+    buffer.starts_with(&[0x00, 0x00, 0x02, 0x00])
 }
 
 fn is_webp(buffer: &[u8]) -> bool {
@@ -739,7 +753,8 @@ enum GenericImageDecoder<R: std::io::BufRead + std::io::Seek> {
     Webp(Box<webp::WebPDecoder<R>>),
     Jpeg(Box<jpeg::JpegDecoder<R>>),
     Bmp(Box<bmp::BmpDecoder<R>>),
-    Ico(Box<ico::IcoDecoder<R>>),
+    Ico(Box<image_ico::IcoDecoder<R>>),
+    Cur(Box<R>),
 }
 
 fn make_decoder(
@@ -756,12 +771,8 @@ fn make_decoder(
         ImageFormat::WebP => GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?)),
         ImageFormat::Jpeg => GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?)),
         ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
-        ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
-        _ => {
-            return Err(ImageError::Unsupported(
-                ImageFormatHint::Exact(format).into(),
-            ));
-        },
+        ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(image_ico::IcoDecoder::new(reader)?)),
+        ImageFormat::Cur => GenericImageDecoder::Cur(Box::new(reader)),
     })
 }
 
@@ -886,6 +897,65 @@ where
         bytes: Arc::new(bytes),
         is_opaque,
         loop_count: Some(loop_count),
+    })
+}
+
+fn decode_cur_image<R: Read + Seek>(cors_status: CorsStatus, reader: R) -> Option<RasterImage> {
+    let Ok(icon_dir) = rust_ico::IconDir::read(reader) else {
+        debug!("Failed to read .cur file");
+        return None;
+    };
+    // Following convention established by image::ico decoder, we pick the "best" icon entry to decode. Best is defined as
+    // largest size by pixels
+    // TODO: Handle .cur hotspot coordinates, multiple image entries for cur and ico files
+    let mut best_entry = None;
+    let mut best_score = 0;
+    for entry in icon_dir.entries() {
+        let score = entry.width() * entry.height();
+        if score > best_score {
+            best_score = score;
+            best_entry = Some(entry);
+        }
+    }
+
+    let Some(best_entry) = best_entry else {
+        debug!(".cur file had no image entries");
+        return None;
+    };
+    let decoded_image = match best_entry.decode() {
+        Ok(image) => image,
+        Err(e) => {
+            debug!("Error decoding .cur file image {e}");
+            return None;
+        },
+    };
+    let image_dim = (decoded_image.width(), decoded_image.height());
+
+    let mut rgba = decoded_image.into_rgba_data();
+
+    // Store pre-multiplied data as that prevents having to do conversions of the data at later
+    // times. This does cause an issue with some canvas APIs. See:
+    // https://github.com/servo/servo/issues/40257
+    let is_opaque = rgba8_premultiply_inplace(&mut rgba);
+
+    let frame = ImageFrame {
+        delay: None,
+        byte_range: 0..rgba.len(),
+        width: image_dim.0,
+        height: image_dim.1,
+    };
+    Some(RasterImage {
+        metadata: ImageMetadata {
+            width: image_dim.0,
+            height: image_dim.1,
+        },
+        format: PixelFormat::RGBA8,
+        frames: vec![frame],
+        bytes: Arc::new(rgba),
+        id: None,
+        cors_status,
+        is_opaque,
+        loop_count: None,
     })
 }
 
