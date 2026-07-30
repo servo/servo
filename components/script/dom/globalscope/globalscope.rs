@@ -150,7 +150,7 @@ use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
-    ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
+    ImportMap, ModuleRequest, ModuleStatus, ModuleTree, ResolvedModule, ScriptFetchOptions,
 };
 use crate::script_runtime::ThreadSafeJSContext;
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -2421,12 +2421,28 @@ impl GlobalScope {
         &self.consumed_rejections
     }
 
+    pub(crate) fn module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
+        &self.module_map
+    }
+
+    pub(crate) fn take_module_entry(&self, request: &ModuleRequest) -> Option<ModuleStatus> {
+        self.module_map.borrow_mut().remove(request)
+    }
+
     pub(crate) fn set_module_map(&self, request: ModuleRequest, module: ModuleStatus) {
         self.module_map.borrow_mut().insert(request, module);
     }
 
-    pub(crate) fn get_module_map_entry(&self, request: &ModuleRequest) -> Option<ModuleStatus> {
-        self.module_map.borrow().get(request).cloned()
+    pub(crate) fn get_module_tree(&self, request: &ModuleRequest) -> Option<Rc<ModuleTree>> {
+        self.module_map
+            .borrow()
+            .get(request)
+            .and_then(|status| match status {
+                ModuleStatus::Fetching(_) => None,
+                ModuleStatus::Loaded(module_tree) => Some(module_tree.clone()),
+            })
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
