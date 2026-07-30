@@ -336,30 +336,6 @@ impl InlineFormattingContextBuilder {
             return false;
         }
 
-        let intersect_ranges = |a: RangeAny<Utf32CodeUnits>, b: RangeAny<Utf32CodeUnits>| {
-            // TODO: https://github.com/rust-lang/rust/issues/144273
-            // let start = a.start.reduce(b.start, std::cmp::max);
-            // let end = a.end.reduce(b.end, std::cmp::min);
-            let start = match (a.start, b.start) {
-                (None, None) => None,
-                (None, Some(b)) => Some(b),
-                (Some(a), None) => Some(a),
-                (Some(a), Some(b)) => Some(a.max(b)),
-            };
-            let end = match (a.end, b.end) {
-                (None, None) => None,
-                (None, Some(b)) => Some(b),
-                (Some(a), None) => Some(a),
-                (Some(a), Some(b)) => Some(a.min(b)),
-            };
-            if start.is_none_or(|s| end.is_none_or(|e| s < e)) {
-                Some(RangeAny { start, end })
-            } else {
-                // `max()..min()` producing a "backwards" range means the intersection is empty
-                None
-            }
-        };
-
         // Push any leading white space first.
         let first_letter_range_u32 = LazyCell::new(|| {
             Utf32CodeUnits::length_of(&text[..first_letter_range.start])..
@@ -373,7 +349,7 @@ impl InlineFormattingContextBuilder {
                         start: None,
                         end: Some(first_letter_range_u32.start),
                     };
-                    intersect_ranges(document_selection, leading_whitespace_range_u32)
+                    document_selection.intersect(leading_whitespace_range_u32)
                 });
 
             self.push_text(
@@ -393,8 +369,9 @@ impl InlineFormattingContextBuilder {
 
         let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
         let first_letter_selection_range = document_selection.and_then(|document_selection| {
-            intersect_ranges(document_selection, (*first_letter_range_u32).clone().into())
-                .map(|range| range.map(|x| x - first_letter_range_u32.start))
+            document_selection
+                .intersect((*first_letter_range_u32).clone().into())
+                .map(|range| range.map(|offset| offset - first_letter_range_u32.start))
         });
         self.push_text(
             first_letter_text.into(),
@@ -410,8 +387,9 @@ impl InlineFormattingContextBuilder {
                 start: Some(first_letter_range_u32.end),
                 end: document_selection.end,
             };
-            intersect_ranges(document_selection, remaining_text_range_u32)
-                .map(|range| range.map(|x| x - first_letter_range_u32.end))
+            document_selection
+                .intersect(remaining_text_range_u32)
+                .map(|range| range.map(|offset| offset - first_letter_range_u32.end))
         });
         self.push_text(
             Cow::Borrowed(&text[first_letter_range.end..]).into(),
@@ -474,18 +452,16 @@ impl InlineFormattingContextBuilder {
         }
 
         let document_selection = document_selection.map(|document_selection| {
-            let start = if let Some(start) = document_selection.start {
-                self.offset_map.map(start)
-            } else {
+            let start = document_selection
+                .start
+                .map(|offset| self.offset_map.map(offset))
                 // Range unbounded at the start: the concrete start is offset zero
-                Utf32CodeUnits(0)
-            };
-            let end = if let Some(end) = document_selection.end {
-                self.offset_map.map(end)
-            } else {
+                .unwrap_or(Utf32CodeUnits(0));
+            let end = document_selection
+                .end
+                .map(|offset| self.offset_map.map(offset))
                 // Range unbounded at the end: the concrete end is the full length
-                Utf32CodeUnits(character_count)
-            };
+                .unwrap_or(Utf32CodeUnits(character_count));
             original_size_before + start..original_size_before + end
         });
 

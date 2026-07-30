@@ -59,11 +59,43 @@ pub struct RangeAny<T> {
 }
 
 impl<T> RangeAny<T> {
+    /// Apply `Option::map` to each bound of this range
     pub fn map<U>(self, f: impl Fn(T) -> U + Copy) -> RangeAny<U> {
         let Self { start, end } = self;
         RangeAny {
             start: start.map(f),
             end: end.map(f),
+        }
+    }
+
+    /// Returns the intersection of two ranges, if it is non-empty
+    pub fn intersect(self, other: Self) -> Option<Self>
+    where
+        T: Ord,
+    {
+        // TODO: https://github.com/rust-lang/rust/issues/144273
+        // let start = a.start.reduce(b.start, std::cmp::max);
+        // let end = a.end.reduce(b.end, std::cmp::min);
+        let start = match (self.start, other.start) {
+            (None, None) => None,
+            (None, Some(b)) => Some(b),
+            (Some(a), None) => Some(a),
+            (Some(a), Some(b)) => Some(a.max(b)),
+        };
+        let end = match (self.end, other.end) {
+            (None, None) => None,
+            (None, Some(b)) => Some(b),
+            (Some(a), None) => Some(a),
+            (Some(a), Some(b)) => Some(a.min(b)),
+        };
+        if start
+            .as_ref()
+            .is_none_or(|start| end.as_ref().is_none_or(|end| start < end))
+        {
+            Some(RangeAny { start, end })
+        } else {
+            // `max()..min()` producing a "backwards" range means the intersection is empty
+            None
         }
     }
 }
