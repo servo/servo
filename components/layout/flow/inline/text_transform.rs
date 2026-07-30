@@ -58,7 +58,7 @@ impl CharacterTransformIteration {
         }
     }
 
-    fn collapse(character: Option<char>, amount_collapsed: usize) -> Self {
+    fn collapse(amount_collapsed: usize, character: Option<char>) -> Self {
         Self {
             consumed: Utf32CodeUnits(amount_collapsed),
             characters: character.into_iter().collect(),
@@ -117,9 +117,9 @@ impl<InputIterator: Iterator<Item = char>> WhitespaceCollapse<InputIterator> {
         collapsed_whitespace: usize,
     ) -> CharacterTransformIteration {
         if !self.following_newline && !self.trimming_leading_white_space {
-            CharacterTransformIteration::collapse(Some(' '), collapsed_whitespace)
+            CharacterTransformIteration::collapse(collapsed_whitespace, Some(' '))
         } else {
-            CharacterTransformIteration::collapse(None, collapsed_whitespace)
+            CharacterTransformIteration::collapse(collapsed_whitespace, None)
         }
     }
 
@@ -193,7 +193,7 @@ impl<InputIterator: Iterator<Item = char>> Iterator for WhitespaceCollapse<Input
                 // > 2. Then any remaining segment break is either transformed into a space (U+0020)
                 // >    or removed depending on the context before and after the break.
                 let iteration = if self.white_space_collapse != WhiteSpaceCollapse::Collapse {
-                    CharacterTransformIteration::collapse(Some('\n'), collected_whitespace + 1)
+                    CharacterTransformIteration::collapse(collected_whitespace + 1, Some('\n'))
                 } else {
                     self.iteration_for_collapsed_whitespace(collected_whitespace + 1)
                 };
@@ -265,8 +265,8 @@ impl<'a> TextTransformationIterator<'a> {
                 }))
             },
             TextTransformCase::Capitalize => Box::new(capitalization_iterator(
-                text.len(),
                 iterator,
+                text.len(),
                 on_word_boundary,
             )),
             // TODO: implement `math-auto` and enable it in Stylo
@@ -302,11 +302,13 @@ fn simple_case_transform_iterator(
     })
 }
 
-/// Given a string and whether the start of the string represents a word boundary, create a copy of
-/// the string with letters after word boundaries capitalized.
+/// Given an input iterator, a size hint for the number items in the iterator,
+/// and a boolean determining whether the start of the input represents a word
+/// boundary, return an iterator that capitalizes one-to-one mapped characters
+/// from the input iterator.
 pub(crate) fn capitalization_iterator(
-    size_hint: usize,
     input_iterator: impl Iterator<Item = CharacterTransformIteration>,
+    size_hint: usize,
     allow_word_at_start: bool,
 ) -> impl Iterator<Item = CharacterTransformIteration> {
     let mut iterations: Vec<_> = input_iterator.collect();
@@ -355,9 +357,11 @@ pub(crate) fn capitalization_iterator(
     iterations.into_iter()
 }
 
-// The behavior of `-webkit-text-security` isn't specified, so we have some
-// flexibility in the implementation. We just need to maintain a rough
-// compatibility with other browsers.
+/// Map a character according to the rules of the `-webkit-text-security` CSS property.
+///
+/// Note: The behavior of `-webkit-text-security` isn't specified, so we have some
+/// flexibility in the implementation. We just need to maintain a rough compatibility with
+/// other browsers.
 fn map_character_for_webkit_text_security(mode: WebKitTextSecurity, character: char) -> char {
     if let WebKitTextSecurity::None = mode {
         return character;
@@ -512,8 +516,6 @@ impl OffsetMap {
 
 #[test]
 fn test_offsetmap_basic_expansion() {
-    use servo_base::text::Utf32CodeUnits as c;
-
     let original_string = "aßΰb";
     let final_string = "ASS\u{3a5}\u{308}\u{301}B";
     assert_eq!(original_string.to_uppercase(), final_string);
@@ -532,23 +534,23 @@ fn test_offsetmap_basic_expansion() {
         'b'.to_uppercase(),
     ));
 
-    assert_eq!(offset_map.map(c(0)).0, 0);
-    assert_eq!(offset_map.map(c(1)).0, 1);
-    assert_eq!(offset_map.map(c(2)).0, 3);
-    assert_eq!(offset_map.map(c(3)).0, 6);
-    assert_eq!(offset_map.map(c(4)).0, 7);
+    assert_eq!(offset_map.map(Utf32CodeUnits(0)).0, 0);
+    assert_eq!(offset_map.map(Utf32CodeUnits(1)).0, 1);
+    assert_eq!(offset_map.map(Utf32CodeUnits(2)).0, 3);
+    assert_eq!(offset_map.map(Utf32CodeUnits(3)).0, 6);
+    assert_eq!(offset_map.map(Utf32CodeUnits(4)).0, 7);
 
     // Beyond the last index should always map to the index after the last character
     // (for handling selections).
-    assert_eq!(offset_map.map(c(5)).0, 7);
-    assert_eq!(offset_map.map(c(100)).0, 7);
+    assert_eq!(offset_map.map(Utf32CodeUnits(5)).0, 7);
+    assert_eq!(offset_map.map(Utf32CodeUnits(100)).0, 7);
 
     let map_substring = |offset: usize, length: usize| {
         let start = offset_map
-            .map(c(offset))
+            .map(Utf32CodeUnits(offset))
             .to_utf8_code_units_in(final_string);
         let end = offset_map
-            .map(c(offset + length))
+            .map(Utf32CodeUnits(offset + length))
             .to_utf8_code_units_in(final_string);
         &final_string[start.0..end.0]
     };
@@ -561,13 +563,11 @@ fn test_offsetmap_basic_expansion() {
 
 #[test]
 fn test_offsetmap_basic_collapse() {
-    use servo_base::text::Utf32CodeUnits as c;
-
     let _original_string = "  aaa  b \nc";
     let final_string = "aaa b\nc";
 
     let mut offset_map = OffsetMap::default();
-    offset_map.push_iteration(&CharacterTransformIteration::collapse(None, 2));
+    offset_map.push_iteration(&CharacterTransformIteration::collapse(2, None));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('a'));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('a'));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('a'));
@@ -577,34 +577,34 @@ fn test_offsetmap_basic_collapse() {
         "Consecutive one-to-one mappings are merged"
     );
 
-    offset_map.push_iteration(&CharacterTransformIteration::collapse(Some(' '), 2));
+    offset_map.push_iteration(&CharacterTransformIteration::collapse(2, Some(' ')));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('b'));
-    offset_map.push_iteration(&CharacterTransformIteration::collapse(Some('\n'), 2));
+    offset_map.push_iteration(&CharacterTransformIteration::collapse(2, Some('\n')));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('c'));
 
-    assert_eq!(offset_map.map(c(0)).0, 0);
-    assert_eq!(offset_map.map(c(1)).0, 0);
-    assert_eq!(offset_map.map(c(2)).0, 0);
-    assert_eq!(offset_map.map(c(3)).0, 1);
-    assert_eq!(offset_map.map(c(4)).0, 2);
-    assert_eq!(offset_map.map(c(5)).0, 3);
+    assert_eq!(offset_map.map(Utf32CodeUnits(0)).0, 0);
+    assert_eq!(offset_map.map(Utf32CodeUnits(1)).0, 0);
+    assert_eq!(offset_map.map(Utf32CodeUnits(2)).0, 0);
+    assert_eq!(offset_map.map(Utf32CodeUnits(3)).0, 1);
+    assert_eq!(offset_map.map(Utf32CodeUnits(4)).0, 2);
+    assert_eq!(offset_map.map(Utf32CodeUnits(5)).0, 3);
     // Mapping from the middle of the collapsed sequence should map to after the replacement.
-    assert_eq!(offset_map.map(c(6)).0, 4);
-    assert_eq!(offset_map.map(c(7)).0, 4);
-    assert_eq!(offset_map.map(c(8)).0, 5);
+    assert_eq!(offset_map.map(Utf32CodeUnits(6)).0, 4);
+    assert_eq!(offset_map.map(Utf32CodeUnits(7)).0, 4);
+    assert_eq!(offset_map.map(Utf32CodeUnits(8)).0, 5);
     // Mapping from the middle of the collapsed sequence should map to after the replacement.
-    assert_eq!(offset_map.map(c(9)).0, 6);
-    assert_eq!(offset_map.map(c(10)).0, 6);
-    assert_eq!(offset_map.map(c(11)).0, 7);
+    assert_eq!(offset_map.map(Utf32CodeUnits(9)).0, 6);
+    assert_eq!(offset_map.map(Utf32CodeUnits(10)).0, 6);
+    assert_eq!(offset_map.map(Utf32CodeUnits(11)).0, 7);
 
     // Beyond the last index should always map to the index after the last character
     // (for handling selections).
-    assert_eq!(offset_map.map(c(12)).0, 7);
-    assert_eq!(offset_map.map(c(100)).0, 7);
+    assert_eq!(offset_map.map(Utf32CodeUnits(12)).0, 7);
+    assert_eq!(offset_map.map(Utf32CodeUnits(100)).0, 7);
 
     let map_substring = |offset: usize, length: usize| {
-        let start = offset_map.map(c(offset)).0;
-        let end = offset_map.map(c(offset + length)).0;
+        let start = offset_map.map(Utf32CodeUnits(offset)).0;
+        let end = offset_map.map(Utf32CodeUnits(offset + length)).0;
         &final_string[start..end]
     };
     assert_eq!(map_substring(0, 1), "");
