@@ -1,0 +1,82 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>button.action</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#concept-fs-action" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/form-with-submitter.js"></script>
+<body>
+    <script>
+        "use strict";
+
+        const test_cases = [
+            {
+                name: "formaction specified, expecting to navigate to formaction",
+                formAction: null,
+                submitterFormAction: "a.html",
+                formOwnerAction: null,
+                expected: "a.html",
+            },
+            {
+                name: "no formaction, expect to navigate to document URL (base URL in this case)",
+                formAction: "a.html",
+                submitterFormAction: "",
+                formOwnerAction: null,
+                expected: null,
+            },
+            {
+                name: "fallback to form action",
+                formAction: "a.html",
+                submitterFormAction: null,
+                formOwnerAction: null,
+                expected: "a.html",
+            },
+            {
+                name: "missing form action",
+                formAction: null,
+                submitterFormAction: null,
+                formOwnerAction: null,
+                expected: null,
+            },
+            {
+                name: "form owner is different from parent form",
+                formAction: null,
+                submitterFormAction: null,
+                formOwnerAction: "a.html",
+                expected: "a.html",
+            },
+        ];
+
+        for (const elementType of ["button", "input"]) {
+            let id = 1;
+            for (const testCase of test_cases) {
+                async_test((t) => {
+                    if (testCase.formOwnerAction !== null) {
+                        id++;
+                    }
+                    let frame = populateForm(
+                        id,
+                        elementType,
+                        testCase.formAction,
+                        testCase.submitterFormAction,
+                        testCase.formOwnerAction
+                    );
+                    frame.addEventListener(
+                        "load",
+                        t.step_func_done(() => {
+                            let expected = new URL(document.URL);
+                            if (testCase.expected !== null) {
+                                expected = new URL(testCase.expected, location.href);
+                            }
+
+                            assert_equals(new URL(frame.contentWindow.location.href).pathname, expected.pathname);
+                        })
+                    );
+
+                    document.getElementById(`submit-${elementType}-${id}`).click();
+                }, `${elementType} - ${testCase.name}`);
+                id++;
+            }
+        }
+    </script>
+</body>
