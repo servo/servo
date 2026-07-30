@@ -710,10 +710,11 @@ impl Element {
         // Step 8. Set shadow’s slot assignment to slotAssignment
         //
         // Step 10. Set shadow’s clonable to clonable
+        let document = self.node.owner_doc();
         let shadow_root = ShadowRoot::new(
             cx,
             self,
-            &self.node.owner_doc(),
+            &document,
             mode,
             slot_assignment_mode,
             clonable,
@@ -725,7 +726,7 @@ impl Element {
         // longer in the flat tree.
         let node = self.upcast::<Node>();
         if node.is_connected() {
-            node.remove_style_and_layout_data_from_subtree(cx.no_gc());
+            document.remove_style_and_layout_data_from_subtree(cx.no_gc(), node);
         }
         if let Some(selection) = self.owner_document().selection() &&
             node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)

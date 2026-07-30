@@ -326,10 +326,10 @@ impl HTMLSlotElement {
 
         // Clear the style and layout data for all previously assigned slottables as well as
         // marking them as dirty, as they need a full restyle and layout.
+        let document = self.owner_document();
+        let had_assigned_nodes = !self.assigned_nodes().is_empty();
         for slottable in self.assigned_nodes().iter() {
-            slottable
-                .node()
-                .remove_style_and_layout_data_from_subtree(cx);
+            document.remove_style_and_layout_data_from_subtree(cx.no_gc(), slottable.node());
             slottable.node().dirty(NodeDamage::Other);
         }
 
@@ -358,12 +358,20 @@ impl HTMLSlotElement {
             slottable.set_assigned_slot(Some(self));
         }
 
+        // If the `<slot>` element did not have assigned nodes before, be sure to clear
+        // the style and layout data on the fallback content of the element.
+        if !had_assigned_nodes && !slottables.is_empty() {
+            let node = self.upcast::<Node>();
+            for child in node.children() {
+                document.remove_style_and_layout_data_from_subtree(cx.no_gc(), &child);
+            }
+            node.dirty(NodeDamage::Other);
+        }
+
         // Also clear the style and layout data for all currently assigned slottables
         // as well as marking them as dirty, as they need a full restyle and layout.
         for slottable in slottables.iter() {
-            slottable
-                .node()
-                .remove_style_and_layout_data_from_subtree(cx);
+            document.remove_style_and_layout_data_from_subtree(cx.no_gc(), slottable.node());
             slottable.node().dirty(NodeDamage::Other);
         }
 
