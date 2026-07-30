@@ -742,7 +742,8 @@ fn obtain_response_setup_router_callback(
             let bytes = match message.unwrap() {
                 BodyChunkResponse::Chunk(bytes) => bytes,
                 BodyChunkResponse::Done => {
-                    // Step 3, abort these parallel steps.
+                    // Step 2.2.2. If fetchParams’s process request end-of-body is non-null,
+                    // then run fetchParams’s process request end-of-body.
                     if fetch_terminated.send(false).is_err() {
                         log_fetch_terminated_send_failure(
                             false,
@@ -1651,8 +1652,13 @@ async fn http_network_or_cache_fetch(
         let request = &mut fetch_params.request;
 
         // Step 14.2 If request’s body is non-null, then:
-        if request.body.is_some() {
-            // TODO Implement body source
+        // “If request’s body’s source is null, then return a network error.”
+        if request
+            .body
+            .as_ref()
+            .is_some_and(|body| body.source_is_null())
+        {
+            return Response::network_error(NetworkError::ConnectionFailure);
         }
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:
