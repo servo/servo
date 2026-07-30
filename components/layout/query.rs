@@ -44,13 +44,12 @@ use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
-use style::values::specified::text::TextTransformCase;
 use style_traits::{CSSPixel, ParsingMode, ToCss};
 
 use crate::cell::RefOrAtomicRef;
 use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
-use crate::flow::inline::construct::{TextTransformation, WhitespaceCollapse, capitalize_string};
+use crate::flow::inline::text_transform::TextTransformationIterator;
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, TextFragment,
 };
@@ -1114,16 +1113,15 @@ fn rendered_text_collection_steps(
                     display,
                     Display::InlineBlock | Display::InlineFlex | Display::InlineGrid
                 );
+
                 // Now we need to decide on whether to remove beginning white space or not, this
                 // is mainly decided by the elements we rendered before, but may be overwritten by the white-space
                 // property.
-                let trim_beginning_white_space =
+                let trim_leading_white_space =
                     !preserve_whitespace && (state.may_start_with_whitespace || is_inline);
-                let with_white_space_rules_applied = WhitespaceCollapse::new(
-                    text_content.chars(),
-                    white_space_collapse,
-                    trim_beginning_white_space,
-                );
+                // FIXME: This assumes the element always start at a word boundary. But can fail:
+                // a<span style="text-transform: capitalize">b</span>c
+                let on_word_boundary = true;
 
                 // Step 4: If node is a Text node, then for each CSS text box produced by node, in
                 // content order, compute the text of the box after application of the CSS
@@ -1132,16 +1130,14 @@ fn rendered_text_collection_steps(
                 // rules are slightly modified: collapsible spaces at the end of lines are always
                 // collapsed, but they are only removed if the line is the last line of the block,
                 // or it ends with a br element. Soft hyphens should be preserved.
-                let text_transform = style.clone_text_transform().case();
-                let mut transformed_text: String =
-                    TextTransformation::new(with_white_space_rules_applied, text_transform)
-                        .collect();
-
-                // Since iterator for capitalize not doing anything, we must handle it outside here
-                // FIXME: This assumes the element always start at a word boundary. But can fail:
-                // a<span style="text-transform: capitalize">b</span>c
-                if TextTransformCase::Capitalize == text_transform {
-                    transformed_text = capitalize_string(&transformed_text, true);
+                let mut transformed_text = String::with_capacity(text_content.len());
+                for iteration in TextTransformationIterator::new(
+                    &text_content,
+                    style,
+                    trim_leading_white_space,
+                    on_word_boundary,
+                ) {
+                    transformed_text.extend(iteration.characters());
                 }
 
                 let is_preformatted_element =

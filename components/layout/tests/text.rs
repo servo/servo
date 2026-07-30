@@ -3,18 +3,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod text {
-    use layout::flow::inline::construct::WhitespaceCollapse;
+    use layout::flow::inline::text_transform::WhitespaceCollapse;
     use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 
     #[test]
     fn test_collapse_whitespace() {
         let collapse = |input: &str, white_space_collapse, trim_beginning_white_space| {
-            WhitespaceCollapse::new(
+            let mut string = String::new();
+            for iteration in WhitespaceCollapse::new(
                 input.chars(),
                 white_space_collapse,
                 trim_beginning_white_space,
-            )
-            .collect::<String>()
+            ) {
+                string.extend(iteration.characters());
+            }
+            string
         };
 
         let output = collapse("H ", WhiteSpaceCollapse::Collapse, false);

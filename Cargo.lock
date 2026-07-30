@@ -8306,6 +8306,7 @@ version = "0.4.0"
 dependencies = [
  "accesskit",
  "app_units",
+ "arrayvec",
  "atomic_refcell",
  "bitflags 2.13.1",
  "data-url",
