@@ -6,10 +6,10 @@
 package org.servo.servoview;
 
 import android.content.Context;
+import android.util.Size;
 import android.view.KeyEvent;
 import android.view.Surface;
 
-import org.servo.servoview.JNIServo.ServoCoordinates;
 import org.servo.servoview.JNIServo.ServoOptions;
 
 public class Servo {
@@ -41,8 +41,8 @@ public class Servo {
         runCallback.inGLThread(() -> jni.performUpdates());
     }
 
-    public void resize(ServoCoordinates coords) {
-        runCallback.inGLThread(() -> jni.resize(coords));
+    public void resize(Size size) {
+        runCallback.inGLThread(() -> jni.resize(size));
     }
 
     public void reload() {
@@ -113,8 +113,8 @@ public class Servo {
         runCallback.inGLThread(() -> jni.pausePainting());
     }
 
-    public void resumePainting(Surface surface, ServoCoordinates coords) {
-        runCallback.inGLThread(() -> jni.resumePainting(surface, coords));
+    public void resumePainting(Surface surface, Size size) {
+        runCallback.inGLThread(() -> jni.resumePainting(surface, size));
     }
 
     public void suspend(boolean suspended) {
