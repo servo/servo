@@ -2145,7 +2145,6 @@ impl Element {
         cx: &mut JSContext,
         qname: QualName,
         value: DOMString,
-        prefix: Option<Prefix>,
     ) {
         // Don't set if the attribute already exists, so we can handle add_attrs_if_missing
         if self
@@ -2157,13 +2156,7 @@ impl Element {
             return;
         }
 
-        let name = match prefix {
-            None => qname.local.clone(),
-            Some(ref prefix) => {
-                let name = format!("{}:{}", &**prefix, &*qname.local);
-                LocalName::from(name)
-            },
-        };
+        let name = qname.local.clone();
         let value = self.parse_attribute(&qname.ns, &qname.local, value);
         self.push_new_attribute(
             cx,
@@ -2171,7 +2164,7 @@ impl Element {
             value,
             name,
             qname.ns,
-            prefix,
+            None, // TODO: pass prefix from `qname`.
             AttributeMutationReason::ByParser,
         );
     }

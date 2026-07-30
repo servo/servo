@@ -1667,8 +1667,13 @@ async fn http_network_or_cache_fetch(
         let request = &mut fetch_params.request;
 
         // Step 14.2 If request’s body is non-null, then:
-        if request.body.is_some() {
-            // TODO Implement body source
+        // “If request’s body’s source is null, then return a network error.”
+        if request
+            .body
+            .as_ref()
+            .is_some_and(|body| body.source_is_null())
+        {
+            return Response::network_error(NetworkError::ConnectionFailure);
         }
 
         // Step 14.3 If request’s use-URL-credentials flag is unset or isAuthenticationFetch is true, then:

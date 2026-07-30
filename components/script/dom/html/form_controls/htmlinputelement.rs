@@ -2270,6 +2270,11 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
+        // Always attempt to hide IME when unbinding input elements from the tree.
+        self.owner_document()
+            .embedder_controls()
+            .hide_embedder_control(self.upcast());
+
         let form_owner = self.form_owner();
         self.super_type().unwrap().unbind_from_tree(cx, context);
 

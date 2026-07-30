@@ -32,8 +32,8 @@ use crate::conversions::Convert;
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
-    ReferrerPolicy, RequestCache, RequestCredentials, RequestDestination, RequestInfo, RequestInit,
-    RequestMethods, RequestMode, RequestRedirect,
+    ReferrerPolicy, RequestCache, RequestCredentials, RequestDestination, RequestDuplex,
+    RequestInfo, RequestInit, RequestMethods, RequestMode, RequestRedirect,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -194,6 +194,7 @@ impl Request {
         if init.body.is_some() ||
             init.cache.is_some() ||
             init.credentials.is_some() ||
+            init.duplex.is_some() ||
             init.integrity.is_some() ||
             init.headers.is_some() ||
             init.keepalive.is_some() ||
@@ -503,6 +504,7 @@ impl Request {
         //
         // There are multiple reassignments to similar values. In the end, all end up as
         // final_body. Therefore, final_body is equivalent to inputOrInitBody
+        let init_body_is_non_null = init_body.is_some();
         let final_body = init_body.or(input_body);
 
         // Step 39. If inputOrInitBody is non-null and inputOrInitBody’s source is null, then:
@@ -510,8 +512,13 @@ impl Request {
             .as_ref()
             .is_some_and(|body| body.source_is_null())
         {
-            // Step 39.1. If initBody is non-null and init["duplex"] does not exist, then throw a TypeError.
-            // TODO
+            // Step 39.1. “If initBody is non-null and init["duplex"] does not exist,
+            // then throw a TypeError.”
+            if init_body_is_non_null && init.duplex.is_none() {
+                return Err(Error::Type(
+                    c"Request with a ReadableStream body must specify duplex".to_owned(),
+                ));
+            }
             // Step 39.2. If this’s request’s mode is neither "same-origin" nor "cors", then throw a TypeError.
             let request_mode = &r.request.borrow().mode;
             if *request_mode != NetTraitsRequestMode::CorsMode &&
@@ -689,6 +696,12 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     /// <https://fetch.spec.whatwg.org/#dom-request-integrity>
     fn Integrity(&self) -> DOMString {
         self.request.borrow().integrity_metadata.clone().into()
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-request-duplex>
+    fn Duplex(&self) -> RequestDuplex {
+        // “The duplex getter steps are to return "half".”
+        RequestDuplex::Half
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-keepalive>

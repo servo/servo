@@ -16,6 +16,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import toml
 from enum import Enum
 
 from os import path
@@ -89,21 +90,10 @@ class AndroidTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-linux-android"
 
     @staticmethod
-    def min_sdk() -> str:
+    def min_sdk() -> int:
         """Minimum supported Android API level"""
-        properties_file = path.join(util.SERVO_ROOT, "support", "android", "apk", "servo.properties")
-        with open(properties_file, encoding="utf8") as properties:
-            for line in properties:
-                line = line.strip()
-                if line.startswith("#") or line.strip() == "":
-                    continue
-                key, value = line.split("=", 1)
-                if key.strip() == "android.minSdk":
-                    assert value.strip().isdigit(), (
-                        f"android.minSdk must be an integer but was {value}. Check {properties_file}."
-                    )
-                    return value.strip()
-        raise Exception(f"`android.minSdk` is missing from {properties_file}")
+        version_catalog_file = path.join(util.SERVO_ROOT, "support", "android", "apk", "gradle", "libs.versions.toml")
+        return int(toml.load(version_catalog_file)["versions"]["android-sdk-min"])
 
     def ndk_configuration(self) -> dict[str, str]:
         target = self.triple()

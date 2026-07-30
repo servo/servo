@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Crash found by DOM fuzzing</title>
+<link rel="help" href="https://github.com/servo/servo/issues/46790">
+<body>
+    <input form="form2">
+    <div id="div">
+        <form id="form2">
+            <button form="div"> </button>
+        </form>
+    </div>
+
+    <script>
+        document.createElement("ct").appendChild(div);
+    </script>
+</body>

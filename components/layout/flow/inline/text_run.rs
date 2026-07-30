@@ -277,9 +277,8 @@ impl TextRunSegment {
                     } else {
                         Some(Arc::new(AtomicRefCell::new(ScriptSelection {
                             range: TextByteRange::new(ByteIndex::zero(), ByteIndex::zero()),
-                            character_range: text_run.character_range.start +
-                                text_run.document_selection.start.0..
-                                text_run.character_range.start + text_run.document_selection.end.0,
+                            character_range: text_run.document_selection.start.0..
+                                text_run.document_selection.end.0,
                             enabled: true,
                         })))
                     }

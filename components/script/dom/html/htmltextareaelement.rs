@@ -732,6 +732,11 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
+        // Always attempt to hide IME when unbinding input elements from the tree.
+        self.owner_document()
+            .embedder_controls()
+            .hide_embedder_control(self.upcast());
+
         self.super_type().unwrap().unbind_from_tree(cx, context);
 
         let node = self.upcast::<Node>();
