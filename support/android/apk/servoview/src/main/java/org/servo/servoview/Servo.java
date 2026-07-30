@@ -16,7 +16,6 @@ public class Servo {
     private static final String LOGTAG = "Servo";
     private JNIServo jni = new JNIServo();
     private RunCallback runCallback;
-    private boolean suspended;
     private Callbacks servoCallbacks;
 
     public Servo(
@@ -28,7 +27,7 @@ public class Servo {
 
         this.runCallback = runCallback;
 
-        servoCallbacks = new Callbacks(client);
+        servoCallbacks = new Callbacks(client, jni, runCallback);
 
         this.runCallback.inGLThread(() -> jni.init(context, options, servoCallbacks, surface));
     }
@@ -118,7 +117,7 @@ public class Servo {
     }
 
     public void suspend(boolean suspended) {
-        this.suspended = suspended;
+        servoCallbacks.suspended = suspended;
     }
 
     public void mediaSessionAction(int action) {
@@ -165,12 +164,17 @@ public class Servo {
         void inUIThread(Runnable f);
     }
 
-    private class Callbacks implements JNIServo.Callbacks, Client {
+    private static class Callbacks implements JNIServo.Callbacks, Client {
 
         Client client;
+        private final JNIServo jni;
+        private final RunCallback runCallback;
+        boolean suspended;
 
-        Callbacks(Client client) {
+        Callbacks(Client client, JNIServo jni, RunCallback runCallback) {
             this.client = client;
+            this.jni = jni;
+            this.runCallback = runCallback;
         }
 
         public void wakeup() {
