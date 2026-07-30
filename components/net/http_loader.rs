@@ -468,9 +468,9 @@ impl BodySink {
         }
     }
 
-    fn close(self) {
+    fn close(&self) {
         match self {
-            BodySink::Chunked(_) => {},
+            BodySink::Chunked(_) => { /* no need to close sender */ },
             BodySink::Buffered(sender) => {
                 let _ = sender.send(BodyChunk::Done);
             },
@@ -735,8 +735,6 @@ fn obtain_response_setup_router_callback(
         }
     }
 
-    let mut sink = Some(sink);
-
     ROUTER.add_typed_route(
         body_port,
         Box::new(move |message| {
@@ -752,9 +750,7 @@ fn obtain_response_setup_router_callback(
                             "handling request body completion",
                         );
                     }
-                    if let Some(sink) = sink.take() {
-                        sink.close();
-                    }
+                    sink.close();
 
                     return;
                 },
@@ -768,9 +764,7 @@ fn obtain_response_setup_router_callback(
                             "handling request body stream error",
                         );
                     }
-                    if let Some(sink) = sink.take() {
-                        sink.close();
-                    }
+                    sink.close();
 
                     return;
                 },
@@ -780,12 +774,7 @@ fn obtain_response_setup_router_callback(
 
             // Step 5.1.2.2, transmit chunk over the network,
             // currently implemented by sending the bytes to the fetch worker.
-            {
-                let Some(sink) = sink.as_ref() else {
-                    return;
-                };
-                sink.transmit_bytes(bytes);
-            }
+            sink.transmit_bytes(bytes);
 
             // Step 5.1.2.3
             // Request the next chunk.
@@ -802,9 +791,7 @@ fn obtain_response_setup_router_callback(
                             "handling failure to request the next request body chunk",
                         );
                     }
-                    if let Some(sink) = sink.take() {
-                        sink.close();
-                    }
+                    sink.close();
                 }
             } else {
                 log_request_body_stream_closed("request the next request body chunk", None);
@@ -814,9 +801,7 @@ fn obtain_response_setup_router_callback(
                         "handling a closed request body stream while requesting the next chunk",
                     );
                 }
-                if let Some(sink) = sink.take() {
-                    sink.close();
-                }
+                sink.close();
             }
         }),
     );
