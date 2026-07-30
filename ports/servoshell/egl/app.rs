@@ -655,8 +655,9 @@ impl App {
     pub fn ime_dismissed(&self) {
         if let Some(webview) = self.active_or_newest_webview() {
             webview.notify_input_event(InputEvent::Ime(ImeEvent::Dismissed));
-            self.spin_event_loop();
         }
+        self.host.on_ime_hide();
+        self.spin_event_loop();
     }
 
     pub fn notify_vsync(&self) {
