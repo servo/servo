@@ -1415,7 +1415,7 @@ impl HTMLFormElement {
             // In that case we can't use insert_pre_order, because the position of a element not in
             // the tree can't be compared to anything in the DOM tree.
             let control_element = control.to_element();
-            if control_element.upcast::<Node>().has_parent() {
+            if control_element.upcast::<Node>().is_in_a_document_tree() {
                 controls.insert_pre_order(control_element, root);
             } else {
                 controls.push(Dom::from_ref(control_element));
