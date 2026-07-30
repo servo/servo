@@ -26,8 +26,8 @@ let testBaseLayer = function(session, fakeDeviceController, t, sessionObjects) {
           assert_not_equals(session, tempSession);
           assert_throws_dom('InvalidStateError', () => session.updateRenderState({ baseLayer : new XRWebGLLayer(tempSession, sessionObjects.gl), }));
         });
+        resolve();
       });
-      resolve();
     });
   });
 };
