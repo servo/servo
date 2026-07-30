@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Range, Sub, SubAssign};
 
 use malloc_size_of_derive::MallocSizeOf;
 
@@ -47,6 +47,66 @@ pub fn is_cjk(codepoint: char) -> bool {
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
     // https://en.wikipedia.org/wiki/Plane_(Unicode)#Tertiary_Ideographic_Plane
     unicode_plane(codepoint) == 2 || unicode_plane(codepoint) == 3
+}
+
+/// Equivalent to either `Range`, `RangeTo`, `RangeFrom`, or `RangeFull`
+#[derive(Clone, Copy)]
+pub struct RangeAny<T> {
+    /// `None` means zero
+    pub start: Option<T>,
+    /// `None` means the full available length
+    pub end: Option<T>,
+}
+
+impl<T> RangeAny<T> {
+    /// Apply `Option::map` to each bound of this range
+    pub fn map<U>(self, f: impl Fn(T) -> U + Copy) -> RangeAny<U> {
+        let Self { start, end } = self;
+        RangeAny {
+            start: start.map(f),
+            end: end.map(f),
+        }
+    }
+
+    /// Returns the intersection of two ranges, if it is non-empty
+    pub fn intersect(self, other: Self) -> Option<Self>
+    where
+        T: Ord,
+    {
+        // TODO: https://github.com/rust-lang/rust/issues/144273
+        // let start = a.start.reduce(b.start, std::cmp::max);
+        // let end = a.end.reduce(b.end, std::cmp::min);
+        let start = match (self.start, other.start) {
+            (None, None) => None,
+            (None, Some(b)) => Some(b),
+            (Some(a), None) => Some(a),
+            (Some(a), Some(b)) => Some(a.max(b)),
+        };
+        let end = match (self.end, other.end) {
+            (None, None) => None,
+            (None, Some(b)) => Some(b),
+            (Some(a), None) => Some(a),
+            (Some(a), Some(b)) => Some(a.min(b)),
+        };
+        if start
+            .as_ref()
+            .is_none_or(|start| end.as_ref().is_none_or(|end| start < end))
+        {
+            Some(RangeAny { start, end })
+        } else {
+            // `max()..min()` producing a "backwards" range means the intersection is empty
+            None
+        }
+    }
+}
+
+impl<T> From<Range<T>> for RangeAny<T> {
+    fn from(value: Range<T>) -> Self {
+        Self {
+            start: Some(value.start),
+            end: Some(value.end),
+        }
+    }
 }
 
 macro_rules! unicode_length_type {

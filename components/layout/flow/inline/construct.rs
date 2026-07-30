@@ -8,7 +8,7 @@ use std::ops::{ControlFlow, Range};
 
 use icu_properties::BidiClass;
 use layout_api::{LayoutNode, SharedSelection};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::dom::NodeInfo;
@@ -336,12 +336,6 @@ impl InlineFormattingContextBuilder {
             return false;
         }
 
-        let intersect_ranges = |a: Range<Utf32CodeUnits>, b: Range<Utf32CodeUnits>| {
-            let start = a.start.max(b.start);
-            let end = b.end.min(b.end);
-            if start < end { Some(start..end) } else { None }
-        };
-
         // Push any leading white space first.
         let first_letter_range_u32 = LazyCell::new(|| {
             Utf32CodeUnits::length_of(&text[..first_letter_range.start])..
@@ -350,10 +344,12 @@ impl InlineFormattingContextBuilder {
         if first_letter_range.start != 0 {
             let leading_whitespace_range = 0..first_letter_range.start;
             let leading_whitespace_selection_range =
-                document_selection.clone().and_then(|document_selection| {
-                    let leading_whitespace_range_u32 =
-                        Utf32CodeUnits::zero()..first_letter_range_u32.start;
-                    intersect_ranges(document_selection, leading_whitespace_range_u32)
+                document_selection.and_then(|document_selection| {
+                    let leading_whitespace_range_u32 = RangeAny {
+                        start: None,
+                        end: Some(first_letter_range_u32.start),
+                    };
+                    document_selection.intersect(leading_whitespace_range_u32)
                 });
 
             self.push_text(
@@ -372,15 +368,11 @@ impl InlineFormattingContextBuilder {
         box_slot.set(LayoutBox::InlineLevel(inline_item));
 
         let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
-        let first_letter_selection_range =
-            document_selection.clone().and_then(|document_selection| {
-                intersect_ranges(document_selection, (*first_letter_range_u32).clone()).map(
-                    |range| {
-                        range.start - first_letter_range_u32.start..
-                            range.end - first_letter_range_u32.start
-                    },
-                )
-            });
+        let first_letter_selection_range = document_selection.and_then(|document_selection| {
+            document_selection
+                .intersect((*first_letter_range_u32).clone().into())
+                .map(|range| range.map(|offset| offset - first_letter_range_u32.start))
+        });
         self.push_text(
             first_letter_text.into(),
             &first_letter_info,
@@ -391,10 +383,13 @@ impl InlineFormattingContextBuilder {
 
         // Now push the non-first-letter text.
         let remaining_selection_range = document_selection.and_then(|document_selection| {
-            let remaining_text_range_u32 = first_letter_range_u32.end..document_selection.end;
-            intersect_ranges(document_selection, remaining_text_range_u32).map(|range| {
-                range.start - first_letter_range_u32.end..range.end - first_letter_range_u32.end
-            })
+            let remaining_text_range_u32 = RangeAny {
+                start: Some(first_letter_range_u32.end),
+                end: document_selection.end,
+            };
+            document_selection
+                .intersect(remaining_text_range_u32)
+                .map(|range| range.map(|offset| offset - first_letter_range_u32.end))
         });
         self.push_text(
             Cow::Borrowed(&text[first_letter_range.end..]).into(),
@@ -409,7 +404,7 @@ impl InlineFormattingContextBuilder {
         &mut self,
         text: BoxTreeString<'dom>,
         info: &NodeAndStyleInfo<'dom>,
-        document_selection: Option<Range<Utf32CodeUnits>>,
+        document_selection: Option<RangeAny<Utf32CodeUnits>>,
     ) {
         let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
@@ -457,10 +452,17 @@ impl InlineFormattingContextBuilder {
         }
 
         let document_selection = document_selection.map(|document_selection| {
-            self.offset_map
-                .map(original_size_before + document_selection.start)..
-                self.offset_map
-                    .map(original_size_before + document_selection.end)
+            let start = document_selection
+                .start
+                .map(|offset| self.offset_map.map(offset))
+                // Range unbounded at the start: the concrete start is offset zero
+                .unwrap_or(Utf32CodeUnits(0));
+            let end = document_selection
+                .end
+                .map(|offset| self.offset_map.map(offset))
+                // Range unbounded at the end: the concrete end is the full length
+                .unwrap_or(Utf32CodeUnits(character_count));
+            original_size_before + start..original_size_before + end
         });
 
         if let Some(last_character) = new_text.chars().next_back() {

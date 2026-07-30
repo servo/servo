@@ -4,8 +4,6 @@
 
 //! Methods for layout of node
 
-use std::ops::Range;
-
 use atomic_refcell::AtomicRef;
 use layout_api::{
     GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType,
@@ -17,7 +15,7 @@ use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
 };
 use servo_base::id::{BrowsingContextId, PipelineId};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
@@ -249,7 +247,7 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnits>> {
+    pub(crate) fn document_selection_in_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
         let unsafe_self = self.unsafe_get();
         if !unsafe_self.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
             return None;
@@ -271,19 +269,9 @@ impl<'dom> LayoutDom<'dom, Node> {
         let is_start_node = unsafe { range_start.node().to_layout() } == *self;
         let is_end_node = unsafe { range_end.node().to_layout() } == *self;
 
-        let start_offset = if is_start_node {
-            range_start.offset().to_utf32_code_units_in(&text)
-        } else {
-            Utf32CodeUnits(0)
-        };
-
-        let end_offset = if is_end_node {
-            range_end.offset().to_utf32_code_units_in(&text)
-        } else {
-            Utf32CodeUnits::length_of(&text)
-        };
-
-        Some(start_offset..end_offset)
+        let start = is_start_node.then(|| range_start.offset().to_utf32_code_units_in(&text));
+        let end = is_end_node.then(|| range_end.offset().to_utf32_code_units_in(&text));
+        Some(RangeAny { start, end })
     }
 
     /// Get the selection for the given node. This only works for text nodes that are in
