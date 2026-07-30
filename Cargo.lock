@@ -3635,7 +3635,7 @@ dependencies = [
  "fnv",
  "futures-core",
  "futures-sink",
- "http 1.4.2",
+ "http 1.5.0",
  "indexmap",
  "slab",
  "tokio",
@@ -3734,7 +3734,7 @@ dependencies = [
  "base64",
  "bytes",
  "headers-core",
- "http 1.4.2",
+ "http 1.5.0",
  "httpdate",
  "mime",
  "sha1 0.10.6",
@@ -3746,7 +3746,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54b4a22553d4242c49fddb9ba998a99962b5cc6f22cb5a3482bec22522403ce4"
 dependencies = [
- "http 1.4.2",
+ "http 1.5.0",
 ]
 
 [[package]]
@@ -3863,9 +3863,9 @@ dependencies = [
 
 [[package]]
 name = "http"
-version = "1.4.2"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6970f50e31d6fc17d3fa27329444bfa74e196cf62e95052a3f6fee181dba6425"
+checksum = "918d3568bebf352712bc2ef3d46a8bcf1a75b373be6539de198e9105cbbf9ce0"
 dependencies = [
  "bytes",
  "itoa",
@@ -3878,7 +3878,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca2a8f2913ee65f60facd6a5905613afaa448497a0230cc41ce022d93290bc2c"
 dependencies = [
  "bytes",
- "http 1.4.2",
+ "http 1.5.0",
 ]
 
 [[package]]
@@ -3889,7 +3889,7 @@ checksum = "e9f41fd6a08e4d4ec69df65976da761afd5ad5e58a9d4acb46bd1c953a9e3ff2"
 dependencies = [
  "bytes",
  "futures-core",
- "http 1.4.2",
+ "http 1.5.0",
  "http-body",
  "pin-project-lite",
 ]
@@ -3929,7 +3929,7 @@ dependencies = [
  "futures-channel",
  "futures-core",
  "h2",
- "http 1.4.2",
+ "http 1.5.0",
  "http-body",
  "httparse",
  "httpdate",
@@ -3946,7 +3946,7 @@ version = "0.27.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33ca68d021ef39cf6463ab54c1d0f5daf03377b70561305bb89a8f83aab66e0f"
 dependencies = [
- "http 1.4.2",
+ "http 1.5.0",
  "hyper",
  "hyper-util",
  "log",
@@ -3967,7 +3967,7 @@ dependencies = [
  "bytes",
  "futures-channel",
  "futures-util",
- "http 1.4.2",
+ "http 1.5.0",
  "http-body",
  "hyper",
  "ipnet",
@@ -7750,7 +7750,7 @@ dependencies = [
  "euclid",
  "gaol",
  "gstreamer",
- "http 1.4.2",
+ "http 1.5.0",
  "http-body-util",
  "hyper",
  "image",
@@ -8047,7 +8047,7 @@ dependencies = [
  "content-security-policy",
  "encoding_rs",
  "euclid",
- "http 1.4.2",
+ "http 1.5.0",
  "ipc-channel",
  "log",
  "malloc_size_of_derive",
@@ -8100,7 +8100,7 @@ dependencies = [
  "chrono",
  "crossbeam-channel",
  "headers",
- "http 1.4.2",
+ "http 1.5.0",
  "log",
  "malloc_size_of_derive",
  "parking_lot",
@@ -8124,7 +8124,7 @@ dependencies = [
 name = "servo-devtools-traits"
 version = "0.4.0"
 dependencies = [
- "http 1.4.2",
+ "http 1.5.0",
  "malloc_size_of_derive",
  "serde",
  "servo-base",
@@ -8156,7 +8156,7 @@ dependencies = [
  "cookie 0.18.1",
  "crossbeam-channel",
  "euclid",
- "http 1.4.2",
+ "http 1.5.0",
  "image",
  "inventory",
  "keyboard-types",
@@ -8280,7 +8280,7 @@ version = "0.4.0"
 dependencies = [
  "cookie 0.18.1",
  "headers",
- "http 1.4.2",
+ "http 1.5.0",
  "hyper",
  "ipc-channel",
  "mime",
@@ -8403,7 +8403,7 @@ dependencies = [
  "data-url",
  "encoding_rs",
  "euclid",
- "http 1.4.2",
+ "http 1.5.0",
  "icu_locid",
  "indexmap",
  "ipc-channel",
@@ -8691,7 +8691,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "headers",
- "http 1.4.2",
+ "http 1.5.0",
  "http-body-util",
  "hyper",
  "hyper-rustls",
@@ -8754,7 +8754,7 @@ dependencies = [
  "crossbeam-channel",
  "data-url",
  "headers",
- "http 1.4.2",
+ "http 1.5.0",
  "hyper-util",
  "ipc-channel",
  "log",
@@ -8951,7 +8951,7 @@ dependencies = [
  "headers",
  "hkdf",
  "html5ever",
- "http 1.4.2",
+ "http 1.5.0",
  "httparse",
  "icu_locid",
  "indexmap",
@@ -9241,7 +9241,7 @@ dependencies = [
  "crossbeam-channel",
  "euclid",
  "http 0.2.12",
- "http 1.4.2",
+ "http 1.5.0",
  "image",
  "keyboard-types",
  "log",
@@ -10679,7 +10679,7 @@ checksum = "e48ac77174b19c110a50ab2128b24215ac9cb40e0e12e093fb602d175c569d22"
 dependencies = [
  "bytes",
  "data-encoding",
- "http 1.4.2",
+ "http 1.5.0",
  "httparse",
  "log",
  "rand 0.10.2",
@@ -11125,7 +11125,7 @@ dependencies = [
  "bytes",
  "futures-util",
  "headers",
- "http 1.4.2",
+ "http 1.5.0",
  "http-body",
  "http-body-util",
  "hyper",
