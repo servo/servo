@@ -32,13 +32,44 @@ class MacOS(Base):
 
     def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
         # We do not support building with gstreamer while cross-compiling on MacOS.
-        if target.is_cross_build() or not os.path.exists(GSTREAMER_ROOT):
+        if target.is_cross_build():
             return None
-        return GSTREAMER_ROOT
+        if os.path.exists(GSTREAMER_ROOT):
+            return GSTREAMER_ROOT
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["pkg-config", "--variable=prefix", "gstreamer-1.0"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                prefix = result.stdout.strip()
+                if os.path.exists(prefix):
+                    return prefix
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+        return None
 
     def is_gstreamer_installed(self, target: BuildTarget) -> bool:
+        if target.is_cross_build():
+            return False
         # Servo only supports the official GStreamer distribution on MacOS.
-        return not target.is_cross_build() and os.path.exists(GSTREAMER_ROOT)
+        if os.path.exists(GSTREAMER_ROOT):
+            return True
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["pkg-config", "--modversion", "gstreamer-1.0"],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                version = result.stdout.strip()
+                major, minor, *_ = version.split(".")
+                if int(major) >= 1 and int(minor) >= 18:
+                    return True
+        except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+            pass
+        return False
 
     def _platform_bootstrap(self, force: bool, yes: bool) -> bool:
         installed_something = False

@@ -27,6 +27,15 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
 - Install `uv`: `curl -LsSf https://astral.sh/uv/install.sh | sh` 
 - Install `rustup`: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - Restart your shell to make sure `cargo` is available
+- Install GStreamer (one of the following):
+  - **Option A — Official installer (recommended):**
+    Download and install both packages from https://gstreamer.freedesktop.org/download/:
+    - Runtime: `gstreamer-1.0-<version>-universal.pkg`
+    - Development: `gstreamer-1.0-devel-<version>-universal.pkg`
+  - **Option B — Homebrew:**
+    ```shell
+    brew install gstreamer libnice-gstreamer
+    ```
 - Install the other dependencies: `./mach bootstrap`
 - Build servoshell: `./mach build`
 
