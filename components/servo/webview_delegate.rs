@@ -9,19 +9,20 @@ use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, BluetoothDeviceDescription,
     ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
     ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
-    FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
-    NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
-    SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
-    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    FilterPattern, Image, InputEventId, InputEventResult, InputMethodType, LoadStatus,
+    MediaSessionEvent, NewWebViewDetails, Notification, PermissionFeature, PromptResponse,
+    RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SelectElementRequest,
+    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::{GenericCallback, GenericSender, SendError};
-use servo_base::id::PipelineId;
+use servo_base::id::{CursorId, PipelineId};
 use servo_constellation_traits::EmbedderToConstellationMessage;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender;
 use url::Url;
-use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
+use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePoint};
 
 use crate::proxies::ConstellationProxy;
 use crate::responders::{AutomaticResponder, OneshotSender, ServoErrorSender};
@@ -911,6 +912,35 @@ impl CreateNewWebViewRequest {
     }
 }
 
+/// A cursor image read from url
+/// Refer to the documentation of [`embedder_traits::CursorMetadata`] for more information.
+#[derive(Clone)]
+pub struct CustomCursorImage {
+    image: Rc<Image>,
+    hotspot: Option<DevicePoint>,
+}
+
+impl CustomCursorImage {
+    pub fn new(image: Image, hotspot: Option<DevicePoint>) -> CustomCursorImage {
+        CustomCursorImage {
+            image: Rc::new(image),
+            hotspot,
+        }
+    }
+
+    pub fn get_image(&self) -> &Image {
+        &self.image
+    }
+
+    pub fn get_hotspot(&self) -> &Option<DevicePoint> {
+        &self.hotspot
+    }
+
+    pub fn set_hotspot(&mut self, hotspot: Option<DevicePoint>) {
+        self.hotspot = hotspot;
+    }
+}
+
 /// A trait that the embedder can implement to customize the behaviour of a [`WebView`] or to
 /// listen to events from a [`WebView`]. Multiple [`WebView`]s can share the same delegate
 /// instance. A [`WebView`]'s delegate needs to be set at the time of creation using
@@ -942,6 +972,15 @@ pub trait WebViewDelegate {
     /// The `LoadStatus` of the currently loading or loaded page in this [`WebView`] has changed. The new
     /// status can accessed via [`WebView::load_status`].
     fn notify_load_status_changed(&self, _webview: WebView, _status: LoadStatus) {}
+    /// The [`CustomCursorImage`] of the currently loaded page in this [`WebView`] has changed.
+    /// Passes along a pointer to the underlying image data along with cursor metadata.
+    fn notify_custom_cursor_changed(
+        &self,
+        _webview: WebView,
+        _cursor_id: CursorId,
+        _cursor_image: CustomCursorImage,
+    ) {
+    }
     /// The [`Cursor`] of the currently loaded page in this [`WebView`] has changed. The new
     /// cursor can accessed via [`WebView::cursor`].
     fn notify_cursor_changed(&self, _webview: WebView, _cursor: Cursor) {}

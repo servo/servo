@@ -10,6 +10,7 @@ use std::cell::Cell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::num::NonZeroU32;
+use std::ops::Deref;
 use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, LazyLock};
 
@@ -585,5 +586,23 @@ impl ScriptEventLoopId {
 impl fmt::Display for ScriptEventLoopId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+#[derive(
+    Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize, Hash,
+)]
+pub struct CursorId(usize);
+
+impl CursorId {
+    pub fn new(id: usize) -> CursorId {
+        CursorId(id)
+    }
+}
+
+impl Deref for CursorId {
+    type Target = usize;
+    fn deref(&self) -> &usize {
+        &self.0
     }
 }

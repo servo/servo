@@ -575,9 +575,19 @@ impl ServoInner {
                     webview.clipboard_delegate().set_text(webview, string);
                 }
             },
+            EmbedderMsg::RegisterCursor(webview_id, cursor_id, image, metadata) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.register_cursor(cursor_id, image, metadata);
+                }
+            },
             EmbedderMsg::SetCursor(webview_id, cursor) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.set_cursor(cursor);
+                }
+            },
+            EmbedderMsg::UpdateCursorMetadata(webview_id, cursor_id, metadata) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.update_cursor_metadata(cursor_id, metadata);
                 }
             },
             EmbedderMsg::NewFavicon(webview_id, image) => {

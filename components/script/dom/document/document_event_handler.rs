@@ -11,19 +11,30 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
-    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
-    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    Cursor, CursorMetadata, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId,
+    InputEventOutcome, InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent,
+    TouchEventType, TouchId, TouchPointerType, UntrustedNodeAddress,
+    WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
+use indexmap::IndexMap;
 use js::context::{JSContext, NoGC};
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
-use layout_api::{HitTestFlags, ScrollContainerQueryFlags, node_id_from_scroll_id};
+use layout_api::{
+    HitTestFlags, HitTestResultItem, ScrollContainerQueryFlags, node_id_from_scroll_id,
+};
+use log::warn;
+use net_traits::image_cache::{
+    Image, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+};
+use net_traits::request::InternalRequest;
+use pixels::PixelFormat;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -41,12 +52,17 @@ use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::str::DOMString;
 use script_traits::{ConstellationInputEvent, MouseButtons};
-use servo_base::generic_channel::GenericCallback;
+use servo_base::generic_channel::{GenericCallback, GenericSharedMemory};
+use servo_base::id::CursorId;
 use servo_config::pref;
 use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
+use servo_url::ServoUrl;
 use style::Atom;
+use style::values::computed::Image as StyleImage;
 use style_traits::CSSPixel;
+use url::Url;
 use webrender_api::ExternalScrollId;
+use webrender_api::units::{DeviceIntSize, DevicePoint};
 
 #[cfg(feature = "gamepad")]
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
@@ -66,6 +82,7 @@ use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
+use crate::dom::layout_image::fetch_image_for_layout;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
@@ -192,6 +209,12 @@ pub(crate) struct DocumentEventHandler {
     /// by the cursor.
     #[no_trace]
     current_cursor: Cell<Option<Cursor>>,
+    /// Registry of decoded cursor images. This is populated on demand when the user
+    /// hovers over and item that has uses a custom cursor image.
+    /// The insertion order generates the CursorId.
+    /// The cursor image data is sent to the embedder for storage.
+    #[no_trace]
+    cursor_registry: DomRefCell<IndexMap<Url, Option<DevicePoint>>>,
     /// <http://w3c.github.io/touch-events/#dfn-active-touch-point>
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
     /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
@@ -232,6 +255,7 @@ impl DocumentEventHandler {
             most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
+            cursor_registry: Default::default(),
             active_touch_points: Default::default(),
             active_keyboard_modifiers: Default::default(),
             active_pointer_ids: Default::default(),
@@ -294,6 +318,19 @@ impl DocumentEventHandler {
     /// "update the rendering."
     pub(crate) fn has_pending_input_events(&self) -> bool {
         !self.pending_input_events.borrow().is_empty()
+    }
+
+    pub(crate) fn cursor_registry(&self) -> &DomRefCell<IndexMap<Url, Option<DevicePoint>>> {
+        &self.cursor_registry
+    }
+
+    fn insert_cursor(
+        &self,
+        cursor_metadata: CursorMetadata,
+    ) -> (usize, Option<Option<DevicePoint>>) {
+        self.cursor_registry
+            .borrow_mut()
+            .insert_full(cursor_metadata.url, cursor_metadata.hotspot)
     }
 
     pub(crate) fn alternate_action_keyboard_modifier_active(&self) -> bool {
@@ -443,6 +480,218 @@ impl DocumentEventHandler {
             self.window.webview_id(),
             cursor.unwrap_or_default(),
         ));
+    }
+
+    pub(crate) fn process_hit_test_cursor(
+        &self,
+        hit_test_item_node: &Node,
+        hit_test_item: &HitTestResultItem,
+    ) -> Cursor {
+        // Process cursor images, looking for the first one that is in the registry, fallback to
+        // querying from the image cache
+        hit_test_item
+            .cursor_images
+            .iter()
+            .find_map(|cursor_image| {
+                let StyleImage::Url(url) = &cursor_image.image else {
+                    return None;
+                };
+
+                let url = url.url()?;
+
+                let hotspot = if cursor_image.has_hotspot {
+                    Some(DevicePoint::new(
+                        cursor_image.hotspot_x,
+                        cursor_image.hotspot_y,
+                    ))
+                } else {
+                    None
+                };
+
+                let cursor_metadata = CursorMetadata {
+                    url: (**url).clone(),
+                    hotspot,
+                };
+
+                if let Some((cursor_id, _, registry_hotspot)) = self
+                    .cursor_registry()
+                    .borrow_mut()
+                    .get_full_mut(&cursor_metadata.url)
+                {
+                    if registry_hotspot != &cursor_metadata.hotspot {
+                        // Update the hotspot in the registry
+                        *registry_hotspot = hotspot;
+                        // Notify embedder of the new hotspot coordinates
+                        self.window
+                            .send_to_embedder(EmbedderMsg::UpdateCursorMetadata(
+                                self.window.webview_id(),
+                                CursorId::new(cursor_id),
+                                cursor_metadata,
+                            ));
+                    }
+                    return Some(Cursor::Url(CursorId::new(cursor_id)));
+                }
+
+                self.handle_cursor_url(hit_test_item_node, url, cursor_metadata)
+            })
+            .unwrap_or(hit_test_item.cursor)
+    }
+
+    fn handle_cursor_url(
+        &self,
+        node: &Node,
+        url: &Url,
+        cursor_metadata: CursorMetadata,
+    ) -> Option<Cursor> {
+        let cache_result = self.window.image_cache().get_cached_image_status(
+            ServoUrl::from_url((*url).clone()),
+            self.window.origin().immutable().clone(),
+            None,
+        );
+
+        match cache_result {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                image, ..
+            }) => self.process_cursor_image_response(node, image, cursor_metadata),
+            ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) |
+            ImageCacheResult::Pending(id) => {
+                let sender = self.register_image_cache_callback(node, id, cursor_metadata);
+                self.window
+                    .image_cache()
+                    .add_listener(ImageLoadListener::new(
+                        sender,
+                        self.window.pipeline_id(),
+                        id,
+                    ));
+                None
+            },
+            ImageCacheResult::ReadyForRequest(id) => {
+                let sender = self.register_image_cache_callback(node, id, cursor_metadata);
+                self.window
+                    .image_cache()
+                    .add_listener(ImageLoadListener::new(
+                        sender,
+                        self.window.pipeline_id(),
+                        id,
+                    ));
+
+                fetch_image_for_layout(
+                    (*url).clone().into(),
+                    node,
+                    id,
+                    InternalRequest::No,
+                    self.window.image_cache().clone(),
+                );
+                None
+            },
+            ImageCacheResult::FailedToLoadOrDecode => None,
+        }
+    }
+
+    fn register_image_cache_callback(
+        &self,
+        node: &Node,
+        id: PendingImageId,
+        cursor_metadata: CursorMetadata,
+    ) -> ImageCacheResponseCallback {
+        let trusted_node = Trusted::new(node);
+        self.window.register_image_cache_listener(id, move |response, _| {
+            let trusted_node = trusted_node.clone();
+            let item = trusted_node.root();
+            let window = item.owner_window();
+            let cursor_metadata = cursor_metadata.clone();
+            let ImageResponse::Loaded(image, _) = response.response else {
+                // We're only listening for fully loaded rasterized images
+                return;
+            };
+            window
+                .as_global_scope()
+                .task_manager()
+                .networking_task_source()
+                .queue(task!(process_cursor_image_response: move || {
+                    let node = trusted_node.root();
+                    let document = node.owner_document();
+                    document.event_handler().process_cursor_image_response(&node, image, cursor_metadata);
+                }));
+        })
+    }
+
+    /// Rasterizes a loaded cursor file if necessary and notifies the embedder about it.
+    fn process_cursor_image_response(
+        &self,
+        node: &Node,
+        image: Image,
+        cursor_metadata: CursorMetadata,
+    ) -> Option<Cursor> {
+        let trusted_window = Trusted::new(&*self.window);
+        let send_rasterized_cursor_image_to_embedder =
+            |raster_image: &pixels::RasterImage| -> Cursor {
+                let cursor_metadata = cursor_metadata.clone();
+                let window = trusted_window.root();
+                let frame = raster_image.first_frame();
+                let format = match raster_image.format {
+                    PixelFormat::K8 => embedder_traits::PixelFormat::K8,
+                    PixelFormat::KA8 => embedder_traits::PixelFormat::KA8,
+                    PixelFormat::RGB8 => embedder_traits::PixelFormat::RGB8,
+                    PixelFormat::RGBA8 => embedder_traits::PixelFormat::RGBA8,
+                    PixelFormat::BGRA8 => embedder_traits::PixelFormat::BGRA8,
+                };
+
+                let embedder_image = embedder_traits::Image::new(
+                    frame.width,
+                    frame.height,
+                    std::sync::Arc::new(GenericSharedMemory::from_arc_vec(
+                        raster_image.bytes.clone(),
+                    )),
+                    raster_image.frames[0].byte_range.clone(),
+                    format,
+                );
+                let document = window.Document();
+                let (cursor_id, _) = document
+                    .event_handler()
+                    .insert_cursor(cursor_metadata.clone());
+                let cursor_id = CursorId::new(cursor_id);
+                // Register the cursor in the embedder
+                window.send_to_embedder(EmbedderMsg::RegisterCursor(
+                    window.webview_id(),
+                    cursor_id,
+                    embedder_image,
+                    cursor_metadata,
+                ));
+                // Set the cursor to the registered cursor. This will update the cursor even if there
+                // are no subsequent hit tests triggered.
+                let cursor = Cursor::Url(cursor_id);
+                document.event_handler().set_cursor(Some(cursor));
+                cursor
+            };
+        match image {
+            Image::Raster(raster_image) => {
+                Some(send_rasterized_cursor_image_to_embedder(&raster_image))
+            },
+            Image::Vector(vector_image) => {
+                // This size is completely arbitrary.
+                let size = DeviceIntSize::new(250, 250);
+
+                let image_cache = self.window.image_cache();
+                if let Some(raster_image) =
+                    image_cache.rasterize_vector_image(vector_image.id, size, None)
+                {
+                    Some(send_rasterized_cursor_image_to_embedder(&raster_image))
+                } else {
+                    // The rasterization callback will end up calling "process_cursor_image_response" again,
+                    // but this time with a raster image.
+                    let image_cache_sender =
+                        self.register_image_cache_callback(node, vector_image.id, cursor_metadata);
+                    image_cache.add_rasterization_complete_listener(
+                        self.window.pipeline_id(),
+                        vector_image.id,
+                        size,
+                        image_cache_sender,
+                    );
+                    None
+                }
+            },
+        }
     }
 
     fn handle_mouse_left_viewport_event(
