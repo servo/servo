@@ -70,7 +70,7 @@ pub fn init_tracing(filter_directives: Option<&str>) {
             subscriber.with(perfetto_layer)
         };
 
-        #[cfg(feature = "tracing-hitrace")]
+        #[cfg(all(feature = "tracing-hitrace", target_env = "ohos"))]
         let subscriber = {
             // Set up a HitraceLayer for performance tracing.
             subscriber.with(HitraceLayer::default())
@@ -159,12 +159,12 @@ pub const VERSION: &str = concat!("Servo ", env!("CARGO_PKG_VERSION"), "-", env!
 /// [come from]: https://docs.rs/tracing-subscriber/0.3.18/src/tracing_subscriber/registry/sharded.rs.html#237-269
 /// [packed representation]: https://docs.rs/sharded-slab/0.1.7/sharded_slab/trait.Config.html
 /// [`ThreadId`]: std::thread::ThreadId
-#[cfg(feature = "tracing-hitrace")]
+#[cfg(all(feature = "tracing-hitrace", target_env = "ohos"))]
 #[derive(Default)]
 struct HitraceLayer {}
 
 cfg_if! {
-    if #[cfg(feature = "tracing-hitrace")] {
+    if #[cfg(all(feature = "tracing-hitrace", target_env = "ohos"))] {
         use std::cell::RefCell;
         use std::fmt;
         use std::fmt::Write;
