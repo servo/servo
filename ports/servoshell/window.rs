@@ -9,10 +9,11 @@ use std::sync::atomic::AtomicU64;
 use euclid::Scale;
 use log::warn;
 use servo::{
-    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, Cursor,
-    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel,
-    EmbedderControl, EmbedderControlId, InputEventId, InputEventResult, MediaSessionEvent,
-    PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, Cursor, CursorId,
+    CustomCursorImage, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint,
+    DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId, InputEventResult,
+    MediaSessionEvent, PermissionRequest, RenderingContext, ScreenGeometry, WebView,
+    WebViewBuilder, WebViewId,
 };
 use url::Url;
 
@@ -401,6 +402,8 @@ pub(crate) trait PlatformWindow {
     -> Option<DeviceIntSize>;
     fn set_position(&self, _point: DeviceIntPoint) {}
     fn set_fullscreen(&self, _state: bool) {}
+    fn register_custom_cursor_image(&self, _cursor_id: CursorId, _cursor_image: CustomCursorImage) {
+    }
     fn set_cursor(&self, _cursor: Cursor) {}
     #[cfg(all(
         feature = "webxr",
