@@ -705,7 +705,7 @@ impl DocumentFocusHandler {
         } else {
             iframe_element
                 .upcast::<Node>()
-                .run_the_focusing_steps(cx, None);
+                .run_the_focusing_steps(cx, None, None);
         }
     }
 

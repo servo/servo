@@ -1336,7 +1336,7 @@ impl Document {
 
         // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback
         // target.
-        indicated_part.run_the_focusing_steps(cx, Some(FocusableArea::Viewport));
+        indicated_part.run_the_focusing_steps(cx, Some(FocusableArea::Viewport), None);
 
         // Step 3.7. Move the sequential focus navigation starting point to target.
         self.focus_handler()

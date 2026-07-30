@@ -5,6 +5,7 @@
 use std::collections::VecDeque;
 
 use js::context::{JSContext, NoGC};
+use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
@@ -13,7 +14,7 @@ use crate::dom::document::focus::{FocusableArea, FocusableAreaKind};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::iterators::TreeIterator;
 use crate::dom::types::{
-    Element, HTMLDialogElement, HTMLIFrameElement, HTMLSlotElement, ShadowRoot,
+    Element, HTMLDialogElement, HTMLElement, HTMLIFrameElement, HTMLSlotElement, ShadowRoot,
 };
 use crate::dom::{Document, Node, NodeTraits};
 
@@ -96,6 +97,12 @@ impl Iterator for FocusNavigationScopeIterator {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub(crate) enum FocusTrigger {
+    Click,
+    Other,
+}
+
 impl Node {
     /// Returns the appropriate [`FocusableArea`] when this [`Node`] is clicked on according to
     /// <https://www.w3.org/TR/pointerevents4/#handle-native-mouse-down>.
@@ -107,11 +114,27 @@ impl Node {
     pub(crate) fn find_click_focusable_area(&self, no_gc: &NoGC) -> FocusableArea {
         self.inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(|node| {
-                node.get_the_focusable_area(no_gc).filter(|focusable_area| {
-                    focusable_area.kind().contains(FocusableAreaKind::Click)
-                })
+                node.get_the_focusable_area(None, no_gc)
+                    .filter(|focusable_area| {
+                        focusable_area.kind().contains(FocusableAreaKind::Click)
+                    })
             })
             .unwrap_or(FocusableArea::Viewport)
+    }
+
+    /// This is a helper function for `get_the_focusable_area` that handles `<iframe>`.
+    fn focusable_area(&self, kind: FocusableAreaKind) -> FocusableArea {
+        if let Some(iframe_element) = self.downcast::<HTMLIFrameElement>() {
+            return FocusableArea::IFrameViewport {
+                iframe_element: DomRoot::from_ref(iframe_element),
+                kind,
+            };
+        }
+
+        FocusableArea::Node {
+            node: DomRoot::from_ref(self),
+            kind,
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#get-the-focusable-area>
@@ -121,25 +144,20 @@ impl Node {
     /// this for a focus target that actually *is* a focusable area. The obvious thing is to
     /// just return the focus target, but it's still odd that this isn't mentioned in the
     /// specification.
-    pub(crate) fn get_the_focusable_area(&self, no_gc: &NoGC) -> Option<FocusableArea> {
+    pub(crate) fn get_the_focusable_area(
+        &self,
+        focus_trigger: Option<FocusTrigger>,
+        no_gc: &NoGC,
+    ) -> Option<FocusableArea> {
+        let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Other);
         let kind = self
             .downcast::<Element>()
             .map(|element| Element::focusable_area_kind(element, no_gc))
             .unwrap_or_default();
         if !kind.is_empty() {
-            if let Some(iframe_element) = self.downcast::<HTMLIFrameElement>() {
-                return Some(FocusableArea::IFrameViewport {
-                    iframe_element: DomRoot::from_ref(iframe_element),
-                    kind,
-                });
-            }
-
-            return Some(FocusableArea::Node {
-                node: DomRoot::from_ref(self),
-                kind,
-            });
+            return Some(self.focusable_area(kind));
         }
-        self.get_the_focusable_area_if_not_a_focusable_area(no_gc)
+        self.get_the_focusable_area_if_not_a_focusable_area(Some(focus_trigger), no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#get-the-focusable-area>
@@ -152,8 +170,11 @@ impl Node {
     /// TODO: It might be better to distinguish these two cases in the future.
     fn get_the_focusable_area_if_not_a_focusable_area(
         &self,
+        focus_trigger: Option<FocusTrigger>,
         no_gc: &NoGC,
     ) -> Option<FocusableArea> {
+        let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Other);
+
         // > To get the focusable area for a focus target that is either an element that is not a
         // > focusable area, or is a navigable, given an optional string focus trigger (default
         // > "other"), run the first matching set of steps from the following list:
@@ -206,7 +227,7 @@ impl Node {
             }
 
             // >   Step 3. Return the focus delegate for focus target given focus trigger.
-            return self.focus_delegate(no_gc);
+            return self.focus_delegate(Some(focus_trigger), no_gc);
         }
 
         None
@@ -216,7 +237,13 @@ impl Node {
     ///
     /// In addition to returning the focus delegate for this [`Node`], this method also returns
     /// the [`FocusableAreaKind`] for efficiency reasons.
-    pub(crate) fn focus_delegate(&self, no_gc: &NoGC) -> Option<FocusableArea> {
+    pub(crate) fn focus_delegate(
+        &self,
+        focus_trigger: Option<FocusTrigger>,
+        no_gc: &NoGC,
+    ) -> Option<FocusableArea> {
+        let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Other);
+
         // > 1. If focusTarget is a shadow host and its shadow root's delegates focus is false, then
         // >    return null.
         let shadow_root = self.downcast::<Element>().and_then(Element::shadow_root);
@@ -236,10 +263,12 @@ impl Node {
         }
 
         // > 4. Let autofocusDelegate be the autofocus delegate for whereToLook given focusTrigger.
-        // TODO: Implement this.
+        let autofocus_delegate = self.autofocus_delegate(focus_trigger, no_gc);
 
         // > 5. If autofocusDelegate is not null, then return autofocusDelegate.
-        // TODO: Implement this.
+        if autofocus_delegate.is_some() {
+            return autofocus_delegate;
+        }
 
         // > 6. For each descendant of whereToLook's descendants, in tree order:
         let is_dialog_element = self.is::<HTMLDialogElement>();
@@ -271,8 +300,8 @@ impl Node {
 
             // > 6.4. Otherwise, set focusableArea to the result of getting the focusable area for
             //        descendant given focusTrigger.
-            if let Some(focusable_area) =
-                descendant.get_the_focusable_area_if_not_a_focusable_area(no_gc)
+            if let Some(focusable_area) = descendant
+                .get_the_focusable_area_if_not_a_focusable_area(Some(focus_trigger), no_gc)
             {
                 // > 6.5. If focusableArea is not null, then return focusableArea.
                 return Some(focusable_area);
@@ -280,6 +309,53 @@ impl Node {
         }
 
         // > 7. Return null.
+        None
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#autofocus-delegate>
+    pub(crate) fn autofocus_delegate(
+        &self,
+        focus_trigger: FocusTrigger,
+        no_gc: &NoGC,
+    ) -> Option<FocusableArea> {
+        // > 1. For each descendant descendant of focus target, in tree order:
+        for descendant in self.traverse_preorder(ShadowIncluding::No).skip(1) {
+            // > 1.1. If descendant does not have an autofocus content attribute, then continue.
+            if !descendant
+                .downcast::<HTMLElement>()
+                .is_some_and(HTMLElement::Autofocus)
+            {
+                continue;
+            }
+
+            // > 1.2. Let focusable area be descendant, if descendant is a focusable area; otherwise
+            // >      let focusable area be the result of getting the focusable area for descendant
+            // >      given focus trigger.
+            let kind = descendant
+                .downcast::<Element>()
+                .map(|e| e.focusable_area_kind(no_gc))
+                .unwrap_or_default();
+            let focusable_area = if !kind.is_empty() {
+                Some(descendant.focusable_area(kind))
+            } else {
+                descendant.get_the_focusable_area(Some(focus_trigger), no_gc)
+            };
+
+            // > 1.3. If focusable area is null, then continue.
+            if focusable_area.is_none() {
+                continue;
+            }
+
+            // > 1.4. If focusable area is not click focusable and focus trigger is "click", then continue.
+            if !kind.contains(FocusableAreaKind::Click) && focus_trigger == FocusTrigger::Click {
+                continue;
+            }
+
+            // > 1.5. Return focusable area.
+            return focusable_area;
+        }
+
+        // > 2. Return null.
         None
     }
 
@@ -295,6 +371,7 @@ impl Node {
         &self,
         cx: &mut JSContext,
         fallback_target: Option<FocusableArea>,
+        focus_trigger: Option<FocusTrigger>,
     ) -> bool {
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
         // >    of getting the focusable area for new focus target, given focus trigger if it was
@@ -302,7 +379,9 @@ impl Node {
         // > 2. If new focus target is null, then:
         // > 2.1 If no fallback target was specified, then return.
         // > 2.2 Otherwise, set new focus target to the fallback target.
-        let Some(focusable_area) = self.get_the_focusable_area(cx.no_gc()).or(fallback_target)
+        let Some(focusable_area) = self
+            .get_the_focusable_area(focus_trigger, cx.no_gc())
+            .or(fallback_target)
         else {
             return false;
         };
