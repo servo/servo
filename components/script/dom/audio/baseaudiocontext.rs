@@ -618,12 +618,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             // - Let error be a DataCloneError.
             // - Reject promise with error, and remove it from [[pending promises]].
             // - Queue a media element task to invoke errorCallback with error.
-            promise.reject_error(
-                cx,
-                Error::DataClone(Some(
-                    "Cannot decode audio data from a detached ArrayBuffer.".into(),
-                )),
-            );
+            promise.reject_error(cx, Error::DataClone(None));
 
             if let Some(callback) = decode_error_callback {
                 // Build the Task object using a unique uuid as a key to remove the callback resolver entry.
