@@ -468,9 +468,9 @@ impl BodySink {
         }
     }
 
-    fn close(&self) {
+    fn close(self) {
         match self {
-            BodySink::Chunked(_) => { /* no need to close sender */ },
+            BodySink::Chunked(_) => {},
             BodySink::Buffered(sender) => {
                 let _ = sender.send(BodyChunk::Done);
             },
@@ -735,6 +735,8 @@ fn obtain_response_setup_router_callback(
         }
     }
 
+    let mut sink = Some(sink);
+
     ROUTER.add_typed_route(
         body_port,
         Box::new(move |message| {
@@ -742,14 +744,17 @@ fn obtain_response_setup_router_callback(
             let bytes = match message.unwrap() {
                 BodyChunkResponse::Chunk(bytes) => bytes,
                 BodyChunkResponse::Done => {
-                    // Step 3, abort these parallel steps.
+                    // Step 2.2.2. If fetchParams’s process request end-of-body is non-null,
+                    // then run fetchParams’s process request end-of-body.
                     if fetch_terminated.send(false).is_err() {
                         log_fetch_terminated_send_failure(
                             false,
                             "handling request body completion",
                         );
                     }
-                    sink.close();
+                    if let Some(sink) = sink.take() {
+                        sink.close();
+                    }
 
                     return;
                 },
@@ -763,7 +768,9 @@ fn obtain_response_setup_router_callback(
                             "handling request body stream error",
                         );
                     }
-                    sink.close();
+                    if let Some(sink) = sink.take() {
+                        sink.close();
+                    }
 
                     return;
                 },
@@ -773,7 +780,12 @@ fn obtain_response_setup_router_callback(
 
             // Step 5.1.2.2, transmit chunk over the network,
             // currently implemented by sending the bytes to the fetch worker.
-            sink.transmit_bytes(bytes);
+            {
+                let Some(sink) = sink.as_ref() else {
+                    return;
+                };
+                sink.transmit_bytes(bytes);
+            }
 
             // Step 5.1.2.3
             // Request the next chunk.
@@ -790,7 +802,9 @@ fn obtain_response_setup_router_callback(
                             "handling failure to request the next request body chunk",
                         );
                     }
-                    sink.close();
+                    if let Some(sink) = sink.take() {
+                        sink.close();
+                    }
                 }
             } else {
                 log_request_body_stream_closed("request the next request body chunk", None);
@@ -800,7 +814,9 @@ fn obtain_response_setup_router_callback(
                         "handling a closed request body stream while requesting the next chunk",
                     );
                 }
-                sink.close();
+                if let Some(sink) = sink.take() {
+                    sink.close();
+                }
             }
         }),
     );
