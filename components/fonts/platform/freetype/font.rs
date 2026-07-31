@@ -395,6 +395,15 @@ impl PlatformFontMethods for PlatformFont {
     fn variations(&self) -> &[FontVariation] {
         &self.variations
     }
+
+    fn set_variations(&mut self, variations: &[FontVariation]) -> Result<(), &'static str> {
+        let library = FreeTypeLibraryHandle::get().lock();
+        self.variations = self
+            .face
+            .lock()
+            .set_variations_for_font(variations, &library)?;
+        Ok(())
+    }
 }
 
 impl PlatformFont {

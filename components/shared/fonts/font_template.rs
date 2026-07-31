@@ -8,16 +8,12 @@ use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
-use read_fonts::collections::int_set::Domain;
-use read_fonts::types::Tag;
 use serde::{Deserialize, Serialize};
-use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::font_face::{ComputedFontStretchRange, ComputedFontStyleRange, ComputedFontWeightRange};
 use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::values::computed::font::FontWeight;
-use webrender_api::FontVariation;
 
 use crate::{CSSFontFaceDescriptors, FontDescriptor, FontIdentifier};
 
@@ -192,76 +188,6 @@ impl FontTemplate {
 
     pub fn identifier(&self) -> &FontIdentifier {
         &self.identifier
-    }
-
-    /// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>
-    pub fn compute_variations(&self, descriptor: &FontDescriptor) -> Vec<FontVariation> {
-        // The steps in this algorithm are inverted order because they are listed in ascending order of precedence.
-        let mut variations: Vec<FontVariation> = vec![];
-
-        let mut add_variation = |variation: FontVariation| {
-            if !variations
-                .iter()
-                .any(|existing_variation| existing_variation.tag == variation.tag)
-            {
-                variations.push(variation);
-            }
-        };
-
-        // Step 12. Font variations implied by the value of the font-variation-settings property are applied.
-        // These values should be clamped to the values that are supported by the font.
-        // NOTE: Clamping happens inside the PlatformFont.
-        descriptor
-            .variation_settings
-            .iter()
-            .copied()
-            .for_each(&mut add_variation);
-
-        // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
-        // NOTE The precise behaviour of font-optical-sizing:auto is not defined.
-        // We choose to set "opsz" to the font size if it's not already set elsewhere. This is the easiest
-        // at the end of this function, so we move this step down.
-
-        if let Some(font_face_rule) = &self.font_face_rule {
-            // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
-            // descriptor in the @font-face rule are applied.
-            if let Some(variation_settings) = font_face_rule.font_variation_settings.as_ref() {
-                variation_settings
-                    .0
-                    .iter()
-                    .map(|variation| FontVariation {
-                        tag: variation.tag.0,
-                        value: variation.value.get().expect(
-                            "The value is enforced to be resolvable at parse time \
-                            (see FontVariationSettings::parse_for_font_face_rule).",
-                        ),
-                    })
-                    .for_each(&mut add_variation);
-            }
-        }
-
-        // Step 2. Font variations as enabled by the font-weight, font-width, and font-style properties are applied.
-        // FIXME: Apply variations for font-style
-        // NOTE: font-stretch is a legacy alias to font-width
-        add_variation(FontVariation {
-            tag: Tag::new(b"wght").to_u32(),
-            value: descriptor.weight.value(),
-        });
-
-        add_variation(FontVariation {
-            tag: Tag::new(b"wdth").to_u32(),
-            value: descriptor.stretch.0.to_float(),
-        });
-
-        // This is the implementation for Step 9. Refer to the note on Step 9 for an explanation of why it's here.
-        if descriptor.optical_sizing == FontOpticalSizing::Auto {
-            add_variation(FontVariation {
-                tag: Tag::new(b"opsz").to_u32(),
-                value: descriptor.pt_size.to_f32_px(),
-            });
-        }
-
-        variations
     }
 
     pub fn is_defined_by_font_face_rule(&self, rule: &FontFaceRuleDescriptors) -> bool {
