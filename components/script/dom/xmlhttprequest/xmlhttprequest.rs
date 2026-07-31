@@ -386,13 +386,17 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 // Step 8. If parsedURL’s host is non-null, then:
                 if parsed_url.host().is_some() {
                     // Step 8.1 If the username argument is not null, set the username given parsedURL and username.
-                    if let Some(user_str) = username {
-                        parsed_url.set_username(&user_str.0).unwrap();
+                    if let Some(user_str) = username &&
+                        let Err(error) = parsed_url.set_username(&user_str.0)
+                    {
+                        warn!("Could not set username on XMLHttpRequest: {error:?}");
                     }
 
                     // Step 8.2 If the password argument is not null, set the password given parsedURL and password.
-                    if let Some(pass_str) = password {
-                        parsed_url.set_password(Some(&pass_str.0)).unwrap();
+                    if let Some(pass_str) = password &&
+                        let Err(error) = parsed_url.set_password(Some(&pass_str.0))
+                    {
+                        warn!("Could not set password on XMLHttpRequest: {error:?}");
                     }
                 }
 
