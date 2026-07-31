@@ -303,6 +303,13 @@ impl CanvasPaintThread {
     }
 }
 
+#[cfg_attr(
+    feature = "vello",
+    expect(
+        clippy::large_enum_variant,
+        reason = "Current consensus is on keeping enum instead of boxing it. https://github.com/servo/servo/pull/46863"
+    )
+)]
 enum Canvas {
     #[cfg(feature = "vello")]
     Vello(CanvasData<crate::vello_backend::VelloDrawTarget>),
