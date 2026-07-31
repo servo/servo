@@ -11,6 +11,7 @@
 //! IFC text and vice-versa.
 
 use arrayvec::ArrayVec;
+use icu_properties::GeneralCategoryGroup;
 use icu_segmenter::WordSegmenter;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::text::Utf32CodeUnits;
@@ -352,6 +353,17 @@ fn simple_case_transform_iterator(
     })
 }
 
+/// From <https://drafts.csswg.org/css-text-4/#typographic-letter-unit>:
+/// > A typographic letter unit (or letter for the purpose of this specification) is a
+/// > typographic character unit belonging to one of the Letter or Number general categories. See
+/// > Appendix E: Characters and Properties for how to determine the Unicode properties of a
+/// > typographic character unit.
+fn is_typographic_letter_unit(character: char) -> bool {
+    let category = icu_properties::maps::general_category().get(character);
+    GeneralCategoryGroup::Letter.contains(category) ||
+        GeneralCategoryGroup::Number.contains(category)
+}
+
 /// Given an input iterator, a size hint for the number items in the iterator,
 /// and a boolean determining whether the start of the input represents a word
 /// boundary, return an iterator that capitalizes one-to-one mapped characters
@@ -369,8 +381,8 @@ pub(crate) fn capitalization_iterator(
 
     let word_segmenter = WordSegmenter::new_auto();
     let mut bounds = word_segmenter.segment_str(&string).peekable();
-
     let mut current_byte_index = 0;
+    let mut pending_word_start = false;
     for iteration in iterations.iter_mut() {
         let bytes_to_advance: usize = iteration
             .characters()
@@ -381,24 +393,28 @@ pub(crate) fn capitalization_iterator(
             continue;
         }
 
-        let at_word_start = bounds.peek() == Some(&current_byte_index);
-        if at_word_start {
+        if bounds.peek() == Some(&current_byte_index) {
+            pending_word_start = current_byte_index != 0 || allow_word_at_start;
             bounds.next();
         }
 
-        // TODO: currently we titlecase the first `char` of each word,
-        // instead it should be the first typographic letter unit:
-        // https://drafts.csswg.org/css-text-4/#typographic-letter-unit
-        // WPT /css/css-text/text-transform/text-transform-capitalize-026.html
+        // From <https://drafts.csswg.org/css-text-4/#text-transform-property>:
+        // > Puts the first typographic letter unit of each word, if lowercase, in titlecase;
+        // > other characters are unaffected.
         if iteration.is_one_to_one() &&
-            at_word_start &&
-            (current_byte_index != 0 || allow_word_at_start)
+            pending_word_start &&
+            is_typographic_letter_unit(iteration.characters[0])
         {
-            // TODO: Replace this with a call to `character.to_titlecase()` when available:
-            // See: https://github.com/rust-lang/rust/issues/153892
-            // See: https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
-            *iteration =
-                CharacterTransformIteration::case_mapped(iteration.characters[0].to_uppercase());
+            if iteration.characters[0].is_lowercase() {
+                // TODO: Replace this with a call to `character.to_titlecase()` when available:
+                // See: https://github.com/rust-lang/rust/issues/153892
+                // See: https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
+                *iteration = CharacterTransformIteration::case_mapped(
+                    iteration.characters[0].to_uppercase(),
+                );
+            }
+
+            pending_word_start = false;
         }
 
         current_byte_index += bytes_to_advance;
