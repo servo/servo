@@ -81,8 +81,15 @@ pub struct CachedResource {
     expires: Duration,
     stale_while_revalidate: Duration,
     #[conditional_malloc_size_of]
+    #[serde(skip)]
     revalidating: StdArc<AtomicBool>,
     last_validated: SystemTime,
+}
+
+impl CachedResource {
+    pub(crate) fn is_done(&self) -> bool {
+        self.body.lock().is_done()
+    }
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]

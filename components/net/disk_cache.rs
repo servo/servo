@@ -9,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use rusqlite::Row;
-use sea_query::{ColumnDef, Expr, ExprTrait, Iden, Query, SqliteQueryBuilder, Table};
+use sea_query::{ColumnDef, Expr, ExprTrait, Iden, OnConflict, Query, SqliteQueryBuilder, Table};
 use sea_query_rusqlite::RusqliteBinder;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -230,7 +230,11 @@ impl DiskCache {
     /// Stores a [`CacheEntry`]` to disk.
     #[servo_tracing::instrument(skip(self))]
     pub(crate) async fn store(&self, key: CacheKey, entry: CacheEntry) {
-        let data_to_serialize = entry.read().await;
+        let entry = entry.read().await;
+        let data_to_serialize: Vec<&CachedResource> = entry
+            .iter()
+            .filter(|cached_resource| cached_resource.is_done())
+            .collect();
         let Ok(data) = postcard::to_stdvec(&*data_to_serialize) else {
             error!("Could not deserialize value");
             return;
@@ -252,6 +256,16 @@ impl DiskCache {
                     DiskCacheTable::Size,
                     DiskCacheTable::InsertionTimestamp,
                 ])
+                .on_conflict(
+                    OnConflict::column(DiskCacheTable::Key)
+                        .update_columns([
+                            DiskCacheTable::Data,
+                            DiskCacheTable::Data,
+                            DiskCacheTable::Size,
+                            DiskCacheTable::InsertionTimestamp,
+                        ])
+                        .to_owned(),
+                )
                 .values_panic([
                     key.as_ref().into(),
                     data.into(),
