@@ -198,7 +198,7 @@ phf_shared = "0.13"
 pkcs8 = "0.11"
 pollster = "1.0"
 postcard = { version = "1.1.3", default-features = false, features = ["use-std"] }
-prettyplease = "0.2.32"
+prettyplease = "0.3.0"
 proc-macro2 = "1"
 quick_cache = { version = "0.6.18", default-features = false }
 quickcheck = "1"
