@@ -34,6 +34,7 @@ use fonts::{
     WebFontSetDifference,
 };
 use js::context::{JSContext, NoGC};
+use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
 use js::jsval::{NullValue, UndefinedValue};
@@ -66,7 +67,6 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::like::Setlike;

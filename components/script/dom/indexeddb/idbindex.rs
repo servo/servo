@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::codegen::GenericBindings::IDBTransactionBinding::IDBTransactionMode;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::{Error, ErrorResult};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::str::DOMString;

@@ -10,6 +10,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use ipc_channel::router::ROUTER;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::realm::AutoRealm;
@@ -25,7 +26,6 @@ use net_traits::{
 };
 use profile_traits::ipc as ProfiledIpc;
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, reflect_weak_referenceable_dom_object_with_proto};
 use servo_base::generic_channel::{LazyCallback, lazy_callback};
 use servo_constellation_traits::BlobImpl;

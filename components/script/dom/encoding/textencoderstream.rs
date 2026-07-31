@@ -8,7 +8,7 @@ use std::ptr::{self, NonNull};
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::conversions::latin1_to_string;
+use js::conversions::{ToJSValConvertible, latin1_to_string};
 use js::jsapi::{JS_DeprecatedStringHasLatin1Chars, JSObject, JSType};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers2::{JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending, ToPrimitive};
@@ -17,7 +17,6 @@ use js::rust::{
     MutableHandleValue as SafeMutableHandleValue, ToString,
 };
 use js::typedarray::Uint8;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;

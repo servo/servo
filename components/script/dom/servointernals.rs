@@ -6,13 +6,13 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
 use js::jsapi::Heap;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use profile_traits::mem::MemoryReportResult;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};

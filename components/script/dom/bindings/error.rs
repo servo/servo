@@ -12,7 +12,7 @@ use std::slice::from_raw_parts;
 use backtrace::Backtrace;
 use embedder_traits::JavaScriptErrorInfo;
 use js::context::JSContext;
-use js::conversions::jsstr_to_string;
+use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::error::{throw_range_error, throw_type_error};
 use js::gc::{HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::ExceptionStackBehavior;
@@ -28,7 +28,6 @@ use js::rust::{describe_scripted_caller_safe, error_info_from_exception_stack_sa
 use libc::c_uint;
 #[cfg(feature = "js_backtrace")]
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;

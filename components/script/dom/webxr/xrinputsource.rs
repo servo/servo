@@ -5,10 +5,10 @@
 use dom_struct::dom_struct;
 use embedder_traits::GamepadSupportedHapticEffects;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 

@@ -14,6 +14,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::ImageCache;
@@ -23,7 +24,6 @@ use net_traits::request::{
     RequestClient,
 };
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, ScriptEventLoopId, WebViewId};

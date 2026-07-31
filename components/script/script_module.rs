@@ -19,7 +19,7 @@ use hyper_serde::Serde;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
 use js::context::JSContext;
-use js::conversions::jsstr_to_string;
+use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::{HandleObject, MutableHandleValue};
 use js::jsapi::{
     CallArgs, ExceptionStackBehavior, GetFunctionNativeReserved, GetModuleResolveHook,
@@ -57,7 +57,6 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
-use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };

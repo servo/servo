@@ -21,6 +21,7 @@ use http::Method;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper_serde::Serde;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers2::{JS_ClearPendingException, JS_ParseJSON};
@@ -35,7 +36,6 @@ use net_traits::{
     trim_http_whitespace,
 };
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::RootedTraceableBox;
