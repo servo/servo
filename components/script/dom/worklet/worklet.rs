@@ -597,8 +597,8 @@ impl WorkletThread {
                     self.process_control(control, cx);
                 }
 
-                for scope in self.global_scopes.values() {
-                    scope.perform_a_microtask_checkpoint(cx);
+                for (_, worklet_global_scope) in self.global_scopes.iter() {
+                    worklet_global_scope.perform_a_microtask_checkpoint(cx);
                 }
 
                 self.gc(cx);
