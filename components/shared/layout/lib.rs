@@ -458,7 +458,7 @@ pub type CSSPixelRectVec = Vec<Rect<Au, CSSPixel>>;
 
 /// Whether or not this node is being rendered or delegates rendering according
 /// to the HTML standard.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub enum NodeRenderingType {
     /// <https://html.spec.whatwg.org/multipage/#being-rendered>
     Rendered,

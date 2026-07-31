@@ -509,7 +509,6 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
     }
 
     fn compute_layout_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDamage {
-        // somewhere in here, set accessibility damage on RestyleDamage
         let box_tree_needs_rebuild = || {
             let old_box = old.get_box();
             let new_box = new.get_box();

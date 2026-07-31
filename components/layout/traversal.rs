@@ -228,7 +228,6 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_below_dirty_root<'dom>(
 
     if is_display_none {
         node.unset_all_boxes();
-        // TODO: accessibility damage?
         return element_damage | damage_from_parent;
     }
 
