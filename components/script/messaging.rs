@@ -255,9 +255,7 @@ impl ScriptEventLoopSender {
                     .map_err(|_| SendError(()))
             },
             Self::Worklet(executor) => {
-                executor.send_control_message(WorkletControl::Common(message));
-
-                Ok(())
+                executor.send_control_message(WorkletControl::Common(message))
             },
         }
     }
