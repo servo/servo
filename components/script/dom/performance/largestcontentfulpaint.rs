@@ -10,6 +10,7 @@ use servo_url::ServoUrl;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::LargestContentfulPaintBinding::LargestContentfulPaintMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::reflector::DomGlobal;
@@ -93,6 +94,13 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-url>
     fn Url(&self) -> DOMString {
         self.url.clone()
+    }
+
+    /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-id>
+    fn Id(&self) -> DOMString {
+        self.GetElement()
+            .map(|element| element.Id())
+            .unwrap_or_default()
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-element>
