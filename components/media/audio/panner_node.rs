@@ -7,8 +7,8 @@ use std::f32::consts::PI;
 use euclid::default::Vector3D;
 use malloc_size_of_derive::MallocSizeOf;
 
+use crate::audio_node::{AudioNodeEngine, AudioNodeMessage, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK, Tick};
-use crate::node::{AudioNodeEngine, AudioNodeMessage, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::param::{Param, ParamDir, ParamType};
 
 // .normalize(), but it takes into account zero vectors

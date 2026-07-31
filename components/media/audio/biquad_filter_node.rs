@@ -7,8 +7,8 @@ use std::f64::consts::{PI, SQRT_2};
 use malloc_size_of_derive::MallocSizeOf;
 use smallvec::SmallVec;
 
+use crate::audio_node::{AudioNodeEngine, AudioNodeMessage, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Chunk, Tick};
-use crate::node::{AudioNodeEngine, AudioNodeMessage, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::param::{Param, ParamType};
 
 #[derive(Copy, Clone, Debug, MallocSizeOf)]

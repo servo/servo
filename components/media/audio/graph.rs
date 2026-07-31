@@ -15,10 +15,10 @@ use petgraph::visit::{DfsPostOrder, EdgeRef, Reversed};
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 
+use crate::audio_node::{AudioNodeEngine, BlockInfo, ChannelCountMode, ChannelInterpretation};
 use crate::block::{Block, Chunk};
 use crate::destination_node::DestinationNode;
 use crate::listener::AudioListenerNode;
-use crate::node::{AudioNodeEngine, BlockInfo, ChannelCountMode, ChannelInterpretation};
 use crate::param::ParamType;
 
 #[derive(Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Debug, MallocSizeOf)]

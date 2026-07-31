@@ -9,8 +9,8 @@ use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use num_complex::Complex64;
 
+use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::Chunk;
-use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 
 const MAX_COEFFS: usize = 20;
 

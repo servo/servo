@@ -8,8 +8,8 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage};
 use servo_media::audio::media_element_source_node::MediaElementSourceNodeMessage;
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 
 use crate::dom::audio::audiocontext::AudioContext;
 use crate::dom::audio::audionode::AudioNode;

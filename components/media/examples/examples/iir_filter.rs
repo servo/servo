@@ -8,8 +8,10 @@ extern crate servo_media_auto;
 use std::sync::Arc;
 use std::{thread, time};
 
+use servo_media::audio::audio_node::{
+    AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage,
+};
 use servo_media::audio::iir_filter_node::{IIRFilterNode, IIRFilterNodeOptions};
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage};
 use servo_media::audio::oscillator_node::OscillatorNodeOptions;
 use servo_media::{ClientContextId, ServoMedia};
 

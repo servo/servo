@@ -6,8 +6,8 @@ use std::f32::consts::PI;
 
 use malloc_size_of_derive::MallocSizeOf;
 
+use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Chunk, FRAMES_PER_BLOCK, Tick};
-use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::param::{Param, ParamType};
 
 #[derive(Copy, Clone, Debug, MallocSizeOf)]
