@@ -45,6 +45,7 @@ use net_traits::request::{
     InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
 };
 use net_traits::{ReferrerPolicy, ResourceFetchTiming};
+use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
@@ -609,6 +610,8 @@ pub(crate) struct Document {
     intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
     /// The node that is currently highlighted by the devtools
     highlighted_dom_node: MutNullableDom<Node>,
+    /// Resolved LCP candidate elements, keyed by their [LCPCandidateID].
+    lcp_candidates: DomRefCell<HashMapTracedValues<LCPCandidateID, Dom<Element>>>,
     /// The constructed stylesheet that is adopted by this [Document].
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
@@ -3395,6 +3398,12 @@ impl Document {
             }));
     }
 
+    pub(crate) fn store_lcp_candidate(&self, id: LCPCandidateID, element: &Element) {
+        self.lcp_candidates
+            .borrow_mut()
+            .insert(id, Dom::from_ref(element));
+    }
+
     pub(crate) fn handle_paint_metric(
         &self,
         cx: &mut JSContext,
@@ -3416,15 +3425,16 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance(cx).queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
+            ProgressiveWebMetricType::LargestContentfulPaint { area, url, id } => {
                 let binding = LargestContentfulPaint::new(
                     cx,
                     self.window.as_global_scope(),
                     metric_value,
                     area,
                     url,
+                    self.lcp_candidates.borrow_mut().remove(&id).as_deref(),
                 );
-                metrics.set_largest_contentful_paint(metric_value, area);
+                metrics.set_largest_contentful_paint(id, metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance(cx).queue_entry(entry);
             },
@@ -3833,6 +3843,7 @@ impl Document {
             intersection_observer_task_queued: Cell::new(false),
             intersection_observers: Default::default(),
             highlighted_dom_node: Default::default(),
+            lcp_candidates: DomRefCell::new(Default::default()),
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_events: Default::default(),

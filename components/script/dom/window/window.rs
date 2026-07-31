@@ -59,6 +59,7 @@ use net_traits::image_cache::{
 use net_traits::request::{Origin, Referrer, RequestClient};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
+use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -2752,6 +2753,12 @@ impl Window {
             reflow_result.pending_svg_elements_for_serialization,
         );
 
+        if let Some(candidate) = &reflow_result.lcp_candidate &&
+            let Some(node_id) = reflow_result.lcp_node_id
+        {
+            self.process_lcp_candidate_post_reflow(candidate, node_id, &document);
+        }
+
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
                 .iframes_mut()
@@ -3690,6 +3697,21 @@ impl Window {
                     fonts.add(cx, font_face);
                 }
             }
+        }
+    }
+
+    /// Resolve the LCP candidate OpaqueNode to a DOM Element and store it on the document.
+    #[expect(unsafe_code)]
+    fn process_lcp_candidate_post_reflow(
+        &self,
+        candidate: &LCPCandidate,
+        node_id: usize,
+        document: &Document,
+    ) {
+        let address = UntrustedNodeAddress(node_id as *const c_void);
+        let node = unsafe { from_untrusted_node_address(address) };
+        if let Some(element) = DomRoot::downcast::<Element>(node) {
+            document.store_lcp_candidate(candidate.id, &element);
         }
     }
 

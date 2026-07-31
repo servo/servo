@@ -1042,6 +1042,18 @@ impl LayoutThread {
         let pending_svg_elements_for_serialization =
             std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
+        let (lcp_candidate, lcp_node_id) = self
+            .paint_timing_handler
+            .borrow()
+            .as_ref()
+            .map(|handler| {
+                (
+                    handler.largest_contentful_paint_candidate(),
+                    handler.lcp_node_id().map(|node| node.id()),
+                )
+            })
+            .unwrap_or_default();
+
         Some(ReflowResult {
             reflow_phases_run,
             pending_images,
@@ -1050,6 +1062,8 @@ impl LayoutThread {
             iframe_sizes: Some(iframe_sizes),
             reflow_statistics,
             changed_web_fonts,
+            lcp_candidate,
+            lcp_node_id,
         })
     }
 
