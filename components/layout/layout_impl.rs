@@ -230,11 +230,6 @@ pub struct LayoutThread {
 
     /// A callback to run whenever a web font from a `@font-face` rule finishes loading.
     web_font_finished_loading_callback: StylesheetWebFontLoadFinishedCallback,
-
-    /// Decides if we should catch [`embedder_traits::DisplayList`] hereafter
-    /// any display-list build. Mirrors the
-    /// `layout_display_list_capture_enabled` preference.
-    capture_display_list: bool,
 }
 
 pub struct LayoutFactoryImpl();
@@ -830,7 +825,6 @@ impl LayoutThread {
             needs_accessibility_update: Cell::new(false),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
-            capture_display_list: pref!(layout_display_list_capture_enabled),
         }
     }
 
@@ -1217,7 +1211,7 @@ impl LayoutThread {
             parallelism_job_count_minimum: pref!(layout_parallelism_job_count_minimum) as usize,
             parallelism_job_size_minimum: pref!(layout_parallelism_job_size_minimum) as usize,
             device_size: reflow_request.viewport_details.device_size.cast_unit(),
-            capture_display_list: self.capture_display_list,
+            capture_display_list: pref!(layout_display_list_capture_enabled),
         };
 
         let restyle = reflow_request
@@ -1493,7 +1487,7 @@ impl LayoutThread {
             &self.debug,
             paint_timing_handler,
             reflow_statistics,
-            self.capture_display_list,
+            pref!(layout_display_list_capture_enabled),
         );
         self.paint_api.send_display_list(
             self.webview_id,
@@ -1501,13 +1495,14 @@ impl LayoutThread {
             built_display_list,
         );
 
-        // Deliver the captured display list snapshot to the embedder, if enabled.
-        if let Some(display_list) = captured_display_list {
-            let _ = self.embedder_chan.send(EmbedderMsg::DisplayListCaptured(
-                self.webview_id,
-                display_list,
-            ));
-        }
+        // Deliver the captured display list snapshot to the embedder, if enabled. When
+        // capture is disabled, explicitly clear the embedder-side retained snapshots so
+        // a later re-enable cannot splice an old subframe into a fresh root capture.
+        let capture_message = match captured_display_list {
+            Some(display_list) => EmbedderMsg::DisplayListCaptured(self.webview_id, display_list),
+            None => EmbedderMsg::DisplayListCaptureCleared(self.webview_id),
+        };
+        let _ = self.embedder_chan.send(capture_message);
 
         if paint_timing_handler.did_lcp_candidate_update() &&
             let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()

@@ -13,6 +13,7 @@
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
 use servo_base::id::PipelineId;
+use servo_url::ServoUrl;
 use webrender_api::ColorF;
 use webrender_api::units::{LayoutRect, LayoutSize, LayoutVector2D};
 
@@ -28,24 +29,36 @@ pub enum DisplayListItemSpace {
     Viewport,
 }
 
-/// What a captured [`DisplayListItem`] paints.
+/// What a captured [`DisplayListItem`] paints: text runs, solid color fills, images,
+/// and iframe viewports. Decorations (borders, outlines, shadows, text decorations),
+/// gradients, and externally composited content (canvas, video, WebGL) are not
+/// captured.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum DisplayListItemContent {
     /// A run of text.
     Text {
-        /// The source text of this run, with leading and trailing collapsible
-        /// whitespace removed.
+        /// Rendered text after `text-transform`, `-webkit-text-security`
+        /// replacement, and white-space collapsing, with leading/trailing
+        /// collapsible whitespace removed. Excludes preserved tabs and
+        /// `text-overflow` ellipses.
         text: String,
-        /// The CSS `color` used to paint this text.
+        /// The CSS `color` used to paint this text. Fully transparent runs are not
+        /// captured, even if a `text-shadow` makes them visible, nor are runs under
+        /// an `opacity: 0` ancestor. A non-rectangular `clip-path` can still hide a
+        /// captured run on screen.
         color: ColorF,
     },
-    /// A solid color fill, like an element's `background-color`.
+    /// A non-transparent solid color fill, like an element's `background-color`.
     SolidColor {
         /// The fill color.
         color: ColorF,
     },
-    /// A raster or vector image.
-    Image,
+    /// A raster or vector image: a replaced element (`<img>`) or a CSS
+    /// `background-image` layer.
+    Image {
+        /// The URL the image was loaded from, when one is known.
+        url: Option<ServoUrl>,
+    },
     /// The viewport of a nested browsing context (`<iframe>`).
     ///
     /// In delivered snapshots, this item is immediately followed by the named
@@ -64,13 +77,19 @@ pub enum DisplayListItemContent {
 pub struct DisplayListItem {
     /// The bounding rectangle in CSS pixels.
     ///
-    /// The rectangle is resolved through the spatial tree: CSS transforms, the scroll
-    /// offsets of every ancestor scroll frame, and sticky positioning offsets are all
-    /// applied. Transformed content is reported as the axis-aligned bounding box of
-    /// the transformed rectangle. The rectangle is also clipped by the item's
-    /// accumulated clip chain (`overflow` clips, scroll ports and `clip-path` bounds),
-    /// so content hidden or partially hidden when painted is culled or reduced here as
-    /// well.
+    /// Resolved through the spatial tree (CSS transforms, ancestor scroll offsets,
+    /// sticky positioning) and clipped by the item's accumulated clip chain
+    /// (`overflow`, scroll ports, `clip-path`) and its own clip rectangle (e.g. an
+    /// `object-fit` crop). Transformed content is reported as an axis-aligned
+    /// bounding box.
+    ///
+    /// Approximations: clips are axis-aligned, so rounded corners, `clip-path`
+    /// shapes, and skewed/rotated clips may over-report visible area, never
+    /// under-report. Content with any corner behind the eye (`perspective`) is
+    /// dropped entirely; `transform-style: preserve-3d` is projected frame by
+    /// frame, not as one 3D context. Items in a transformed iframe are positioned
+    /// relative to the iframe viewport's axis-aligned bounding box, not its true
+    /// shape.
     pub rect: LayoutRect,
 
     /// The coordinate space of [`Self::rect`].
@@ -84,10 +103,11 @@ pub struct DisplayListItem {
 /// via `WebViewDelegate::notify_display_list`, a `WebView`'s entire frame tree with
 /// subframe items spliced into their `Iframe` items.
 ///
-/// Items are in paint order (back to front). Scroll offsets are the offsets at capture
-/// time: display lists are rebuilt on layout changes but not on (asynchronous) scrolls,
-/// so embedders that track scrolling between snapshots should combine
-/// [`DisplayListItemSpace`] with the live root scroll offset reported by the `WebView`.
+/// Items are in paint order (back to front). Scroll offsets reflect capture time:
+/// display lists rebuild on layout changes but not on scrolls, so embedders tracking
+/// root-viewport scrolling should combine [`DisplayListItemSpace`] with the
+/// `WebView`'s live scroll offset. Inner scrollers (`overflow: auto`) have no such
+/// compensation: their offsets go stale once scrolled without a layout.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DisplayList {
     /// The pipeline this snapshot was captured from. For composed snapshots, the
@@ -97,7 +117,10 @@ pub struct DisplayList {
     /// All captured display items, in paint order.
     pub items: Vec<DisplayListItem>,
 
-    /// The layout epoch of [`Self::pipeline_id`] when this display list was captured.
+    /// The layout epoch of [`Self::pipeline_id`] at capture. For composed snapshots
+    /// this is the root pipeline's epoch; spliced subframe content may be from a
+    /// different moment, so frame-tree snapshots can be briefly inconsistent while
+    /// frames load or resize.
     pub epoch: Epoch,
 
     /// The scroll offset of the root viewport, in CSS pixels, at capture time.

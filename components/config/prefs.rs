@@ -324,6 +324,10 @@ pub struct Preferences {
     /// embedder via `WebViewDelegate::notify_display_list`. This is an introspection
     /// API for embedders that do their own text extraction or native rendering; it
     /// has a runtime cost and is therefore off by default.
+    ///
+    /// The preference is read at each layout. Text content only reaches snapshots
+    /// for content laid out while the preference is enabled, so a snapshot produced
+    /// right after enabling it may lack text items until the next full layout.
     pub layout_display_list_capture_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
     /// Whether the layout engine rasterizes text glyphs into the display list painted
@@ -491,8 +495,8 @@ impl Preferences {
             dom_testutils_enabled: false,
             // Following Firefox and Chrome, we are enabling the touch events legacy APIs for android.
             // Additionally, enabling it in ohos for compatibility as well.
-            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android")
-                | cfg!(target_env = "ohos"),
+            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android") |
+                cfg!(target_env = "ohos"),
             dom_transient_activation_duration_ms: 5000,
             dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,

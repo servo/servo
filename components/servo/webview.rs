@@ -132,6 +132,7 @@ pub(crate) struct WebViewInner {
 
 impl Drop for WebViewInner {
     fn drop(&mut self) {
+        self.servo.clear_display_list_captures(self.id);
         self.servo
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::CloseWebView(self.id));

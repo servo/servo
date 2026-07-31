@@ -698,12 +698,19 @@ impl LineItemLayout<'_, '_> {
         );
 
         // Resolve the captured byte range to the source text for this run, eliminating
-        // collapsible whitespace on the ledges.
+        // collapsible whitespace on the ledges. Only ASCII whitespace is trimmed:
+        // preserved Unicode spaces (e.g. ideographic space in `white-space: pre`
+        // content) are meaningful and must survive extraction.
         let text_for_display_list = text_item
             .display_list_byte_range
             .as_ref()
             .and_then(|range| {
-                let text = self.layout.ifc.text_content.get(range.clone())?.trim();
+                let text = self
+                    .layout
+                    .ifc
+                    .text_content
+                    .get(range.clone())?
+                    .trim_matches(|character: char| character.is_ascii_whitespace());
                 (!text.is_empty()).then(|| text.into())
             });
 

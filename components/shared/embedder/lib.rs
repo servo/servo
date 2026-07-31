@@ -48,7 +48,7 @@ use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
     DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
-use webrender_api::{ColorF, ExternalScrollId};
+use webrender_api::ExternalScrollId;
 
 pub use crate::display_list::*;
 pub use crate::embedder_controls::*;
@@ -550,6 +550,10 @@ pub enum EmbedderMsg {
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
     /// A captured display-list snapshot for one pipeline of this `WebView`'s frame tree.
     DisplayListCaptured(WebViewId, DisplayList),
+    /// Discard retained display-list captures for this `WebView`, sent when capture is
+    /// disabled mid-build so a later re-enable can't compose stale snapshots into a
+    /// fresh root.
+    DisplayListCaptureCleared(WebViewId),
 }
 
 impl Debug for EmbedderMsg {
