@@ -2427,14 +2427,6 @@ impl GlobalScope {
         &self.module_map
     }
 
-    pub(crate) fn take_module_entry(&self, request: &ModuleRequest) -> Option<ModuleStatus> {
-        self.module_map.borrow_mut().remove(request)
-    }
-
-    pub(crate) fn set_module_map(&self, request: ModuleRequest, module: ModuleStatus) {
-        self.module_map.borrow_mut().insert(request, module);
-    }
-
     pub(crate) fn get_module_tree(&self, request: &ModuleRequest) -> Option<Rc<ModuleTree>> {
         self.module_map
             .borrow()

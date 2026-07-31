@@ -705,11 +705,7 @@ impl FetchResponseListener for ModuleContext {
 
         network_listener::submit_timing(cx, &self, &response, &timing);
 
-        let Some(ModuleStatus::Fetching(callbacks)) =
-            global.take_module_entry(&self.module_request)
-        else {
-            return error!("Processing response for a non pending module request");
-        };
+        let module_map = global.module_map();
 
         // Step 1. If any of the following are true: bodyBytes is null or failure; or response's
         // status is not an ok status, then:
@@ -717,6 +713,11 @@ impl FetchResponseListener for ModuleContext {
             error!("Fetching module script failed {:?}", error);
             // Step 1.1. Let callbacks be moduleMap[(url, moduleType)].
             // Step 1.2. Remove moduleMap[(url, moduleType)].
+            let Some(ModuleStatus::Fetching(callbacks)) =
+                module_map.safe_borrow_mut(cx).remove(&self.module_request)
+            else {
+                return error!("Processing response for a non pending module request");
+            };
 
             // Step 1.3. For each callback of callbacks: run callback given null.
             for callback in callbacks {
@@ -801,16 +802,32 @@ impl FetchResponseListener for ModuleContext {
                 module_script = Some(module_tree);
             }
         }
-        // Step 8. Let callbacks be moduleMap[(url, moduleType)].
 
-        // Step 9. If moduleScript is null, then remove moduleMap[(url, moduleType)]; otherwise set
-        // moduleMap[(url, moduleType)] to moduleScript.
-        if let Some(module_script) = module_script.as_ref() {
-            global.set_module_map(
-                self.module_request,
-                ModuleStatus::Loaded(module_script.clone()),
-            );
-        }
+        let callbacks = match module_map
+            .safe_borrow_mut(cx)
+            .entry(self.module_request.clone())
+        {
+            Entry::Occupied(mut entry) => {
+                // Step 9. If moduleScript is null, then remove moduleMap[(url, moduleType)];
+                // otherwise set moduleMap[(url, moduleType)] to moduleScript.
+                let old_value = match module_script.as_ref() {
+                    None => entry.remove(),
+                    Some(module_script) => {
+                        entry.insert(ModuleStatus::Loaded(module_script.clone()))
+                    },
+                };
+
+                match old_value {
+                    ModuleStatus::Loaded(_) => {
+                        return error!("Processing response for a non pending module request");
+                    },
+                    ModuleStatus::Fetching(callbacks) => callbacks,
+                }
+            },
+            Entry::Vacant(_) => {
+                return error!("Processing response for a non pending module request");
+            },
+        };
 
         // Step 10. For each callback of callbacks: run callback given moduleScript.
         for callback in callbacks {
