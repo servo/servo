@@ -22,7 +22,13 @@ internal class JNIServo {
 
     external fun init(
         context: Context,
-        options: ServoOptions,
+        args: String,
+        url: String,
+        size: Size,
+        density: Float,
+        logStr: String,
+        enableLogs: Boolean,
+        experimentalMode: Boolean,
         callbacks: Callbacks,
         surface: Surface,
     )
@@ -72,29 +78,6 @@ internal class JNIServo {
     external fun setExperimentalMode(enable: Boolean)
 
     external fun doFrame()
-
-    class ServoOptions {
-        @JvmField
-        var args: String? = null
-
-        @JvmField
-        var url: String? = null
-
-        @JvmField
-        var size: Size? = null
-
-        @JvmField
-        var density: Float = 1f
-
-        @JvmField
-        var logStr: String? = null
-
-        @JvmField
-        var enableLogs: Boolean = false
-
-        @JvmField
-        var experimentalMode: Boolean = false
-    }
 
     interface Callbacks {
         fun wakeup()

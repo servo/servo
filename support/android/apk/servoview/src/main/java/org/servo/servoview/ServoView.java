@@ -9,7 +9,6 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
 import android.view.Choreographer;
@@ -20,7 +19,6 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 
-import org.servo.servoview.JNIServo.ServoOptions;
 import org.servo.servoview.Servo.Client;
 import org.servo.servoview.Servo.RunCallback;
 
@@ -206,19 +204,21 @@ public class ServoView extends SurfaceView
             Size size = new Size(servoView.getWidth(), servoView.getHeight());
 
             Surface surface = holder.getSurface();
-            ServoOptions options = new ServoOptions();
-            options.args = servoView.servoArgs;
-            options.url = servoView.initialUri;
-            options.size = size;
-            options.logStr = servoLog;
-            options.enableLogs = true;
-            options.experimentalMode = servoView.experimentalMode;
 
-            DisplayMetrics metrics = servoView.getResources().getDisplayMetrics();
-            options.density = metrics.density;
             if (servoView.servo == null && !paused) {
                 servoView.servo = new Servo(
-                        options, servoView, client, servoView.getContext(), surface);
+                        servoView.servoArgs,
+                        servoView.initialUri,
+                        size,
+                        servoView.getResources().getDisplayMetrics().density,
+                        servoLog,
+                        true,
+                        servoView.experimentalMode,
+                        servoView,
+                        client,
+                        servoView.getContext(),
+                        surface
+                );
             } else {
                 paused = false;
                 servoView.servo.resumePainting(surface, size);

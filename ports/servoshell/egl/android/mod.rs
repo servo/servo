@@ -99,12 +99,27 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     mut env: EnvUnowned<'local>,
     _: JClass<'local>,
     context: JObject<'local>,
-    opts: JObject<'local>,
+    args: JString<'local>,
+    url: JString<'local>,
+    size: JObject<'local>,
+    density: jfloat,
+    logStr: JString<'local>,
+    log: jboolean,
+    experimental_mode: jboolean,
     callbacks_obj: JObject<'local>,
     surface: JObject<'local>,
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
-        let (init_opts, log, log_str) = get_options(env, &opts, &surface)?;
+        let (init_opts, log_str) = get_options(
+            env,
+            args,
+            url,
+            size,
+            density,
+            logStr,
+            experimental_mode,
+            &surface,
+        )?;
 
         if log {
             // Note: Android debug logs are stripped from a release build.
@@ -914,17 +929,6 @@ fn jni_coordinate_to_rust_viewport_rect<'local>(
     Ok(Rect::new(Point2D::origin(), Size2D::new(width, height)))
 }
 
-fn get_field_as_string<'local>(
-    env: &mut Env<'local>,
-    obj: &JObject<'local>,
-    field: &JNIStr,
-) -> Result<String, Error> {
-    let string_value = env
-        .get_field(obj, field, jni_sig!("Ljava/lang/String;"))?
-        .l()?;
-    JString::cast_local(env, string_value)?.try_to_string(env)
-}
-
 fn set_default_config_dir<'local>(
     env: &mut Env<'local>,
     context: &JObject<'local>,
@@ -960,28 +964,17 @@ fn set_default_config_dir<'local>(
 
 fn get_options<'local>(
     env: &mut Env<'local>,
-    opts: &JObject<'local>,
+    args: JString<'local>,
+    url: JString<'local>,
+    size: JObject<'local>,
+    density: jfloat,
+    logStr: JString<'local>,
+    experimental_mode: jboolean,
     surface: &JObject<'local>,
-) -> Result<(InitOptions, bool, Option<String>), Error> {
-    let args = get_field_as_string(env, opts, jni_str!("args")).ok();
-    let url = get_field_as_string(env, opts, jni_str!("url")).ok();
-    let log_str = get_field_as_string(env, opts, jni_str!("logStr")).ok();
-
-    let experimental_mode = env
-        .get_field(opts, jni_str!("experimentalMode"), jni_sig!("Z"))?
-        .z()?;
-
-    let density = env
-        .get_field(opts, jni_str!("density"), jni_sig!("F"))?
-        .f()?;
-
-    let log = env
-        .get_field(opts, jni_str!("enableLogs"), jni_sig!("Z"))?
-        .z()?;
-
-    let size = env
-        .get_field(opts, jni_str!("size"), jni_sig!("Landroid/util/Size;"))?
-        .l()?;
+) -> Result<(InitOptions, Option<String>), Error> {
+    let args = JString::cast_local(env, args)?.try_to_string(env).ok();
+    let url = JString::cast_local(env, url)?.try_to_string(env).ok();
+    let log_str = JString::cast_local(env, logStr)?.try_to_string(env).ok();
 
     let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
 
@@ -1010,7 +1003,7 @@ fn get_options<'local>(
         display_handle,
     };
 
-    Ok((opts, log, log_str))
+    Ok((opts, log_str))
 }
 
 fn display_and_window_handle(

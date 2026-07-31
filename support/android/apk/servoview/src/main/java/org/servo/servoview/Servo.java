@@ -10,8 +10,6 @@ import android.util.Size;
 import android.view.KeyEvent;
 import android.view.Surface;
 
-import org.servo.servoview.JNIServo.ServoOptions;
-
 public class Servo {
     private static final String LOGTAG = "Servo";
     private JNIServo jni = new JNIServo();
@@ -19,7 +17,13 @@ public class Servo {
     private Callbacks servoCallbacks;
 
     public Servo(
-            ServoOptions options,
+            String args,
+            String url,
+            Size size,
+            float density,
+            String logStr,
+            boolean enableLogs,
+            boolean experimentalMode,
             RunCallback runCallback,
             Client client,
             Context context,
@@ -29,7 +33,20 @@ public class Servo {
 
         servoCallbacks = new Callbacks(client, jni, runCallback);
 
-        this.runCallback.inGLThread(() -> jni.init(context, options, servoCallbacks, surface));
+        this.runCallback.inGLThread(
+                () -> jni.init(
+                    context,
+                    args,
+                    url,
+                    size,
+                    density,
+                    logStr,
+                    enableLogs,
+                    experimentalMode,
+                    servoCallbacks,
+                    surface
+                )
+        );
     }
 
     public String version() {
