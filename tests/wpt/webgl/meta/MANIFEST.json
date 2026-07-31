@@ -135,6 +135,10 @@
    }
   },
   "support": {
+   ".DS_Store": [
+    "92f464fbb2219e158e353a4695341364591d1017",
+    []
+   ],
    "00_test_list.txt": [
     "3fde5ef8de5a500e5b2d9e100c132a5732c2aa8d",
     []

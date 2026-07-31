@@ -132,7 +132,7 @@ impl Worklet {
 }
 
 impl WorkletMethods<crate::DomTypeHolder> for Worklet {
-    /// <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
+    /// <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule>
     fn AddModule(
         &self,
         realm: &mut CurrentRealm,
@@ -169,7 +169,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // Step 6.3. Let addedSuccessfully be false.
 
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
-        // <https://html.spec.whatwg.org/multipage/worklets.html#concept-worklet-added-modules-list>
+        // <https://html.spec.whatwg.org/multipage/#concept-worklet-added-modules-list>
 
         self.droppable_field
             .thread_pool
@@ -728,7 +728,7 @@ impl WorkletThread {
 
         // Step 2. If moduleResponsesMap[requestURL] is "fetching", wait in parallel until that entry's value changes, then queue a task on the networking task source to proceed with running the following steps.
         // NOTE: We do not perform the Step 2 because Worklet currently does not implement a `module responses map`
-        // <https://html.spec.whatwg.org/multipage/worklets.html#concept-worklet-module-responses-map>
+        // <https://html.spec.whatwg.org/multipage/#concept-worklet-module-responses-map>
 
         // `fetch_a_module_script_graph` requires the `on_complete` closure to be cloneable
         // therefore, we wrap the TrustedPromise in an Rc to make it cloneable and RefCell allows calling `reject_task` and `resolve_task`
@@ -738,7 +738,7 @@ impl WorkletThread {
         let script_url = ensure_blob_referenced_by_url_is_kept_alive(global, script_url);
 
         // NOTE: We implement the rest of the steps in AddModule here
-        // <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
+        // <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule>
         // Step 6.4. For each workletGlobalScope of workletInstance's global scopes,
         // queue a global task on the networking task source given workletGlobalScope to fetch a worklet script graph given moduleURLRecord,
         // outsideSettings, workletInstance's worklet destination type, options["credentials"], workletGlobalScope's relevant settings object,
@@ -853,7 +853,7 @@ impl WorkletThread {
                 inherited_secure_context,
             } => {
                 // A worklet global scope is created here as part of the AddModule specs.
-                // <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
+                // <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule>
                 // 6.1.3. Wait for all steps of the creation process(es) — including those taking place within the worklet agents — to complete, before moving on.
                 let global = self.get_worklet_global_scope(
                     cx,
@@ -886,7 +886,7 @@ impl WorkletThread {
 }
 
 /// This function is an abstraction of steps 6.4.1.1 and 6.4.2.1 of the `AddModule` spec
-/// <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
+/// <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule>
 pub(crate) fn reject_promise(
     pending_tasks_struct: &PendingTasksStruct,
     mut promise_task: RefMut<'_, Option<TrustedPromise>>,

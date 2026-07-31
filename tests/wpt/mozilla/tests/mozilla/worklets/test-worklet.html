@@ -30,12 +30,12 @@ promise_test(function(t) {
 }, "Loading a syntactically incorrect test worklet.");
 
 promise_test(function(t) {
-  // NOTE: The specification for AddModule does not use the promise returned by "run a module script", 
+  // NOTE: The specification for AddModule does not use the promise returned by "run a module script",
   // therefore an exception thrown when executing a module will not be propagated.
-  // <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
+  // <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule
 
   // 6.4.4. Run a module script given script.
-  // 6.4.5. Queue a global task on the networking task source given workletInstance's relevant 
+  // 6.4.5. Queue a global task on the networking task source given workletInstance's relevant
   // global object to perform the following steps:
   // 6.4.5.1 If pendingTasks is not −1:
   // 6.4.5.1.1 Set pendingTasks to pendingTasks − 1.
