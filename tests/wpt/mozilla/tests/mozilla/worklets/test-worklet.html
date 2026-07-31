@@ -31,7 +31,7 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   // NOTE: The specification for AddModule does not use the promise returned by "run a module script", 
-  // an exception thrown will not be propogated.
+  // therefore an exception thrown when executing a module will not be propagated.
   // <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
 
   // 6.4.4. Run a module script given script.

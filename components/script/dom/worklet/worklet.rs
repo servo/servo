@@ -138,9 +138,9 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         module_url: USVString,
         options: &WorkletOptions,
     ) -> Rc<Promise> {
-        // Step 1. Let outsideSettings be the relevant settings object of this.
         let promise = Promise::new_in_realm(realm);
 
+        // Step 1. Let outsideSettings be the relevant settings object of this.
         // Step 2. Let moduleURLRecord be the result of encoding-parsing a URL given moduleURL, relative to outsideSettings.
         let module_url_record = match self.window.Document().base_url().join(&module_url.0) {
             Ok(url) => url,
@@ -149,7 +149,6 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
                 debug!("URL {:?} parse error {:?}.", module_url.0, err);
                 promise.reject_error(realm, Error::Syntax(None));
 
-                // Step 4. Let promise be a new promise.
                 return promise;
             },
         };
@@ -158,7 +157,6 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // Step 5. Let workletInstance be this.
         // Step 6. Run the following steps in parallel:
         // Step 6.1. If workletInstance's global scopes is empty:
-        // Step 6.1.1. Create a worklet global scope given workletInstance.
         let global_scope = self.window.as_global_scope();
 
         // Step 6.1.2. Optionally, create additional global scope instances given workletInstance, depending on the specific worklet in question and its specification.
@@ -167,10 +165,10 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // Step 6.2. Let pendingTasks be workletInstance's global scopes's size.
         let pending_tasks_struct = PendingTasksStruct::new();
 
-        // TODO: Implement an `added modules list` on `Worklet`
-        // <https://html.spec.whatwg.org/multipage/worklets.html#concept-worklet-added-modules-list>
+        // Step 6.3. Let addedSuccessfully be false.
 
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
+        // <https://html.spec.whatwg.org/multipage/worklets.html#concept-worklet-added-modules-list>
 
         self.droppable_field
             .thread_pool
@@ -610,7 +608,6 @@ impl WorkletThread {
                 let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
                 let _ = self.cold_backup_sender.send(msg);
             }
-
             // If we are tight on memory, and we're a backup then perform a gc.
             // If we are tight on memory, and we're the primary then try to become the hot backup.
             // Hopefully this happens soon!
@@ -665,9 +662,12 @@ impl WorkletThread {
     ) -> DomRoot<WorkletGlobalScope> {
         match self.global_scopes.entry(worklet_id) {
             hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
+
+            // Step 6.1. If workletInstance's global scopes is empty:
             hash_map::Entry::Vacant(entry) => {
                 debug!("Creating new worklet global scope.");
 
+                // Step 6.1.1. Create a worklet global scope given workletInstance.
                 let executor = WorkletExecutor {
                     worklet_id,
                     primary_sender: self.primary_sender.clone(),
@@ -725,11 +725,15 @@ impl WorkletThread {
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
         };
 
-        // TODO: Implement a `module responses map` on Worklet.
-        // <https://html.spec.whatwg.org/multipage/worklets.html#concept-worklet-module-responses-map>
         // Step 2. If moduleResponsesMap[requestURL] is "fetching", wait in parallel until that entry's value changes, then queue a task on the networking task source to proceed with running the following steps.
         // NOTE: We do not perform the Step 2 because Worklet currently does not implement a `module responses map`
+        // <https://html.spec.whatwg.org/multipage/worklets.html#concept-worklet-module-responses-map>
 
+        // Rc makes `promise_task` cloneable so it can be passed to the `on_complete` closure bound
+        // by the Clone trait.
+        // RefCell ensures that the `promise_task` is a mutable value. 
+        // `TrustedPromise` methods such as `reject_task` and `resolve_task` require a mutable `TrustedPromise` 
+        // value to be able to reject or resolve the promise.
         let promise_task = Rc::new(RefCell::new(Some(promise)));
         let script_thread_sender = self.global_init.to_script_thread_sender.clone();
         let rooted_global = DomRoot::from_ref(global);
@@ -752,9 +756,8 @@ impl WorkletThread {
             Some(IntroductionType::WORKLET),
             move |cx, module_tree| {
                 match module_tree {
-                    // 1. If script is null:
+                    // Step 6.4.1. If script is null:
                     None => {
-                        // Step 3.
                         debug!("Failed to load script.");
 
                         reject_promise(
@@ -767,28 +770,28 @@ impl WorkletThread {
                         let mut realm = enter_auto_realm(cx, &*rooted_global);
                         let cx = &mut realm.current_realm();
 
-                        // 2. If script's error to rethrow is not null:
-                        // TODO: pass `rethrow_error` to `reject_task`
-                        // The RethrowError type is incompatible with the Error type
-                        // The types need work in order to be coerced properly
+                        // Step 6.4.2. If script's error to rethrow is not null:
+                        // NOTE: The `AddModule` specification in the Step 6.4.2.1.1.2. requires the promise to be rejected with the script's "rethrow error"
+                        // "rethrow error" is a JavaScript engine value (JSVal) while the `promise_task` takes a DOMException as an error value.
+                        // Therefore, we cannot pass the "rethrow error" to the "promise task"
                         if script.get_rethrow_error().take().is_some() {
-                            // 1. Queue a global task on the networking task source given workletInstance's relevant global object
                             reject_promise(
                                 &pending_tasks_struct,
                                 promise_task.borrow_mut(),
                                 script_thread_sender.clone(),
                             );
 
-                            // 2. Abort these steps.
+                            // Step 6.4.2.2. Abort these steps.
                             return;
                         }
 
-                        // Step 4. Run a module script given script.
+                        // Step 6.4.4. Run a module script given script.
                         rooted_global.run_a_module_script(cx, script, false);
 
-                        // Step 5.
+                        // Step 6.4.5.1. If pendingTasks is not −1:
+                        // Step 6.4.5.1.1. Set pendingTasks to pendingTasks − 1.
                         let old_counter = pending_tasks_struct.decrement_counter_by(1);
-                        // Step 2. If pendingTasks is 0 then, resolve promise.
+                        // Step Step 6.4.5.1.2. If pendingTasks is 0 then, resolve promise.
                         if old_counter == 1 {
                             debug!("Resolving promise.");
 
@@ -800,7 +803,7 @@ impl WorkletThread {
                             let task = promise_task
                                 .borrow_mut()
                                 .take()
-                                .expect("no promise found")
+                                .expect("promise_task must be consumed exactly once")
                                 .resolve_task(());
 
                             let msg = CommonScriptMsg::Task(
@@ -809,6 +812,8 @@ impl WorkletThread {
                                 None,
                                 TaskSourceName::Networking,
                             );
+
+                            // Step 6.4.5. Queue a global task on the networking task source given workletInstance's relevant global object to perform the following steps:
                             let msg = MainThreadScriptMsg::Common(msg);
                             script_thread_sender
                                 .send(msg)
@@ -847,6 +852,9 @@ impl WorkletThread {
                 promise,
                 inherited_secure_context,
             } => {
+                // A worklet global scope is created here as part of the AddModule specs.
+                // <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
+                // 6.1.3. Wait for all steps of the creation process(es) — including those taking place within the worklet agents — to complete, before moving on.
                 let global = self.get_worklet_global_scope(
                     cx,
                     pipeline_id,
@@ -877,7 +885,8 @@ impl WorkletThread {
     }
 }
 
-// NOTE: `reject_promise` is an abstraction for both the steps Step 6.4.1.1 and 6.4.2.1
+// This function is an abstraction of steps 6.4.1.1 and 6.4.2.1 of the `AddModule` spec
+// <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
 pub(crate) fn reject_promise(
     pending_tasks_struct: &PendingTasksStruct,
     mut promise_task: RefMut<'_, Option<TrustedPromise>>,
@@ -891,7 +900,7 @@ pub(crate) fn reject_promise(
         // 6.4.1.1.1.2. Reject promise with an "AbortError" DOMException
         let task = promise_task
             .take()
-            .expect("No promise found")
+            .expect("promise_task must be consumed exactly once")
             .reject_task(Error::Abort(None));
 
         // Step 6.4.1.1. Queue a global task on the networking task source given workletInstance's relevant global object to perform the following steps:
