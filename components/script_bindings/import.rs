@@ -75,8 +75,8 @@ pub(crate) mod module {
     };
     pub(crate) use js::panic::wrap_panic;
     pub(crate) use js::rust::wrappers2::{
-        Call, GetRealmFunctionPrototype, GetWellKnownSymbol, JS_CopyOwnPropertiesAndPrivateFields,
-        JS_DefineProperty, JS_DefinePropertyById2, JS_ForwardGetPropertyTo, JS_GetProperty,
+        Call, GetRealmFunctionPrototype, GetWellKnownSymbol, JS_DefineProperty,
+        JS_DefinePropertyById2, JS_ForwardGetPropertyTo, JS_GetProperty,
         JS_GetPropertyDescriptorById, JS_HasPropertyById, JS_NewObjectWithoutMetadata,
         JS_NewPlainObject, JS_SetImmutablePrototype, JS_SetProperty, JS_SetPrototype,
         RUST_SYMBOL_TO_JSID,
