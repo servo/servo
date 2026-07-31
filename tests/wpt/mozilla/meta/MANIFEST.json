@@ -8048,6 +8048,19 @@
       ]
      ]
     },
+    "outline-below-positioned-descendants.html": [
+     "06cf1afb74054b1b782e300fcb1483562be97dfe",
+     [
+      null,
+      [
+       [
+        "/_mozilla/mozilla/outline-below-positioned-descendants-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "partial-shadow-dom-layout-style.html": [
      "8fb21b893e40ae756ec4c9f812f8df37d6fd0aac",
      [
@@ -11023,6 +11036,10 @@
     ],
     "old-page.py": [
      "3f096b6f5a6611f97f625d8a0420aaa96f2e2b01",
+     []
+    ],
+    "outline-below-positioned-descendants-ref.html": [
+     "8d495b24e4a75798b128d355124da99e2e9e716f",
      []
     ],
     "partial-shadow-dom-layout-style-ref.html": [
