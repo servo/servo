@@ -539,7 +539,7 @@ impl SharedWorkerGlobalScope {
                         fetch_a_module_worker_script_graph(
                             cx,
                             global_scope,
-                            worker_url.url(),
+                            worker_url,
                             request_client,
                             Destination::SharedWorker,
                             referrer,

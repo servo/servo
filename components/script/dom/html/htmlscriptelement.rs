@@ -14,6 +14,7 @@ use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
@@ -59,13 +60,14 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
-use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_module::{
     ImportMap, ModuleTree, ScriptFetchOptions, fetch_an_external_module_script,
     fetch_inline_module_script, parse_an_import_map_string, register_import_map,
 };
 use crate::script_runtime::IntroductionType;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
 pub(crate) struct HTMLScriptElement {
@@ -282,7 +284,7 @@ struct ClassicContext {
     /// The response metadata received to date.
     metadata: Option<Metadata>,
     /// The initial URL requested.
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// The fetch options of the script
@@ -358,7 +360,10 @@ impl FetchResponseListener for ClassicContext {
 
         match (response.as_ref(), self.status.as_ref()) {
             (Err(error), _) | (_, Err(error)) => {
-                error!("Fetching classic script failed {:?} ({})", error, self.url);
+                error!(
+                    "Fetching classic script failed {:?} ({:?})",
+                    error, self.url
+                );
                 // Step 6, response is an error.
                 *elem.result.borrow_mut() = Some(Err(()));
                 finish_fetching_a_script(&elem, self.kind, cx);
@@ -464,7 +469,7 @@ impl ResourceTimingListener for ClassicContext {
                 .local_name()
                 .to_string(),
         );
-        (initiator_type, self.url.clone())
+        (initiator_type, self.url.url())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
@@ -477,14 +482,14 @@ impl ResourceTimingListener for ClassicContext {
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn script_fetch_request(
     webview_id: WebViewId,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     cors_setting: Option<CorsSettings>,
     options: ScriptFetchOptions,
     referrer: Referrer,
 ) -> RequestBuilder {
     // We intentionally ignore options' credentials_mode member for classic scripts.
     // The mode is initialized by create_a_potential_cors_request.
-    create_a_potential_cors_request(
+    create_a_potential_cors_request_with_claim(
         Some(webview_id),
         url,
         Destination::Script,
@@ -502,7 +507,7 @@ pub(crate) fn script_fetch_request(
 fn fetch_a_classic_script(
     script: &HTMLScriptElement,
     kind: ExternalScriptKind,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     cors_setting: Option<CorsSettings>,
     options: ScriptFetchOptions,
     character_encoding: &'static Encoding,
@@ -800,6 +805,7 @@ impl HTMLScriptElement {
                     return;
                 },
             };
+            let url = ensure_blob_referenced_by_url_is_kept_alive(global, url);
 
             // Step 31.7. If el is potentially render-blocking, then block rendering on el.
             if self.potentially_render_blocking() && doc.allows_adding_render_blocking_elements() {
@@ -808,7 +814,7 @@ impl HTMLScriptElement {
             }
 
             // Step 31.8. Set el's delaying the load event to true.
-            self.delay_load_event(&delayed_document, url.clone());
+            self.delay_load_event(&delayed_document, url.url());
 
             // Step 31.9. If el is currently render-blocking, then set options's render-blocking to true.
             if self.marked_as_render_blocking.get() {
@@ -827,7 +833,7 @@ impl HTMLScriptElement {
                     if integrity_val_is_none {
                         options.integrity_metadata = global
                             .import_map()
-                            .resolve_a_module_integrity_metadata(&url);
+                            .resolve_a_module_integrity_metadata(&url.url());
                     }
 
                     let script = DomRoot::from_ref(self);
