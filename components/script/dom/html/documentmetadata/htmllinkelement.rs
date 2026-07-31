@@ -63,6 +63,7 @@ use crate::links::LinkRelations;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct RequestGenerationId(u32);
@@ -983,6 +984,7 @@ impl HTMLLinkElement {
         let Ok(url) = document.encoding_parse_a_url(&href_attribute_value.str()) else {
             return;
         };
+        let url = ensure_blob_referenced_by_url_is_kept_alive(&global, url);
 
         // Step 6. Let settings object be el's node document's relevant settings object.
 
@@ -1000,7 +1002,7 @@ impl HTMLLinkElement {
             .unwrap_or_else(|| {
                 global
                     .import_map()
-                    .resolve_a_module_integrity_metadata(&url)
+                    .resolve_a_module_integrity_metadata(&url.url())
             });
 
         // Step 11. Let referrer policy be the current state of el's referrerpolicy attribute.

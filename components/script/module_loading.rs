@@ -22,6 +22,7 @@ use js::rust::wrappers2::{
     GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate, ModuleLink,
 };
 use js::rust::{HandleValue, IntoHandle};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Destination, Referrer, RequestClient};
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_callback;
@@ -39,6 +40,7 @@ use crate::script_module::{
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::script_runtime::IntroductionType;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OnRejectedHandler {
@@ -478,11 +480,11 @@ pub(crate) fn host_load_imported_module(
         return;
     };
 
-    let url = url.unwrap();
+    let url = ensure_blob_referenced_by_url_is_kept_alive(global, url.unwrap());
 
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
     // originalFetchOptions, url, and settingsObject.
-    let fetch_options = original_fetch_options.descendant_fetch_options(&url, &global_scope);
+    let fetch_options = original_fetch_options.descendant_fetch_options(&url.url(), &global_scope);
 
     // Step 13. If loadState is not undefined, then:
     // Note: loadState is undefined only in dynamic imports
@@ -558,7 +560,7 @@ pub(crate) fn host_load_imported_module(
 #[expect(clippy::too_many_arguments)]
 fn fetch_a_single_imported_module_script(
     cx: &mut JSContext,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     fetch_client: RequestClient,
     global: &GlobalScope,
     destination: Destination,

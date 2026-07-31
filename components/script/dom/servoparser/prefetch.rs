@@ -13,6 +13,7 @@ use html5ever::tokenizer::{
 use html5ever::{Attribute, LocalName, local_name};
 use js::jsapi::JSTracer;
 use markup5ever::TokenizerResult;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, Referrer, RequestClient,
 };
@@ -133,7 +134,7 @@ impl TokenSink for PrefetchSink {
                         .unwrap_or_default();
                     let request = script_fetch_request(
                         self.webview_id,
-                        url,
+                        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
                         cors_setting,
                         ScriptFetchOptions {
                             referrer_policy: self.referrer_policy,

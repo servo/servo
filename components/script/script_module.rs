@@ -38,6 +38,7 @@ use js::rust::wrappers2::{
 };
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -83,7 +84,6 @@ use crate::network_listener::{self, FetchResponseListener, ResourceTimingListene
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
 use crate::task::NonSendTaskBox;
-use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) fn gen_type_error(
     cx: &mut JSContext,
@@ -1166,7 +1166,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
 pub(crate) fn fetch_a_module_worker_script_graph(
     cx: &mut JSContext,
     global: &GlobalScope,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     fetch_client: RequestClient,
     destination: Destination,
     referrer: Referrer,
@@ -1224,7 +1224,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
 pub(crate) fn fetch_an_external_module_script(
     cx: &mut JSContext,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     global: &GlobalScope,
     options: ScriptFetchOptions,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
@@ -1268,7 +1268,7 @@ pub(crate) fn fetch_an_external_module_script(
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-modulepreload-module-script-graph>
 pub(crate) fn fetch_a_modulepreload_module(
     cx: &mut JSContext,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     destination: Destination,
     global: &GlobalScope,
     options: ScriptFetchOptions,
@@ -1460,7 +1460,7 @@ fn fetch_the_descendants_and_link_module_script(
 #[expect(clippy::too_many_arguments)]
 pub(crate) fn fetch_a_single_module_script(
     cx: &mut JSContext,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     fetch_client: RequestClient,
     global: &GlobalScope,
     destination: Destination,
@@ -1481,7 +1481,7 @@ pub(crate) fn fetch_a_single_module_script(
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
     // Step 4. Let moduleMap be settingsObject's module map.
-    let module_request = (url.clone(), module_type);
+    let module_request = (url.url(), module_type);
     let entry = global.get_module_map_entry(&module_request);
 
     let pending = match entry {
@@ -1572,20 +1572,16 @@ pub(crate) fn fetch_a_single_module_script(
         // TODO Step 11. Set request's initiator type to "script".
 
         // Step 12. Set up the module script request given request and options.
-        let request = RequestBuilder::new(
-            global.webview_id(),
-            ensure_blob_referenced_by_url_is_kept_alive(global, url.clone()),
-            referrer,
-        )
-        .destination(destination)
-        .parser_metadata(options.parser_metadata)
-        .integrity_metadata(options.integrity_metadata.clone())
-        .credentials_mode(options.credentials_mode)
-        .referrer_policy(options.referrer_policy)
-        .mode(mode)
-        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
-        .client(fetch_client)
-        .pipeline_id(Some(global.pipeline_id()));
+        let request = RequestBuilder::new(global.webview_id(), url, referrer)
+            .destination(destination)
+            .parser_metadata(options.parser_metadata)
+            .integrity_metadata(options.integrity_metadata.clone())
+            .credentials_mode(options.credentials_mode)
+            .referrer_policy(options.referrer_policy)
+            .mode(mode)
+            .cryptographic_nonce_metadata(options.cryptographic_nonce.clone())
+            .client(fetch_client)
+            .pipeline_id(Some(global.pipeline_id()));
 
         let context = ModuleContext {
             owner: Trusted::new(global),
