@@ -781,7 +781,7 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
     /// <https://wicg.github.io/sanitizer-api/#dom-sanitizer-allowelement>
     fn AllowElement(&self, cx: &mut JSContext, element: SanitizerElementWithAttributes) -> bool {
         // Step 1. Let configuration be this’s configuration.
-        let mut configuration = self.configuration.borrow_mut();
+        let mut configuration = self.configuration.safe_borrow_mut(cx);
 
         // Step 2. Assert: configuration is valid.
         debug_assert!(configuration.is_valid());
@@ -939,6 +939,8 @@ impl SanitizerMethods<crate::DomTypeHolder> for Sanitizer {
             if element.attributes().is_some() ||
                 !element.remove_attributes().unwrap_or_default().is_empty()
             {
+                std::mem::drop(configuration);
+
                 // Step 5.1.1. The user agent may report a warning to the console that this
                 // operation is not supported.
                 Console::internal_warn(
