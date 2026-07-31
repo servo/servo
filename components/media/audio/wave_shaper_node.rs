@@ -5,8 +5,8 @@
 use malloc_size_of_derive::MallocSizeOf;
 use speexdsp_resampler::State as SpeexResamplerState;
 
+use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Chunk, FRAMES_PER_BLOCK_USIZE};
-use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 
 #[derive(Clone, Debug, PartialEq, MallocSizeOf)]
 pub enum OverSampleType {

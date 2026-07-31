@@ -8,10 +8,12 @@ extern crate servo_media_auto;
 use std::sync::Arc;
 use std::{thread, time};
 
+use servo_media::audio::audio_node::{
+    AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage,
+};
 use servo_media::audio::biquad_filter_node::{
     BiquadFilterNodeMessage, BiquadFilterNodeOptions, FilterType,
 };
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage};
 use servo_media::audio::oscillator_node::OscillatorNodeOptions;
 use servo_media::audio::param::{ParamType, RampKind, UserAutomationEvent};
 use servo_media::{ClientContextId, ServoMedia};

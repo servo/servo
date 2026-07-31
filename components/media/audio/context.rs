@@ -11,9 +11,9 @@ use malloc_size_of_derive::MallocSizeOf;
 use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance, MediaInstanceError};
 
 use crate::AudioBackend;
+use crate::audio_node::{AudioNodeInit, AudioNodeMessage, ChannelInfo};
 use crate::decoder::{AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions};
 use crate::graph::{AudioGraph, InputPort, NodeId, OutputPort, PortId};
-use crate::node::{AudioNodeInit, AudioNodeMessage, ChannelInfo};
 use crate::render_thread::{AudioRenderThread, AudioRenderThreadMsg, SinkEosCallback};
 use crate::sink::AudioSinkError;
 

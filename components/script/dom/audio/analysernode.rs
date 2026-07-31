@@ -12,8 +12,8 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use servo_base::generic_channel::GenericCallback;
 use servo_media::audio::analyser_node::AnalysisEngine;
+use servo_media::audio::audio_node::AudioNodeInit;
 use servo_media::audio::block::Block;
-use servo_media::audio::node::AudioNodeInit;
 
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;

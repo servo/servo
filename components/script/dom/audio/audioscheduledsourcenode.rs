@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use servo_media::audio::node::{
+use servo_media::audio::audio_node::{
     AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage, OnEndedCallback,
 };
 

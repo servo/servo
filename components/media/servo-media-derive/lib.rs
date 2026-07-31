@@ -122,12 +122,12 @@ pub fn channel_info(input: TokenStream) -> TokenStream {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
     let name = &ast.ident;
     let r#gen = quote! {
-        impl crate::node::AudioNodeCommon for #name {
-            fn channel_info(&self) -> &crate::node::ChannelInfo {
+        impl crate::audio_node::AudioNodeCommon for #name {
+            fn channel_info(&self) -> &crate::audio_node::ChannelInfo {
                 &self.channel_info
             }
 
-            fn channel_info_mut(&mut self) -> &mut crate::node::ChannelInfo {
+            fn channel_info_mut(&mut self) -> &mut crate::audio_node::ChannelInfo {
                 &mut self.channel_info
             }
         }

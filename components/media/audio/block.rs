@@ -11,8 +11,8 @@ use euclid::default::Vector3D;
 use serde::{Deserialize, Serialize};
 use smallvec::{SmallVec, smallvec};
 
+use crate::audio_node::ChannelInterpretation;
 use crate::graph::{PortIndex, PortKind};
-use crate::node::ChannelInterpretation;
 
 // defined by spec
 // https://webaudio.github.io/web-audio-api/#render-quantum

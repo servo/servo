@@ -21,6 +21,7 @@ extern crate servo_media_streams;
 extern crate servo_media_traits;
 
 pub mod analyser_node;
+pub mod audio_node;
 pub mod biquad_filter_node;
 pub mod block;
 pub mod buffer_source_node;
@@ -36,7 +37,6 @@ pub mod listener;
 pub mod media_element_source_node;
 pub mod media_stream_destination_node;
 pub mod media_stream_source_node;
-pub mod node;
 pub mod offline_sink;
 pub mod oscillator_node;
 pub mod panner_node;

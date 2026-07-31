@@ -10,8 +10,8 @@ use std::sync::{Arc, Mutex};
 use malloc_size_of_derive::MallocSizeOf;
 use player::audio::AudioRenderer;
 
+use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK};
-use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 
 #[derive(Debug, Clone, MallocSizeOf)]
 pub enum MediaElementSourceNodeMessage {
