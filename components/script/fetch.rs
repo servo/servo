@@ -170,6 +170,8 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
     .client(global.request_client(None))
     .response_tainting(request.response_tainting);
     builder.id = request.id;
+    builder.reload_navigation = request.reload_navigation;
+    builder.history_navigation = request.history_navigation;
     builder
 }
 

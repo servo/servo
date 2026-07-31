@@ -189,6 +189,10 @@ impl Request {
         request.cache_mode = temporary_request.cache_mode;
         request.redirect_mode = temporary_request.redirect_mode;
         request.integrity_metadata = temporary_request.integrity_metadata;
+        // reload-navigation flag: request’s reload-navigation flag.
+        request.reload_navigation = temporary_request.reload_navigation;
+        // history-navigation flag: request’s history-navigation flag.
+        request.history_navigation = temporary_request.history_navigation;
 
         // Step 13. If init is not empty, then:
         if init.body.is_some() ||
@@ -210,9 +214,9 @@ impl Request {
                 request.mode = NetTraitsRequestMode::SameOrigin;
             }
             // Step 13.2. Unset request’s reload-navigation flag.
-            // TODO
+            request.reload_navigation = false;
             // Step 13.3. Unset request’s history-navigation flag.
-            // TODO
+            request.history_navigation = false;
             // Step 13.4. Set request’s origin to "client".
             // TODO
             // Step 13.5. Set request’s referrer to "client".
@@ -707,6 +711,18 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     /// <https://fetch.spec.whatwg.org/#dom-request-keepalive>
     fn Keepalive(&self) -> bool {
         self.request.borrow().keep_alive
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-request-isreloadnavigation>
+    // The isReloadNavigation getter steps are to return true if this’s request’s reload-navigation flag is set; otherwise false.
+    fn IsReloadNavigation(&self) -> bool {
+        self.request.borrow().reload_navigation
+    }
+
+    /// <https://fetch.spec.whatwg.org/#dom-request-ishistorynavigation>
+    // The isHistoryNavigation getter steps are to return true if this’s request’s history-navigation flag is set; otherwise false.
+    fn IsHistoryNavigation(&self) -> bool {
+        self.request.borrow().history_navigation
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-body-body>

@@ -4211,11 +4211,16 @@ where
     ) {
         let new_pipeline_id = match new_reloader {
             NeedsToReload::No(pipeline_id) => pipeline_id,
-            NeedsToReload::Yes(pipeline_id, load_data) => {
+            NeedsToReload::Yes(pipeline_id, mut load_data) => {
                 debug!(
                     "{}: Reloading document {}",
                     browsing_context_id, pipeline_id,
                 );
+
+                // <https://html.spec.whatwg.org/multipage/#process-a-navigate-fetch>
+                // Step 8. Otherwise, if entry's document state's ever populated is true, then set request's history-navigation flag.
+                load_data.history_navigation = true;
+                load_data.reload_navigation = false;
 
                 let (
                     webview_id,
