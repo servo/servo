@@ -518,7 +518,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
         self.owner_document()
             .focus_handler()
-            .focus(cx, FocusableArea::Viewport);
+            .focus(cx, &FocusableArea::Viewport);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>

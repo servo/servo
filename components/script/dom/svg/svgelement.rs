@@ -234,7 +234,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
         self.owner_document()
             .focus_handler()
-            .focus(cx, FocusableArea::Viewport);
+            .focus(cx, &FocusableArea::Viewport);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
