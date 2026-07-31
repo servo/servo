@@ -152,7 +152,7 @@ pub trait PlatformFontMethods: Sized {
     /// Create a platform font with the given variations from a existing font.
     ///
     /// `self` is consumed to work around platform differences. On some platforms, changing the
-    /// variations requires creating an entirely new font face, whereas on others `self` the returned
+    /// variations requires creating an entirely new font face, whereas on others the returned
     /// font is `self`.
     fn copy_with_variations(self, _variations: &[FontVariation]) -> Result<Self, &'static str> {
         Err("not implemented")
