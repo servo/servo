@@ -252,14 +252,13 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(
             font_identifier,
             Some(data),
             requested_size,
-            variations,
+            &[],
             synthetic_bold,
         )
     }
@@ -267,14 +266,13 @@ impl PlatformFontMethods for PlatformFont {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(
             FontIdentifier::Local(font_identifier),
             None,
             requested_size,
-            variations,
+            &[],
             synthetic_bold,
         )
     }

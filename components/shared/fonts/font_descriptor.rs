@@ -28,6 +28,9 @@ pub struct FontDescriptor {
     pub style: FontStyle,
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
+    /// The value of the `@font-variation-settings` property.
+    ///
+    /// This does not include synthesized variations from `font-style`, `font-stretch` etc.
     pub variation_settings: Vec<FontVariation>,
     pub synthesis_weight: FontSynthesis,
     pub optical_sizing: FontOpticalSizing,
