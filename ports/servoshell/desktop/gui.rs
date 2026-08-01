@@ -216,9 +216,13 @@ impl Gui {
             // shortcuts as they don't work well with servoshell's `device-pixel-ratio` CLI argument.
             options.zoom_with_keyboard = false;
 
-            // On platforms where winit fails to obtain a system theme, fall back to a light theme
-            // since it is the more common default.
-            options.fallback_theme = egui::Theme::Light;
+            // winit fails to obtain a system theme on Linux, where the preference lives behind the
+            // XDG settings portal instead. Ask for it directly, and only then fall back to a light
+            // theme as the more common default.
+            options.fallback_theme = match super::system_theme::preferred_theme() {
+                Some(servo::Theme::Dark) => egui::Theme::Dark,
+                Some(servo::Theme::Light) | None => egui::Theme::Light,
+            };
         });
 
         Self {

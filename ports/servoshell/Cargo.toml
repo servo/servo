@@ -132,6 +132,12 @@ winit = { workspace = true }
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 signal-hook-registry = { workspace = true }
 
+# Reading the desktop's color-scheme preference from the XDG settings portal;
+# winit has no theme detection on Linux. Already in the dependency graph via
+# accesskit, so this adds no new crate to the build.
+[target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
+zbus = { workspace = true }
+
 [target.'cfg(target_os = "windows")'.dependencies]
 servo = { workspace = true, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }

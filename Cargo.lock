@@ -9443,6 +9443,7 @@ dependencies = [
  "winit",
  "winresource",
  "xcomponent-sys",
+ "zbus",
 ]
 
 [[package]]

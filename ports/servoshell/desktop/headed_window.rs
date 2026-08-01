@@ -1030,7 +1030,10 @@ impl PlatformWindow for HeadedWindow {
     fn theme(&self) -> servo::Theme {
         match self.winit_window.theme() {
             Some(winit::window::Theme::Dark) => servo::Theme::Dark,
-            Some(winit::window::Theme::Light) | None => servo::Theme::Light,
+            Some(winit::window::Theme::Light) => servo::Theme::Light,
+            // winit reports no theme on Linux, so ask the desktop directly
+            // before falling back to light.
+            None => super::system_theme::preferred_theme().unwrap_or(servo::Theme::Light),
         }
     }
 

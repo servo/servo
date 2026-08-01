@@ -17,6 +17,7 @@ pub(crate) mod headed_window;
 mod headless_window;
 mod keyutils;
 mod protocols;
+mod system_theme;
 mod tracing;
 #[cfg(feature = "webxr")]
 mod webxr;
