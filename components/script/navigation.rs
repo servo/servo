@@ -252,6 +252,9 @@ impl InProgressLoad {
         .client(request_client)
         .url_list(self.url_list.clone());
 
+        request_builder.reload_navigation = self.load_data.reload_navigation;
+        request_builder.history_navigation = self.load_data.history_navigation;
+
         if !request_builder.headers.contains_key(header::ACCEPT) {
             request_builder
                 .headers
@@ -358,9 +361,15 @@ pub(crate) fn navigate(
     window: &Window,
     history_handling: NavigationHistoryBehavior,
     force_reload: bool,
-    load_data: LoadData,
+    mut load_data: LoadData,
 ) {
     let doc = window.Document();
+
+    // <https://html.spec.whatwg.org/multipage/#process-a-navigate-fetch>
+    if force_reload {
+        // Step 7. If entry's document state's reload pending is true, then set request's reload-navigation flag.
+        load_data.reload_navigation = true;
+    }
 
     // Step 3. Let initiatorOriginSnapshot be sourceDocument's origin.
     let initiator_origin_snapshot = &load_data.load_origin;
