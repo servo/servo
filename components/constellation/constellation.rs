@@ -4218,6 +4218,7 @@ where
                 );
 
                 // <https://html.spec.whatwg.org/multipage/#process-a-navigate-fetch>
+                // Step 7. If entry's document state's reload pending is true, then set request's reload-navigation flag.
                 // Step 8. Otherwise, if entry's document state's ever populated is true, then set request's history-navigation flag.
                 load_data.history_navigation = true;
                 load_data.reload_navigation = false;

@@ -714,7 +714,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-isreloadnavigation>
-    // The isReloadNavigation getter steps are to return true if this’s request’s reload-navigation flag is set; otherwise false.
+    /// The isReloadNavigation getter steps are to return true if this’s request’s reload-navigation flag is set; otherwise false.
     fn IsReloadNavigation(&self) -> bool {
         self.request.borrow().reload_navigation
     }
