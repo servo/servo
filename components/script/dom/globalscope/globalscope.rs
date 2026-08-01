@@ -2427,7 +2427,12 @@ impl GlobalScope {
         &self.module_map
     }
 
-    pub(crate) fn get_module_tree(&self, request: &ModuleRequest) -> Option<Rc<ModuleTree>> {
+    /// Return the [`ModuleTree`] for a given [`ModuleRequest`] or `None` if there is no
+    /// tree for the request or if that tree is still being fetched.
+    pub(crate) fn module_tree_for_request_if_loaded(
+        &self,
+        request: &ModuleRequest,
+    ) -> Option<Rc<ModuleTree>> {
         self.module_map
             .borrow()
             .get(request)

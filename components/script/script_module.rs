@@ -216,7 +216,7 @@ impl ModuleTree {
         self.loaded_modules
             .borrow()
             .get(specifier)
-            .and_then(|url| global.get_module_tree(&(url.clone(), module_type)))
+            .and_then(|url| global.module_tree_for_request_if_loaded(&(url.clone(), module_type)))
     }
 
     pub(crate) fn insert_module_dependency(
@@ -1031,7 +1031,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     let parsed_url = url.unwrap();
 
     // Step 4 & 7.
-    let module_tree = global_scope.get_module_tree(&(parsed_url, module_type));
+    let module_tree = global_scope.module_tree_for_request_if_loaded(&(parsed_url, module_type));
 
     let module = module_tree.expect("Attempted to link a module not found inside module map");
 
