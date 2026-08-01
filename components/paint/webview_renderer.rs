@@ -304,7 +304,7 @@ impl WebViewRenderer {
             AnimationState::NoAnimationsPresent => {
                 pipeline_details.animations_running = false;
             },
-            AnimationState::NoAnimationCallbacksPresent => {
+            AnimationState::AnimationCallbacksAbsent => {
                 pipeline_details.animation_callbacks_running = false;
             },
         }

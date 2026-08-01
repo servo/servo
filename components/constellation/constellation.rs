@@ -3775,7 +3775,7 @@ where
             AnimationState::AnimationCallbacksPresent => {
                 self.handle_change_document_animation_frame_provider_state(pipeline_id, true);
             },
-            AnimationState::NoAnimationCallbacksPresent => {
+            AnimationState::AnimationCallbacksAbsent => {
                 self.handle_change_document_animation_frame_provider_state(pipeline_id, false);
             },
             AnimationState::AnimationsPresent | AnimationState::NoAnimationsPresent => {
@@ -3810,7 +3810,7 @@ where
         let animation_state = if callbacks_active {
             AnimationState::AnimationCallbacksPresent
         } else {
-            AnimationState::NoAnimationCallbacksPresent
+            AnimationState::AnimationCallbacksAbsent
         };
 
         self.paint_proxy
@@ -3981,7 +3981,7 @@ where
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
+    /// <https://html.spec.whatwg.org/multipage/#rendering-opportunity>
     #[servo_tracing::instrument(skip_all)]
     fn handle_tick_animation(&mut self, webview_ids: Vec<WebViewId>) {
         let mut animating_event_loops = HashSet::new();

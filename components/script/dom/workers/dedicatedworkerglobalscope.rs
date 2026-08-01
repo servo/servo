@@ -237,9 +237,11 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     running_animation_callbacks: Cell<bool>,
     /// Whether Constellation currently treats this worker as having callbacks.
     animation_frame_callbacks_active: Cell<bool>,
+    /// A sender for animation frame ticks.
     #[no_trace]
     #[ignore_malloc_size_of = "channels are hard"]
     animation_frame_tick_sender: Option<GenericSender<WorkerAnimationFrameTick>>,
+    /// A receiver for animation frame ticks.
     #[no_trace]
     #[ignore_malloc_size_of = "channels are hard"]
     animation_frame_tick_receiver: Option<RoutedReceiver<WorkerAnimationFrameTick>>,
@@ -572,8 +574,6 @@ impl DedicatedWorkerGlobalScope {
                     cx,
                 );
 
-                global.register_animation_frame_provider();
-
                 if devtools_enabled {
                     debugger_global.fire_add_debuggee(
                         cx,
@@ -753,6 +753,8 @@ impl DedicatedWorkerGlobalScope {
                 "Animation frame callbacks are not supported for this worker".to_owned(),
             )));
         }
+
+        self.register_animation_frame_provider();
 
         // Step 2. Let target be this's target object.
         // Step 3. Increment target's animation frame callback identifier by one,
