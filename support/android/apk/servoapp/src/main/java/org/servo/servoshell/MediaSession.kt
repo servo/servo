@@ -148,7 +148,7 @@ class MediaSession(private val view: ServoView, private val context: Context) {
         playbackState = state
     }
 
-    fun updateMetadata(title: String?, artist: String?, album: String?) {
+    fun updateMetadata(title: String, artist: String, album: String) {
         this.title = title
         this.artist = artist
         this.album = album

@@ -22,11 +22,11 @@ internal class JNIServo {
 
     external fun init(
         context: Context,
-        args: String,
-        url: String,
+        args: String?,
+        url: String?,
         size: Size,
         density: Float,
-        logStr: String,
+        logStr: String?,
         enableLogs: Boolean,
         experimentalMode: Boolean,
         callbacks: Callbacks,

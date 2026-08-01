@@ -259,7 +259,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
         getSystemService<InputMethodManager>()?.hideSoftInputFromWindow(servoView.windowToken, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    override fun onAlert(message: String?) {
+    override fun onAlert(message: String) {
         AlertDialog.Builder(this)
             .setMessage(message)
             .show()
@@ -284,12 +284,11 @@ class MainActivity : ComponentActivity(), Servo.Client {
         isRefreshingState.value = false
     }
 
-    override fun onTitleChanged(title: String?) {
-        currentTitle = title.orEmpty()
+    override fun onTitleChanged(title: String) {
+        currentTitle = title
     }
 
-    override fun onUrlChanged(url: String?) {
-        val url = url.orEmpty()
+    override fun onUrlChanged(url: String) {
         urlTextFieldState.edit { replace(0, length, url) }
         currentUrl = url
     }
@@ -326,7 +325,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
         }
     }
 
-    override fun onMediaSessionMetadata(title: String?, artist: String?, album: String?) {
+    override fun onMediaSessionMetadata(title: String, artist: String, album: String) {
         Log.d("onMediaSessionMetadata", "$title $artist $album")
         val mediaSession = mediaSession ?: MediaSession(servoView, applicationContext).also { mediaSession = it }
         mediaSession.updateMetadata(title, artist, album)
