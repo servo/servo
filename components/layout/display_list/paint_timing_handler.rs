@@ -6,6 +6,7 @@ use euclid::Rect;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
+use style::dom::OpaqueNode;
 use style_traits::CSSPixel;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
@@ -13,12 +14,16 @@ use crate::fragment_tree::Tag;
 use crate::query::transform_au_rectangle;
 
 pub(crate) struct PaintTimingHandler {
-    /// The document’s largest contentful paint size
-    lcp_size: f32,
-    /// The LCP candidate, it may be a image or text.
-    lcp_candidate: Option<LCPCandidate>,
     /// The rect of viewport.
     viewport_rect: LayoutRect,
+    /// The document’s largest contentful paint size
+    lcp_size: f32,
+    /// Counter for generating unique LCP candidate UUIDs.
+    lcp_next_uuid: u64,
+    /// The LCP candidate, it may be a image or text.
+    lcp_candidate: Option<LCPCandidate>,
+    /// The DOM node for the LCP candidate. Only used in ReflowResult
+    lcp_node: Option<OpaqueNode>,
     /// Flag to indicate if there is an update to LCP candidate.
     /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     lcp_candidate_updated: bool,
@@ -28,9 +33,11 @@ impl PaintTimingHandler {
     pub(crate) fn new(viewport_size: LayoutSize) -> Self {
         Self {
             lcp_size: 0.0,
+            lcp_next_uuid: 0,
+            lcp_node: None,
             lcp_candidate: None,
-            viewport_rect: LayoutRect::from_size(viewport_size),
             lcp_candidate_updated: false,
+            viewport_rect: LayoutRect::from_size(viewport_size),
         }
     }
 
@@ -92,13 +99,13 @@ impl PaintTimingHandler {
             return;
         }
 
-        let id = tag
-            .map(|tag| LCPCandidateID(tag.node.id()))
-            .unwrap_or(LCPCandidateID(0));
+        let uuid = self.lcp_next_uuid;
+        self.lcp_next_uuid += 1;
 
-        // Set newCandidate to be a new largest contentful paint candidate
-        self.lcp_candidate = Some(LCPCandidate::new(id, size as usize, url));
         self.lcp_size = size;
+        self.lcp_node = tag.map(|tag| tag.node);
+        self.lcp_candidate = Some(LCPCandidate::new(LCPCandidateID(uuid), size as usize, url));
+
         self.lcp_candidate_updated = true;
     }
 
@@ -112,5 +119,9 @@ impl PaintTimingHandler {
 
     pub(crate) fn largest_contentful_paint_candidate(&self) -> Option<LCPCandidate> {
         self.lcp_candidate.clone()
+    }
+
+    pub(crate) fn lcp_node(&self) -> Option<OpaqueNode> {
+        self.lcp_node
     }
 }

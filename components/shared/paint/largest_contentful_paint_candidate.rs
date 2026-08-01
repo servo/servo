@@ -4,6 +4,7 @@
 
 //! Definitions for Largest Contentful Paint Candidate and Largest Contentful Paint.
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
@@ -11,7 +12,7 @@ use servo_url::ServoUrl;
 /// Largest Contentful Paint Candidate, include image and block-level element containing text
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LCPCandidate {
-    /// The identity of the element.
+    /// A unique identifier for this candidate.
     pub id: LCPCandidateID,
     /// The size of the visual area
     pub area: usize,
@@ -25,8 +26,9 @@ impl LCPCandidate {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct LCPCandidateID(pub usize);
+/// A unique identifier for an LCP candidate, generated at layout time.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct LCPCandidateID(pub u64);
 
 #[derive(Clone, Debug)]
 pub struct LargestContentfulPaint {
@@ -37,12 +39,12 @@ pub struct LargestContentfulPaint {
 }
 
 impl LargestContentfulPaint {
-    pub fn from(lcp_candidate: LCPCandidate, paint_time: CrossProcessInstant) -> Self {
+    pub fn from(candidate: LCPCandidate, paint_time: CrossProcessInstant) -> Self {
         Self {
-            id: lcp_candidate.id,
-            area: lcp_candidate.area,
+            id: candidate.id,
+            area: candidate.area,
             paint_time,
-            url: lcp_candidate.url,
+            url: candidate.url,
         }
     }
 }

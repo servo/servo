@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 use std::time::Duration;
 
 use malloc_size_of_derive::MallocSizeOf;
+use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
     send_profile_data,
@@ -243,11 +244,20 @@ impl ProgressiveWebMetrics {
         );
     }
 
-    pub fn set_largest_contentful_paint(&self, paint_time: CrossProcessInstant, area: usize) {
+    pub fn set_largest_contentful_paint(
+        &self,
+        id: LCPCandidateID,
+        paint_time: CrossProcessInstant,
+        area: usize,
+    ) {
         set_metric(
             self,
             Some(self.make_metadata(false)),
-            ProgressiveWebMetricType::LargestContentfulPaint { area, url: None },
+            ProgressiveWebMetricType::LargestContentfulPaint {
+                id,
+                area,
+                url: None,
+            },
             ProfilerCategory::TimeToLargestContentfulPaint,
             &self.largest_contentful_paint,
             paint_time,

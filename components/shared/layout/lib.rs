@@ -42,6 +42,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
+use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use parking_lot::RwLock;
 use pixels::{RasterImage, Repeat};
 use profile_traits::mem::Report;
@@ -629,6 +630,10 @@ pub struct ReflowResult {
     pub iframe_sizes: Option<IFrameSizes>,
     /// Enumerates web fonts that were added or removed as part of restyling.
     pub changed_web_fonts: WebFontSetDifference,
+    /// The LCP candidate during this layout pass, if any.
+    pub lcp_candidate: Option<LCPCandidate>,
+    /// The UntrustedNodeAddress for the LCP candidate if any.
+    pub lcp_node_address: Option<UntrustedNodeAddress>,
 }
 
 bitflags! {
