@@ -6,7 +6,7 @@ use std::future::Future;
 use std::pin::Pin;
 
 use data_url::DataUrl;
-use headers::HeaderValue;
+use http::HeaderValue;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
@@ -35,11 +35,15 @@ impl ProtocolHandler for DataProtocolHander {
                     let mut response =
                         Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     *response.body.lock() = ResponseBody::Done(bytes);
-                    let mime = data_url.mime_type();
-                    response.headers.insert(
-                        http::header::CONTENT_TYPE,
-                        HeaderValue::from_str(&mime.to_string()).unwrap(),
-                    );
+
+                    if let Ok(content_type_header_value) =
+                        HeaderValue::from_str(&data_url.mime_type().to_string())
+                    {
+                        response
+                            .headers
+                            .insert(http::header::CONTENT_TYPE, content_type_header_value);
+                    }
+
                     response.status = HttpStatus::default();
                     Some(response)
                 },

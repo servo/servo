@@ -8,7 +8,7 @@ use std::str::FromStr;
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use http::Method as HttpMethod;
-use http::header::{HeaderName, HeaderValue};
+use http::header::{CONTENT_TYPE, HeaderValue};
 use http::method::InvalidMethod;
 use js::context::JSContext;
 use js::rust::HandleObject;
@@ -350,13 +350,14 @@ impl Request {
         // TODO
 
         // Step 28. Set this’s request to request.
-        let r = Request::from_net_request(cx, global, proto, request);
+        let request = Request::from_net_request(cx, global, proto, request);
 
         // Step 29. Let signals be « signal » if signal is non-null; otherwise « ».
         let signals = signal.map_or(vec![], |s| vec![s]);
         // Step 30. Set this’s signal to the result of creating a dependent
         // abort signal from signals, using AbortSignal and this’s relevant realm.
-        r.signal
+        request
+            .signal
             .set(Some(&AbortSignal::create_dependent_abort_signal(
                 cx, signals, global,
             )));
@@ -366,7 +367,9 @@ impl Request {
         //
         // "or_init" looks unclear here, but it always enters the block since r
         // hasn't had any other way to initialize its headers
-        r.headers.or_init(|| Headers::for_request(cx, &r.global()));
+        request
+            .headers
+            .or_init(|| Headers::for_request(cx, &request.global()));
 
         // Step 33. If init is not empty, then:
         //
@@ -393,8 +396,8 @@ impl Request {
         // deep copied headers in Step 25.
 
         // Step 32. If this’s request’s mode is "no-cors", then:
-        if r.request.borrow().mode == NetTraitsRequestMode::NoCors {
-            let borrowed_request = r.request.borrow();
+        if request.request.borrow().mode == NetTraitsRequestMode::NoCors {
+            let borrowed_request = request.request.borrow();
             // Step 32.1. If this’s request’s method is not a CORS-safelisted method, then throw a TypeError.
             if !is_cors_safelisted_method(&borrowed_request.method) {
                 return Err(Error::Type(
@@ -403,7 +406,7 @@ impl Request {
                 ));
             }
             // Step 32.2. Set this’s headers’s guard to "request-no-cors".
-            r.Headers(cx).set_guard(Guard::RequestNoCors);
+            request.Headers(cx).set_guard(Guard::RequestNoCors);
         }
 
         match headers_copy {
@@ -415,22 +418,23 @@ impl Request {
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers(cx)
+                    request
+                        .Headers(cx)
                         .copy_from_headers(&input_request.Headers(cx))?;
                 }
             },
             // Step 33.5. Otherwise, fill this’s headers with headers.
-            Some(headers_copy) => r.Headers(cx).fill(Some(headers_copy))?,
+            Some(headers_copy) => request.Headers(cx).fill(Some(headers_copy))?,
         }
 
         // Step 33.5 depending on how we got here
         // Copy the headers list onto the headers of net_traits::Request
-        r.request.borrow_mut().headers = r.Headers(cx).get_headers_list();
+        request.request.borrow_mut().headers = request.Headers(cx).get_headers_list();
 
         // Step 34. Let inputBody be input’s request’s body if input is a Request object; otherwise null.
         let input_body = if let RequestInfo::Request(ref mut input_request) = input {
             let mut input_request_request = input_request.request.borrow_mut();
-            r.body_stream.set(input_request.body().as_deref());
+            request.body_stream.set(input_request.body().as_deref());
             input_request_request.body.take()
         } else {
             None
@@ -439,7 +443,7 @@ impl Request {
         // Step 35. If either init["body"] exists and is non-null or inputBody is non-null,
         // and request’s method is `GET` or `HEAD`, then throw a TypeError.
         if init.body.as_ref().is_some_and(|body| body.is_some()) || input_body.is_some() {
-            let req = r.request.borrow();
+            let req = request.request.borrow();
             let req_method = &req.method;
             match *req_method {
                 HttpMethod::GET => {
@@ -462,39 +466,40 @@ impl Request {
         if let Some(Some(ref input_init_body)) = init.body {
             // Step 37.1. Let bodyWithType be the result of extracting init["body"], with keepalive set to request’s keepalive.
             let mut body_with_type =
-                input_init_body.extract(cx, global, r.request.borrow().keep_alive)?;
+                input_init_body.extract(cx, global, request.request.borrow().keep_alive)?;
 
             // Step 37.3. Let type be bodyWithType’s type.
             if let Some(contents) = body_with_type.content_type.take() {
-                let ct_header_name = b"Content-Type";
                 // Step 37.4. If type is non-null and this’s headers’s header list
                 // does not contain `Content-Type`, then append (`Content-Type`, type) to this’s headers.
-                if !r
+                let content_type_header_name = b"Content-Type";
+                if !request
                     .Headers(cx)
-                    .Has(ByteString::new(ct_header_name.to_vec()))
+                    .Has(ByteString::new(content_type_header_name.to_vec()))
                     .unwrap()
                 {
-                    let ct_header_val = contents.as_bytes();
-                    r.Headers(cx).Append(
-                        ByteString::new(ct_header_name.to_vec()),
-                        ByteString::new(ct_header_val.to_vec()),
+                    let content_type_header_value = contents.as_bytes();
+                    request.Headers(cx).Append(
+                        ByteString::new(content_type_header_name.to_vec()),
+                        ByteString::new(content_type_header_value.to_vec()),
                     )?;
 
-                    // In Servo r.Headers's header list isn't a pointer to
-                    // the same actual list as r.request's, and so we need to
-                    // append to both lists to keep them in sync.
-                    if let Ok(v) = HeaderValue::from_bytes(&ct_header_val) {
-                        r.request
+                    // In Servo request.Headers's header list isn't a pointer to the same
+                    // actual list as request.request's, and so we need to append to both lists
+                    // to keep them in sync.
+                    if let Ok(header_value) = HeaderValue::from_bytes(&content_type_header_value) {
+                        request
+                            .request
                             .borrow_mut()
                             .headers
-                            .insert(HeaderName::from_bytes(ct_header_name).unwrap(), v);
+                            .insert(CONTENT_TYPE, header_value);
                     }
                 }
             }
 
             // Step 37.2. Set initBody to bodyWithType’s body.
             let (net_body, stream) = body_with_type.into_net_request_body(cx);
-            r.body_stream.set(Some(&*stream));
+            request.body_stream.set(Some(&*stream));
             init_body = Some(net_body);
         }
 
@@ -520,7 +525,7 @@ impl Request {
                 ));
             }
             // Step 39.2. If this’s request’s mode is neither "same-origin" nor "cors", then throw a TypeError.
-            let request_mode = &r.request.borrow().mode;
+            let request_mode = &request.request.borrow().mode;
             if *request_mode != NetTraitsRequestMode::CorsMode &&
                 *request_mode != NetTraitsRequestMode::SameOrigin
             {
@@ -543,9 +548,9 @@ impl Request {
         }
 
         // Step 42. Set this’s request’s body to finalBody.
-        r.request.borrow_mut().body = final_body;
+        request.request.borrow_mut().body = final_body;
 
-        Ok(r)
+        Ok(request)
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-clone>

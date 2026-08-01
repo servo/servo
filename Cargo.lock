@@ -8707,6 +8707,7 @@ dependencies = [
  "nom 8.0.0",
  "parking_lot",
  "quick_cache",
+ "rand 0.10.2",
  "regex",
  "resvg",
  "rustc-hash 2.1.3",

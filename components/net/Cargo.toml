@@ -60,6 +60,7 @@ parking_lot = { workspace = true }
 pixels = { workspace = true }
 profile_traits = { workspace = true }
 quick_cache = { workspace = true, features = ["ahash"] }
+rand = { workspace = true }
 regex = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }

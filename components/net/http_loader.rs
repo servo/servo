@@ -340,11 +340,10 @@ fn set_request_cookies(
 ) {
     let mut cookie_jar = cookie_jar.write();
     cookie_jar.remove_expired_cookies_for_url(url);
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) {
-        headers.insert(
-            header::COOKIE,
-            HeaderValue::from_bytes(cookie_list.as_bytes()).unwrap(),
-        );
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) &&
+        let Ok(cookie_list_header_value) = HeaderValue::from_bytes(cookie_list.as_bytes())
+    {
+        headers.insert(header::COOKIE, cookie_list_header_value);
     }
 }
 
