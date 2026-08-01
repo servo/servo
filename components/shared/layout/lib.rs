@@ -632,8 +632,8 @@ pub struct ReflowResult {
     pub changed_web_fonts: WebFontSetDifference,
     /// The LCP candidate during this layout pass, if any.
     pub lcp_candidate: Option<LCPCandidate>,
-    /// The OpaqueNode ID for the LCP candidate if any.
-    pub lcp_node_id: Option<usize>,
+    /// The UntrustedNodeAddress for the LCP candidate if any.
+    pub lcp_node_address: Option<UntrustedNodeAddress>,
 }
 
 bitflags! {

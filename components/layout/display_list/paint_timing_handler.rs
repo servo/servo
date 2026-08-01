@@ -23,7 +23,7 @@ pub(crate) struct PaintTimingHandler {
     /// The LCP candidate, it may be a image or text.
     lcp_candidate: Option<LCPCandidate>,
     /// The DOM node for the LCP candidate. Only used in ReflowResult
-    lcp_node_id: Option<OpaqueNode>,
+    lcp_node: Option<OpaqueNode>,
     /// Flag to indicate if there is an update to LCP candidate.
     /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     lcp_candidate_updated: bool,
@@ -34,7 +34,7 @@ impl PaintTimingHandler {
         Self {
             lcp_size: 0.0,
             lcp_next_uuid: 0,
-            lcp_node_id: None,
+            lcp_node: None,
             lcp_candidate: None,
             lcp_candidate_updated: false,
             viewport_rect: LayoutRect::from_size(viewport_size),
@@ -103,7 +103,7 @@ impl PaintTimingHandler {
         self.lcp_next_uuid += 1;
 
         self.lcp_size = size;
-        self.lcp_node_id = tag.map(|tag| tag.node);
+        self.lcp_node = tag.map(|tag| tag.node);
         self.lcp_candidate = Some(LCPCandidate::new(LCPCandidateID(uuid), size as usize, url));
 
         self.lcp_candidate_updated = true;
@@ -121,7 +121,7 @@ impl PaintTimingHandler {
         self.lcp_candidate.clone()
     }
 
-    pub(crate) fn lcp_node_id(&self) -> Option<OpaqueNode> {
-        self.lcp_node_id
+    pub(crate) fn lcp_node(&self) -> Option<OpaqueNode> {
+        self.lcp_node
     }
 }

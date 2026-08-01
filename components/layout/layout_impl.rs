@@ -6,6 +6,7 @@
 
 use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{HashMap, VecDeque};
+use std::ffi::c_void;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
@@ -1042,14 +1043,16 @@ impl LayoutThread {
         let pending_svg_elements_for_serialization =
             std::mem::take(&mut *image_resolver.pending_svg_elements_for_serialization.lock());
 
-        let (lcp_candidate, lcp_node_id) = self
+        let (lcp_candidate, lcp_node_address) = self
             .paint_timing_handler
             .borrow()
             .as_ref()
             .map(|handler| {
                 (
                     handler.largest_contentful_paint_candidate(),
-                    handler.lcp_node_id().map(|node| node.id()),
+                    handler
+                        .lcp_node()
+                        .map(|node| UntrustedNodeAddress(node.id() as *const c_void)),
                 )
             })
             .unwrap_or_default();
@@ -1063,7 +1066,7 @@ impl LayoutThread {
             reflow_statistics,
             changed_web_fonts,
             lcp_candidate,
-            lcp_node_id,
+            lcp_node_address,
         })
     }
 

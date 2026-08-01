@@ -2754,9 +2754,9 @@ impl Window {
         );
 
         if let Some(candidate) = &reflow_result.lcp_candidate &&
-            let Some(node_id) = reflow_result.lcp_node_id
+            let Some(node_address) = reflow_result.lcp_node_address
         {
-            self.process_lcp_candidate_post_reflow(candidate, node_id, &document);
+            self.process_lcp_candidate_post_reflow(candidate, node_address, &document);
         }
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
@@ -3705,11 +3705,10 @@ impl Window {
     fn process_lcp_candidate_post_reflow(
         &self,
         candidate: &LCPCandidate,
-        node_id: usize,
+        node_address: UntrustedNodeAddress,
         document: &Document,
     ) {
-        let address = UntrustedNodeAddress(node_id as *const c_void);
-        let node = unsafe { from_untrusted_node_address(address) };
+        let node = unsafe { from_untrusted_node_address(node_address) };
         if let Some(element) = DomRoot::downcast::<Element>(node) {
             document.store_lcp_candidate(candidate.id, &element);
         }
