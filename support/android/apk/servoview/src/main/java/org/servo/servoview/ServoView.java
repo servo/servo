@@ -30,16 +30,12 @@ public class ServoView extends SurfaceView
         Choreographer.FrameCallback {
     private static final String LOGTAG = "ServoView";
     private GLThread glThread;
-    private Handler glLooperHandler;
     private Surface aSurface;
     protected Servo servo = null;
-    private Client client = null;
     private String servoArgs;
-    private String servoLog;
     private String initialUri;
 
     private boolean experimentalMode;
-    private boolean paused = false;
 
     public ServoView(Context context) {
         super(context);
@@ -65,19 +61,19 @@ public class ServoView extends SurfaceView
     }
 
     public void setClient(Client client) {
-        this.client = client;
+        glThread.client = client;
     }
 
     public void setServoArgs(String args, String log, boolean experimentalMode) {
         servoArgs = args;
-        servoLog = log;
+        glThread.servoLog = log;
         this.experimentalMode = experimentalMode;
     }
 
     // RunCallback
     @Override
     public void inGLThread(Runnable r) {
-        glLooperHandler.post(r);
+        glThread.glLooperHandler.post(r);
     }
 
     @Override
@@ -191,8 +187,12 @@ public class ServoView extends SurfaceView
         }
     }
 
-    class GLThread extends Thread implements SurfaceHolder.Callback {
+    static class GLThread extends Thread implements SurfaceHolder.Callback {
         private ServoView servoView;
+        private Handler glLooperHandler;
+        private Client client = null;
+        private String servoLog;
+        private boolean paused = false;
 
         GLThread(ServoView servoView) {
             this.servoView = servoView;
