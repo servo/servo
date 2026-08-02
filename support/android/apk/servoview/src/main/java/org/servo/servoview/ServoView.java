@@ -30,7 +30,6 @@ public class ServoView extends SurfaceView
         Choreographer.FrameCallback {
     private static final String LOGTAG = "ServoView";
     private GLThread glThread;
-    private Surface aSurface;
     protected Servo servo = null;
     private String servoArgs;
     private String initialUri;
@@ -237,11 +236,6 @@ public class ServoView extends SurfaceView
             Log.d(LOGTAG, "GLThread::surfaceDestroyed");
             paused = true;
             servoView.servo.pausePainting();
-        }
-
-        public void shutdown() {
-            Log.d(LOGTAG, "GLThread::shutdown");
-            glLooperHandler.getLooper().quitSafely();
         }
 
         public void run() {
