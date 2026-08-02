@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::ops::Deref;
+use std::ptr;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc as StdArc, LazyLock, Mutex};
@@ -215,7 +216,7 @@ use crate::image_animation::ImageAnimationManager;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::script_runtime::compute_size;
+use crate::script_runtime::{MALLOC_SIZE_OF_OPS, compute_size};
 use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -3606,7 +3607,11 @@ impl Document {
 
         for node in self.upcast::<Node>().children() {
             let type_id = node.type_id();
+
+            MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
             let size = compute_size(node.jsobject(), ops);
+            MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
+
             match type_id {
                 NodeTypeId::Attr => sizes.attribute_nodes_size += size,
                 NodeTypeId::Element(_) => sizes.element_nodes_size += size,

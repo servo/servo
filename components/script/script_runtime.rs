@@ -1110,26 +1110,12 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
     }
 }
 
-thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
+thread_local!(pub(crate) static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
-    if SEEN_JSOBJECTS.with(|objects| !objects.borrow_mut().insert(obj)) {
-        return 0;
-    }
-
-    match unsafe { get_dom_class(obj) } {
-        Ok(v) => {
-            let dom_object = unsafe { private_from_object(obj) as *const c_void };
-
-            if dom_object.is_null() {
-                return 0;
-            }
-            let ops = MALLOC_SIZE_OF_OPS.get();
-            unsafe { (v.malloc_size_of)(&mut *ops, dom_object) }
-        },
-        Err(_e) => 0,
-    }
+    let ops = MALLOC_SIZE_OF_OPS.get();
+    unsafe { compute_size(obj, &mut *ops) }
 }
 
 thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = const { Cell::new(None) });
@@ -1246,10 +1232,21 @@ thread_local!(pub(crate) static SEEN_JSOBJECTS: LazyCell<RefCell<HashSet<*const 
 
 #[expect(unsafe_code)]
 pub(crate) fn compute_size(obj: *mut JSObject, ops: &mut MallocSizeOfOps) -> usize {
-    MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
-    let size = unsafe { get_size(obj) };
-    MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
-    size
+    if SEEN_JSOBJECTS.with(|objects| !objects.borrow_mut().insert(obj)) {
+        return 0;
+    }
+
+    match unsafe { get_dom_class(obj) } {
+        Ok(v) => {
+            let dom_object = unsafe { private_from_object(obj) as *const c_void };
+
+            if dom_object.is_null() {
+                return 0;
+            }
+            unsafe { (v.malloc_size_of)(&mut *ops, dom_object) }
+        },
+        Err(_e) => 0,
+    }
 }
 
 #[expect(unsafe_code)]
