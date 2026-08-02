@@ -577,10 +577,9 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
                 //
                 // We cannot use typed header insertion with `mime::Mime` parsing here,
                 // since it lowercases `charset=UTF-8`: https://github.com/hyperium/mime/issues/116
-                headers.insert(
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_str(&content_type.str()).unwrap(),
-                );
+                if let Ok(content_type_header_value) = HeaderValue::from_str(&content_type.str()) {
+                    headers.insert(header::CONTENT_TYPE, content_type_header_value);
+                }
             }
             request_body = Some(extracted_body.into_net_request_body(cx).0);
         }

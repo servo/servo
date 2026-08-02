@@ -13,10 +13,10 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
-use headers::{ContentLength, ContentRange, HeaderMapExt};
+use headers::{ContentLength, ContentRange, HeaderMapExt, Range as RangeHeader};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use http::StatusCode;
-use http::header::{self, HeaderMap, HeaderValue};
+use http::header::HeaderMap;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
@@ -1445,11 +1445,9 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
         };
         let mut headers = HeaderMap::new();
-        // FIXME(eijebong): Use typed headers once we have a constructor for the range header
-        headers.insert(
-            header::RANGE,
-            HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap(),
-        );
+        if let Ok(range_header_value) = RangeHeader::bytes(offset.unwrap_or(0)..) {
+            headers.typed_insert(range_header_value);
+        }
         let url = match self.resource_url.borrow().as_ref() {
             Some(url) => url.clone(),
             None => self.blob_url.borrow().as_ref().unwrap().clone(),
