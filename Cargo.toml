@@ -45,7 +45,7 @@ async-tungstenite = { version = "0.35", features = ["tokio-rustls-webpki-roots"]
 atomic_refcell = "0.1.14"
 aws-lc-rs = { version = "1.17", default-features = false, features = ["aws-lc-sys"] }
 backtrace = "0.3"
-base64 = "0.22.1"
+base64 = "0.23.0"
 base64ct = { version = "1.8", features = ["alloc"] }
 bitflags = "2.11"
 blurmock = "0.1.2"
@@ -208,7 +208,7 @@ raw-window-handle = "0.6"
 rayon = "1"
 read-fonts = "0.41.0"
 regex = "1.12"
-resvg = "0.47.0"
+resvg = "0.48.1"
 rsa = "=0.10.0-rc.18"
 rusqlite = "0.38"
 rustc-demangle = "0.1"

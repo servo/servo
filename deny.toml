@@ -35,9 +35,6 @@ ignore = [
     # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
     # We will need to wait for upstream actions.
     "RUSTSEC-2026-0192",
-    # `rustybuzz` is unmaintained. Switch to harfrust.
-    # However, this is a dependecy of `resvg`, there's nothing we can do.
-    "RUSTSEC-2026-0206",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -93,6 +90,7 @@ deny = [
 
 # List of crates to skip for the duplicate check:
 skip = [
+    "base64",
     "bitflags",
     "cookie",
     "redox_syscall",
