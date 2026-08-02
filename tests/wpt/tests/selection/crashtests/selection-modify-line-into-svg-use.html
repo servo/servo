@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const textarea = document.querySelector("textarea");
+  getSelection().collapse(textarea, 0);
+  textarea.focus();
+  getSelection().modify("extend", "left", "line");
+}, {once: true});
+</script>
+</head>
+<body>
+<svg>
+<use xlink:href="#a"></use>
+<polygon id="a"></polygon>
+</svg>
+<textarea></textarea>
+</body>
+</html>

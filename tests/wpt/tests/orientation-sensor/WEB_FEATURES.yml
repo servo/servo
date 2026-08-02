@@ -1,3 +1,2 @@
-features:
-- name: orientation-sensor
-  files: "**"
+rules:
+- "**": [orientation-sensor]

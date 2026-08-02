@@ -1,3 +1,2 @@
-features:
-- name: web-audio
-  files: "**"
+rules:
+- "**": [web-audio]

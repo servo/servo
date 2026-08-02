@@ -184,11 +184,11 @@ def test_parser_with_path_provided_abs_path():
     assert args.path == f"{os.path.abspath(os.sep)}manifest-path"
 
 def populate_test_web_features_map(web_features_map):
-    web_features_map.add("grid", [
+    web_features_map.add(["grid"], [
         Mock(spec=URLManifestItem, url="/grid_test1.js"),
         Mock(spec=URLManifestItem, url="/grid_test2.js"),
     ])
-    web_features_map.add("avif", [Mock(spec=URLManifestItem, url="/avif_test1.js")])
+    web_features_map.add(["avif"], [Mock(spec=URLManifestItem, url="/avif_test1.js")])
 
 
 def test_valid_schema():

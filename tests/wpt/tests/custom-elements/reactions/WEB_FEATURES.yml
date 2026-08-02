@@ -1,3 +1,2 @@
-features:
-- name: autonomous-custom-elements
-  files: "**"
+rules:
+- "**": [autonomous-custom-elements]

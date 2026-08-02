@@ -1,10 +1,6 @@
-features:
-- name: setinterval
-  files:
-  - '003.html'
-  - '004.html'
-  - '005.html'
-- name: settimeout
-  files:
-  - '001.html'
-  - '002.html'
+rules:
+- 003.html: [setinterval]
+- 004.html: [setinterval]
+- 005.html: [setinterval]
+- 001.html: [settimeout]
+- 002.html: [settimeout]

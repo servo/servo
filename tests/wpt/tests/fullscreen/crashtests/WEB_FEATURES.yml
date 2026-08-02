@@ -1,4 +1,2 @@
-features:
-- name: backdrop
-  files:
-  - backdrop-list-item.html
+rules:
+- backdrop-list-item.html: [backdrop]

@@ -1,3 +1,2 @@
-features:
-- name: base
-  files: "**"
+rules:
+- "**": [base]

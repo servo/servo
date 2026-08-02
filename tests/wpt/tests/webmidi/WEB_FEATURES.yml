@@ -1,3 +1,2 @@
-features:
-- name: web-midi
-  files: "**"
+rules:
+- "**": [web-midi]

@@ -1,3 +1,2 @@
-features:
-- name: webxr-anchors
-  files: '**'
+rules:
+- "**": [webxr-anchors]

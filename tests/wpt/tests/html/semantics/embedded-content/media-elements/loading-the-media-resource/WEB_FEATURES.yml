@@ -1,6 +1,4 @@
-features:
-- name: source
-  files:
-  - resource-selection-*source*.html
-  - resource-selection-currentSrc.html
-  - resource-selection-candidate-remove-*.html
+rules:
+- resource-selection-*source*.html: [source]
+- resource-selection-currentSrc.html: [source]
+- resource-selection-candidate-remove-*.html: [source]

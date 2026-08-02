@@ -1,3 +1,2 @@
-features:
-- name: upgrade-insecure-requests
-  files: "**"
+rules:
+- "**": [upgrade-insecure-requests]

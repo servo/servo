@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference: ::placeholder does not support 'vertical-align'</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+input, textarea {
+  display: block;
+  font: 16px / 16px Ahem;
+  box-sizing: border-box;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  resize: none;
+  width: 200px;
+  margin-bottom: 4px;
+}
+.tight { height: 16px; }
+.roomy { height: 48px; }
+::placeholder {
+  opacity: 1;
+  color: green;
+}
+</style>
+<textarea class="tight" placeholder="XX XX"></textarea>
+<textarea class="roomy" placeholder="XX XX"></textarea>
+<textarea class="roomy" placeholder="XX XX"></textarea>
+<textarea class="roomy" placeholder="XX XX"></textarea>
+<textarea class="roomy" placeholder="XX XX"></textarea>
+<input class="tight" placeholder="XX XX">
+<input class="roomy" placeholder="XX XX">
+<input class="roomy" placeholder="XX XX">
+<input class="roomy" placeholder="XX XX">
+<input class="roomy" placeholder="XX XX">

@@ -1,10 +1,4 @@
-features:
-- name: indexeddb
-  files:
-  - "*"
-  - "!idbindex_getAllRecords.any.js"
-  - "!idbobjectstore_getAllRecords.any.js"
-- name: getallrecords
-  files:
-    - idbindex_getAllRecords.any.js
-    - idbobjectstore_getAllRecords.any.js
+rules:
+- idbindex_getAllRecords.any.js: [getallrecords]
+- idbobjectstore_getAllRecords.any.js: [getallrecords]
+- "*": [indexeddb]

@@ -1,6 +1,4 @@
-features:
-- name: shape-outside
-  files:
-  - shape-image-threshold-*
-  - shape-margin-*
-  - shape-outside-*
+rules:
+- shape-image-threshold-*: [shape-outside]
+- shape-margin-*: [shape-outside]
+- shape-outside-*: [shape-outside]

@@ -1,14 +1,6 @@
-features:
-- name: notifications
-  files:
-  - "*"
-  - "!fetch-url-resolve.https.window.js"
-  - "!getnotifications-across-processes.https.window.js"
-  - "!registration-association.https.window.js"
-  - "!shownotification*"
-- name: notifications-apps
-  files:
-  - fetch-url-resolve.https.window.js
-  - getnotifications-across-processes.https.window.js
-  - registration-association.https.window.js
-  - "shownotification*"
+rules:
+- fetch-url-resolve.https.window.js: [notifications-apps]
+- getnotifications-across-processes.https.window.js: [notifications-apps]
+- registration-association.https.window.js: [notifications-apps]
+- shownotification*: [notifications-apps]
+- "*": [notifications]

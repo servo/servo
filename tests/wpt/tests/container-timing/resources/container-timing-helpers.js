@@ -1,6 +1,6 @@
 function checkContainerEntry(entry, identifier, last_element_id, beforeRender) {
   assert_equals(entry.entryType, 'container');
-  assert_equals(entry.name, 'container-paints');
+  assert_equals(entry.name, '');
   assert_equals(entry.identifier, identifier, 'identifier does not match');
   if (last_element_id != null) {
     assert_equals(entry.lastPaintedElement.id, last_element_id);

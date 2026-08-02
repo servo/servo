@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/test-helper.js"></script>
+<head>
+  <title>Causing a layout shift on the canvas element during drag and drop
+    should not prevent the drag</title>
+  <style>
+    p {
+      width: 220px;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    canvas {
+      display: inline-block;
+      vertical-align: top;
+    }
+
+    div {
+      height: 100px;
+      width: 100px;
+      padding: 20px;
+      background-color: silver;
+    }
+  </style>
+  <script>
+    function sourceDragStart(event) {
+      event.dataTransfer.effectAllowed = 'copy';
+      event.dataTransfer.setData('text/uri-list', event.target.toDataURL(
+        'image/png'));
+
+      var insertedCanvas = document.createElement('canvas');
+      insertedCanvas.width = event.target.width;
+      insertedCanvas.height = event.target.height;
+      var insertedContext = insertedCanvas.getContext('2d');
+      insertedContext.fillStyle = 'lime';
+      insertedContext.fillRect(0, 0, insertedCanvas.width,
+        insertedCanvas.height);
+      event.target.parentElement.insertBefore(insertedCanvas, event.target);
+    }
+    function addImage(event) {
+      var c = document.createElement('img');
+      c.setAttribute('src', event.dataTransfer.getData('text/uri-list').replace(
+        /\r\n$/, ''));
+      document.querySelector('div').appendChild(c);
+    }
+  </script>
+</head>
+<body>
+  <p>
+    <canvas id="source" width="100" height="100" draggable="true"
+      ondragstart="sourceDragStart(event)">Canvas</canvas>
+  </p>
+  <div ondragenter="event.preventDefault()" ondragover="event.preventDefault()"
+    ondrop="addImage(event)"></div>
+  <script>
+    var canvas = document.querySelector('#source');
+    var c = canvas.getContext('2d');
+    for (var x = 0; x != 50; x++) {
+      c.fillStyle = (x % 2 == 0) ? 'navy' : 'white';
+      c.beginPath();
+      c.moveTo(x, x);
+      c.lineTo(100 - x, x);
+      c.lineTo(100 - x, 100 - x);
+      c.lineTo(x, 100 - x);
+      c.closePath();
+      c.fill();
+    }
+    async function test() {
+      const canvas = document.querySelector('#source');
+      const div = document.querySelector('div');
+      function onDropCallBack(event) {
+        const img = document.querySelector('img');
+        assert_equals(img.src, canvas.toDataURL('image/png'));
+        return true;
+      }
+      dragDropTestWithLayoutShift(canvas, div, onDropCallBack,
+        'Dragging and dropping an element that gets shifted right by a different canvas on dragStart should be possible'
+        );
+    }
+    test();
+  </script>
+</body>
+</html>

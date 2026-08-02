@@ -1,3 +1,2 @@
-features:
-- name: meter
-  files: "**"
+rules:
+- "**": [meter]

@@ -1,3 +1,2 @@
-features:
-- name: base64encodedecode
-  files: "**"
+rules:
+- "**": [base64encodedecode]

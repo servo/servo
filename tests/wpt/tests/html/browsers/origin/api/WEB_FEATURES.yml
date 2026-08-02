@@ -1,3 +1,2 @@
-features:
-- name: origin
-  files: "**"
+rules:
+- "**": [origin]

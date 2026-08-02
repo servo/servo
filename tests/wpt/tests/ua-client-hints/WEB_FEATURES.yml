@@ -1,3 +1,2 @@
-features:
-- name: ua-client-hints
-  files: "**"
+rules:
+- "**": [ua-client-hints]

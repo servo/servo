@@ -1,7 +1,3 @@
-features:
-- name: dominant-baseline
-  files:
-  - dominant-baseline-*
-- name: white-space
-  files:
-  - text-multiline-*
+rules:
+- dominant-baseline-*: [dominant-baseline]
+- text-multiline-*: [white-space]

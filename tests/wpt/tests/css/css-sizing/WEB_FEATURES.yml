@@ -1,66 +1,49 @@
-features:
-- name: min-max-content
-  files:
-  - 'block-size-with-min-or-max-content-*'
-  - 'border-box-and-max-content-*'
-  - 'div-max-content-*'
-  - 'div-min-content-*'
-  - 'hori-block-size-small-or-larger-than-container-with-min-or-max-content-*'
-  - 'image-min-max-content-intrinsic-size-change-*'
-  - intrinsic-fixed-width-with-max-content-height.html
-  - intrinsic-fixed-width-with-min-content-height.html
-  - 'keyword-sizes-on-*'
-  - 'max-content-input-*'
-  - min-content-le-max-content.tentative.html
-  - min-content-min-width-000.html
-  - min-max-content-orthogonal-flow-crash-001.html
-  - replaced-max-height-min-content.html
-  - replaced-max-width-min-content.html
-  - replaced-min-height-min-content.html
-  - replaced-min-width-min-content.html
-  - shrink-to-fit-sizing-max-width-min-content.html
-  - svg-no-ar-max-height-min-content.html
-  - svg-no-ar-min-height-min-content.html
-  - 'vert-block-size-small-or-larger-than-container-with-min-or-max-content-*'
-- name: min-max-width-height
-  files:
-  - button-min-width.html
-  - image-max-width-and-height-behaves-as-auto.html
-  - min-width-max-width-precedence.html
-  - table-percentage-max-width-beside-float.html
-  - table-percentage-min-width-below-float.html
-  - table-percentage-min-width-beside-float.html
-- name: box-sizing
-  files:
-  - border-box-and-max-content-*
-  - border-box-and-max-content-002.html
-  - border-box-and-max-content-003.html
-  - box-sizing-*
-  - dynamic-change-inline-size-001.html
-  - inheritance-001.html
-  - intrinsic-percent-replaced-009.html
-  - intrinsic-percent-replaced-012.html
-  - intrinsic-percent-replaced-013.html
-  - intrinsic-percent-replaced-014.html
-  - intrinsic-percent-replaced-019.html
-  - intrinsic-percent-replaced-020.html
-  - intrinsic-ratio-replaced-box-sizing.html
-  - table-child-percentage-height-with-border-box.html
-  - thin-element-render.html
-- name: fit-content
-  files:
-  - 'div-fit-content-*'
-  - 'fit-content-*'
-  - '!fit-content-length-percentage-*'
-  - 'margin-collapse-with-indefinite-block-size-004.html'
-  - 'percentage-min-width.html'
-- name: fit-content-function
-  files:
-  - 'border-box-and-max-content-003.html'
-  - 'fit-content-length-percentage-*'
-- name: width-height
-  files:
-  - percentage-height-replaced-content-in-auto-cb.html
-- name: svg
-  files:
-  - svg-intrinsic-size-*
+rules:
+- block-size-with-min-or-max-content-*: [min-max-content]
+- border-box-and-max-content-002.html: [box-sizing, min-max-content, box-sizing]
+- border-box-and-max-content-003.html: [box-sizing, min-max-content, box-sizing, fit-content-function]
+- border-box-and-max-content-*: [min-max-content, box-sizing]
+- div-max-content-*: [min-max-content]
+- div-min-content-*: [min-max-content]
+- hori-block-size-small-or-larger-than-container-with-min-or-max-content-*: [min-max-content]
+- image-min-max-content-intrinsic-size-change-*: [min-max-content]
+- intrinsic-fixed-width-with-max-content-height.html: [min-max-content]
+- intrinsic-fixed-width-with-min-content-height.html: [min-max-content]
+- keyword-sizes-on-*: [min-max-content]
+- max-content-input-*: [min-max-content]
+- min-content-le-max-content.tentative.html: [min-max-content]
+- min-content-min-width-000.html: [min-max-content]
+- min-max-content-orthogonal-flow-crash-001.html: [min-max-content]
+- replaced-max-height-min-content.html: [min-max-content]
+- replaced-max-width-min-content.html: [min-max-content]
+- replaced-min-height-min-content.html: [min-max-content]
+- replaced-min-width-min-content.html: [min-max-content]
+- shrink-to-fit-sizing-max-width-min-content.html: [min-max-content]
+- svg-no-ar-max-height-min-content.html: [min-max-content]
+- svg-no-ar-min-height-min-content.html: [min-max-content]
+- vert-block-size-small-or-larger-than-container-with-min-or-max-content-*: [min-max-content]
+- button-min-width.html: [min-max-width-height]
+- image-max-width-and-height-behaves-as-auto.html: [min-max-width-height]
+- min-width-max-width-precedence.html: [min-max-width-height]
+- table-percentage-max-width-beside-float.html: [min-max-width-height]
+- table-percentage-min-width-below-float.html: [min-max-width-height]
+- table-percentage-min-width-beside-float.html: [min-max-width-height]
+- box-sizing-*: [box-sizing]
+- dynamic-change-inline-size-001.html: [box-sizing]
+- inheritance-001.html: [box-sizing]
+- intrinsic-percent-replaced-009.html: [box-sizing]
+- intrinsic-percent-replaced-012.html: [box-sizing]
+- intrinsic-percent-replaced-013.html: [box-sizing]
+- intrinsic-percent-replaced-014.html: [box-sizing]
+- intrinsic-percent-replaced-019.html: [box-sizing]
+- intrinsic-percent-replaced-020.html: [box-sizing]
+- intrinsic-ratio-replaced-box-sizing.html: [box-sizing]
+- table-child-percentage-height-with-border-box.html: [box-sizing]
+- thin-element-render.html: [box-sizing]
+- div-fit-content-*: [fit-content]
+- fit-content-length-percentage-*: [fit-content-function]
+- fit-content-*: [fit-content]
+- margin-collapse-with-indefinite-block-size-004.html: [fit-content]
+- percentage-min-width.html: [fit-content]
+- percentage-height-replaced-content-in-auto-cb.html: [width-height]
+- svg-intrinsic-size-*: [svg]

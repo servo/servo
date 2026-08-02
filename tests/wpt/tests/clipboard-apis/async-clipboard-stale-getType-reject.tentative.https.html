@@ -41,7 +41,7 @@ promise_test(async t => {
   await waitForUserActivation();
   await navigator.clipboard.write([newItem]);
 
-  // Step 4: getType() on the stale item should reject with DataError.
-  await promise_rejects_dom(t, 'DataError', staleItem.getType('text/plain'));
-}, 'getType() rejects with DataError on stale ClipboardItem after clipboard.write()');
+  // Step 4: getType() on the stale item should reject with InvalidStateError.
+  await promise_rejects_dom(t, 'InvalidStateError', staleItem.getType('text/plain'));
+}, 'getType() rejects with InvalidStateError on stale ClipboardItem after clipboard.write()');
 </script>

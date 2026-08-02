@@ -43,8 +43,8 @@ promise_test(async t => {
   await waitForUserActivation();
   await navigator.clipboard.write([newItem]);
 
-  // Step 5: getType() on the now-stale item should reject with DataError,
+  // Step 5: getType() on the now-stale item should reject with InvalidStateError,
   // even though the data was previously read and cached in step 3.
-  await promise_rejects_dom(t, 'DataError', item.getType('text/plain'));
-}, 'getType() rejects with DataError on cached ClipboardItem after clipboard.write()');
+  await promise_rejects_dom(t, 'InvalidStateError', item.getType('text/plain'));
+}, 'getType() rejects with InvalidStateError on cached ClipboardItem after clipboard.write()');
 </script>

@@ -1,3 +1,2 @@
-features:
-- name: stretch
-  files: "**"
+rules:
+- "**": [stretch]

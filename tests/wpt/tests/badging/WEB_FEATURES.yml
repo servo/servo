@@ -1,3 +1,2 @@
-features:
-- name: badging
-  files: "**"
+rules:
+- "**": [badging]

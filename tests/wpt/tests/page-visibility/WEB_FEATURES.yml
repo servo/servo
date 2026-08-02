@@ -1,8 +1,3 @@
-features:
-- name: page-visibility
-  files:
-  - "*"
-  - "!visibility-state-entry.tentative.html"
-- name: page-visibility-state
-  files:
-  - visibility-state-entry.tentative.html
+rules:
+- visibility-state-entry.tentative.html: [page-visibility-state]
+- "*": [page-visibility]

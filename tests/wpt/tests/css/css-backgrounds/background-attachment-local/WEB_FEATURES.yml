@@ -1,3 +1,2 @@
-features:
-- name: background-attachment
-  files: "**"
+rules:
+- "**": [background-attachment]

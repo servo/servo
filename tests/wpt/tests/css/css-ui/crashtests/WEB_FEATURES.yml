@@ -1,4 +1,2 @@
-features:
-- name: text-overflow
-  files:
-  - text-overflow-ellipsis-multiline-crash.html
+rules:
+- text-overflow-ellipsis-multiline-crash.html: [text-overflow]

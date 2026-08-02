@@ -1,4 +1,2 @@
-features:
-- name: mouse-events
-  files:
-  - dispatchEvent.click.checkbox.html
+rules:
+- dispatchEvent.click.checkbox.html: [mouse-events]

@@ -1,3 +1,2 @@
-features:
-- name: keyboard-lock
-  files: "**"
+rules:
+- "**": [keyboard-lock]

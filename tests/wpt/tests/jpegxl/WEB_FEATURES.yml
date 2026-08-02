@@ -1,3 +1,2 @@
-features:
-- name: jpegxl
-  files: "**"
+rules:
+- "**": [jpegxl]

@@ -1,99 +1,46 @@
-features:
-- name: abs-sign
-  files:
-  - signs-abs-*
-- name: attr
-  files:
-  - attr-*
-- name: cap
-  files:
-  - cap-*
-- name: rcap
-  files:
-  - rcap-*
-- name: exp-functions
-  files:
-  - exp-log-*
-  - hypot-pow-sqrt-*
-- name: ic
-  files:
-  - ic-*
-- name: ric
-  files:
-  - ric-*
-- name: if
-  files:
-  - if-*
-- name: lh
-  files:
-  - lh-*
-- name: rlh
-  files:
-  - rlh-*
-- name: ch
-  files:
-  - ch-*
-- name: rch
-  files:
-  - rch-*
-- name: ex
-  files:
-  - ex-*
-- name: rex
-  files:
-  - rex-*
-- name: round-mod-rem
-  files:
-  - round-function.html
-  - round-mod-rem-*
-  - rem-length-degrees-crash.html
-- name: trig-functions
-  files:
-  - acos-asin-atan-atan2-*
-  - sin-cos-tan-*
-- name: calc
-  files:
-  - calc-*
-  - "!calc-infinity-*"
-- name: calc-constants
-  files:
-  - calc-infinity-*
-- name: viewport-unit-variants
-  files:
-  - viewport-units-compute.html
-  - viewport-units-invalidation.html
-  - viewport-units-keyframes.html
-  - viewport-units-media-queries.html
-  - viewport-units-parsing.html
-  - viewport-units-writing-mode-font-size.html
-  - viewport-units-writing-mode.html
-- name: min-max-clamp
-  files:
-  - min-*
-  - minmax-*
-  - max-*
-  - attr-in-max.html
-  - calc-in-max.html
-  - clamp-*
-- name: viewport-units
-  files:
-  - vh-*
-  - viewport-units-*
-  # Tests for: vi, svi, lvi, dvi, vb, svb, lvb, dvb
-  - "!viewport-units-writing-mode-*"
-- name: border-radius
-  files:
-  - getComputedStyle-border-radius-*
-- name: q-unit
-  files:
-  - q-unit-*
-- name: rem
-  files:
-  - rem-unit-*
-  - rem-root-*
-- name: progress-function
-  files:
-  - progress-*
-- name: random-function
-  files:
-  - random-*
+rules:
+- signs-abs-*: [abs-sign]
+- attr-in-max.html: [min-max-clamp, attr]
+- attr-*: [attr]
+- cap-*: [cap]
+- rcap-*: [rcap]
+- exp-log-*: [exp-functions]
+- hypot-pow-sqrt-*: [exp-functions]
+- ic-*: [ic]
+- ric-*: [ric]
+- if-*: [if]
+- lh-*: [lh]
+- rlh-*: [rlh]
+- ch-*: [ch]
+- rch-*: [rch]
+- ex-*: [ex]
+- rex-*: [rex]
+- round-function.html: [round-mod-rem]
+- round-mod-rem-*: [round-mod-rem]
+- rem-length-degrees-crash.html: [round-mod-rem]
+- acos-asin-atan-atan2-*: [trig-functions]
+- sin-cos-tan-*: [trig-functions]
+- calc-infinity-*: [calc-constants]
+- calc-in-max.html: [min-max-clamp, calc]
+- calc-*: [calc]
+- viewport-units-compute.html: [viewport-unit-variants, viewport-units]
+- viewport-units-invalidation.html: [viewport-unit-variants, viewport-units]
+- viewport-units-keyframes.html: [viewport-unit-variants, viewport-units]
+- viewport-units-media-queries.html: [viewport-unit-variants, viewport-units]
+- viewport-units-parsing.html: [viewport-unit-variants, viewport-units]
+- viewport-units-writing-mode-font-size.html: [viewport-unit-variants]
+- viewport-units-writing-mode.html: [viewport-unit-variants, viewport-units]
+- min-*: [min-max-clamp]
+- minmax-*: [min-max-clamp]
+- max-*: [min-max-clamp]
+- clamp-*: [min-max-clamp]
+- vh-*: [viewport-units]
+# Tests for: vi, svi, lvi, dvi, vb, svb, lvb, dvb
+- viewport-units-writing-mode-*: []
+- viewport-units-*: [viewport-units]
+- getComputedStyle-border-radius-*: [border-radius]
+- q-unit-*: [q-unit]
+- rem-unit-*: [rem]
+- rem-root-*: [rem]
+- progress-*: [progress-function]
+- random-*: [random-function]

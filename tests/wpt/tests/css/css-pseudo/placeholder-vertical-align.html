@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::placeholder does not support 'vertical-align'</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#placeholder-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#propdef-vertical-align">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2057894">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="match" href="placeholder-vertical-align-ref.html">
+<meta name="assert" content="'vertical-align' and its longhands are defined in css-inline-3, so they don't apply to ::placeholder.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+input, textarea {
+  display: block;
+  font: 16px / 16px Ahem;
+  box-sizing: border-box;
+  border: 0;
+  padding: 0;
+  overflow: hidden;
+  resize: none;
+  width: 200px;
+  margin-bottom: 4px;
+}
+.tight { height: 16px; }
+.roomy { height: 48px; }
+::placeholder {
+  opacity: 1;
+  color: green;
+}
+.middle::placeholder { vertical-align: middle; }
+.super::placeholder { vertical-align: super; }
+.shifted::placeholder { vertical-align: 10px; }
+.last::placeholder { baseline-source: last; }
+</style>
+<textarea class="tight middle" placeholder="XX XX"></textarea>
+<textarea class="roomy middle" placeholder="XX XX"></textarea>
+<textarea class="roomy super" placeholder="XX XX"></textarea>
+<textarea class="roomy shifted" placeholder="XX XX"></textarea>
+<textarea class="roomy last" placeholder="XX XX"></textarea>
+<input class="tight middle" placeholder="XX XX">
+<input class="roomy middle" placeholder="XX XX">
+<input class="roomy super" placeholder="XX XX">
+<input class="roomy shifted" placeholder="XX XX">
+<input class="roomy last" placeholder="XX XX">

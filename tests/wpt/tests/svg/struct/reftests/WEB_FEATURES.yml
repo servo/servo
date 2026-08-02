@@ -1,10 +1,6 @@
-features:
-- name: target
-  files:
-  - "use-external-resource-target-pseudo-*"
-- name: svg
-  files:
-  - currentScale*
-  - gradient-in-symbol.svg
-  - inner-svg-*
-  - outer-svg-transform.svg
+rules:
+- use-external-resource-target-pseudo-*: [target]
+- currentScale*: [svg]
+- gradient-in-symbol.svg: [svg]
+- inner-svg-*: [svg]
+- outer-svg-transform.svg: [svg]

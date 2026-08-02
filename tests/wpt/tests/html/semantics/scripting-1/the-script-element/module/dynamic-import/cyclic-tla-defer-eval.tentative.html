@@ -5,11 +5,43 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <script>
+// https://github.com/tc39/proposal-defer-import-eval/issues/83
+//
+// import.defer(A) eagerly evaluates A's asynchronous transitive dependency B.
+// B's top-level `await import(A)` triggers A's evaluation, which in turn has
+// to wait for B (its deferred dependency, now evaluating-async) to finish.
+// Neither module can make progress, so per spec this deadlocks: no promise
+// ever settles and no error is reported.
 promise_test(async t => {
   delete window.__moduleBEvaluated;
   delete window.__moduleAEvaluated;
-  await promise_rejects_js(t, TypeError,
-      import.defer("./resources/cyclic-tla-dep-a.js"),
-      "import.defer() should reject when cyclic TLA dependency prevents deferred execution");
-}, "import.defer() rejects with TypeError on cyclic TLA dependency");
+
+  let state = "pending";
+  import.defer("./resources/cyclic-tla-dep-a.js").then(
+      () => { state = "fulfilled"; },
+      e => { state = `rejected with ${e.constructor.name}`; });
+
+  // Wait until module B has been fetched and starts evaluating (it sets the
+  // flag right before suspending at its top-level await), or until the
+  // promise incorrectly settles.
+  await t.step_wait(
+      () => window.__moduleBEvaluated || state !== "pending",
+      "module B should start evaluating");
+
+  // At this point B is suspended at `await import(A)` and A's evaluation is
+  // waiting for B, so only already-scheduled jobs could still settle the
+  // promise. Drain several macrotask turns (each of which also drains the
+  // microtask queue) to demonstrate that no progress is made.
+  for (let i = 0; i < 10; i++) {
+    await new Promise(resolve => t.step_timeout(resolve, 0));
+  }
+
+  assert_true(window.__moduleBEvaluated === true,
+      "module B should have started evaluating and suspended at its " +
+      "top-level await");
+  assert_equals(window.__moduleAEvaluated, undefined,
+      "module A's body should never run");
+  assert_equals(state, "pending",
+      "import.defer() should never settle on a cyclic TLA dependency");
+}, "import.defer() deadlocks on cyclic TLA dependency: the promise never settles");
 </script>

@@ -1,50 +1,20 @@
-features:
-- name: background
-  files:
-  - c537-bgfxps-000.xht
-- name: background-attachment
-  files:
-  - c535-bg-fixd-000.xht
-- name: background-image
-  files:
-  - c533-bgimage-*
-- name: background-position
-  files:
-  - c536-bgpos-*
-- name: background-repeat
-  files:
-  - c534-bgre-*
-  - c534-bgreps-*
-- name: list-style
-  files:
-  - c56*-list*
-- name: font-size
-  files:
-  - c526-font-sz-*
-- name: font-style
-  files:
-  - c523-font-style-000.xht
-- name: import
-  files:
-  - c11-import-000.xht
-- name: letter-spacing
-  files:
-  - c542-letter-sp-*
-- name: margin
-  files:
-  - "*-imrgn-*"
-  - "*-mrgn-*"
-- name: text-decoration
-  files:
-  - c543-txt-decor-000.xht
-- name: text-transform
-  files:
-  - c545-txttrans-000.xht
-- name: width-height
-  files:
-  - '*width*'
-  - '*height*'
-  - '*blockw*'
-- name: word-spacing
-  files:
-  - c541-word-sp*
+rules:
+- c537-bgfxps-000.xht: [background]
+- c535-bg-fixd-000.xht: [background-attachment]
+- c533-bgimage-*: [background-image]
+- c536-bgpos-*: [background-position]
+- c534-bgre-*: [background-repeat]
+- c534-bgreps-*: [background-repeat]
+- c56*-list*: [list-style]
+- c526-font-sz-*: [font-size]
+- c523-font-style-000.xht: [font-style]
+- c11-import-000.xht: [import]
+- c542-letter-sp-*: [letter-spacing]
+- "*-imrgn-*": [margin]
+- "*-mrgn-*": [margin]
+- c543-txt-decor-000.xht: [text-decoration]
+- c545-txttrans-000.xht: [text-transform]
+- "*width*": [width-height]
+- "*height*": [width-height]
+- "*blockw*": [width-height]
+- c541-word-sp*: [word-spacing]

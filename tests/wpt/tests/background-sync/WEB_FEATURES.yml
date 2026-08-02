@@ -1,3 +1,2 @@
-features:
-- name: background-sync
-  files: "**"
+rules:
+- "**": [background-sync]

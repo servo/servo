@@ -171,4 +171,56 @@ promise_test(async () => {
   assert_equals(selectedcontent.textContent, 'two',
     '<selectedcontent> should be updated when <select> is connected to the document.');
 }, '<seletedcontent> behavior in disconnected <select>.');
+
+function makeOptionSelectedSelect() {
+  const select = document.createElement('select');
+  select.innerHTML = `
+    <button><selectedcontent></selectedcontent></button>
+    <option class=one><span class=one>span</span> one</option>
+    <option class=two><span class=two>span</span> two</option>`;
+  document.body.appendChild(select);
+  return select;
+}
+
+test(() => {
+  const select = makeOptionSelectedSelect();
+  const optionTwo = select.querySelector('option.two');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, select.querySelector('option.one').innerHTML,
+    'The <selectedcontent> should initially reflect the selected <option>.');
+
+  optionTwo.selected = true;
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'Setting HTMLOptionElement.selected should synchronously update the <selectedcontent>.');
+}, 'Setting HTMLOptionElement.selected updates the <selectedcontent>.');
+
+test(() => {
+  const select = makeOptionSelectedSelect();
+  const optionTwo = select.querySelector('option.two');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  optionTwo.setAttribute('selected', '');
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'Setting the selected content attribute should synchronously update the <selectedcontent>.');
+}, 'Setting the option selected attribute updates the <selectedcontent>.');
+
+promise_test(async () => {
+  const select = makeOptionSelectedSelect();
+  const optionTwo = select.querySelector('option.two');
+  const selectedcontent = select.querySelector('selectedcontent');
+  let mutationCount = 0;
+  const observer = new MutationObserver(() => mutationCount++);
+  observer.observe(selectedcontent, {childList: true, subtree: true});
+
+  optionTwo.selected = true;
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'The <selectedcontent> should be updated synchronously.');
+
+  // Wait a task to ensure no redundant async update fires.
+  await new Promise(resolve => step_timeout(resolve, 0));
+  assert_equals(mutationCount, 1,
+    'Only one mutation batch should fire (the synchronous update), not a redundant async one.');
+  observer.disconnect();
+}, 'Setting HTMLOptionElement.selected does not cause a redundant async selectedcontent update.');
 </script>

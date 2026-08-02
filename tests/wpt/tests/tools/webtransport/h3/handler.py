@@ -74,3 +74,13 @@ def stream_reset(session: WebTransportSession,
     :param error_code: The reason of the reset.
     """
     pass
+
+
+# Additional methods available on WebTransportSession:
+#
+# session.initiate_draining() -> None:
+#     """
+#     Initiate graceful session draining by sending a WT_DRAIN_SESSION capsule.
+#     After calling this, the session remains usable and new streams can still be opened,
+#     but the client is notified that the session will be closed soon.
+#     """

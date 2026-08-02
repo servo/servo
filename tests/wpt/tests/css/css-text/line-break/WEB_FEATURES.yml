@@ -1,3 +1,2 @@
-features:
-- name: line-break
-  files: "**"
+rules:
+- "**": [line-break]

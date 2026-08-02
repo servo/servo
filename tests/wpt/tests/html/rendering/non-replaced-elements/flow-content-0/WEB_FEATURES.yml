@@ -1,10 +1,4 @@
-features:
-- name: figure
-  files:
-  - figure.html
-- name: search
-  files:
-  - search-*
-- name: slot
-  files:
-  - slot-element-default-display.html
+rules:
+- figure.html: [figure]
+- search-*: [search]
+- slot-element-default-display.html: [slot]

@@ -1,23 +1,13 @@
-features:
-- name: lang-attr
-  files:
-  - lang-attribute*
-  - lang-xmllang-01.html
-  - lang-xyzzy.html
-  - the-lang-attribute-*
-- name: style-attr
-  files:
-  - style-01.html
-- name: translate
-  files:
-  - the-translate-attribute-*
-  - translate-enumerated-ascii-case-insensitive.html
-  - translate-inherit-no-parent-element.html
-- name: title-attr
-  files:
-  - title-manual.html
-- name: dataset
-  files:
-  - dataset-*
-  - custom-attrs.html
-  - data_unicode_attr.html
+rules:
+- lang-attribute*: [lang-attr]
+- lang-xmllang-01.html: [lang-attr]
+- lang-xyzzy.html: [lang-attr]
+- the-lang-attribute-*: [lang-attr]
+- style-01.html: [style-attr]
+- the-translate-attribute-*: [translate]
+- translate-enumerated-ascii-case-insensitive.html: [translate]
+- translate-inherit-no-parent-element.html: [translate]
+- title-manual.html: [title-attr]
+- dataset-*: [dataset]
+- custom-attrs.html: [dataset]
+- data_unicode_attr.html: [dataset]

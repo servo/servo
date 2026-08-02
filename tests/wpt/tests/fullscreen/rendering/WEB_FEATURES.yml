@@ -1,4 +1,2 @@
-features:
-- name: backdrop
-  files:
-  - backdrop-*
+rules:
+- backdrop-*: [backdrop]

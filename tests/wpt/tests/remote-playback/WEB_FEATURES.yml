@@ -1,3 +1,2 @@
-features:
-- name: remote-playback
-  files: "**"
+rules:
+- "**": [remote-playback]

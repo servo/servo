@@ -1,3 +1,2 @@
-features:
-- name: column-breaks
-  files: "**"
+rules:
+- "**": [column-breaks]

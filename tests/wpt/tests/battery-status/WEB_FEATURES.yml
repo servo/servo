@@ -1,3 +1,2 @@
-features:
-- name: battery
-  files: "**"
+rules:
+- "**": [battery]

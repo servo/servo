@@ -1,3 +1,2 @@
-features:
-- name: canvas-2d-color-management
-  files: "**"
+rules:
+- "**": [canvas-2d-color-management]

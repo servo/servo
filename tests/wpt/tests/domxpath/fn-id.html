@@ -32,8 +32,11 @@ testIdFunction('id("nonexistent")', '<root><div id="test1">No match</div></root>
 // Test mixed case IDs (should be case-sensitive)
 testIdFunction('id("Test1")', '<root><div id="test1">No match</div></root>', []);
 
-// Test multiple elements with same ID (should return all)
-testIdFunction('id("duplicate")', '<root><div id="duplicate">First</div><div id="duplicate">Second</div></root>', ['duplicate', 'duplicate']);
+// Test multiple elements with same ID (per
+// https://www.w3.org/TR/1999/REC-xpath-19991116/#unique-id, if two elements
+// have the same unique ID, the second one must be treated as not having a
+// unique ID)
+testIdFunction('id("duplicate")', '<root><div id="duplicate">First</div><div id="duplicate">Second</div></root>', ['duplicate']);
 
 // Test IDs with special characters
 testIdFunction('id("test-1")', '<root><div id="test-1">Match</div></root>', ['test-1']);

@@ -1,3 +1,2 @@
-features:
-- name: postmessage
-  files: "**"
+rules:
+- "**": [postmessage]

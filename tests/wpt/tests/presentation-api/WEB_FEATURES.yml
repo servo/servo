@@ -1,3 +1,2 @@
-features:
-- name: presentation-api
-  files: "**"
+rules:
+- "**": [presentation-api]

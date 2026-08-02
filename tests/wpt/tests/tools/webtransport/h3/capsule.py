@@ -17,6 +17,9 @@ class CapsuleType(IntEnum):
     # Defined in
     # https://www.ietf.org/archive/id/draft-ietf-webtrans-http3-01.html.
     CLOSE_WEBTRANSPORT_SESSION = 0x2843
+    # Defined in
+    # https://datatracker.ietf.org/doc/html/draft-ietf-webtrans-http3-14#section-4.7
+    WT_DRAIN_SESSION = 0x78ae
 
 
 class H3Capsule:

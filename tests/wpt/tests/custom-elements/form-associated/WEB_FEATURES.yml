@@ -1,3 +1,2 @@
-features:
-- name: form-associated-custom-elements
-  files: "**"
+rules:
+- "**": [form-associated-custom-elements]

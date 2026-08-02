@@ -1,4 +1,2 @@
-features:
-- name: touch-action
-  files:
-  - "*touch-action*"
+rules:
+- "*touch-action*": [touch-action]

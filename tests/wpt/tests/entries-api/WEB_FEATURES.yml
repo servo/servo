@@ -1,4 +1,2 @@
-features:
-- name: input-file-webkitdirectory
-  files:
-  - file-webkitRelativePath-manual.html
+rules:
+- file-webkitRelativePath-manual.html: [input-file-webkitdirectory]

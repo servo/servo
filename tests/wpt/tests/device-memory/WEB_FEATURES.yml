@@ -1,3 +1,2 @@
-features:
-- name: device-memory
-  files: "**"
+rules:
+- "**": [device-memory]

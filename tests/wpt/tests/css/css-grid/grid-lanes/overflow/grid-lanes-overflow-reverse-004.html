@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: grid-lanes scrolling with track-reverse and mixed overflow values per axis</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <link rel="match" href="grid-lanes-overflow-reverse-004-ref.html">
+  <style>
+  .grid-lanes {
+    display: inline grid-lanes;
+    vertical-align: top;
+    flow-tolerance: 0;
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+    margin: 0 20px 20px 0;
+    font-family: monospace;
+  }
+  .a { background: coral; }
+  .b { background: steelblue; }
+  .c { background: seagreen; }
+  .d { background: goldenrod; }
+  .e { background: mediumpurple; }
+  .f { background: tomato; }
+  .row > div { width: 60px; height: 30px; }
+  .col > div { width: 30px; height: 60px; }
+  </style>
+</head>
+<body>
+
+<div id="row-grid-scroll" class="grid-lanes row"
+     style="overflow-y: auto; overflow-x: clip; grid-template-rows: 40px 40px 40px; grid-lanes-direction: row track-reverse;">
+  <div class="a">A</div><div class="b">B</div><div class="c">C</div>
+  <div class="d">D</div><div class="e">E</div><div class="f">F</div>
+</div>
+
+<div id="row-grid-clip" class="grid-lanes row"
+     style="overflow-y: clip; overflow-x: auto; grid-template-rows: 40px 40px 40px; grid-lanes-direction: row track-reverse;">
+  <div class="a">A</div><div class="b">B</div><div class="c">C</div>
+  <div class="d">D</div><div class="e">E</div><div class="f">F</div>
+</div>
+
+<div id="col-grid-scroll" class="grid-lanes col"
+     style="overflow-x: auto; overflow-y: clip; grid-template-columns: 40px 40px 40px; grid-lanes-direction: column track-reverse;">
+  <div class="a">A</div><div class="b">B</div><div class="c">C</div>
+  <div class="d">D</div><div class="e">E</div><div class="f">F</div>
+</div>
+
+<div id="col-grid-clip" class="grid-lanes col"
+     style="overflow-x: clip; overflow-y: auto; grid-template-columns: 40px 40px 40px; grid-lanes-direction: column track-reverse;">
+  <div class="a">A</div><div class="b">B</div><div class="c">C</div>
+  <div class="d">D</div><div class="e">E</div><div class="f">F</div>
+</div>
+
+</body>
+</html>

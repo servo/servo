@@ -1,25 +1,9 @@
-features:
-- name: autonomous-custom-elements
-  files:
-  - "*"
-  # Exclude newer and more specific features. Keep in sync with below lists.
-  - "!builtin-coverage.html"
-  - "!customized-built-in-constructor-exceptions.html"
-  - "!Document-createElement-customized-builtins.html"
-  - "!Document-createElementNS-customized-builtins.html"
-  - "!HTMLElement-constructor-customized-builtins.html"
-  - "!pseudo-class-defined-customized-builtins.html"
-  - "!CustomElementRegistry*"
-- name: customized-built-in-elements
-  files:
-  # Keep in sync with main list.
-  - builtin-coverage.html
-  - customized-built-in-constructor-exceptions.html
-  - Document-createElement-customized-builtins.html
-  - Document-createElementNS-customized-builtins.html
-  - HTMLElement-constructor-customized-builtins.html
-  - pseudo-class-defined-customized-builtins.html
-- name: scoped-custom-element-registries
-  files:
-  # Keep in sync with main list.
-  - "CustomElementRegistry*"
+rules:
+- builtin-coverage.html: [customized-built-in-elements]
+- customized-built-in-constructor-exceptions.html: [customized-built-in-elements]
+- Document-createElement-customized-builtins.html: [customized-built-in-elements]
+- Document-createElementNS-customized-builtins.html: [customized-built-in-elements]
+- HTMLElement-constructor-customized-builtins.html: [customized-built-in-elements]
+- pseudo-class-defined-customized-builtins.html: [customized-built-in-elements]
+- CustomElementRegistry*: [scoped-custom-element-registries]
+- "*": [autonomous-custom-elements]

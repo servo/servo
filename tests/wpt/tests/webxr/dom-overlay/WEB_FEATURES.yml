@@ -1,3 +1,2 @@
-features:
-- name: webxr-dom-overlays
-  files: '**'
+rules:
+- "**": [webxr-dom-overlays]

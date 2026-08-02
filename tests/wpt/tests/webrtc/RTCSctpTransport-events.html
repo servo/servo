@@ -45,10 +45,12 @@ promise_test(async t => {
   await pc1.setRemoteDescription(answer);
   await pc1ConnectedWaiter;
   await pc2ConnectedWaiter;
-  const pc1ClosedWaiter = waitForState(pc1.sctp, 'closed');
   const pc2ClosedWaiter = waitForState(pc2.sctp, 'closed');
   pc1.close();
-  await pc1ClosedWaiter;
+  // We do not expect to see a statechange event on pc1, since we closed it.
+  // See https://github.com/w3c/webrtc-pc/issues/3126
+  // The spec might change on this, but until that is decided we should not put
+  // an expectation like this in an Interop 2026 test.
   await pc2ClosedWaiter;
 }, 'SctpTransport reaches connected and closed state');
 

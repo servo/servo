@@ -23,7 +23,11 @@
     compression_dictionary_promise_test(async t => {
       // Load the non-compressed style to register it as a dictionary for itself.
       await fetchStaticResourceWithUseAsDictionaryHeader(config.subframe_dictionary, config.subframe_compressed, "iframe");
-      await registerAltDictionaryAndWait(t);
+
+      // Wait for another dictionary to register to give a chance for the
+      // previous registration to complete. See comment in the 001 file about
+      // why we can't use waitUntilPreviousRequestHeaders, checkHeaders or checkHeader.
+      await registerAltDictionaryAndWait(t, `alt_${token()}`);
 
       // Append the compressed subframe.
       const iframe = document.createElement("iframe");

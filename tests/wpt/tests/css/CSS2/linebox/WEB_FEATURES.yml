@@ -1,9 +1,5 @@
-features:
-- name: line-height
-  files:
-  - fractional-line-height.html
-  - line-box-height-*
-  - line-height-*
-- name: vertical-align
-  files:
-  - vertical-align-*
+rules:
+- fractional-line-height.html: [line-height]
+- line-box-height-*: [line-height]
+- line-height-*: [line-height]
+- vertical-align-*: [vertical-align]

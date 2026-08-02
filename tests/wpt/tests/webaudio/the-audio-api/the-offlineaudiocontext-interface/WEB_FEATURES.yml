@@ -1,3 +1,2 @@
-features:
-- name: offline-audio-context
-  files: "**"
+rules:
+- "**": [offline-audio-context]

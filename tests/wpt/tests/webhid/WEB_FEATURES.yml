@@ -1,3 +1,2 @@
-features:
-- name: webhid
-  files: "**"
+rules:
+- "**": [webhid]

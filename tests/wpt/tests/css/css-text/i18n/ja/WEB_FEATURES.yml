@@ -1,4 +1,2 @@
-features:
-- name: line-break
-  files:
-  - css-text-line-break-*
+rules:
+- css-text-line-break-*: [line-break]

@@ -1,18 +1,7 @@
-features:
-- name: autonomous-custom-elements
-  files:
-  - define.html
-  - per-document.html
-  - upgrade.html
-  - valid-custom-element-names.html
-- name: customized-built-in-elements
-  files:
-  - define-customized-builtins.html
-- name: scoped-custom-element-registries
-  files:
-  - "*"
-  - "!define-customized-builtins.html"
-  - "!define.html"
-  - "!per-document.html"
-  - "!upgrade.html"
-  - "!valid-custom-element-names.html"
+rules:
+- define.html: [autonomous-custom-elements]
+- per-document.html: [autonomous-custom-elements]
+- upgrade.html: [autonomous-custom-elements]
+- valid-custom-element-names.html: [autonomous-custom-elements]
+- define-customized-builtins.html: [customized-built-in-elements]
+- "*": [scoped-custom-element-registries]

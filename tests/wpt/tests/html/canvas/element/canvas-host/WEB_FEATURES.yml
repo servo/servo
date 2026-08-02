@@ -1,3 +1,2 @@
-features:
-- name: canvas
-  files: "**"
+rules:
+- "**": [canvas]

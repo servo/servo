@@ -1,3 +1,2 @@
-features:
-- name: scroll-driven-animations
-  files: "**"
+rules:
+- "**": [scroll-driven-animations]

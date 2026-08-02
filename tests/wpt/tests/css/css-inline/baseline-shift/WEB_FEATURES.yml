@@ -1,3 +1,2 @@
-features:
-- name: baseline-shift
-  files: "**"
+rules:
+- "**": [baseline-shift]

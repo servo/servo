@@ -1,22 +1,9 @@
-features:
-- name: individual-transforms
-  files:
-  - rotate-animation-on-svg.html
-  - rotate-animation-with-will-change-transform-001.html
-  - scale-and-rotate-both-specified-on-animation-keyframes.html
-  - scale-animation-on-svg.html
-  - translate-animation-on-svg.html
-- name: transforms3d
-  files:
-  - backface-visibility-*
-  - perspective-*
-- name: transforms2d
-  files:
-  - "*"
-  - "!rotate-animation-on-svg.html"
-  - "!rotate-animation-with-will-change-transform-001.html"
-  - "!scale-and-rotate-both-specified-on-animation-keyframes.html"
-  - "!scale-animation-on-svg.html"
-  - "!translate-animation-on-svg.html"
-  - "!backface-visibility-*"
-  - "!perspective-*"
+rules:
+- rotate-animation-on-svg.html: [individual-transforms]
+- rotate-animation-with-will-change-transform-001.html: [individual-transforms]
+- scale-and-rotate-both-specified-on-animation-keyframes.html: [individual-transforms]
+- scale-animation-on-svg.html: [individual-transforms]
+- translate-animation-on-svg.html: [individual-transforms]
+- backface-visibility-*: [transforms3d]
+- perspective-*: [transforms3d]
+- "*": [transforms2d]

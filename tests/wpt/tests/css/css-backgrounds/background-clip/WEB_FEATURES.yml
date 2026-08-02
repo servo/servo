@@ -1,13 +1,7 @@
-features:
-- name: background-clip
-  files:
-  - clip-border-box*
-  - clip-content-box*
-  - clip-padding-box*
-  - clip-rounded-corner.html
-- name: background-clip-text
-  files:
-  - clip-text-*
-- name: background-clip-border-area
-  files:
-  - clip-border-area*
+rules:
+- clip-border-box*: [background-clip]
+- clip-content-box*: [background-clip]
+- clip-padding-box*: [background-clip]
+- clip-rounded-corner.html: [background-clip]
+- clip-text-*: [background-clip-text]
+- clip-border-area*: [background-clip-border-area]

@@ -1,0 +1,69 @@
+// META: global=window,worker
+// META: script=../../resources/testhelper.js
+// META: title=Adding Two Numeric Types
+// META: spec=https://drafts.css-houdini.org/css-typed-om-1/#add-two-types
+
+'use strict';
+
+const gAddTypesMathValueSubclasses = [
+  { subclass: CSSMathSum },
+  { subclass: CSSMathMin },
+  { subclass: CSSMathMax },
+  { subclass: CSSMathClamp, clamp: true },
+];
+
+for (const { subclass, clamp } of gAddTypesMathValueSubclasses) {
+  // CSSMathClamp takes (min, val, max); the other subclasses take a
+  // variadic list. For the type-addition tests we only need two distinct
+  // input types, so pass b twice for clamp to fill the third slot.
+  const construct = clamp
+    ? (a, b) => new subclass(a, b, b)
+    : (a, b) => new subclass(a, b);
+
+  test(() => {
+    const a = new CSSUnitValue(0, 'number');
+    const b = new CSSUnitValue(0, 'px');
+    assert_throws_js(TypeError, () => construct(a, b));
+  }, 'Adding two non-addable types in the ' + subclass.name + ' constructor throws TypeError');
+
+  test(() => {
+    const a = new CSSUnitValue(0, 'px');
+    const b = new CSSUnitValue(0, 'px');
+    const result = construct(a, b);
+    assert_numeric_type_equals(result.type(), { length: 1 });
+  }, 'Adding two types with the same base type in the ' + subclass.name + ' constructor returns the same type');
+
+  test(() => {
+    const a = new CSSUnitValue(0, 'number');
+    const b = new CSSUnitValue(0, 'number');
+    const result = construct(a, b);
+    assert_numeric_type_equals(result.type(), {});
+  }, 'Adding two types with empty maps in the ' + subclass.name + ' constructor returns an empty map');
+
+  test(() => {
+    const a = new CSSUnitValue(0, 'px');
+    const b = new CSSUnitValue(0, 'percent');
+    const result = construct(a, b);
+    assert_numeric_type_equals(result.type(), { length: 1, percentHint: 'length' });
+  }, 'Adding a type containing percent in the ' + subclass.name + ' constructor returns a type with a percent hint');
+
+  test(() => {
+    const a = new CSSMathProduct(new CSSUnitValue(0, 'px'), new CSSUnitValue(0, 'px'));
+    const b = new CSSUnitValue(0, 'percent');
+    assert_throws_js(TypeError, () => construct(a, b));
+  }, 'Adding a squared length type and a percent type in the ' + subclass.name + ' constructor throws TypeError');
+
+  test(() => {
+    const a = new CSSMathSum(new CSSUnitValue(0, 'px'), new CSSUnitValue(0, 'percent'));
+    const b = new CSSUnitValue(0, 'px');
+    const result = construct(a, b);
+    assert_numeric_type_equals(result.type(), { length: 1, percentHint: 'length' });
+  }, 'Adding a type with a percent hint in the ' + subclass.name + ' constructor returns a type with the same percent hint');
+
+  test(() => {
+    const a = new CSSMathSum(new CSSUnitValue(0, 'px'), new CSSUnitValue(0, 'percent'));
+    const b = new CSSMathSum(new CSSUnitValue(0, 'px'), new CSSUnitValue(0, 'percent'));
+    const result = construct(a, b);
+    assert_numeric_type_equals(result.type(), { length: 1, percentHint: 'length' });
+  }, 'Adding two types with the same percent hint in the ' + subclass.name + ' constructor returns a type with that percent hint');
+}

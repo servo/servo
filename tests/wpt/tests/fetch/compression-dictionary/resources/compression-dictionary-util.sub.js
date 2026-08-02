@@ -148,14 +148,23 @@ function compression_dictionary_promise_test(func, name, properties) {
 }
 
 // Registers an alternative dictionary and waits for its registration to
-// complete. This is used in tests to confirm that another dictionary's
-// registration process has fully finished.
-async function registerAltDictionaryAndWait(t) {
+// complete. This is used to wait for another dictionary's registration process.
+// If that registration process is expected to succeed, please consider using
+// waitUntilPreviousRequestHeaders (if the dictionary is register-dictionary
+// with some save_header) or checkHeaders/checkHeader (if match includes
+// echo-headers) to obtain more reliable wait time.
+// To ensure registerAltDictionaryAndWait() does not resolve immediately due
+// to a previous call, pass a different dictionary_id for each call.
+async function registerAltDictionaryAndWait(t, dictionary_id) {
+  assert_true(typeof dictionary_id === 'string' && dictionary_id.length > 0,
+              'registerAltDictionaryAndWait requires a valid dictionary_id');
   const pattern = encodeURIComponent("/fetch/compression-dictionary/resources/echo-headers2.py");
-  await fetch(`${kRegisterDictionaryPath}?id=id2&match=${pattern}`);
-  assert_equals(
-      await waitUntilAvailableDictionaryHeader(t, {use_alt_path: true}),
-      kDefaultDictionaryHashBase64);
+  await fetch(
+      `${kRegisterDictionaryPath}?id=${dictionary_id}&match=${pattern}`);
+  const result = await waitUntilHeader(
+      t, 'dictionary-id',
+      {expected_header: `"${dictionary_id}"`, use_alt_path: true});
+  assert_equals(result, `"${dictionary_id}"`);
 }
 
 function navigateToTestWithCompressionDictionaryEarlyHints(test_url, dictionary_url) {

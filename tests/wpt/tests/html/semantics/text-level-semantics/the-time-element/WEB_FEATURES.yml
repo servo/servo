@@ -1,3 +1,2 @@
-features:
-- name: time
-  files: "**"
+rules:
+- "**": [time]

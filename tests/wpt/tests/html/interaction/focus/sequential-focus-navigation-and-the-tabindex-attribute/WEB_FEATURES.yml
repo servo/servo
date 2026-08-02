@@ -1,3 +1,2 @@
-features:
-- name: tabindex
-  files: "**"
+rules:
+- "**": [tabindex]

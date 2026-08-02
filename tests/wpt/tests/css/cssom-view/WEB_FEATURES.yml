@@ -1,51 +1,30 @@
-features:
-- name: check-visibility
-  files:
-  - checkVisibility.html
-- name: element-from-point
-  files:
-  - elementFromPoint*
-  - elementsFromPoint*
-  - negativeMargins.html
-- name: getboxquads
-  files:
-  - cssom-getBoxQuads-*
-- name: matchmedia
-  files:
-  - matchMedia*
-  - MediaQueryList*
-- name: mouse-events
-  files:
-  - mouseEvent-offsetXY-svg.html
-  - mouseEvent.html
-- name: screen
-  files:
-  - Screen-pixelDepth-Screen-colorDepth001.html
-  - cssom-view-window-screen-interface.html
-  - window-screen*
-- name: scroll-elements
-  files:
-  - dom-element-scroll*
-  - elementScroll*
-  - scroll-no-layout-box.html
-  - scroll-offsets-fractional-zoom.html
-  - scroll-zoom.html
-  - scrollLeftTop.html
-  - scrollLeft-of-scroller-with-wider-scrollbar.html
-  - scrollTop-display-change.html
-  - scrollWidthHeight*
-  - scrolling-no-browsing-context.html
-  - scrolling-quirks-vs-nonquirks.html
-  - table-scroll-props.html
-  - window-scrollBy-display-change.html
-- name: scroll-into-view
-  files:
-  - scrollIntoView-*
-  - scrollintoview.html
-  - "!scrollIntoView-container.html"
-- name: scroll-into-view-container
-  files:
-  - scrollIntoView-container.html
-- name: scroll-behavior
-  files:
-  - scroll-behavior-*
+rules:
+- checkVisibility.html: [check-visibility]
+- elementFromPoint*: [element-from-point]
+- elementsFromPoint*: [element-from-point]
+- negativeMargins.html: [element-from-point]
+- cssom-getBoxQuads-*: [getboxquads]
+- matchMedia*: [matchmedia]
+- MediaQueryList*: [matchmedia]
+- mouseEvent-offsetXY-svg.html: [mouse-events]
+- mouseEvent.html: [mouse-events]
+- Screen-pixelDepth-Screen-colorDepth001.html: [screen]
+- cssom-view-window-screen-interface.html: [screen]
+- window-screen*: [screen]
+- dom-element-scroll*: [scroll-elements]
+- elementScroll*: [scroll-elements]
+- scroll-no-layout-box.html: [scroll-elements]
+- scroll-offsets-fractional-zoom.html: [scroll-elements]
+- scroll-zoom.html: [scroll-elements]
+- scrollLeftTop.html: [scroll-elements]
+- scrollLeft-of-scroller-with-wider-scrollbar.html: [scroll-elements]
+- scrollTop-display-change.html: [scroll-elements]
+- scrollWidthHeight*: [scroll-elements]
+- scrolling-no-browsing-context.html: [scroll-elements]
+- scrolling-quirks-vs-nonquirks.html: [scroll-elements]
+- table-scroll-props.html: [scroll-elements]
+- window-scrollBy-display-change.html: [scroll-elements]
+- scrollIntoView-container.html: [scroll-into-view-container]
+- scrollIntoView-*: [scroll-into-view]
+- scrollintoview.html: [scroll-into-view]
+- scroll-behavior-*: [scroll-behavior]

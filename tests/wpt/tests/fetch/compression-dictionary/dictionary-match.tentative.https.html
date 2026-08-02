@@ -17,7 +17,7 @@ compression_dictionary_promise_test(async (t) => {
       '/fetch/compression-dictionary/resources/echo-headers.py');
   await fetch(
       `${kRegisterDictionaryPath}?id=id1&match-dest=${match_dest}&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with unknown match-dest is not used for fetch() API');
@@ -46,7 +46,7 @@ compression_dictionary_promise_test(async (t) => {
       '/fetch/compression-dictionary/resources/echo-headers.py');
   await fetch(
       `${kRegisterDictionaryPath}?id=id1&match-dest=${match_dest}&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with non-matching match-dest is not used');

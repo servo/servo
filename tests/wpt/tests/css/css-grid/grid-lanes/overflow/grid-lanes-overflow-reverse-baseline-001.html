@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: column track-reverse overflow composes with baseline alignment</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <link rel="match" href="grid-lanes-overflow-reverse-baseline-001-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <style>
+  .grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+    border: 1px solid black;
+    margin-bottom: 10px;
+    grid-template-columns: 40px 40px 40px;
+    grid-lanes-direction: column track-reverse;
+    font: 16px/1 Ahem;
+  }
+  .first { justify-items: first baseline; }
+  .last  { justify-items: last baseline; }
+  .grid-lanes > div { height: 30px; text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="grid-lanes first">
+  <div style="grid-column: 1; width: 22px; font-size: 24px; background: coral;">A</div>
+  <div style="grid-column: 1; width: 30px; font-size: 12px; background: goldenrod;">D</div>
+  <div style="grid-column: 2; width: 34px; font-size: 20px; background: steelblue;">B</div>
+  <div style="grid-column: 2; width: 24px; font-size: 14px; background: seagreen;">E</div>
+  <div style="grid-column: 3; width: 20px; font-size: 26px; background: slateblue;">C</div>
+  <div style="grid-column: 3; width: 32px; font-size: 12px; background: tomato;">F</div>
+</div>
+
+<div class="grid-lanes last">
+  <div style="grid-column: 1; width: 22px; font-size: 24px; background: coral;">A</div>
+  <div style="grid-column: 1; width: 30px; font-size: 12px; background: goldenrod;">D</div>
+  <div style="grid-column: 2; width: 34px; font-size: 20px; background: steelblue;">B</div>
+  <div style="grid-column: 2; width: 24px; font-size: 14px; background: seagreen;">E</div>
+  <div style="grid-column: 3; width: 20px; font-size: 26px; background: slateblue;">C</div>
+  <div style="grid-column: 3; width: 32px; font-size: 12px; background: tomato;">F</div>
+</div>
+
+</body>
+</html>

@@ -1,3 +1,2 @@
-features:
-- name: wbr
-  files: '**'
+rules:
+- "**": [wbr]

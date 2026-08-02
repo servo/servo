@@ -1,16 +1,10 @@
-features:
-- name: user-action-pseudos
-  files:
-  - active-selector-*
-  - hover-selector-*
-  - dom-hover-*
-  - focus-pseudo-class-*
-  - focus-selector-*
-- name: lang
-  files:
-  - lang-selector-*
-  - lang-pseudoclass-*
-- name: link-selectors
-  files:
-  - "link-visited-selector*"
-  - pseudo-009.xht
+rules:
+- active-selector-*: [user-action-pseudos]
+- hover-selector-*: [user-action-pseudos]
+- dom-hover-*: [user-action-pseudos]
+- focus-pseudo-class-*: [user-action-pseudos]
+- focus-selector-*: [user-action-pseudos]
+- lang-selector-*: [lang]
+- lang-pseudoclass-*: [lang]
+- link-visited-selector*: [link-selectors]
+- pseudo-009.xht: [link-selectors]

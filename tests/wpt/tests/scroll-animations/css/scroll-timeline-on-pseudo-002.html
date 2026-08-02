@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that scroll timeline defined by a pseudo-element can be found</title>
+<link rel="match" href="../../css/reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2058585">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-name">
+<link rel="author" name="David Shin" href="mailto:dshin@mozilla.com">
+<style>
+.container {
+  timeline-scope: --foo;
+}
+
+.red {
+  width: 100px;
+  height: 100px;
+  background: red;
+}
+
+@keyframes anim {
+  from { width: 100px; }
+  to { width: 200px; }
+}
+
+#target {
+  width: 0px;
+  height: 100px;
+  background: green;
+  animation: anim auto linear;
+  animation-timeline: --foo;
+}
+
+.st {
+  opacity: 0;
+  width: fit-content;
+  border: 1px solid;
+}
+
+.st::after {
+  display: block;
+  width: 100px;
+  height: 100px;
+  overflow: hidden;
+  content: "a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a a";
+  scroll-timeline: --foo;
+}
+
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class=container>
+  <div class=red>
+    <div id=target></div>
+  </div>
+  <div class=st><div class=content></div></div>
+</div>

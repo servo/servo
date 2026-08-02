@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>
+  Media elements pause when their iframe is hidden
+  (media-playback-while-not-visible permission policy)
+</title>
+<link rel="help" href="https://wicg.github.io/iframe-media-pausing/">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=display&media=video">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=display&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=visibility&media=video">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=same-origin&frame=direct&visibility=zero-size&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=display&media=video">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=display&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=visibility&media=video">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=same-origin&frame=nested&visibility=zero-size&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=display&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=display&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=visibility&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=direct&visibility=zero-size&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=display&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=display&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=visibility&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=visibility&media=audio">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=zero-size&media=video">
+<meta name="variant" content="?origin=cross-origin&frame=nested&visibility=zero-size&media=audio">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/media-playback-while-not-visible-utils.js"></script>
+<body>
+<script>
+const SAME_ORIGIN_BASE = new URL('resources/', location.href).href;
+const CROSS_ORIGIN_BASE =
+    'http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/' +
+    'media-elements/media-playback-while-not-visible-permission-policy/resources/';
+
+const params = new URLSearchParams(location.search);
+const origin = params.get('origin');
+const frame = params.get('frame');
+const visibility = params.get('visibility');
+const media = params.get('media');
+const base = origin === 'cross-origin' ? CROSS_ORIGIN_BASE : SAME_ORIGIN_BASE;
+
+// Scenario: a playing media element in a hidden iframe should pause when the
+// iframe is hidden, shouldn't be allowed to play again while hidden, and
+// should be allowed to play again once the iframe is shown.
+promise_test(
+    async t => {
+      const iframe = await createMediaIframeAndPause(t, frame, base, media);
+
+      // Play the media while visible.
+      assert_equals(await playMediaInIframe(iframe), 'Success');
+
+      // Hiding the iframe should pause the embedded media element playback.
+      let stateChangePromise = expectMediaPlayerStateChangeInIframe(t);
+      hideFrame(iframe, visibility);
+      assert_equals(await stateChangePromise, 'Pause');
+
+      // Attempting to play while hidden should fail.
+      assert_equals(await playMediaInIframe(iframe), 'NotAllowedError');
+      assert_equals(await queryPlayerStatus(iframe), 'Paused');
+
+      // When the iframe is shown again, playing should be allowed. Visibility
+      // propagation to a cross-origin frame may take some time, so retry the
+      // play call until it succeeds. The 'Play' statechange wait is given a
+      // strictly larger timeout than the play-retry poll so it cannot expire
+      // before the retry does.
+      const playRetryTimeout = 2000;
+      stateChangePromise =
+          expectMediaPlayerStateChangeInIframe(t, playRetryTimeout + 1000);
+      showFrame(iframe, visibility);
+      await t.step_wait(
+          async () => await playMediaInIframe(iframe) === 'Success',
+          'waiting for play to succeed', playRetryTimeout);
+      assert_equals(await stateChangePromise, 'Play');
+    },
+    `${origin} ${frame}: ${media} elements in hidden iframes should ` +
+        `pause (visibility=${visibility})`);
+</script>
+</body>

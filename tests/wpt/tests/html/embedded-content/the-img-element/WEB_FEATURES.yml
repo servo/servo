@@ -1,4 +1,2 @@
-features:
-- name: fetch-priority
-  files:
-  - attr-img-fetchpriority.html
+rules:
+- attr-img-fetchpriority.html: [fetch-priority]

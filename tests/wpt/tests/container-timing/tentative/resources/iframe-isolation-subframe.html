@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<body style="margin:0">
+<script>
+  // Reports this frame's own container-timing entries to the embedder, so that
+  // the isolation tests can prove a container paint really happened here rather
+  // than proving nothing from parent silence.
+  const observer = new PerformanceObserver(function(entryList) {
+    const entries = entryList.getEntries();
+    parent.postMessage({
+      kind: 'child-entries',
+      count: entries.length,
+      identifier: entries.length > 0 ? entries[0].identifier : null
+    }, '*');
+  });
+  observer.observe({entryTypes: ['container']});
+
+  const div = document.createElement('div');
+  div.setAttribute('containertiming', 'child_ct');
+  const img = document.createElement('img');
+  img.src = '/container-timing/resources/square100.png';
+  div.appendChild(img);
+  document.body.appendChild(div);
+</script>
+</body>

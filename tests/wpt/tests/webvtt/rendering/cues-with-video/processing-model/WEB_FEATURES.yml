@@ -1,3 +1,2 @@
-features:
-- name: webvtt
-  files: "**"
+rules:
+- "**": [webvtt]

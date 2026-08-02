@@ -22,7 +22,7 @@
         let ss = style1.sheet;
         assert_equals(ss.cssRules.length, 1);
         assert_equals(ss.cssRules[0].cssText,
-`@mixin --m1() {
+`@mixin --m1 {
   @result {
   color: green;
   & { --foo: bar; }
@@ -59,7 +59,7 @@
       test(() => {
         let ss = style3.sheet;
         assert_equals(ss.cssRules[0].cssText,
-`@mixin --m2() {
+`@mixin --m2 {
   @result {
   @contents;
 }
@@ -129,7 +129,7 @@
       test(() => {
         let ss = style7.sheet;
         assert_equals(ss.cssRules[0].cssText,
-`@mixin --m4() {
+`@mixin --m4 {
   @result {
   color: green;
 }

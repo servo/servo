@@ -1,34 +1,16 @@
-features:
-- name: scrollbar-gutter
-  files:
-  - scrollbar-gutter-*
-- name: overflow-overlay
-  files:
-  - overflow-overlay.html
-- name: overflow-clip-margin
-  files:
-  - overflow-clip-margin-*
-  - overflow-no-interpolation.html
-  - paint-containment-svg.html
-- name: overflow-clip
-  files:
-  - clip-*
-  - overflow-clip-*
-  - "!overflow-clip-margin-*"
-  - dynamic-visible-to-clip-001.html
-  - rounded-overflow-clip-visible.html
-- name: overflow-shorthand
-  files:
-  - overflow-*
-  - "!overflow-auto-scrollbar-gutter-intrinsic-*"
-  - "!overflow-scroll-*"
-  - "!overflow-no-interpolation.html" # depends on transition-behavior
-  - "!overflow-ellipsis-dynamic-001.html"
-  - "!overflow-clip-*"
-- name: column-pseudo
-  files:
-  - column-*
-- name: text-overflow
-  files:
-  - text-overflow-*
-  - overflow-ellipsis-dynamic-001.html
+rules:
+- scrollbar-gutter-*: [scrollbar-gutter]
+- overflow-overlay.html: [overflow-overlay, overflow-shorthand]
+- overflow-clip-margin-*: [overflow-clip-margin]
+- overflow-no-interpolation.html: [overflow-clip-margin] # depends on transition-behavior
+- paint-containment-svg.html: [overflow-clip-margin]
+- clip-*: [overflow-clip]
+- overflow-clip-*: [overflow-clip]
+- dynamic-visible-to-clip-001.html: [overflow-clip]
+- rounded-overflow-clip-visible.html: [overflow-clip]
+- overflow-auto-scrollbar-gutter-intrinsic-*: []
+- overflow-scroll-*: []
+- overflow-ellipsis-dynamic-001.html: [text-overflow]
+- overflow-*: [overflow-shorthand]
+- column-*: [column-pseudo]
+- text-overflow-*: [text-overflow]

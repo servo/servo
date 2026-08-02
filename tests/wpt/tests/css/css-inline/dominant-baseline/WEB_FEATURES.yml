@@ -1,3 +1,2 @@
-features:
-- name: dominant-baseline
-  files: "**"
+rules:
+- "**": [dominant-baseline]

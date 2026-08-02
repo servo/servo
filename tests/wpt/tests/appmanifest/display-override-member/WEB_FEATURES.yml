@@ -1,4 +1,2 @@
-features:
-- name: window-controls-overlay
-  files:
-  - '*window-controls-overlay*'
+rules:
+- "*window-controls-overlay*": [window-controls-overlay]

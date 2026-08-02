@@ -1,4 +1,2 @@
-features:
-- name: counters
-  files:
-  - content-counter-valid.html
+rules:
+- content-counter-valid.html: [counters]

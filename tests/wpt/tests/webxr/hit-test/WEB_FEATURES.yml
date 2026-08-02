@@ -1,3 +1,2 @@
-features:
-  - name: webxr-hit-test
-    files: '**'
+rules:
+- "**": [webxr-hit-test]

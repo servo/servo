@@ -1,3 +1,2 @@
-features:
-- name: video
-  files: "**"
+rules:
+- "**": [video]

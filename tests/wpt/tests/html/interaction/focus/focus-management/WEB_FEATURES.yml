@@ -1,4 +1,2 @@
-features:
-- name: focus-events
-  files:
-  - focus-events.html
+rules:
+- focus-events.html: [focus-events]

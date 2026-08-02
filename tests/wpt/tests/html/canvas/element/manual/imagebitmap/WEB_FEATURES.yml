@@ -1,3 +1,2 @@
-features:
-- name: createimagebitmap
-  files: "**"
+rules:
+- "**": [createimagebitmap]

@@ -1,4 +1,2 @@
-features:
-- name: autofocus
-  files:
-  - update-the-rendering-resize-autofocus.html
+rules:
+- update-the-rendering-resize-autofocus.html: [autofocus]

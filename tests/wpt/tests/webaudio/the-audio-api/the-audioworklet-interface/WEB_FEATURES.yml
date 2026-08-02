@@ -1,3 +1,2 @@
-features:
-- name: audio-worklet
-  files: "**"
+rules:
+- "**": [audio-worklet]

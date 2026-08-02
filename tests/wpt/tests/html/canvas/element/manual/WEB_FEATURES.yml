@@ -1,4 +1,2 @@
-features:
-- name: canvas
-  files:
-  - unclosed-canvas-*
+rules:
+- unclosed-canvas-*: [canvas]

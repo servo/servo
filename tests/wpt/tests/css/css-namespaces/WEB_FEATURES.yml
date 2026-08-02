@@ -1,3 +1,2 @@
-features:
-- name: namespace
-  files: "**"
+rules:
+- "**": [namespace]

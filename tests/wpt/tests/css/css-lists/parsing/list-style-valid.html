@@ -30,6 +30,8 @@ test_valid_value('list-style', 'square');
 test_valid_value('list-style', 'square url("https://example.com/") inside', 'inside url("https://example.com/") square');
 test_valid_value('list-style', 'square linear-gradient(red,blue) inside', 'inside linear-gradient(red, blue) square');
 test_valid_value('list-style', 'disc radial-gradient(circle, #006, #00a 90%, #0000af 100%,white 100%) inside', 'inside radial-gradient(circle, rgb(0, 0, 102), rgb(0, 0, 170) 90%, rgb(0, 0, 175) 100%, white 100%)');
+// NOTE: Serializing to just `outside` wouldn't round-trip!
+test_valid_value('list-style', 'outside outside');
 </script>
 </body>
 </html>

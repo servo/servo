@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Connection-Allowlist: the connectionallowlist attribute is delivered as
+       the Sec-Required-Connection-Allowlist request header, without injection</title>
+<link rel="help" href="https://github.com/WICG/connection-allowlists/issues/1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The browser serializes the `connectionallowlist` iframe attribute into a
+// `Sec-Required-Connection-Allowlist` request header sent to the framed
+// document. A value that would inject an extra header (it contains CR/LF) is
+// rejected by the renderer's structured-field parse, so no requirement -- and
+// no injected header -- reaches the framed document.
+
+let nextId = 0;
+
+// Frames a child that opts in with `Allow-Connection-Allowlist-From: *` (so the
+// navigation always commits and the child can report the request headers it
+// received), carrying the given `connectionallowlist` value. Resolves with the
+// headers the child echoed back.
+function frameAndReadHeaders(connectionallowlist) {
+  return new Promise(resolve => {
+    const id = "frame" + (nextId++);
+    const url =
+        new URL("resources/embedded-enforcement-child.py", location.href);
+    url.searchParams.append("allow_from", "*");
+    url.searchParams.append("id", id);
+
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("connectionallowlist", connectionallowlist);
+    iframe.src = url.toString();
+
+    window.addEventListener("message", e => {
+      if (e.source === iframe.contentWindow && e.data && e.data.id === id) {
+        resolve(e.data);
+      }
+    });
+    document.body.appendChild(iframe);
+  });
+}
+
+// A valid value is delivered to the framed document as the request header.
+promise_test(async () => {
+  const data = await frameAndReadHeaders('("https://example.test/")');
+  assert_not_equals(data.secRequiredConnectionAllowlist, null,
+      "the browser emits the Sec-Required-Connection-Allowlist request header");
+  assert_true(data.secRequiredConnectionAllowlist.includes("example.test"),
+      "the delivered header carries the required allowlist");
+  assert_equals(data.xInjected, null, "no injected header is present");
+}, "A valid connectionallowlist value is delivered as the request header.");
+
+// A value containing CR/LF that would inject an extra header is rejected in the
+// renderer, so neither the requirement header nor the injected header reaches
+// the framed document.
+promise_test(async () => {
+  const data = await frameAndReadHeaders(
+      '("https://example.test/")\nX-Injected: evil');
+  assert_equals(data.secRequiredConnectionAllowlist, null,
+      "a header-injecting value delivers no Sec-Required-Connection-Allowlist");
+  assert_equals(data.xInjected, null, "no header injection occurs");
+}, "A header-injecting connectionallowlist value delivers no header.");
+</script>
+</body>

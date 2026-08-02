@@ -1,18 +1,11 @@
-features:
-- name: messageerror
-  files:
-  - messageerror.html
-  - postMessage_CryptoKey_insecure.sub.html
-- name: channel-messaging
-  files:
-  - Channel_*
-  - MessagePort_*
-  - event.ports.sub.htm
-- name: postmessage
-  files:
-  - MessageEvent*
-  - Transferred_objects_unusable.sub.htm
-  - event.*
-  - postMessage_*
-  - "!postMessage_CryptoKey_insecure.sub.html"
-  - worker_postMessage_*
+rules:
+- messageerror.html: [messageerror]
+- postMessage_CryptoKey_insecure.sub.html: [messageerror]
+- Channel_*: [channel-messaging]
+- MessagePort_*: [channel-messaging]
+- event.ports.sub.htm: [channel-messaging, postmessage]
+- MessageEvent*: [postmessage]
+- Transferred_objects_unusable.sub.htm: [postmessage]
+- event.*: [postmessage]
+- postMessage_*: [postmessage]
+- worker_postMessage_*: [postmessage]

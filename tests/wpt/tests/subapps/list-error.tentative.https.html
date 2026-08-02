@@ -2,6 +2,8 @@
 <title>Sub Apps: Error cases for list()</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/subapps-helpers.js"></script>
 
 <body></body>
@@ -12,14 +14,13 @@ promise_test(async t => {
   const iframe = document.createElement('iframe');
   document.body.appendChild(iframe);
 
-  const iframeDOMException = iframe.contentWindow.DOMException;
-
-  // Detach the frame.
+  const subApps = iframe.contentWindow.subApps;
+  const DOMException_constructor = iframe.contentWindow.DOMException;
   iframe.remove();
 
   // At this point the iframe is detached and unloaded, and its execution
   // context is gone.
-  await promise_rejects_dom(t, 'NotFoundError', iframeDOMException, iframe.contentWindow.subApps.list());
+  await promise_rejects_dom(t, 'OperationError', DOMException_constructor, subApps.list());
 }, "The object is no longer associated to a document.");
 
 promise_test(async t => {
@@ -29,16 +30,7 @@ promise_test(async t => {
   const iframeDOMException = iframe.contentWindow.DOMException;
   t.add_cleanup(() => iframe.remove());
 
-  await promise_rejects_dom(t, 'InvalidStateError', iframeDOMException, iframe.contentWindow.subApps.list());
+  await promise_rejects_dom(t, 'NotSupportedError', iframeDOMException, iframe.contentWindow.subApps.list());
 }, "API is only supported in top-level browsing contexts.");
-
-promise_test(async t => {
-  t.add_cleanup(async () => {
-      await mockSubAppsService.reset();
-      mockSubAppsService = null;
-  });
-  await createMockSubAppsService(Status.FAILURE, [], []);
-  return promise_rejects_dom(t, 'OperationError', window.subApps.list());
-}, 'List call failed.');
 
 </script>

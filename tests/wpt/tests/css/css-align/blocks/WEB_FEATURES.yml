@@ -1,9 +1,5 @@
-features:
-- name: align-content-block
-  files:
-  - align-content-block-*
-- name: justify-self-block
-  files:
-  - justify-self-widgets.html
-  - justify-self-normal-1.html
-  - justify-items-anonymous.html
+rules:
+- align-content-block-*: [align-content-block]
+- justify-self-widgets.html: [justify-self-block]
+- justify-self-normal-1.html: [justify-self-block]
+- justify-items-anonymous.html: [justify-self-block]

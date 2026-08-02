@@ -1,3 +1,2 @@
-features:
-- name: intersection-observer-v2
-  files: "**"
+rules:
+- "**": [intersection-observer-v2]

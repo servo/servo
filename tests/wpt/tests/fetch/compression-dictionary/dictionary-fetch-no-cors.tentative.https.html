@@ -44,7 +44,7 @@ compression_dictionary_promise_test(async (t) => {
   try {
     await fetch(redirect_url, {mode: 'no-cors'});
   } catch (e) {}
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch(`${CROSS_ORIGIN_RESOURCES_URL}/echo-headers.py`)).json();
   assert_false("available-dictionary" in headers);
 }, 'Opaque responses resulting from cross-origin redirects in no-cors mode do not register dictionary');

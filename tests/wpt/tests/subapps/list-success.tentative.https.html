@@ -2,6 +2,8 @@
 <title>Sub Apps: Valid calls for list()</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="resources/subapps-helpers.js"></script>
 <script>
 
@@ -15,8 +17,8 @@ promise_test(async t => {
   const url_2 = '/sub-app-2';
 
   const mocked_response = [
-    { "manifestIdPath": url_1, "appName": "App 1" },
-    { "manifestIdPath": url_2, "appName": "App 2" },
+    { "manifestId": url_1, "appName": "App 1" },
+    { "manifestId": url_2, "appName": "App 2" },
   ];
 
   let expected_results = {

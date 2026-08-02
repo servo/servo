@@ -1,3 +1,2 @@
-features:
-- name: related-apps
-  files: "**"
+rules:
+- "**": [related-apps]

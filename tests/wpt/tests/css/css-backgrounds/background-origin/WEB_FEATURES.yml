@@ -1,3 +1,2 @@
-features:
-- name: background-origin
-  files: "**"
+rules:
+- "**": [background-origin]

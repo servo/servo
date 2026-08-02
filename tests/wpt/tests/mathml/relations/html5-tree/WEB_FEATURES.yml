@@ -1,4 +1,2 @@
-features:
-- name: clipboard-events
-  files:
-  - clipboard-event-handlers.html
+rules:
+- clipboard-event-handlers.html: [clipboard-events]

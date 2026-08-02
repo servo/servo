@@ -1,0 +1,110 @@
+<!DOCTYPE HTML>
+<title>SVGTransformList interface</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/coords.html#InterfaceSVGTransformList">
+<svg></svg>
+<script>
+const svg = document.querySelector('svg');
+
+function makeTransformList(transformString) {
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  if (transformString) {
+    circle.setAttribute('transform', transformString);
+  }
+  return circle.transform.baseVal;
+}
+
+function assert_svg_transform(actual, expected) {
+  assert_equals(actual.type, expected.type, `SVGTransform 'type'`);
+  for (let component of ['a', 'b', 'c', 'd', 'e', 'f']) {
+    assert_equals(actual.matrix[component], expected.matrix[component],
+                  `SVGTransform.matrix component '${component}'`);
+  }
+}
+
+function scale(x, y) {
+  const s = svg.createSVGTransform();
+  s.setScale(x, y);
+  return s;
+}
+
+function translate(x, y) {
+  const t = svg.createSVGTransform();
+  t.setTranslate(x, y);
+  return t;
+}
+
+test(function() {
+  const transformList1 = makeTransformList('scale(2 2)');
+  const transformList2 = makeTransformList('scale(2 2)');
+  assert_equals(transformList1.length, 1);
+  assert_equals(transformList2.length, 1);
+
+  const transform = svg.createSVGTransform();
+  transform.setTranslate(100, 100);
+
+  transformList1.appendItem(transform);
+  transformList2.appendItem(transform);
+  assert_equals(transformList1.length, 2);
+  assert_equals(transformList2.length, 2);
+  assert_svg_transform(transformList1[1], translate(100, 100));
+  assert_svg_transform(transformList2[1], translate(100, 100));
+
+  // Test changing SVGTransform value.
+  transform.setTranslate(200, 200);
+  assert_svg_transform(transformList1[1], translate(200, 200));
+  assert_svg_transform(transformList2[1], translate(100, 100));
+}, `${document.title}, appendItem() with SVGTransform that already exist in a list`);
+
+test(function() {
+  const transformList1 = makeTransformList('scale(2 2) translate(100 100)');
+  const transformList2 = makeTransformList('scale(2 2) translate(100 100)');
+  assert_equals(transformList1.length, 2);
+  assert_equals(transformList2.length, 2);
+
+  const transform = svg.createSVGTransform();
+  transform.setTranslate(200, 200);
+
+  transformList1.insertItemBefore(transform, 0);
+  transformList2.insertItemBefore(transform, 0);
+  assert_svg_transform(transformList1[0], translate(200, 200));
+  assert_svg_transform(transformList2[0], translate(200, 200));
+  assert_equals(transformList1.length, 3);
+  assert_equals(transformList2.length, 3);
+}, `${document.title}, insertItemBefore() with SVGTransform that already exist in a list`);
+
+test(function() {
+  const transformList1 = makeTransformList('translate(200 200) scale(2 2) translate(100 100)');
+  const transformList2 = makeTransformList('translate(200 200) scale(2 2) translate(100 100)');
+  assert_equals(transformList1.length, 3);
+  assert_equals(transformList2.length, 3);
+
+  const transform = svg.createSVGTransform();
+  transform.setScale(3, 3);
+
+  transformList1.replaceItem(transform, 2);
+  transformList2.replaceItem(transform, 2);
+  assert_svg_transform(transformList1[2], scale(3, 3));
+  assert_svg_transform(transformList2[2], scale(3, 3));
+  assert_equals(transformList1.length, 3);
+  assert_equals(transformList2.length, 3);
+}, `${document.title}, replaceItem() with SVGTransform that already exist in a list`);
+
+test(function() {
+  const transformList1 = makeTransformList('scale(2 2) translate(100 100)');
+  const transformList2 = makeTransformList('scale(2 2) translate(100 100)');
+  assert_equals(transformList1.length, 2);
+  assert_equals(transformList2.length, 2);
+
+  const transform = svg.createSVGTransform();
+  transform.setScale(3, 3);
+
+  transformList1.initialize(transform);
+  transformList2.initialize(transform);
+  assert_svg_transform(transformList1[0], scale(3, 3));
+  assert_svg_transform(transformList2[0], scale(3, 3));
+  assert_equals(transformList1.length, 1);
+  assert_equals(transformList2.length, 1);
+}, `${document.title}, initialize() with SVGTransform that already exist in a list`);
+</script>

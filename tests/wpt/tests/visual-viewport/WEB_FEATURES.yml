@@ -1,3 +1,2 @@
-features:
-- name: visual-viewport
-  files: "**"
+rules:
+- "**": [visual-viewport]

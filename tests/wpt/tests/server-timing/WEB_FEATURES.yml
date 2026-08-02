@@ -1,3 +1,2 @@
-features:
-- name: server-timing
-  files: "**"
+rules:
+- "**": [server-timing]

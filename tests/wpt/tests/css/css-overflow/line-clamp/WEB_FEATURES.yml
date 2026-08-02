@@ -1,3 +1,2 @@
-features:
-- name: line-clamp
-  files: "**"
+rules:
+- "**": [line-clamp]

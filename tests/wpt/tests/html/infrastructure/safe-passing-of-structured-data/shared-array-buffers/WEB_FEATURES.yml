@@ -1,17 +1,11 @@
-features:
-- name: broadcast-channel
-  files:
-  - broadcastchannel-*
-- name: channel-messaging
-  files:
-  - window-messagechannel*
-  - window-*-messagechannel*
-- name: postmessage
-  files:
-  - blob-data.https.html
-  - identity-not-preserved.https.html
-  - no-coop-coep.https.any.js
-  - no-transferring.https.html
-  - window-serviceworker-failure.https.html
-  - window-sharedworker-failure.https.html
-  - window-simple-success.https.html
+rules:
+- broadcastchannel-*: [broadcast-channel]
+- window-messagechannel*: [channel-messaging]
+- window-*-messagechannel*: [channel-messaging]
+- blob-data.https.html: [postmessage]
+- identity-not-preserved.https.html: [postmessage]
+- no-coop-coep.https.any.js: [postmessage]
+- no-transferring.https.html: [postmessage]
+- window-serviceworker-failure.https.html: [postmessage]
+- window-sharedworker-failure.https.html: [postmessage]
+- window-simple-success.https.html: [postmessage]

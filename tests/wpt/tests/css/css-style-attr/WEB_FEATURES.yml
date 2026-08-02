@@ -1,3 +1,2 @@
-features:
-- name: style-attr
-  files: "**"
+rules:
+- "**": [style-attr]

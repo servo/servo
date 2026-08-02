@@ -30,8 +30,9 @@ wrapper {
 .columns:nth-child(2n) {
   background-color: rgba(10,100,10,.5);
 }
-.grid {
+.grid-lanes {
   display: grid-lanes;
+  flow-tolerance: 0;
   grid-template-columns: 10px 15px 20px;
   border: 1px solid;
   gap: 2px;
@@ -56,7 +57,7 @@ x:nth-child(5n) {
 <wrapper style="display:none">
 <div style="display:none">
 <div class="columns">
-  <div class="grid">
+  <div class="grid-lanes">
     <x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x>
     <x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x><x></x>
   </div>

@@ -1,3 +1,2 @@
-features:
-- name: mathml
-  files: "**"
+rules:
+- "**": [mathml]

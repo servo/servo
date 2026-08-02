@@ -1,3 +1,2 @@
-features:
-- name: text-transform
-  files: "**"
+rules:
+- "**": [text-transform]

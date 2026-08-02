@@ -1,3 +1,2 @@
-features:
-- name: largest-contentful-paint
-  files: "**"
+rules:
+- "**": [largest-contentful-paint]

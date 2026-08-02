@@ -1,3 +1,2 @@
-features:
-- name: media-playback-quality
-  files: "**"
+rules:
+- "**": [media-playback-quality]

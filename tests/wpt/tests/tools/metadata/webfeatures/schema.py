@@ -1,8 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass
 from fnmatch import fnmatchcase
-from functools import cached_property
-from typing import Any, Dict, Sequence, Union
+from typing import Any, Dict, List, Sequence, Union
 
 from ..schema import SchemaValue, validate_dict
 
@@ -11,32 +10,13 @@ YAML filename for meta files
 """
 WEB_FEATURES_YML_FILENAME = "WEB_FEATURES.yml"
 
-# File prefix to indicate that this FeatureFile should run in EXCLUDE mode.
-EXCLUSION_PREFIX = "!"
-
 
 class SpecialFileEnum(Enum):
     """All files recursively"""
     RECURSIVE = "**"
 
 
-class FileMatchingMode(Enum):
-    """Defines how a FeatureFile pattern is used for matching."""
-    INCLUDE = 1  # Include files that match the pattern
-    EXCLUDE = 2  # Exclude files that match the pattern
-
 class FeatureFile(str):
-    @cached_property
-    def matching_mode(self) -> FileMatchingMode:
-        """Determines if the pattern should include or exclude matches."""
-        return FileMatchingMode.EXCLUDE if self.startswith(EXCLUSION_PREFIX) else FileMatchingMode.INCLUDE
-
-    @cached_property
-    def processed_filename(self) -> str:
-        """Removes the exclusion prefix "!" from the pattern."""
-        # TODO. After moving to Python3.9, use: return self.removeprefix(EXCLUSION_PREFIX)
-        return self[len(EXCLUSION_PREFIX):] if self.startswith(EXCLUSION_PREFIX) else self
-
     def match_files(self, base_filenames: Sequence[str]) -> Sequence[str]:
         """
         Given the input base file names, returns the subset of base file names
@@ -52,40 +32,51 @@ class FeatureFile(str):
         # If our file name contains a wildcard, use fnmatch
         if "*" in self:
             for base_filename in base_filenames:
-                if fnmatchcase(base_filename, self.processed_filename):
+                if fnmatchcase(base_filename, self):
                     result.append(base_filename)
-        elif self.processed_filename in base_filenames:
-            result.append(self.processed_filename)
+        elif self in base_filenames:
+            result.append(self)
         return result
 
 
 @dataclass
 class FeatureEntry:
-    files: Union[Sequence[FeatureFile], SpecialFileEnum]
+    file: Union[FeatureFile, SpecialFileEnum]
     """The web-features key"""
-    name: str
+    feature_ids: List[str]
 
-    _required_keys = {"files", "name"}
+    _required_keys = {"ids"}
 
-    def __init__(self, obj: Dict[str, Any]):
+    def __init__(self, obj: Dict[str, Union[List[str], Dict[str, List[str]]]]):
         """
         Converts the provided dictionary to an instance of FeatureEntry
         :param obj: The object that will be converted to a FeatureEntry.
         :return: An instance of FeatureEntry
         :raises ValueError: If there are unexpected keys or missing required keys.
         """
-        validate_dict(obj, FeatureEntry._required_keys)
-        self.files = SchemaValue.from_union([
-            lambda x: SchemaValue.from_list(SchemaValue.from_class(FeatureFile), x),
-            SpecialFileEnum], obj.get("files"))
-        self.name = SchemaValue.from_str(obj.get("name"))
-        # If "**" is used, it should be the only item. Not in a list.
-        if isinstance(self.files, list) and SpecialFileEnum.RECURSIVE.value in self.files:
-            raise ValueError(f'Feature {self.name} contains "**" in a list. It should be `files: "**"`')
+        if len(obj) == 0:
+            raise ValueError(f"Input value {obj} contains zero keys")
 
+        if len(obj) > 1:
+            raise ValueError(f"Input value {obj} contains more than one key")
+        key = list(obj)[0]
+        self.file = SchemaValue.from_union([
+            SpecialFileEnum,
+            SchemaValue.from_class(FeatureFile)
+        ], key)
+
+        value = obj[key]
+        if isinstance(value, list):
+            self.feature_ids = value
+        else:
+            validate_dict(value, FeatureEntry._required_keys)
+            self.feature_ids = value["ids"]
+
+    def __str__(self) -> str:
+        return '{}: {}'.format(self.file, self.feature_ids)
 
     def does_feature_apply_recursively(self) -> bool:
-        if isinstance(self.files, SpecialFileEnum) and self.files == SpecialFileEnum.RECURSIVE:
+        if isinstance(self.file, SpecialFileEnum) and self.file == SpecialFileEnum.RECURSIVE:
             return True
         return False
 
@@ -93,9 +84,9 @@ class FeatureEntry:
 @dataclass
 class WebFeaturesFile:
     """List of features"""
-    features: Sequence[FeatureEntry]
+    rules: Sequence[FeatureEntry]
 
-    _required_keys = {"features"}
+    _required_keys = {"rules"}
 
     def __init__(self, obj: Dict[str, Any]):
         """
@@ -105,5 +96,5 @@ class WebFeaturesFile:
         :raises ValueError: If there are unexpected keys or missing required keys.
         """
         validate_dict(obj, WebFeaturesFile._required_keys)
-        self.features = SchemaValue.from_list(
-            lambda raw_feature: FeatureEntry(SchemaValue.from_dict(raw_feature)), obj.get("features"))
+        self.rules = SchemaValue.from_list(
+            lambda raw_feature: FeatureEntry(SchemaValue.from_dict(raw_feature)), obj.get("rules"))

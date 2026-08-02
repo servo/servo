@@ -1,4 +1,2 @@
-features:
-- name: filter-function
-  files:
-  - "*"
+rules:
+- "*": [filter-function]

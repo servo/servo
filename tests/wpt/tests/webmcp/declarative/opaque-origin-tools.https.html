@@ -25,9 +25,9 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'DataError',
+    'NotSupportedError',
     document.modelContext.executeTool(tool, '{"param1":"value"}'),
-    'executeTool() must reject with DataError in opaque origin documents'
+    'executeTool() must reject with NotSupportedError in opaque origin documents'
   );
 }, 'An opaque origin document can register but not execute its own declarative tools');
 
@@ -48,9 +48,9 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'DataError',
+    'NotSupportedError',
     document.modelContext.executeTool(tool, '{"param1":"value"}'),
-    'executeTool() must reject with DataError in opaque origin documents'
+    'executeTool() must reject with NotSupportedError in opaque origin documents'
   );
 
   assert_array_equals(events, ['rejection', 'microtask'],

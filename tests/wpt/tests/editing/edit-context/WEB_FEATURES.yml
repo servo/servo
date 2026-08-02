@@ -1,3 +1,2 @@
-features:
-- name: edit-context
-  files: "**"
+rules:
+- "**": [edit-context]

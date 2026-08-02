@@ -1,3 +1,2 @@
-features:
-- name: highlight
-  files: "**"
+rules:
+- "**": [highlight]

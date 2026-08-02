@@ -1,3 +1,2 @@
-features:
-- name: user-activation
-  files: "**"
+rules:
+- "**": [user-activation]

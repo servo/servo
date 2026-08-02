@@ -50,7 +50,9 @@ promise_test(async t => {
   t.add_cleanup(() => {
     anim.cancel();
   });
-  anim.rangeStart = "1em";
+  // We use a unit that does not require an element to resolve given:
+  // https://github.com/web-platform-tests/interop/issues/1309
+  anim.rangeStart = "10px";
   container.scrollLeft = 750;
   await waitForNextFrame();
   assert_equals(getComputedStyle(target).opacity, "1",

@@ -1,3 +1,2 @@
-features:
-- name: plane-detection
-  files: '**'
+rules:
+- "**": [plane-detection]

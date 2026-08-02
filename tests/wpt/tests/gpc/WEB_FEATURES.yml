@@ -1,3 +1,2 @@
-features:
-- name: gpc
-  files: "**"
+rules:
+- "**": [gpc]

@@ -1,7 +1,8 @@
 <!doctype html>
 <meta name="author" title="Fernando Fiori" href="mailto:ffiori@microsoft.com">
 <meta name="assert" content="HighlightRegistry.highlightsFromPoint returns the Highlights present at the coordinates provided as argument in the right order.">
-<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/highlight/HighlightsFromPointsExplainer.md">
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#interactions">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-range-getclientrects">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -55,7 +56,7 @@ body {
         // Get x and y coordinates between '0' and '1'.
         x = rect.left + characterWidth;
         y = rect.top + rect.height / 2;
-        highlights = CSS.highlights.highlightsFromPoint(x, y);
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
         assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns an empty array when the coordinates provided point at no Highlights');
 
         // Get x and y coordinates between '2' and '3'.
@@ -168,10 +169,8 @@ body {
     test(() => {
         CSS.highlights.clear();
 
-        const textNode = document.querySelector("#example-span");
-
         // Create a valid StaticRange, add it to a highlight, then invalidate it
-        // by removing the start container from the document.
+        // by shortening its text container below the retained end offset.
         const tempSpan = document.createElement("span");
         tempSpan.textContent = "temporary";
         document.body.appendChild(tempSpan);
@@ -183,36 +182,33 @@ body {
             endOffset: 9
         });
 
-        const validRange = new Range();
-        validRange.setStart(textNode.childNodes[0], 0);
-        validRange.setEnd(textNode.childNodes[0], 10);
+        const liveRange = new Range();
+        liveRange.selectNodeContents(tempSpan);
 
-        const highlight = new Highlight(staticRange, validRange);
+        const highlight = new Highlight(staticRange, liveRange);
         CSS.highlights.set("example-highlight", highlight);
+        try {
+            let rect = liveRange.getClientRects()[0];
+            let x = rect.left + rect.width / 2;
+            let y = rect.top + rect.height / 2;
+            let results = CSS.highlights.highlightsFromPoint(x, y);
+            assert_equals(results.length, 1);
+            assert_array_equals(results[0].ranges, [staticRange, liveRange],
+                'both overlapping ranges are returned before invalidation');
 
-        const rect = tempSpan.getBoundingClientRect();
-        const x = rect.left + rect.width / 2;
-        const y = rect.top + rect.height / 2;
-
-        // Verify the highlight is returned before invalidation.
-        let results = CSS.highlights.highlightsFromPoint(x, y);
-        assert_equals(results.length, 1,
-            'highlightsFromPoint() returns highlight before StaticRange is invalidated');
-
-        // Invalidate the StaticRange by removing its start container.
-        document.body.removeChild(tempSpan);
-
-        // The point now has no content, so check at the valid range's position.
-        const validRect = textNode.getBoundingClientRect();
-        const characterWidth = validRect.width / textNode.textContent.length;
-        const x2 = validRect.left + 3 * characterWidth;
-        const y2 = validRect.top + validRect.height / 2;
-
-        results = CSS.highlights.highlightsFromPoint(x2, y2);
-        assert_equals(results.length, 1,
-            'highlightsFromPoint() still returns the highlight via the valid range');
-        assert_array_equals(results[0].ranges, [validRange],
-            'the invalid StaticRange is not included in the returned ranges');
+            // The StaticRange retains endOffset 9, which is now out of bounds.
+            tempSpan.firstChild.data = "x";
+            rect = liveRange.getClientRects()[0];
+            x = rect.left + rect.width / 2;
+            y = rect.top + rect.height / 2;
+            results = CSS.highlights.highlightsFromPoint(x, y);
+            assert_equals(results.length, 1);
+            assert_array_equals(results[0].ranges, [liveRange],
+                'the invalid StaticRange is omitted at overlapping geometry');
+        } finally {
+            CSS.highlights.clear();
+            tempSpan.remove();
+        }
     }, 'CSS.highlights.highlightsFromPoint() skips invalid StaticRanges.');
 
     test(() => {

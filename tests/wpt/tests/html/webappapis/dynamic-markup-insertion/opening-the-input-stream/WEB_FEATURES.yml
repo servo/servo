@@ -1,4 +1,2 @@
-features:
-- name: document-write
-  files:
-  - "*"
+rules:
+- "*": [document-write]

@@ -1,4 +1,2 @@
-features:
-- name: svg-filters
-  files:
-  - href-filter-element.html
+rules:
+- href-filter-element.html: [svg-filters]

@@ -306,7 +306,7 @@ test(() => {
 test(() => {
   const fileInput = document.getElementById('test-file-input');
   const style = getComputedStyle(fileInput, '::-webkit-file-upload-button');
-  assert_equals(style.length, 0,
+  assert_true(style.length == 0,
     '::-webkit-file-upload-button should return empty style');
 }, 'Prefixed ::-webkit-file-upload-button does not resolve in getComputedStyle');
 </script>

@@ -1,4 +1,2 @@
-features:
-- name: borders
-  files:
-  - border-seams-001.xht
+rules:
+- border-seams-001.xht: [borders]

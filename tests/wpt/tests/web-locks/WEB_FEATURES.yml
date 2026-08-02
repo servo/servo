@@ -1,3 +1,2 @@
-features:
-- name: web-locks
-  files: "**"
+rules:
+- "**": [web-locks]

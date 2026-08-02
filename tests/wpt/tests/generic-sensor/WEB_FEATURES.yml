@@ -1,3 +1,2 @@
-features:
-- name: virtual-sensors
-  files: '**'
+rules:
+- "**": [virtual-sensors]
