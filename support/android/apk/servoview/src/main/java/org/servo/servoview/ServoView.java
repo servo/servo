@@ -30,6 +30,7 @@ public class ServoView extends SurfaceView
         Choreographer.FrameCallback {
     private static final String LOGTAG = "ServoView";
     private final GLThread glThread;
+    private final SurfaceHolderCallback surfaceHolderCallback;
     protected Servo servo = null;
     private String servoArgs;
     private String initialUri;
@@ -49,18 +50,19 @@ public class ServoView extends SurfaceView
         view.add(this);
         addTouchables(view);
 
-        glThread = new GLThread(this);
-        getHolder().addCallback(glThread);
+        glThread = new GLThread();
+        surfaceHolderCallback = new SurfaceHolderCallback(this);
+        getHolder().addCallback(surfaceHolderCallback);
         glThread.start();
     }
 
     public void setClient(Client client) {
-        glThread.client = client;
+        surfaceHolderCallback.client = client;
     }
 
     public void setServoArgs(String args, String log, boolean experimentalMode) {
         servoArgs = args;
-        glThread.servoLog = log;
+        surfaceHolderCallback.servoLog = log;
         this.experimentalMode = experimentalMode;
     }
 
@@ -181,14 +183,25 @@ public class ServoView extends SurfaceView
         }
     }
 
-    static class GLThread extends Thread implements SurfaceHolder.Callback {
-        private ServoView servoView;
+    private static class GLThread extends Thread {
         private Handler glLooperHandler;
+
+        public void run() {
+            Looper.prepare();
+
+            glLooperHandler = new Handler(Looper.myLooper());
+
+            Looper.loop();
+        }
+    }
+
+    private static class SurfaceHolderCallback implements SurfaceHolder.Callback {
+        private ServoView servoView;
         private Client client = null;
         private String servoLog;
         private boolean paused = false;
 
-        GLThread(ServoView servoView) {
+        SurfaceHolderCallback(ServoView servoView) {
             this.servoView = servoView;
         }
 
@@ -231,14 +244,6 @@ public class ServoView extends SurfaceView
             Log.d(LOGTAG, "GLThread::surfaceDestroyed");
             paused = true;
             servoView.servo.pausePainting();
-        }
-
-        public void run() {
-            Looper.prepare();
-
-            glLooperHandler = new Handler(Looper.myLooper());
-
-            Looper.loop();
         }
     }
 }
