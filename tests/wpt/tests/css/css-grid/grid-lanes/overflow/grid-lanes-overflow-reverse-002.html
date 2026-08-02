@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: track-reverse changes which edge overflows</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3">
+  <link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+  <link rel="match" href="grid-lanes-overflow-reverse-002-ref.html">
+  <meta name="assert" content="This test verifies that track-reverse changes which edge the grid axis overflows in grid-lanes scroll containers.">
+  <style>
+  .grid-lanes {
+    display: inline grid-lanes;
+    vertical-align: top;
+    flow-tolerance: 0;
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+    border: 1px solid black;
+    margin-bottom: 20px;
+  }
+  .grid-lanes > div { width: 30px; height: 30px; }
+  .a { background: coral; }
+  .b { background: steelblue; }
+  .c { background: seagreen; }
+  </style>
+</head>
+<body>
+
+<!-- Grid axis overflows on the right; scroll starts at the left edge. -->
+<div id="column-normal" class="grid-lanes" style="grid-template-columns: 40px 40px 40px;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+  <div class="c">C</div>
+</div>
+
+<!-- track-reverse: grid axis overflows on the left; scroll starts at the
+     right (end) edge. -->
+<div id="column-track-reverse" class="grid-lanes" style="grid-template-columns: 40px 40px 40px; grid-lanes-direction: column track-reverse;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+  <div class="c">C</div>
+</div>
+
+<!-- track-reverse with tracks that fit: no overflow, no scroll; tracks are
+     only reversed, not shifted. -->
+<div id="column-track-reverse-fits" class="grid-lanes" style="grid-template-columns: 40px 40px; grid-lanes-direction: column track-reverse;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+</div>
+
+<!-- track-reverse with tracks that fit, but one item is wider than its track:
+     track-reverse flips the grid-axis origin to the start (left) edge by style,
+     but since the tracks fit we don't shift them, so the oversized item still
+     overflows off the right edge, which is now non-scrollable and gets clipped. -->
+<div id="column-track-reverse-one-item" class="grid-lanes" style="grid-template-columns: 40px 40px; grid-lanes-direction: column track-reverse;">
+  <div class="a" style="width:80px;">A</div>
+  <div class="b">B</div>
+</div>
+
+<!-- Grid axis overflows on the bottom; scroll starts at the top edge. -->
+<div id="row-normal" class="grid-lanes" style="grid-template-rows: 40px 40px 40px;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+  <div class="c">C</div>
+</div>
+
+<!-- track-reverse: grid axis overflows on the top; scroll starts at the
+     bottom (end) edge. -->
+<div id="row-track-reverse" class="grid-lanes" style="grid-template-rows: 40px 40px 40px; grid-lanes-direction: row track-reverse;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+  <div class="c">C</div>
+</div>
+
+<!-- track-reverse with tracks that fit: no overflow, no scroll; tracks are
+     only reversed, not shifted. -->
+<div id="row-track-reverse-fits" class="grid-lanes" style="grid-template-rows: 40px 40px; grid-lanes-direction: row track-reverse;">
+  <div class="a">A</div>
+  <div class="b">B</div>
+</div>
+
+<!-- track-reverse with tracks that fit, but one item is taller than its track:
+     track-reverse flips the grid-axis origin to the start (top) edge by style,
+     but since the tracks fit we don't shift them, so the oversized item still
+     overflows off the bottom edge, which is now non-scrollable and gets clipped. -->
+<div id="row-track-reverse-one-item" class="grid-lanes" style="grid-template-rows: 40px 40px; grid-lanes-direction: row track-reverse;">
+  <div class="a" style="height:80px;">A</div>
+  <div class="b">B</div>
+</div>
+
+<!-- Auto-height row track-reverse: the auto-sized row is driven by its item and
+     fits the content box exactly, so there is no grid-axis overflow and no
+     reversed shift. -->
+<div id="row-track-reverse-auto-fits" class="grid-lanes" style="width:60px; height:auto; border-width:10px; padding:10px; grid-template-rows:auto; grid-lanes-direction: row track-reverse;">
+  <div class="a" style="width:60px; height:40px;">A</div>
+</div>
+
+</body>
+</html>

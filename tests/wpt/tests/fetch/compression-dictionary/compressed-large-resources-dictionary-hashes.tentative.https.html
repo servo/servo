@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/compression-dictionary-util.sub.js"></script>
+<script src="./resources/static/dictionary-hashes.js"></script>
+</head>
+<body>
+<script>
+  for (const [dictionary, expected_hash] of Object.entries(kDictionaryHashes)) {
+    compression_dictionary_promise_test(async t => {
+      // Load the dictionary.
+      const use_as_dictionary = `match="${RESOURCES_PATH}/echo-headers.py"`;
+      const dictionary_url = `./resources/static/${dictionary}?id=${token()}&pipe=header(Use-As-Dictionary,${use_as_dictionary},True)`;
+      await (await fetch(dictionary_url)).bytes();
+      assert_equals(await waitUntilAvailableDictionaryHeader(t, {}), expected_hash);
+    }, `Available-Dictionary header properly set when fetching a resource matching ${dictionary} as a dictionary.`);
+  }
+</script>
+</body>

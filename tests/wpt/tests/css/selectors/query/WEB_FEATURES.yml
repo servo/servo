@@ -1,7 +1,3 @@
-features:
-- name: is
-  files:
-  - query-is.html
-- name: where
-  files:
-  - query-where.html
+rules:
+- query-is.html: [is]
+- query-where.html: [where]

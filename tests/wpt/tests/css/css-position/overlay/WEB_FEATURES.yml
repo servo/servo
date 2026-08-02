@@ -1,3 +1,2 @@
-features:
-- name: overlay
-  files: "**"
+rules:
+- "**": [overlay]

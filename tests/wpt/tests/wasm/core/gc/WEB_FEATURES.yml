@@ -1,3 +1,2 @@
-features:
-- name: wasm-garbage-collection
-  files: "**"
+rules:
+- "**": [wasm-garbage-collection]

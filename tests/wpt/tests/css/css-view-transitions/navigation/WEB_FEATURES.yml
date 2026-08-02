@@ -1,3 +1,2 @@
-features:
-- name: cross-document-view-transitions
-  files: "**"
+rules:
+- "**": [cross-document-view-transitions]

@@ -1,8 +1,3 @@
-features:
-- name: label
-  files:
-  - "*"
-  - "!clicking-*"
-- name: mouse-events
-  files:
-  - clicking-*
+rules:
+- clicking-*: [mouse-events]
+- "*": [label]

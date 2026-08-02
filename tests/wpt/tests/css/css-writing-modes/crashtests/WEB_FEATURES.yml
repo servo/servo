@@ -1,3 +1,2 @@
-features:
-- name: writing-mode
-  files: "**"
+rules:
+- "**": [writing-mode]

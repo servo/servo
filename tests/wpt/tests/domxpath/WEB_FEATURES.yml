@@ -1,3 +1,2 @@
-features:
-- name: xpath
-  files: '**'
+rules:
+- "**": [xpath]

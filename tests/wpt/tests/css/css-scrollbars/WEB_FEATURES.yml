@@ -1,13 +1,9 @@
-features:
-- name: scrollbar-color
-  files:
-  - input-scrollbar-color.html
-  - scrollbar-color-*
-  - scrollbar-width-paint-003.html
-  - transparent-on-root.html
-  - viewport-scrollbar-body.html
-  - viewport-scrollbar.html
-- name: scrollbar-width
-  files:
-  - scrollbar-width-*
-  - textarea-scrollbar-width-none.html
+rules:
+- input-scrollbar-color.html: [scrollbar-color]
+- scrollbar-color-*: [scrollbar-color]
+- scrollbar-width-paint-003.html: [scrollbar-color, scrollbar-width]
+- transparent-on-root.html: [scrollbar-color]
+- viewport-scrollbar-body.html: [scrollbar-color]
+- viewport-scrollbar.html: [scrollbar-color]
+- scrollbar-width-*: [scrollbar-width]
+- textarea-scrollbar-width-none.html: [scrollbar-width]

@@ -1,4 +1,2 @@
-features:
-- name: online
-  files:
-  - navigator-onLine.html
+rules:
+- navigator-onLine.html: [online]

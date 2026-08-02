@@ -1,3 +1,2 @@
-features:
-- name: performance
-  files: "**"
+rules:
+- "**": [performance]

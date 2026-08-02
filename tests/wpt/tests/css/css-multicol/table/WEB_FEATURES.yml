@@ -1,4 +1,2 @@
-features:
-- name: column-fill
-  files:
-  - table-cell-multicol-nested-*
+rules:
+- table-cell-multicol-nested-*: [column-fill]

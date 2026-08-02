@@ -1,13 +1,11 @@
-features:
-- name: channel-messaging
-  files:
-  - basics.any.js
-  - close.any.js
-  - cross-document.html
-  - detached-iframe.window.js
-  - dictionary-transferrable.any.js
-  - implied-start.any.js
-  - no-start.any.js
-  - user-activation.tentative.any.js
-  - worker-post-after-close.any.js
-  - worker.any.js
+rules:
+- basics.any.js: [channel-messaging]
+- close.any.js: [channel-messaging]
+- cross-document.html: [channel-messaging]
+- detached-iframe.window.js: [channel-messaging]
+- dictionary-transferrable.any.js: [channel-messaging]
+- implied-start.any.js: [channel-messaging]
+- no-start.any.js: [channel-messaging]
+- user-activation.tentative.any.js: [channel-messaging]
+- worker-post-after-close.any.js: [channel-messaging]
+- worker.any.js: [channel-messaging]

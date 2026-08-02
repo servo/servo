@@ -1,3 +1,2 @@
-features:
-  - name: webxr-lighting-estimation
-    files: '**'
+rules:
+- "**": [webxr-lighting-estimation]

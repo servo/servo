@@ -1,3 +1,2 @@
-features:
-- name: paint
-  files: "**"
+rules:
+- "**": [paint]

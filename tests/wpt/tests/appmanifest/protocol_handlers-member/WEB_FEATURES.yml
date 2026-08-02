@@ -1,3 +1,2 @@
-features:
-- name: app-protocol-handlers
-  files: "**"
+rules:
+- "**": [app-protocol-handlers]

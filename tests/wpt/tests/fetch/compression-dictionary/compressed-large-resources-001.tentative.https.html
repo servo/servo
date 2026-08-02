@@ -20,7 +20,15 @@
   compression_dictionary_promise_test(async t => {
     // Load the non-compressed image to register it as a dictionary for itself.
     await fetchStaticResourceWithUseAsDictionaryHeader(image_dictionary, image_compressed, "image");
-    await registerAltDictionaryAndWait(t);
+
+    // Wait for another dictionary to register to give a chance for the
+    // previous registration to complete. That registration was not done via
+    // register-dictionary.py, so we can't use waitUntilPreviousRequestHeaders.
+    // It also uses a specific match and match-dest, so we cannot use
+    // checkHeaders/checkHeader because echo-headers.py won't use the registered
+    // dictionary (specifically we can't add echo-headers.py as an alternative
+    // to image_compressed, because match does not accept Regexp groups).
+    await registerAltDictionaryAndWait(t, `alt_${token()}`);
 
     // Append the compressed image.
     const img = document.createElement("img");
@@ -43,7 +51,11 @@
   compression_dictionary_promise_test(async t => {
     // Load the non-compressed script to register it as a dictionary for itself.
     await fetchStaticResourceWithUseAsDictionaryHeader(script_dictionary, script_compressed, "script");
-    await registerAltDictionaryAndWait(t);
+
+    // Wait for another dictionary to register to give a chance for the
+    // previous registration to complete. See comment above about why we can't
+    // use waitUntilPreviousRequestHeaders, checkHeaders or checkHeader.
+    await registerAltDictionaryAndWait(t, `alt_${token()}`);
 
     // Append the compressed script.
     const script = document.createElement("script");
@@ -68,7 +80,11 @@
   compression_dictionary_promise_test(async t => {
     // Load the non-compressed style to register it as a dictionary for itself.
     await fetchStaticResourceWithUseAsDictionaryHeader(style_dictionary, style_compressed, "style");
-    await registerAltDictionaryAndWait(t);
+
+    // Wait for another dictionary to register to give a chance for the
+    // previous registration to complete. See comment above about why we can't
+    // use waitUntilPreviousRequestHeaders, checkHeaders or checkHeader.
+    await registerAltDictionaryAndWait(t, `alt_${token()}`);
 
     // Append the compressed style and test div.
     const link = document.createElement("link");

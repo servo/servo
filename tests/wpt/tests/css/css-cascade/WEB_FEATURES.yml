@@ -1,27 +1,13 @@
-features:
-- name: cascade-layers
-  files:
-  - layer-*
-- name: scope
-  files:
-  - at-scope-*
-  - scope-*
-- name: revert-value
-  files:
-  - revert-val-*
-- name: all
-  files:
-  - all-prop-*
-- name: unset-value
-  files:
-  - unset-val-*
-  - unset-value-storage.html
-  - all-prop-unset-color.html
-  - all-prop-unset-visited.html
-- name: inherit-value
-  files:
-  - inherit-initial.html
-- name: initial-value
-  files:
-  - initial-background-color.html
-  - initial-color-background-001.html
+rules:
+- layer-*: [cascade-layers]
+- at-scope-*: [scope]
+- scope-*: [scope]
+- revert-val-*: [revert-value]
+- all-prop-unset-color.html: [unset-value, all]
+- all-prop-unset-visited.html: [unset-value, all]
+- all-prop-*: [all]
+- unset-val-*: [unset-value]
+- unset-value-storage.html: [unset-value]
+- inherit-initial.html: [inherit-value]
+- initial-background-color.html: [initial-value]
+- initial-color-background-001.html: [initial-value]

@@ -187,14 +187,19 @@ async function doAnswerToSendSimulcast(offerer, answerer) {
   sections.shift();
   const mids = sections.map(section => SDPUtils.getMid(section));
   let nonSimulcastAnswer = ridToMid(answerer.localDescription, mids);
-  // Restore MID RTP header extension.
-  const localParameters = SDPUtils.parseRtpParameters(sections[0]);
 
-  const localMidExtension = localParameters.headerExtensions
-    .find(ext => ext.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid');
-  if (localMidExtension) {
-    nonSimulcastAnswer += SDPUtils.writeExtmap(localMidExtension);
+  // Restore MID RTP header extension if it has been removed
+  if (!nonSimulcastAnswer.match(
+    /^a=extmap:[0-9]+(\/[a-z]+)? urn:ietf:params:rtp-hdrext:sdes:mid\s*$/mg)) {
+    const localParameters = SDPUtils.parseRtpParameters(sections[0]);
+
+    const localMidExtension = localParameters.headerExtensions
+      .find(ext => ext.uri === 'urn:ietf:params:rtp-hdrext:sdes:mid');
+    if (localMidExtension) {
+      nonSimulcastAnswer += SDPUtils.writeExtmap(localMidExtension);
+    }
   }
+
   await offerer.setRemoteDescription({
     type: 'answer',
     sdp: nonSimulcastAnswer,

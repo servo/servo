@@ -1,3 +1,2 @@
-features:
-- name: nesting
-  files: "**"
+rules:
+- "**": [nesting]

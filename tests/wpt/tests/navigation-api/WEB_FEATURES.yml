@@ -1,3 +1,2 @@
-features:
-- name: navigation
-  files: "**"
+rules:
+- "**": [navigation]

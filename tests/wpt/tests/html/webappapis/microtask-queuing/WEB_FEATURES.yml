@@ -1,3 +1,2 @@
-features:
-- name: queuemicrotask
-  files: "**"
+rules:
+- "**": [queuemicrotask]

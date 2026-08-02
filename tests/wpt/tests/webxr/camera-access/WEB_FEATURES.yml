@@ -1,3 +1,2 @@
-features:
-- name: webxr-camera
-  files: '**'
+rules:
+- "**": [webxr-camera]

@@ -1,3 +1,2 @@
-features:
-- name: secure-payment-confirmation
-  files: "**"
+rules:
+- "**": [secure-payment-confirmation]

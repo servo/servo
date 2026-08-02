@@ -1,3 +1,2 @@
-features:
-- name: subgrid
-  files: "**"
+rules:
+- "**": [subgrid]

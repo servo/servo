@@ -76,21 +76,18 @@ promise_test(async t => {
   insertSpeculationRules({
     prefetch: [{
       urls: [redirectUrl],
-      eagerness: 'eager',
+      eagerness: 'immediate',
       tag: 'preredirect-prefetch-test',
     }],
   });
 
-  await new Promise(resolve => t.step_timeout(resolve, 100));
+  // Wait for the browser to actually start the prefetch. The entry appears
+  // in navigations at that point; polling avoids fixed-duration waits.
+  const preRedirectEntry = await waitForSpeculationMatching(t, redirectUrl);
+  assert_equals(preRedirectEntry.type, 'prefetch');
+  assert_equals(preRedirectEntry.eagerness, 'immediate');
 
   const navigations = performance.getSpeculations().navigations;
-
-  const preRedirectEntry = navigations.find(n => n.url === redirectUrl);
-  assert_not_equals(preRedirectEntry, undefined,
-    `An entry keyed by the rule URL (${redirectUrl}) must exist`);
-  assert_equals(preRedirectEntry.type, 'prefetch');
-  assert_equals(preRedirectEntry.eagerness, 'eager');
-
   const postRedirectEntry = navigations.find(n => n.url === destinationUrl);
   assert_equals(postRedirectEntry, undefined,
     `No entry should be keyed by the post-redirect URL (${destinationUrl})`);
@@ -103,20 +100,17 @@ promise_test(async t => {
   insertSpeculationRules({
     prerender: [{
       urls: [redirectUrl],
-      eagerness: 'eager',
+      eagerness: 'immediate',
       tag: 'preredirect-prerender-test',
     }],
   });
 
-  await new Promise(resolve => t.step_timeout(resolve, 100));
-
-  const navigations = performance.getSpeculations().navigations;
-
-  const preRedirectEntry = navigations.find(n => n.url === redirectUrl);
-  assert_not_equals(preRedirectEntry, undefined,
-    `An entry keyed by the rule URL (${redirectUrl}) must exist`);
+  // Wait for the browser to actually create the prerender host. The entry
+  // appears in navigations at that point.
+  const preRedirectEntry = await waitForSpeculationMatching(t, redirectUrl);
   assert_equals(preRedirectEntry.type, 'prerender');
 
+  const navigations = performance.getSpeculations().navigations;
   const postRedirectEntry = navigations.find(n => n.url === destinationUrl);
   assert_equals(postRedirectEntry, undefined,
     `No entry should be keyed by the post-redirect URL (${destinationUrl})`);

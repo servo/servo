@@ -1,3 +1,2 @@
-features:
-- name: webgl
-  files: '**'
+rules:
+- "**": [webgl]

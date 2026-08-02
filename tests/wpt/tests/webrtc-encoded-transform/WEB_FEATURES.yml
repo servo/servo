@@ -1,3 +1,2 @@
-features:
-- name: webrtc-encoded-transform
-  files: "**"
+rules:
+- "**": [webrtc-encoded-transform]

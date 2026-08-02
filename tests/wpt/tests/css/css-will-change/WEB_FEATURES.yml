@@ -1,3 +1,2 @@
-features:
-- name: will-change
-  files: '**'
+rules:
+- "**": [will-change]

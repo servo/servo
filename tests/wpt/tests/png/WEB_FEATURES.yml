@@ -1,3 +1,2 @@
-features:
-- name: png
-  files: "**"
+rules:
+- "**": [png]

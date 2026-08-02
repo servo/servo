@@ -1,3 +1,2 @@
-features:
-- name: text-encoding
-  files: "**"
+rules:
+- "**": [text-encoding]

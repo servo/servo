@@ -1,4 +1,2 @@
-features:
-- name: storage-manager
-  files:
-  - "*"
+rules:
+- "*": [storage-manager]

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+<link rel="help" href="https://crbug.com/536997542">
+</head>
+X<span id="sp">
+<style>
+  head, html, body, span {
+    display: inline-block
+  }
+  html::first-letter, span::first-letter {
+    color: pink;
+  }
+  span {
+    container-type: inline-size;
+    float: right;
+  }
+</style>
+<script>
+  document.body.offsetHeight;
+  document.head.style.display = "none";
+  document.body.style.display = "block";
+  sp.style.display = "inline";
+  document.body.offsetTop;
+</script>

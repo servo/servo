@@ -1,3 +1,2 @@
-features:
-- name: form
-  files: "**"
+rules:
+- "**": [form]

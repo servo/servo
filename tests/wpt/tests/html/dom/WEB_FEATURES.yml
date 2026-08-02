@@ -1,7 +1,3 @@
-features:
-- name: accesskey
-  files:
-  - access-key-label.html
-- name: aria-attribute-reflection
-  files:
-  - aria-attribute-reflection.html
+rules:
+- access-key-label.html: [accesskey]
+- aria-attribute-reflection.html: [aria-attribute-reflection]

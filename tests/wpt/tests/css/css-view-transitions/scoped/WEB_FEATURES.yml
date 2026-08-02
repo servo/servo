@@ -1,3 +1,2 @@
-features:
-- name: view-transitions-element-scoped
-  files: "**"
+rules:
+- "**": [view-transitions-element-scoped]

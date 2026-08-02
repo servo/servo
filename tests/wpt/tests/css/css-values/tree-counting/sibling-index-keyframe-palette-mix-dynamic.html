@@ -39,7 +39,7 @@
 </div>
 <script>
   test(() => {
-    assert_equals(getComputedStyle(target).fontPalette, "palette-mix(in lch, --MyFirstPalette 20%, --MySecondPalette)");
+    assert_equals(getComputedStyle(target).fontPalette, "palette-mix(in lch, --MyFirstPalette 20%, --MySecondPalette 80%)");
   }, "Initially, the sibling-index() is 4 for #target");
 
   test(() => {

@@ -1,3 +1,2 @@
-features:
-- name: device-orientation-events
-  files: "**"
+rules:
+- "**": [device-orientation-events]

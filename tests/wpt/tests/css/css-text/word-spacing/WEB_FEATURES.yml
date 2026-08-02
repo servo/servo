@@ -1,3 +1,2 @@
-features:
-- name: word-spacing
-  files: "**"
+rules:
+- "**": [word-spacing]

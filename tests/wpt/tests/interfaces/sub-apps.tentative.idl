@@ -1,0 +1,27 @@
+partial interface Window {
+  [SameObject] readonly attribute SubApps subApps;
+};
+
+dictionary SubAppsAddResponse {
+  record<USVString, USVString> installedApps;
+  record<USVString, DOMException> failedApps;
+};
+
+dictionary SubAppsRemoveResponse {
+  sequence<USVString> removedApps;
+  record<USVString, DOMException> failedApps;
+};
+
+dictionary SubAppsListResult {
+  required DOMString appName;
+};
+
+[
+  Exposed=Window,
+  SecureContext,
+  IsolatedContext
+] interface SubApps {
+  Promise<SubAppsAddResponse> add(sequence<USVString> install_paths);
+  Promise<SubAppsRemoveResponse> remove(sequence<USVString> manifest_ids);
+  Promise<record<USVString, SubAppsListResult>> list();
+};

@@ -1,4 +1,2 @@
-features:
-- name: display
-  files:
-  - display-interpolation*
+rules:
+- display-interpolation*: [display]

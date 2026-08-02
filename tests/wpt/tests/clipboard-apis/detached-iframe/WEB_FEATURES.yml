@@ -1,3 +1,2 @@
-features:
-- name: async-clipboard
-  files: "**"
+rules:
+- "**": [async-clipboard]

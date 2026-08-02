@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>
+  CSS Test: fragmented span's border should be sliced at correct logical edges
+</title>
+<meta charset="utf-8">
+<meta name="flags" content="ahem">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-break-4/#valdef-box-decoration-break-slice">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#bidi-box-model">
+<link rel="match" href="border-slice-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  :root { font: 20px/2 Ahem; }
+  .wrapper {
+      border: 1px solid gray;
+      display: inline-block;
+  }
+  span {
+      border: 5px solid fuchsia;
+  }
+  .vlr > .wrapper {
+      writing-mode: vertical-lr;
+  }
+  .vrl > .wrapper {
+      writing-mode: vertical-rl;
+  }
+  .slr > .wrapper {
+      writing-mode: sideways-lr;
+  }
+  .srl > .wrapper {
+      writing-mode: sideways-rl;
+  }
+  .rtl {
+      direction: rtl;
+  }
+  .group { margin-bottom: 10px; }
+</style>
+<div class="group">
+  <div class="wrapper">
+    <span>A<br>B</span>
+  </div>
+  <div class="wrapper rtl">
+    <span>A<br>B</span>
+  </div>
+</div>
+<div class="group vlr">
+  <div class="wrapper">
+    <span>A<br>B</span>
+  </div>
+  <div class="wrapper rtl">
+    <span>A<br>B</span>
+  </div>
+</div>
+<div class="group vrl">
+  <div class="wrapper">
+    <span>A<br>B</span>
+  </div>
+  <div class="wrapper rtl">
+    <span>A<br>B</span>
+  </div>
+</div>
+<div class="group slr">
+  <div class="wrapper">
+    <span>A<br>B</span>
+  </div>
+  <div class="wrapper rtl">
+    <span>A<br>B</span>
+  </div>
+</div>
+<div class="group srl">
+  <div class="wrapper">
+    <span>A<br>B</span>
+  </div>
+  <div class="wrapper rtl">
+    <span>A<br>B</span>
+  </div>
+</div>

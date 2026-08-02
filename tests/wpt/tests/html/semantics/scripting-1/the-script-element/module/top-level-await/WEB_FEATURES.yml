@@ -1,4 +1,2 @@
-features:
-- name: top-level-await
-  files:
-  - "*"
+rules:
+- "*": [top-level-await]

@@ -1,4 +1,2 @@
-features:
-- name: line-height
-  files:
-  - line-height-interpolation.html
+rules:
+- line-height-interpolation.html: [line-height]

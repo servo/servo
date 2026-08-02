@@ -54,7 +54,7 @@
           assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
           ss.cssRules[0].cssRules[0].cssRules[1].style.color = 'green';
           assert_equals(ss.cssRules[0].cssText,
-`@mixin --m1() {
+`@mixin --m1 {
   @result {
   color: red;
   & { --foo: bar; color: green; }
@@ -71,7 +71,7 @@
           assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
           ss.cssRules[1].cssRules[0].cssRules[0].style.color = 'green';
           assert_equals(ss.cssRules[1].cssText,
-`@mixin --m2() {
+`@mixin --m2 {
   @result {
   color: green;
 }

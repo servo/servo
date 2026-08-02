@@ -1,3 +1,2 @@
-features:
-- name: beacons
-  files: "**"
+rules:
+- "**": [beacons]

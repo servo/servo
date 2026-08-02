@@ -1,23 +1,9 @@
-features:
-- name: overflow-clip-margin
-  files:
-  - overflow-clip-margin*
-- name: scroll-markers
-  files:
-  - scroll-markers*
-- name: scroll-buttons
-  files:
-  - scroll-button*
-- name: scroll-target-group
-  files:
-  - scroll-target-group*
-- name: scrollbar-gutter
-  files:
-  - scrollbar-gutter-*
-- name: line-clamp
-  files:
-  - line-clamp-*
-  - webkit-line-clamp-*
-- name: text-overflow
-  files:
-  - text-overflow-*
+rules:
+- overflow-clip-margin*: [overflow-clip-margin]
+- scroll-markers*: [scroll-markers]
+- scroll-button*: [scroll-buttons]
+- scroll-target-group*: [scroll-target-group]
+- scrollbar-gutter-*: [scrollbar-gutter]
+- line-clamp-*: [line-clamp]
+- webkit-line-clamp-*: [line-clamp]
+- text-overflow-*: [text-overflow]

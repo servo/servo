@@ -1,23 +1,11 @@
-features:
-- name: has-slotted
-  files:
-  - has-slotted-*
-- name: slot
-  files:
-  - css-scoping-shadow-*-slot-*.html
-  - css-scoping-shadow-slotted-*.html
-  - slot-non-html-display-value.html
-  - slotted-*.html
-- name: host-context
-  files:
-  - host-context-*
-  - host-in-host-context-selector.html
-- name: scope-pseudo
-  files:
-  - scope-pseudo*
-- name: host
-  files:
-  - host-*
-  - "!host-context-*"
-  - "!host-in-host-context-selector.html"
-  - "!host-is-featureless.html"
+rules:
+- has-slotted-*: [has-slotted]
+- css-scoping-shadow-*-slot-*.html: [slot]
+- css-scoping-shadow-slotted-*.html: [slot]
+- slot-non-html-display-value.html: [slot]
+- slotted-*.html: [slot]
+- host-context-*: [host-context]
+- host-in-host-context-selector.html: [host-context]
+- scope-pseudo*: [scope-pseudo]
+- host-is-featureless.html: []
+- host-*: [host]

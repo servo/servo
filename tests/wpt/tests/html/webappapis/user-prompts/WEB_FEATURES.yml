@@ -1,12 +1,4 @@
-features:
-- name: alerts
-  files:
-  - "*"
-  - "!print-*"
-- name: print
-  files:
-  - "print-*"
-  - "!print-manual.html"
-- name: print-events
-  files:
-  - print-manual.html
+rules:
+- print-manual.html: [print-events]
+- print-*: [print]
+- "*": [alerts]

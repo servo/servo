@@ -1,3 +1,2 @@
-features:
-- name: private-click-measurement
-  files: "**"
+rules:
+- "**": [private-click-measurement]

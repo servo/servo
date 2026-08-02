@@ -1,3 +1,2 @@
-features:
-- name: clipboard-events
-  files: "**"
+rules:
+- "**": [clipboard-events]

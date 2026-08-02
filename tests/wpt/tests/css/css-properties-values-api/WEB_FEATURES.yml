@@ -1,3 +1,2 @@
-features:
-- name: registered-custom-properties
-  files: "**"
+rules:
+- "**": [registered-custom-properties]

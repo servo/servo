@@ -1,3 +1,2 @@
-features:
-- name: cookies
-  files: "**"
+rules:
+- "**": [cookies]

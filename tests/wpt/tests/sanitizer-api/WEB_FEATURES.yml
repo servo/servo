@@ -1,3 +1,2 @@
-features:
-- name: sanitizer
-  files: "**"
+rules:
+- "**": [sanitizer]

@@ -1,3 +1,2 @@
-features:
-- name: title
-  files: "**"
+rules:
+- "**": [title]

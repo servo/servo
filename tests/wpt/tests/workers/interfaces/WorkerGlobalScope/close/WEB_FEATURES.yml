@@ -1,12 +1,4 @@
-features:
-- name: setinterval
-  files:
-  - 'setInterval.html'
-- name: settimeout
-  files:
-  - 'setTimeout.html'
-- name: dedicated-workers
-  files:
-  - '*'
-  - '!setInterval.html'
-  - '!setTimeout.html'
+rules:
+- setInterval.html: [setinterval]
+- setTimeout.html: [settimeout]
+- "*": [dedicated-workers]

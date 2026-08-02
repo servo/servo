@@ -1,3 +1,2 @@
-features:
-- name: wasm-simd-relaxed
-  files: "**"
+rules:
+- "**": [wasm-simd-relaxed]

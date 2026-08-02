@@ -1,3 +1,2 @@
-features:
-- name: parse-html-unsafe
-  files: "**"
+rules:
+- "**": [parse-html-unsafe]

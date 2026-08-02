@@ -1,3 +1,2 @@
-features:
-- name: is-secure-context
-  files: "**"
+rules:
+- "**": [is-secure-context]

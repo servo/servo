@@ -1,3 +1,2 @@
-features:
-- name: word-break-auto-phrase
-  files: "**"
+rules:
+- "**": [word-break-auto-phrase]

@@ -1,5 +1,3 @@
-features:
-- name: execcommand
-  files:
-    - 'execCommand-*.html'
-    - 'queryCommand*.html'
+rules:
+- execCommand-*.html: [execcommand]
+- queryCommand*.html: [execcommand]

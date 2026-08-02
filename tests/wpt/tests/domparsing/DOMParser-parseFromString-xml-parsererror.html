@@ -47,4 +47,22 @@ const xhtml_prologue = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     assert_equals(doc.contentType, mimeType);
   }, `${mimeType} is preserved in the error document`);
 })
+
+// This test is based on https://crbug.com/40814739:
+// DOMParser replaces lone surrogates in XML with U+FFFD.
+const parse = text => new DOMParser().parseFromString(
+    "<rss><title><![CDATA[" + text + "]]></title></rss>", "text/xml");
+
+test(() => {
+  const doc = parse("broken " + String.fromCharCode(0xD83C));
+  assert_equals(doc.documentElement.localName, "rss");
+  assert_equals(doc.querySelector("title").textContent, "broken \uFFFD");
+}, "A lone surrogate is replaced with U+FFFD");
+
+test(() => {
+  const fire = String.fromCharCode(0xD83D, 0xDD25);
+  const doc = parse("works " + fire);
+  assert_equals(doc.documentElement.localName, "rss");
+  assert_equals(doc.querySelector("title").textContent, "works " + fire);
+}, "A valid surrogate pair is preserved");
 </script>

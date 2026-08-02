@@ -395,7 +395,6 @@ css/css-view-transitions/old-content-with-overflow.html @web-platform-tests/inte
 css/css-view-transitions/old-root-vertical-writing-mode.html @web-platform-tests/interop
 css/css-view-transitions/outer-padding-inner-background.html @web-platform-tests/interop
 css/css-view-transitions/paint-holding-in-iframe.html @web-platform-tests/interop
-css/css-view-transitions/pseudo-element-overflow-clip-with-border-radius.html @web-platform-tests/interop
 css/css-view-transitions/pseudo-element-overflow-hidden.html @web-platform-tests/interop
 css/css-view-transitions/pseudo-element-preserve-3d.html @web-platform-tests/interop
 css/css-view-transitions/pseudo-rendering-invalidation.html @web-platform-tests/interop

@@ -1,5 +1,3 @@
-features:
-  - name: float-clear
-    files:
-      - 'float-root.html'
-      - 'inheritance.html'
+rules:
+- float-root.html: [float-clear]
+- inheritance.html: [float-clear]

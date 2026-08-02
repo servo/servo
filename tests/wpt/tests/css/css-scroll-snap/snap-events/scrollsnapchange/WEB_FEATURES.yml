@@ -1,3 +1,2 @@
-features:
-- name: scroll-snap-events
-  files: "**"
+rules:
+- "**": [scroll-snap-events]

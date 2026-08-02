@@ -1,71 +1,41 @@
-features:
-- name: color-function
-  files:
-  - a98rgb-*
-  - display-p3-*
-  - predefined-*
-  - prophoto-rgb-*
-  - rec2020-*
-  - srgb-*
-  - xyz-*
-- name: color-mix
-  files:
-  - color-mix-*
-  - nested-color-mix-with-currentcolor.html
-- name: currentcolor
-  files:
-  - currentcolor-*
-  - t44-currentcolor-*
-  - color-003.html
-  - currentcolor-visited-fallback.html
-  - t31-color-currentColor-b.xht
-- name: lab
-  files:
-  - lab-*
-  - lch-*
-- name: light-dark
-  files:
-  - light-dark-*
-- name: oklab
-  files:
-  - oklab-*
-  - oklch-*
-- name: hwb
-  files:
-  - hwb-*
-- name: relative-color
-  files:
-  - relative-*
-- name: rgb
-  files:
-  - rgb-*
-  - rgba-*
-  - hex-*
-- name: system-color
-  files:
-  - "deprecated-sameas-*"
-  - "system-color-*"
-- name: contrast-color
-  files:
-  - contrast-color-*.html
-- name: hsl
-  files:
-  - background-color-hsl-*
-  - hsl-*
-  - hsla-*
-  - t424-hsl-*
-  - t425-hsla-*
-- name: opacity
-  files:
-  - t32-opacity-*.xht
-  - inline-opacity-float-child.html
-  - opacity-overlapping-letters.html
-- name: named-color
-  files:
-  - named-001.html
-- name: color
-  files:
-  - color-001.html
-  - color-002.html
-  - t31-color-text-a.xht
-  - t423-transparent-*
+rules:
+- a98rgb-*: [color-function]
+- display-p3-*: [color-function]
+- predefined-*: [color-function]
+- prophoto-rgb-*: [color-function]
+- rec2020-*: [color-function]
+- srgb-*: [color-function]
+- xyz-*: [color-function]
+- color-mix-*: [color-mix]
+- nested-color-mix-with-currentcolor.html: [color-mix]
+- currentcolor-visited-fallback.html: [currentcolor, currentcolor]
+- currentcolor-*: [currentcolor]
+- t44-currentcolor-*: [currentcolor]
+- color-003.html: [currentcolor]
+- t31-color-currentColor-b.xht: [currentcolor]
+- lab-*: [lab]
+- lch-*: [lab]
+- light-dark-*: [light-dark]
+- oklab-*: [oklab]
+- oklch-*: [oklab]
+- hwb-*: [hwb]
+- relative-*: [relative-color]
+- rgb-*: [rgb]
+- rgba-*: [rgb]
+- hex-*: [rgb]
+- deprecated-sameas-*: [system-color]
+- system-color-*: [system-color]
+- contrast-color-*.html: [contrast-color]
+- background-color-hsl-*: [hsl]
+- hsl-*: [hsl]
+- hsla-*: [hsl]
+- t424-hsl-*: [hsl]
+- t425-hsla-*: [hsl]
+- t32-opacity-*.xht: [opacity]
+- inline-opacity-float-child.html: [opacity]
+- opacity-overlapping-letters.html: [opacity]
+- named-001.html: [named-color]
+- color-001.html: [color]
+- color-002.html: [color]
+- t31-color-text-a.xht: [color]
+- t423-transparent-*: [color]

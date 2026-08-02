@@ -1,3 +1,2 @@
-features:
-- name: local-fonts
-  files: "**"
+rules:
+- "**": [local-fonts]

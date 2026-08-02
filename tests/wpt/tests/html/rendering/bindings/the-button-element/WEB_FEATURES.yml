@@ -1,3 +1,2 @@
-features:
-- name: button
-  files: "**"
+rules:
+- "**": [button]

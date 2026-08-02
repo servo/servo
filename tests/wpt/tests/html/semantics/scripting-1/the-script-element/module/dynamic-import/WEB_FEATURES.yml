@@ -1,8 +1,3 @@
-features:
-- name: base
-  files:
-  - string-compilation-base-url-*
-- name: js-modules
-  files:
-  - "*"
-  - "!string-compilation-base-url-*"
+rules:
+- string-compilation-base-url-*: [base]
+- "*": [js-modules]

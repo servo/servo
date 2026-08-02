@@ -1,3 +1,2 @@
-features:
-- name: inert
-  files: "**"
+rules:
+- "**": [inert]

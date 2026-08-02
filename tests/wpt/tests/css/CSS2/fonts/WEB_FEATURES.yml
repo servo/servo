@@ -1,17 +1,7 @@
-features:
-- name: font-shorthand
-  files:
-  - font-0*
-  - font-1*
-- name: font-size
-  files:
-  - font-size-*
-- name: font-weight
-  files:
-  - font-weight-*
-- name: font-family
-  files:
-  - font-family-*
-- name: font-style
-  files:
-  - font-style-*
+rules:
+- font-0*: [font-shorthand]
+- font-1*: [font-shorthand]
+- font-size-*: [font-size]
+- font-weight-*: [font-weight]
+- font-family-*: [font-family]
+- font-style-*: [font-style]

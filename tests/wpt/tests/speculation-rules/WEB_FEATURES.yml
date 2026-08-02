@@ -1,3 +1,2 @@
-features:
-- name: speculation-rules
-  files: "**"
+rules:
+- "**": [speculation-rules]

@@ -1,3 +1,2 @@
-features:
-- name: bfcache-blocking-reasons
-  files: "**"
+rules:
+- "**": [bfcache-blocking-reasons]

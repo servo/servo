@@ -1,9 +1,5 @@
-features:
-- name: wasm-mutable-globals
-  files:
-  - "global-exports-live-bindings.tentative.any.js"
-  - "mutable-global-sharing.tentative.any.js"
-- name: wasm-string-builtins
-  files:
-  - "source-phase-string-builtins.tentative.any.js"
-  - "string-builtins.tentative.any.js"
+rules:
+- global-exports-live-bindings.tentative.any.js: [wasm-mutable-globals]
+- mutable-global-sharing.tentative.any.js: [wasm-mutable-globals]
+- source-phase-string-builtins.tentative.any.js: [wasm-string-builtins]
+- string-builtins.tentative.any.js: [wasm-string-builtins]

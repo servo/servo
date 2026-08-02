@@ -1,3 +1,2 @@
-features:
-- name: wasm-exception-handling
-  files: "**"
+rules:
+- "**": [wasm-exception-handling]

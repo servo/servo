@@ -1,3 +1,2 @@
-features:
-- name: compression-streams
-  files: "**"
+rules:
+- "**": [compression-streams]

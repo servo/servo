@@ -1,14 +1,10 @@
-features:
-- name: alternative-style-sheets
-  files:
-  - cascade-import-005.xht
-  - cascade-import-006.xht
-  - cascade-import-007.xht
-  - cascade-import-008.xht
-  - cascade-import-009.xht
-  - cascade-import-010.xht
-  - cascade-import-011.xht
-  - cascade-import-012.xht
-- name: import
-  files:
-  - cascade-import-002.xht
+rules:
+- cascade-import-005.xht: [alternative-style-sheets]
+- cascade-import-006.xht: [alternative-style-sheets]
+- cascade-import-007.xht: [alternative-style-sheets]
+- cascade-import-008.xht: [alternative-style-sheets]
+- cascade-import-009.xht: [alternative-style-sheets]
+- cascade-import-010.xht: [alternative-style-sheets]
+- cascade-import-011.xht: [alternative-style-sheets]
+- cascade-import-012.xht: [alternative-style-sheets]
+- cascade-import-002.xht: [import]

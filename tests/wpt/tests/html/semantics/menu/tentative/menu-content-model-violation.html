@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<title>HTMLMenuOwnerElement content model violations and dialog mode</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<menulist id="valid-menulist">
+  <fieldset>
+    <legend>Legend</legend>
+    <menuitem>Item 1</menuitem>
+    <div>
+      <menuitem>Item inside div</menuitem>
+    </div>
+  </fieldset>
+  <submenu>
+    <menuitem>Submenu Item</menuitem>
+    <menulist>
+      <menuitem>Item</menuitem>
+    </menulist>
+  </submenu>
+</menulist>
+
+<menubar id="valid-menubar">
+  <menuitem>Item 1</menuitem>
+  <menuitem>Item 2</menuitem>
+  <div>
+    <menuitem>Item 3</menuitem>
+    <submenu>
+      <menuitem>Submenu Item</menuitem>
+      <menulist>
+        <menuitem>Item</menuitem>
+      </menulist>
+    </submenu>
+    <fieldset>
+      <menuitem>Item 4</menuitem>
+    </fieldset>
+  </div>
+</menubar>
+
+<menulist id="invalid-menulist">
+  <menuitem>Item</menuitem>
+  <a href="#">Link</a>
+</menulist>
+
+<menubar id="invalid-menubar">
+  <menuitem>Item</menuitem>
+  <a href="#">Link</a>
+</menubar>
+
+<menubar id="invalid-outer-valid-inner">
+  <a href="#">Link</a>
+  <submenu>
+    <menuitem>Open Submenu</menuitem>
+    <menulist id="valid-inner-menulist">
+      <menuitem>Inner Item</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<menulist id="invalid-submenu-content">
+  <submenu>
+    <menuitem>Submenu Item</menuitem>
+    <menulist>
+      <menuitem>Item</menuitem>
+    </menulist>
+    <div>Invalid div in submenu</div>
+  </submenu>
+</menulist>
+
+<menulist id="invalid-submenu-text-content">
+  <submenu>
+    <menuitem>Submenu Item</menuitem>
+    <menulist>
+      <menuitem>Item</menuitem>
+    </menulist>
+    some wayward text
+  </submenu>
+</menulist>
+
+<menulist id="invalid-fieldset-content">
+  <fieldset>
+    <span>Invalid span</span>
+  </fieldset>
+</menulist>
+
+<menubar id="invalid-submenu-sequence">
+  <submenu>
+    <menulist>
+      <menuitem>Item 1</menuitem>
+    </menulist>
+    <menuitem>Item 2</menuitem>
+  </submenu>
+</menubar>
+
+<menubar id="invalid-submenu-multiple">
+  <submenu>
+    <menuitem>Item 1</menuitem>
+    <menuitem>Item 2</menuitem>
+    <menulist>
+      <menuitem>Item</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<menubar id="invalid-submenu-missing">
+  <submenu>
+    <menuitem>Item 1</menuitem>
+  </submenu>
+</menubar>
+
+<menulist id="invalid-text-content">
+  <menuitem>Item</menuitem>
+  some wayward text
+</menulist>
+
+<menubar id="invalid-button-content">
+  <menuitem>Item</menuitem>
+  <button>Invalid Button</button>
+</menubar>
+
+<menulist id="invalid-nested-menubar">
+  <menubar>
+    <menuitem>Item</menuitem>
+  </menubar>
+</menulist>
+
+<style>
+  #pseudo-menulist::before { content: "pseudo wayward"; }
+</style>
+
+<menulist id="pseudo-menulist">
+  <menuitem>Item</menuitem>
+</menulist>
+
+<script>
+promise_test(async () => {
+  const validList = document.getElementById('valid-menulist');
+  validList.showPopover();
+  const role = await test_driver.get_computed_role(validList);
+  assert_equals(role, 'menu');
+}, 'Menulist without content model violations does not force dialog');
+
+promise_test(async () => {
+  const validBar = document.getElementById('valid-menubar');
+  const role = await test_driver.get_computed_role(validBar);
+  assert_equals(role, 'menubar');
+}, 'Menubar without content model violations does not force dialog');
+
+promise_test(async () => {
+  const invalidList = document.getElementById('invalid-menulist');
+  invalidList.showPopover();
+  const role = await test_driver.get_computed_role(invalidList);
+  assert_equals(role, 'dialog');
+}, 'Menulist containing an anchor tag forces dialog');
+
+promise_test(async () => {
+  const invalidBar = document.getElementById('invalid-menubar');
+  const role = await test_driver.get_computed_role(invalidBar);
+  assert_equals(role, 'dialog');
+}, 'Menubar containing an anchor tag forces dialog');
+
+promise_test(async () => {
+  const invalidSubmenuContent = document.getElementById('invalid-submenu-content');
+  invalidSubmenuContent.showPopover();
+  const role = await test_driver.get_computed_role(invalidSubmenuContent);
+  assert_equals(role, 'dialog');
+}, 'Submenu containing <div>text</div> forces dialog');
+
+promise_test(async () => {
+  const invalidSubmenuTextContent = document.getElementById('invalid-submenu-text-content');
+  invalidSubmenuTextContent.showPopover();
+  const role = await test_driver.get_computed_role(invalidSubmenuTextContent);
+  assert_equals(role, 'dialog');
+}, 'Submenu containing wayward text content forces dialog');
+
+promise_test(async () => {
+  const invalidFieldsetContent = document.getElementById('invalid-fieldset-content');
+  invalidFieldsetContent.showPopover();
+  const role = await test_driver.get_computed_role(invalidFieldsetContent);
+  assert_equals(role, 'dialog');
+}, 'Fieldset containing wayward text forces dialog');
+
+promise_test(async () => {
+  const invalidTextContent = document.getElementById('invalid-text-content');
+  invalidTextContent.showPopover();
+  const role = await test_driver.get_computed_role(invalidTextContent);
+  assert_equals(role, 'dialog');
+}, 'Menulist with wayward text content forces dialog');
+
+promise_test(async () => {
+  const invalidButtonContent = document.getElementById('invalid-button-content');
+  const role = await test_driver.get_computed_role(invalidButtonContent);
+  assert_equals(role, 'dialog');
+}, 'Menubar with wayward button forces dialog');
+
+promise_test(async () => {
+  const invalidSubmenuSequence = document.getElementById('invalid-submenu-sequence');
+  const role = await test_driver.get_computed_role(invalidSubmenuSequence);
+  assert_equals(role, 'menubar');
+}, 'Invalid submenu sequence intentionally does not force dialog');
+
+promise_test(async () => {
+  const invalidSubmenuMultiple = document.getElementById('invalid-submenu-multiple');
+  const role = await test_driver.get_computed_role(invalidSubmenuMultiple);
+  assert_equals(role, 'menubar');
+}, 'Invalid submenu multiple items intentionally does not force dialog');
+
+promise_test(async () => {
+  const invalidSubmenuMissing = document.getElementById('invalid-submenu-missing');
+  const role = await test_driver.get_computed_role(invalidSubmenuMissing);
+  assert_equals(role, 'menubar');
+}, 'Invalid submenu missing item intentionally does not force dialog');
+
+promise_test(async () => {
+  const dynamicList = document.createElement('menulist');
+  document.body.appendChild(dynamicList);
+  dynamicList.showPopover();
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Initially valid');
+
+  const a = document.createElement('a');
+  a.href = "#";
+  dynamicList.appendChild(a);
+
+  // Wait for mutation observer
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Adding violation forces dialog');
+
+  a.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Removing violation restores menu role');
+
+}, 'Dynamic mutation correctly triggers and untriggers dialog mode');
+
+promise_test(async () => {
+  const invalidOuter = document.getElementById('invalid-outer-valid-inner');
+  const validInner = document.getElementById('valid-inner-menulist');
+  validInner.showPopover();
+
+  const outerRole = await test_driver.get_computed_role(invalidOuter);
+  assert_equals(outerRole, 'dialog', 'Invalid outer menubar forces dialog');
+
+  const innerRole = await test_driver.get_computed_role(validInner);
+  assert_equals(innerRole, 'menu', 'Valid inner menulist should retain menu role even if outer is invalid');
+}, 'Invalid outer menubar forces dialog on itself but not on valid inner menulist');
+
+promise_test(async () => {
+  const dynamicList = document.createElement('menulist');
+  document.body.appendChild(dynamicList);
+  dynamicList.showPopover();
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Initially valid');
+
+  const textNode = document.createTextNode('wayward text');
+  dynamicList.appendChild(textNode);
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Adding text violation forces dialog');
+
+  textNode.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Removing text violation restores menu role');
+}, 'Dynamic text mutation correctly triggers and untriggers dialog mode');
+
+promise_test(async () => {
+  const dynamicList = document.createElement('menulist');
+  const div = document.createElement('div');
+  div.tabIndex = 1;
+
+  dynamicList.appendChild(div);
+  document.body.appendChild(dynamicList);
+  dynamicList.showPopover();
+
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Initially in dialog mode due to tabindex');
+
+  // Trigger an attribute mutation on the already invalid node
+  div.tabIndex = 2;
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  // Remove the attribute to make it valid
+  div.removeAttribute('tabindex');
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  // This SHOULD be 'menu' because the invalid attribute was removed.
+  // However, the current implementation double-counts attribute mutations. We assert
+  // 'dialog' here to document this known shortcoming.
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Modifying an attribute on an already invalid node incorrectly causes permanent count inflation');
+}, 'Attribute mutation double-counting incorrectly fails to untrigger dialog mode');
+
+promise_test(async () => {
+  const dynamicList = document.createElement('menulist');
+  const submenu = document.createElement('submenu');
+  dynamicList.appendChild(submenu);
+  document.body.appendChild(dynamicList);
+  dynamicList.showPopover();
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Initially valid');
+
+  const div = document.createElement('div');
+  submenu.appendChild(div);
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Adding structural anomaly does not trigger dialog mode');
+
+  div.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Still menu after removing anomaly');
+}, 'Dynamic structural violation (div in submenu) does not force dialog');
+
+promise_test(async () => {
+  const dynamicList = document.createElement('menulist');
+  const a = document.createElement('a');
+  a.href = "#";
+  const validTextItem = document.createElement('menuitem');
+  const textNode = document.createTextNode('valid text');
+  validTextItem.appendChild(textNode);
+
+  dynamicList.appendChild(a);
+  dynamicList.appendChild(validTextItem);
+  document.body.appendChild(dynamicList);
+
+  dynamicList.showPopover();
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Initially in dialog mode due to anchor tag');
+
+  textNode.remove();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Removing valid text should not clear dialog mode');
+}, 'Removing valid text content does not incorrectly clear dialog mode');
+
+promise_test(async () => {
+  const invalidNestedMenubar = document.getElementById('invalid-nested-menubar');
+  invalidNestedMenubar.showPopover();
+  const role = await test_driver.get_computed_role(invalidNestedMenubar);
+  assert_equals(role, 'menu');
+}, 'Menulist containing a menubar does not force dialog');
+
+promise_test(async () => {
+  const pseudoMenulist = document.getElementById('pseudo-menulist');
+  pseudoMenulist.showPopover();
+  const role = await test_driver.get_computed_role(pseudoMenulist);
+  // This SHOULD be 'dialog' because the pseudo-element injects wayward text.
+  // However, MutationObserver cannot detect CSS pseudo-elements. We assert
+  // 'menu' here to document this known shortcoming.
+  assert_equals(role, 'menu');
+}, 'Menulist with wayward pseudo-element text incorrectly fails to force dialog');
+
+promise_test(async () => {
+  const dynamicList = document.createElement('menulist');
+  const div = document.createElement('div');
+  const button = document.createElement('button');
+
+  div.appendChild(button);
+  dynamicList.appendChild(div);
+  document.body.appendChild(dynamicList);
+
+  dynamicList.showPopover();
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Initially in dialog mode due to button');
+
+  // Remove the subtree, then mutate it before the observer runs
+  div.remove();
+  button.remove();
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Mutating a detached subtree should not affect the menu');
+}, 'React/lit teardown: Mutating a detached subtree does not incorrectly trigger dialog mode');
+
+promise_test(async () => {
+  const dynamicList = document.createElement('menulist');
+  const div = document.createElement('div');
+  const button = document.createElement('button');
+
+  div.appendChild(button);
+  dynamicList.appendChild(div);
+  document.body.appendChild(dynamicList);
+  dynamicList.showPopover();
+
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'dialog', 'Initially in dialog mode due to button');
+
+  // Remove the nodes in a specific order that exposes the transient observer processing order issue.
+  // Removing the inner invalid element first, then its container.
+  button.remove();
+  div.remove();
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  assert_equals(await test_driver.get_computed_role(dynamicList), 'menu', 'Removing invalid nodes should restore the menu role');
+}, 'Vue/Angular teardown: Removing invalid nodes in reverse tree order restores menu role');
+
+promise_test(async () => {
+  const outerList = document.createElement('menulist');
+  const outerButton = document.createElement('button');
+  const innerList = document.createElement('menulist');
+  const innerDiv = document.createElement('div');
+  const innerButton = document.createElement('button');
+
+  innerDiv.appendChild(innerButton);
+  innerList.appendChild(innerDiv); // Violation for inner
+  outerList.appendChild(outerButton);  // Violation for outer
+  outerList.appendChild(innerList);
+  document.body.appendChild(outerList);
+
+  outerList.showPopover();
+  innerList.showPopover();
+
+  assert_equals(await test_driver.get_computed_role(outerList), 'dialog', 'Outer list initially in dialog mode');
+  assert_equals(await test_driver.get_computed_role(innerList), 'dialog', 'Inner list initially in dialog mode');
+
+  // Remove the subtree from the INNER list, then mutate it before the observer runs.
+  // Because of transient observers, both inner and outer observers will get a record for innerButton's removal.
+  innerDiv.remove();
+  innerButton.remove();
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  // The outer list should STILL be in dialog mode because outerButton is still there.
+  assert_equals(await test_driver.get_computed_role(outerList), 'dialog', 'Mutating a detached inner subtree should not decrement outer violations');
+}, 'Outer menu ignores mutations inside detached nested menus');
+</script>

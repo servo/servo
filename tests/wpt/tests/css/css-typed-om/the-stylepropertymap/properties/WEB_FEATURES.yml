@@ -1,62 +1,22 @@
-features:
-- name: box-shadow
-  files:
-  - box-shadow.html
-- name: speak
-  files:
-  - speak.html
-- name: font-feature-settings
-  files:
-  - font-feature-settings.html
-- name: font-kerning
-  files:
-  - font-kerning.html
-- name: font-variant
-  files:
-  - font-variant.html
-- name: font-variant-caps
-  files:
-  - font-variant-caps.html
-- name: font-variant-east-asian
-  files:
-  - font-variant-east-asian.html
-- name: font-variant-ligatures
-  files:
-  - font-variant-ligatures.html
-- name: font-variant-numeric
-  files:
-  - font-variant-numeric.html
-- name: dominant-baseline
-  files:
-  - dominant-baseline.html
-- name: filter
-  files:
-  - filter.html
-- name: opacity
-  files:
-  - opacity.html
-- name: opacity-svg
-  files:
-  - fill-opacity.html
-  - stroke-opacity.html
-- name: text-overflow
-  files:
-  - text-overflow.html
-- name: font-style
-  files:
-  - font-style.html
-- name: font-variation-settings
-  files:
-  - font-variation-settings.html
-- name: font-stretch
-  files:
-  - font-stretch.html
-- name: overflow-clip-margin
-  files:
-  - overflow-clip-margin.html
-- name: overflow-wrap
-  files:
-  - overflow-wrap.html
-- name: pointer-events
-  files:
-  - pointer-events.html
+rules:
+- box-shadow.html: [box-shadow]
+- speak.html: [speak]
+- font-feature-settings.html: [font-feature-settings]
+- font-kerning.html: [font-kerning]
+- font-variant.html: [font-variant]
+- font-variant-caps.html: [font-variant-caps]
+- font-variant-east-asian.html: [font-variant-east-asian]
+- font-variant-ligatures.html: [font-variant-ligatures]
+- font-variant-numeric.html: [font-variant-numeric]
+- dominant-baseline.html: [dominant-baseline]
+- filter.html: [filter]
+- opacity.html: [opacity]
+- fill-opacity.html: [opacity-svg]
+- stroke-opacity.html: [opacity-svg]
+- text-overflow.html: [text-overflow]
+- font-style.html: [font-style]
+- font-variation-settings.html: [font-variation-settings]
+- font-stretch.html: [font-stretch]
+- overflow-clip-margin.html: [overflow-clip-margin]
+- overflow-wrap.html: [overflow-wrap]
+- pointer-events.html: [pointer-events]

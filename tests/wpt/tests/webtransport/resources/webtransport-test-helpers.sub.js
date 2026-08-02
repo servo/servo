@@ -88,6 +88,18 @@ async function query(token) {
   }
 }
 
+// Polls the server until the stream close info for |token| is recorded, then
+// returns it. Avoids racing on a fixed delay for the close signal to arrive.
+async function query_stream_close_info(token) {
+  while (true) {
+    const data = await query(token);
+    if ('stream-close-info' in data) {
+      return data['stream-close-info'];
+    }
+    await wait(10);
+  }
+}
+
 async function readInto(reader, buffer) {
   let offset = 0;
 

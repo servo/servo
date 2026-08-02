@@ -1,3 +1,2 @@
-features:
-  - name: wasm-bulk-memory
-    files: "**"
+rules:
+- "**": [wasm-bulk-memory]

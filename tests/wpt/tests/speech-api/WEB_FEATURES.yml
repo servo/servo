@@ -1,7 +1,3 @@
-features:
-- name: speech-recognition
-  files:
-  - SpeechRecognition*
-- name: speech-synthesis
-  files:
-  - SpeechSynthesis*
+rules:
+- SpeechRecognition*: [speech-recognition]
+- SpeechSynthesis*: [speech-synthesis]

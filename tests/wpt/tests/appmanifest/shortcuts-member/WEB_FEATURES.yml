@@ -1,3 +1,2 @@
-features:
-- name: app-shortcuts
-  files: "**"
+rules:
+- "**": [app-shortcuts]

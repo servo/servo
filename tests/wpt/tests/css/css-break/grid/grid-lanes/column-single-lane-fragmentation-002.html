@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>
+  Column grid-lanes fragmentation with item overflow.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: 50px;
+    height: 200px;
+    width: 50px;
+  }
+  .grid-lanes > div {
+    height: 10px;
+    width: 50px;
+  }
+  .grid-lanes > div > div {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div>
+      <div style="height: 10px;"></div>
+      <div style="height: 10px; background: red;"></div>
+      <div style="height: 180px;"></div>
+    </div>
+    <div>
+      <div style="height: 10px;"></div>
+    </div>
+  </div>
+</div>

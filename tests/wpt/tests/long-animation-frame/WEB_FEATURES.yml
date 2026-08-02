@@ -1,3 +1,2 @@
-features:
-- name: long-animation-frames
-  files: "**"
+rules:
+- "**": [long-animation-frames]

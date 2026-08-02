@@ -1,3 +1,2 @@
-features:
-- name: compression-dictionary-transport
-  files: "**"
+rules:
+- "**": [compression-dictionary-transport]

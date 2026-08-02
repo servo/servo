@@ -16,7 +16,7 @@
       if (valid) {
         test_valid_selector(selector, expected_selector);
       } else {
-        test_valid_forgiving_selector(selector);
+        test_valid_forgiving_selector(selector, expected_selector);
       }
     }
   }
@@ -43,6 +43,15 @@
 
   assert_valid(true, ":not({}(div))", null, "Nested inside :not, without combinators");
   assert_valid(true, ":not({}(div .foo))", null, "Nested inside :not, with combinators");
+
+  assert_valid(false, "{}(,,,)", "{}(, , , )", "Empty text, whitespace after comma");
+  assert_valid(false, ":host({}(,,,))", ":host({}(, , , ))", "Empty text, whitespace after comma");
+
+  assert_valid(false, ":host({}(.a, .b+.c, .d))", null, "Nested inside :host, serialize invalid selector as-is");
+  assert_valid(false, "{}(::before:HOVER, .a)", null, "Pseudo-element inside, serialize invalid selector as-is");
+  assert_valid(false, ":has({}(:has(.a+.b)))", null, "Nested has, serialize invalid selector as-is");
+
+  assert_valid(false, "{}(::before:HOVER  )", "{}(::before:HOVER)", "Invalid selector, trim trailing whitepaces");
   // This should be invalid even with the forgiving behavior because
   // `<any-value>` doesn't allow bad tokens:
   // https://drafts.csswg.org/css-syntax-3/#typedef-declaration-value

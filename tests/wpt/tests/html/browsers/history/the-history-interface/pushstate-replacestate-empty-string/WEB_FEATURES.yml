@@ -1,10 +1,4 @@
-features:
-- name: base
-  files:
-  - pushstate-base.html
-  - replacestate-base.html
-- name: history
-  files:
-  - "*"
-  - "!pushstate-base.html"
-  - "!replacestate-base.html"
+rules:
+- pushstate-base.html: [base]
+- replacestate-base.html: [base]
+- "*": [history]

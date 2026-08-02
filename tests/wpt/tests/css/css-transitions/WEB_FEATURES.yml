@@ -1,36 +1,12 @@
-features:
-- name: transitions
-  files:
-  - "*"
-  - "!starting-style-*"
-  - "!transition-behavior*"
-  - "!transition-timing-function-010-manual.html"
-  - "!transition-timing-function-002-manual.html"
-  - "!transition-timing-function-003-manual.html"
-  - "!transition-timing-function-004-manual.html"
-  - "!transition-timing-function-005-manual.html"
-  - "!transition-timing-function-006-manual.html"
-  - "!transition-property-017-manual.html"
-  - "!currentcolor-animation-001.html"
-- name: currentcolor
-  files:
-  - currentcolor-animation-001.html
-- name: starting-style
-  files:
-  - starting-style-*
-- name: transition-behavior
-  files:
-  - "transition-behavior*"
-- name: steps-easing
-  files:
-  - transition-timing-function-010-manual.html
-- name: cubic-bezier-easing
-  files:
-  - transition-timing-function-002-manual.html
-  - transition-timing-function-003-manual.html
-  - transition-timing-function-004-manual.html
-  - transition-timing-function-005-manual.html
-  - transition-timing-function-006-manual.html
-- name: clip
-  files:
-  - transition-property-017-manual.html
+rules:
+- starting-style-*: [starting-style]
+- transition-behavior*: [transition-behavior]
+- transition-timing-function-010-manual.html: [steps-easing]
+- transition-timing-function-002-manual.html: [cubic-bezier-easing]
+- transition-timing-function-003-manual.html: [cubic-bezier-easing]
+- transition-timing-function-004-manual.html: [cubic-bezier-easing]
+- transition-timing-function-005-manual.html: [cubic-bezier-easing]
+- transition-timing-function-006-manual.html: [cubic-bezier-easing]
+- transition-property-017-manual.html: [clip]
+- currentcolor-animation-001.html: [currentcolor]
+- "*": [transitions]

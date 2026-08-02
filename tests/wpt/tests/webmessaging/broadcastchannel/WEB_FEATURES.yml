@@ -1,3 +1,2 @@
-features:
-- name: broadcast-channel
-  files: "**"
+rules:
+- "**": [broadcast-channel]

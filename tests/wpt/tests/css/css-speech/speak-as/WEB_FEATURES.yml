@@ -1,3 +1,2 @@
-features:
-- name: speak-as
-  files: '**'
+rules:
+- "**": [speak-as]

@@ -1,7 +1,3 @@
-features:
-- name: cascade-layers
-  files:
-  - layer.html
-- name: import
-  files:
-  - supports-import-parsing.html
+rules:
+- layer.html: [cascade-layers]
+- supports-import-parsing.html: [import]

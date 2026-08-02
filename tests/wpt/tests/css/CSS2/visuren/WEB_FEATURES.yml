@@ -1,4 +1,2 @@
-features:
-- name: layout-direction-override
-  files:
-  - "bidi-*"
+rules:
+- bidi-*: [layout-direction-override]

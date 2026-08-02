@@ -1,3 +1,2 @@
-features:
-- name: media-pseudos
-  files: "**"
+rules:
+- "**": [media-pseudos]

@@ -1,3 +1,2 @@
-features:
-- name: masonry
-  files: "**"
+rules:
+- "**": [masonry]

@@ -1,3 +1,2 @@
-features:
-- name: resize-observer
-  files: "**"
+rules:
+- "**": [resize-observer]

@@ -1,3 +1,2 @@
-features:
-- name: ruby
-  files: "**"
+rules:
+- "**": [ruby]

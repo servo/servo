@@ -1,7 +1,3 @@
-features:
-- name: interpolate-size
-  files:
-  - interpolate-size-*
-- name: calc-size
-  files:
-  - calc-size-*
+rules:
+- interpolate-size-*: [interpolate-size]
+- calc-size-*: [calc-size]

@@ -41,3 +41,26 @@ test(() => {
   assert_true(Array.prototype.every.call(resultDoc.documentElement.children,
                                          (e) => e.localName == "success"));
 }, `xsl:document function disabled in transformToDocument`);
+
+test(() => {
+  // "http://[" is an invalid URI; [ signals the start of an IPv6 literal, but
+  // there is no actual address, nor is there a closing ].
+  const xmlWithInvalidBase = parser.parseFromString(
+      `<foo xml:base="http://[" />`, "application/xml");
+  const xsltStringWithInvalidBaseNode = `
+  <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+    <xsl:template match="/">
+      <result>
+        <count><xsl:value-of select="count(document('', /foo))" /></count>
+      </result>
+    </xsl:template>
+  </xsl:stylesheet>
+  `;
+  const xsltDocWithInvalidBaseNode = parser.parseFromString(
+      xsltStringWithInvalidBaseNode, "application/xml");
+  const processor = new XSLTProcessor();
+  processor.importStylesheet(xsltDocWithInvalidBaseNode);
+  const resultDoc = processor.transformToDocument(xmlWithInvalidBase);
+  assert_equals(resultDoc.querySelector("count").textContent, "0");
+}, `document() with invalid xml:base target node returns an empty node-set`);
+

@@ -1,5 +1,3 @@
-features:
-- name: time-relative-selectors
-  files:
-  - "*_past*"
-  - "*_future*"
+rules:
+- "*_past*": [time-relative-selectors]
+- "*_future*": [time-relative-selectors]

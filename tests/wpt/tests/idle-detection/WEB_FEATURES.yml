@@ -1,3 +1,2 @@
-features:
-- name: idle-detection
-  files: "**"
+rules:
+- "**": [idle-detection]

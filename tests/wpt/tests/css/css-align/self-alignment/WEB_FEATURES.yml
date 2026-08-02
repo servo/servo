@@ -1,4 +1,2 @@
-features:
-- name: justify-self-block
-  files:
-  - block-justify-self.html
+rules:
+- block-justify-self.html: [justify-self-block]

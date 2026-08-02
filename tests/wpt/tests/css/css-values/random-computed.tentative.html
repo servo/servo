@@ -57,6 +57,10 @@
     --random-length-1: random(fixed random(0, 1), 0px, 100px);
     --random-length-2: random(fixed random(0, 1), 0px, 100px);
   }
+  .randomNoIdentifierPercent {
+    left: random(0%, 100%);
+    top: random(0%, 100%);
+  }
   .randomMatchElement {
     width: random(property-index-scoped, 0px, 300000px);
     height: random(property-index-scoped, 0px, 300000px);
@@ -423,8 +427,8 @@ test_random_computed_value('filter', 'drop-shadow(random(3px, 1px) random(6px, 1
 test_random_computed_value('font-variation-settings', '"wght" random(300, 100)', '"wght" 300');
 test_random_computed_value('font-feature-settings', '"liga" random(3, 1)', '"liga" 3');
 test_random_computed_value('font-style', 'oblique random(90deg, 10deg)', 'oblique 90deg');
-test_random_computed_value('font-palette', 'palette-mix(in lch, --blue calc(90% * random(1, 0)), --yellow 10%)', 'palette-mix(in lch, --blue 90%, --yellow)');
-test_random_computed_value('font-palette', 'palette-mix(in lch, --blue random(90%, 10%), --yellow 10%)', 'palette-mix(in lch, --blue 90%, --yellow)');
+test_random_computed_value('font-palette', 'palette-mix(in lch, --blue calc(90% * random(1, 0)), --yellow 10%)', 'palette-mix(in lch, --blue 90%, --yellow 10%)');
+test_random_computed_value('font-palette', 'palette-mix(in lch, --blue random(90%, 10%), --yellow 10%)', 'palette-mix(in lch, --blue 90%, --yellow 10%)');
 test_random_computed_value('animation-timeline', 'view(random(10px, 10px) random(30px, 10px))', 'view(10px 30px)');
 test_random_computed_value('color', 'light-dark(rgb(random(30, 10) random(60, 10) random(90, 10)),  rgb(random(30, 10) random(60, 10) random(90, 10)))',
                                     'rgb(30, 60, 90)');
@@ -787,6 +791,47 @@ test(() => {
     document.body.removeChild(holder);
   }
 }, `Shared globally - shorthand: random(--other-identifier, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.className = 'randomNoIdentifierPercent';
+    holder.appendChild(el);
+
+    const elComputedLeft = getComputedStyle(el)['left'];
+    const elComputedTop = getComputedStyle(el)['top'];
+
+    test_random_not_equals(elComputedLeft, elComputedTop);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Different between properties with percentage value: random(0%, 100%)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el1 = document.createElement('div');
+    el1.className = 'randomNoIdentifierPercent';
+    holder.appendChild(el1);
+
+    const el2 = document.createElement('div');
+    el2.className = 'randomNoIdentifierPercent';
+    holder.appendChild(el2);
+
+    const el1ComputedLeft = getComputedStyle(el1)['left'];
+    const el2ComputedLeft = getComputedStyle(el2)['left'];
+
+    test_random_not_equals(el1ComputedLeft, el2ComputedLeft,
+      "random() with percentages should differ on different elements");
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Different between elements with percentage value: random(0%, 100%)`);
 
 test(() => {
   const holder = document.createElement('div');

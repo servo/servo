@@ -1,3 +1,2 @@
-features:
-- name: overflow-wrap
-  files: "**"
+rules:
+- "**": [overflow-wrap]

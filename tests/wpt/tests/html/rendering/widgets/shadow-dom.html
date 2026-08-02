@@ -9,7 +9,7 @@ function test_has_shadow_root_with_no_slots(element) {
     let child = element.appendChild(document.createElement("span"));
     t.add_cleanup(() => child.remove());
     assert_equals(child.getClientRects().length, 0, "child should not be rendered");
-    assert_equals(getComputedStyle(child).length, 0, "child should be outside the flat tree");
+    assert_true(getComputedStyle(child).length == 0, "child should be outside the flat tree");
   }, `${element.outerHTML} has a shadow tree with no slots`);
 }
 

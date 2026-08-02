@@ -1,3 +1,2 @@
-features:
-- name: layout-direction-override
-  files: "**"
+rules:
+- "**": [layout-direction-override]

@@ -1,3 +1,2 @@
-features:
-- name: aspect-ratio
-  files: "**"
+rules:
+- "**": [aspect-ratio]

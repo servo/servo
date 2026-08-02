@@ -1,12 +1,5 @@
-features:
-- name: vertical-form-controls
-  files:
-  - "*vertical*"
-  - "*vlr*"
-  - "*vrl*"
-- name: writing-mode
-  files:
-  - "*"
-  - "!*vertical*"
-  - "!*vlr*"
-  - "!*vrl*"
+rules:
+- "*vertical*": [vertical-form-controls]
+- "*vlr*": [vertical-form-controls]
+- "*vrl*": [vertical-form-controls]
+- "*": [writing-mode]

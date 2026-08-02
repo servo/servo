@@ -1,3 +1,2 @@
-features:
-- name: is-input-pending
-  files: "**"
+rules:
+- "**": [is-input-pending]

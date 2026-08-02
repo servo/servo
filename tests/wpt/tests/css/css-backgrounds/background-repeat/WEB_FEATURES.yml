@@ -1,3 +1,2 @@
-features:
-- name: background-repeat
-  files: "**"
+rules:
+- "**": [background-repeat]

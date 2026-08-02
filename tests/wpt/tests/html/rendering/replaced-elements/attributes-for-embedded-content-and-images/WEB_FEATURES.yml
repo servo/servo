@@ -1,13 +1,5 @@
-features:
-- name: img
-  files:
-  - "img-*"
-- name: video
-  files:
-  - "video-*"
-- name: object
-  files:
-  - "object_*"
-- name: picture
-  files:
-  - "picture-*"
+rules:
+- img-*: [img]
+- video-*: [video]
+- object_*: [object]
+- picture-*: [picture]

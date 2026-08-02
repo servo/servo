@@ -1,3 +1,2 @@
-features:
-- name: shadow-parts
-  files: '**'
+rules:
+- "**": [shadow-parts]

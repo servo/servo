@@ -1,3 +1,2 @@
-features:
-- name: document-picture-in-picture
-  files: "**"
+rules:
+- "**": [document-picture-in-picture]

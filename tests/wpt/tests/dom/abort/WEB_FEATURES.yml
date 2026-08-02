@@ -1,6 +1,3 @@
-features:
-- name: aborting
-  files: "**"
-- name: abortsignal-any
-  files:
-  - abort-signal-any.any.js
+rules:
+- abort-signal-any.any.js: [abortsignal-any, aborting]
+- "**": [aborting]

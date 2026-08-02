@@ -1,3 +1,2 @@
-features:
-- name: webxr-ar
-  files: '**'
+rules:
+- "**": [webxr-ar]

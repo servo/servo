@@ -1,3 +1,2 @@
-features:
-- name: compute-pressure
-  files: "**"
+rules:
+- "**": [compute-pressure]

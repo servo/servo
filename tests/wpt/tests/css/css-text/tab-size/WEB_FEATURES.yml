@@ -1,3 +1,2 @@
-features:
-- name: tab-size
-  files: "**"
+rules:
+- "**": [tab-size]

@@ -101,8 +101,9 @@ compression_dictionary_promise_test(async (t) => {
       '/fetch/compression-dictionary/resources/echo-headers.py');
   await fetch(
       `${kRegisterDictionaryPath}?id=id1&age=7200&max-age=3600&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
-  assert_equals((await checkHeaders({use_alt_path: true}))['dictionary-id'], '"id2"');
+  const dictionary_id = `alt_${token()}`;
+  await registerAltDictionaryAndWait(t, dictionary_id);
+  assert_equals((await checkHeaders({use_alt_path: true}))['dictionary-id'], `"${dictionary_id}"`);
   // Make sure the expired dictionary isn't announced as being available.
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
@@ -111,7 +112,7 @@ compression_dictionary_promise_test(async (t) => {
 compression_dictionary_promise_test(async (t) => {
   const pattern = "%7B";
   await fetch(`${kRegisterDictionaryPath}?id=id1&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with invalid match string is not registered');
@@ -119,7 +120,7 @@ compression_dictionary_promise_test(async (t) => {
 compression_dictionary_promise_test(async (t) => {
   const pattern = encodeURIComponent(`${CROSS_ORIGIN_RESOURCES_URL}/echo-headers.py`);
   await fetch(`${kRegisterDictionaryPath}?id=id1&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with match string for a different origin is not registered');
@@ -129,7 +130,7 @@ compression_dictionary_promise_test(async (t) => {
       '/fetch/compression-dictionary/resources/echo-headers.py');
   await fetch(
       `${kRegisterDictionaryPath}?id=id1&type=bogus&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with unsupported type is not registered');
@@ -149,7 +150,7 @@ compression_dictionary_promise_test(async (t) => {
       '/fetch/compression-dictionary/resources/echo-headers.py');
   await fetch(
       `${kRegisterDictionaryPath}?id=${dictionary_id}&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with 1025 character dictionary ID is not registered');
@@ -165,14 +166,14 @@ compression_dictionary_promise_test(async (t) => {
 
 compression_dictionary_promise_test(async (t) => {
   await fetch(`${kRegisterDictionaryPath}?id=id1&use-as-dictionary=%3F0`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with malformed structured header is not registered');
 
 compression_dictionary_promise_test(async (t) => {
   await fetch(`${kRegisterDictionaryPath}?id=id1&max-age=0`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with max-age=0 is not registered');
@@ -196,7 +197,7 @@ compression_dictionary_promise_test(async (t) => {
   const pattern = encodeURIComponent(
       '/fetch/compression-dictionary/resources/echo-headers.py');
   await fetch(`${kRegisterDictionaryPath}?id=${encodeURIComponent("€")}&match=${pattern}`);
-  await registerAltDictionaryAndWait(t);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
   const headers = await (await fetch('./resources/echo-headers.py')).json();
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with invalid character in dictionary ID is not registered');

@@ -1,8 +1,4 @@
-features:
-- name: details-name
-  files:
-  - name-attribute.html
-- name: toggleevent-source
-  files:
-  - details-toggle-source.html
-  - details-toggle-source-commandfor.tentative.html
+rules:
+- name-attribute.html: [details-name]
+- details-toggle-source.html: [toggleevent-source]
+- details-toggle-source-commandfor.tentative.html: [toggleevent-source]

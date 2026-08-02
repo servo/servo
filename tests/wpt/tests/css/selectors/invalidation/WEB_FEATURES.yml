@@ -1,73 +1,42 @@
-features:
-- name: selectors
-  files:
-  - attribute.html
-  - class-id-attr.html
-  - sibling.html
-  - insert-sibling-*
-  - selectorText-dynamic-001.html
-  - sheet-going-away-*
-- name: has
-  files:
-  - has-*
-  - "*-in-has.*"
-  - "*-in-has-*"
-- name: link-selectors
-  files:
-  - "any-link-*"
-- name: media-pseudos
-  files:
-  - media-loading-pseudo-classes-in-has.sub.html
-  - media-pseudo-classes-in-has.html
-- name: modal
-  files:
-  - modal-pseudo-class-in-has.html
-- name: not
-  files:
-  - not-*
-- name: nth-child
-  files:
-  - first-child-last-child.html
-  - nth-child-in-shadow-root.html
-- name: nth-child-of
-  files:
-  - nth-child-of-*
-  - nth-child-when-*
-  - nth-child-whole-subtree.html
-  - nth-child-containing-ancestor.html
-  - negated-nth-child-when-*
-  - nth-last-child-of-*
-  - nth-last-child-when-*
-  - nth-last-child-containing-ancestor.html
-  - negated-nth-last-child-when-*
-- name: nth-of-type
-  files:
-  - 'negated-*-of-type*'
-- name: user-pseudos
-  files:
-  - user-valid-user-invalid.html
-- name: state
-  files:
-  - state-in-has.html
-- name: placeholder-shown
-  files:
-  - placeholder-shown.html
-- name: shadow-parts
-  files:
-  - part-dir.html
-  - part-lang.html
-  - part-pseudo.html
-- name: host
-  files:
-  - host-*
-  - "!host-context-*"
-- name: is
-  files:
-  - is.html
-  - negated-is-*
-- name: where
-  files:
-  - where.html
-- name: input-selectors
-  files:
-  - enabled-disabled.html
+rules:
+- attribute.html: [selectors]
+- class-id-attr.html: [selectors]
+- sibling.html: [selectors]
+- insert-sibling-*: [selectors]
+- selectorText-dynamic-001.html: [selectors]
+- sheet-going-away-*: [selectors]
+- has-*: [has]
+- "*-in-has-*": [has, has]
+- media-loading-pseudo-classes-in-has.sub.html: [media-pseudos, has]
+- media-pseudo-classes-in-has.html: [media-pseudos, has]
+- modal-pseudo-class-in-has.html: [modal, has]
+- not-pseudo-containing-sibling-relationship-in-has.html: [has, not]
+- not-pseudo-containing-complex-in-has.html: [has, not]
+- state-in-has.html: [state, has]
+- host-pseudo-class-in-has.html: [has, host]
+- host-context-pseudo-class-in-has.html: [has]
+- "*-in-has.*": [has]
+- any-link-*: [link-selectors]
+- not-*: [not]
+- first-child-last-child.html: [nth-child]
+- nth-child-in-shadow-root.html: [nth-child]
+- nth-child-of-*: [nth-child-of]
+- nth-child-when-*: [nth-child-of]
+- nth-child-whole-subtree.html: [nth-child-of]
+- nth-child-containing-ancestor.html: [nth-child-of]
+- negated-nth-child-when-*: [nth-child-of]
+- nth-last-child-of-*: [nth-child-of]
+- nth-last-child-when-*: [nth-child-of]
+- nth-last-child-containing-ancestor.html: [nth-child-of]
+- negated-nth-last-child-when-*: [nth-child-of]
+- negated-is-*: [is, nth-of-type]
+- negated-*-of-type*: [nth-of-type]
+- user-valid-user-invalid.html: [user-pseudos]
+- placeholder-shown.html: [placeholder-shown]
+- part-dir.html: [shadow-parts]
+- part-lang.html: [shadow-parts]
+- part-pseudo.html: [shadow-parts]
+- host-*: [host]
+- is.html: [is]
+- where.html: [where]
+- enabled-disabled.html: [input-selectors]

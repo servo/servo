@@ -1,3 +1,2 @@
-features:
-- name: description-list
-  files: "**"
+rules:
+- "**": [description-list]

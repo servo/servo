@@ -1,3 +1,2 @@
-features:
-- name: device-posture
-  files: "**"
+rules:
+- "**": [device-posture]

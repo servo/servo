@@ -1,3 +1,2 @@
-features:
-- name: window
-  files: '**'
+rules:
+- "**": [window]

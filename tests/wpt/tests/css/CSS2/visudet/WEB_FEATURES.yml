@@ -1,4 +1,2 @@
-features:
-- name: width-height
-  files:
-  - height-*.xht
+rules:
+- height-*.xht: [width-height]

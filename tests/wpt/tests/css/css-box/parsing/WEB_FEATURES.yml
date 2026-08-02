@@ -1,25 +1,15 @@
-features:
-- name: float-clear
-  files:
-  - 'clear-computed.html'
-  - 'clear-invalid.html'
-  - 'clear-valid.html'
-  - 'float-computed.html'
-  - 'float-invalid.html'
-  - 'float-valid.html'
-- name: width-height
-  files:
-  - 'width-*'
-  - 'height-*'
-- name: margin
-  files:
-  - 'margin-computed.html'
-  - 'margin-invalid.html'
-  - 'margin-shorthand.html'
-  - 'margin-valid.html'
-- name: padding
-  files:
-  - 'padding-*'
-- name: visibility
-  files:
-  - 'visibility-*'
+rules:
+- clear-computed.html: [float-clear]
+- clear-invalid.html: [float-clear]
+- clear-valid.html: [float-clear]
+- float-computed.html: [float-clear]
+- float-invalid.html: [float-clear]
+- float-valid.html: [float-clear]
+- width-*: [width-height]
+- height-*: [width-height]
+- margin-computed.html: [margin]
+- margin-invalid.html: [margin]
+- margin-shorthand.html: [margin]
+- margin-valid.html: [margin]
+- padding-*: [padding]
+- visibility-*: [visibility]

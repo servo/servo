@@ -1,5 +1,3 @@
-features:
-- name: dedicated-workers
-  files:
-  - "*"
-  - "!*.any.js"
+rules:
+- "*.any.js": []
+- "*": [dedicated-workers]

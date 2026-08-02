@@ -1,3 +1,2 @@
-features:
-- name: fencedframe
-  files: "**"
+rules:
+- "**": [fencedframe]

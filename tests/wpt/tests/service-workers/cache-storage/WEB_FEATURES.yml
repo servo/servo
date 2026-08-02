@@ -1,3 +1,2 @@
-features:
-- name: service-workers
-  files: '**'
+rules:
+- "**": [service-workers]
