@@ -255,6 +255,7 @@ impl Gui {
         winit_window: &Window,
         event: &WindowEvent,
     ) -> EventResponse {
+        println!("Window event firing"); // TODO
         self.context.on_window_event(winit_window, event)
     }
 
