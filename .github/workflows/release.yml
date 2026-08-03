@@ -36,6 +36,15 @@ jobs:
       name: publish
       deployment: false
     steps:
+      - name: Validate release tag
+        if: ${{ inputs.release_tag != '' && inputs.regular_release }}
+        run: |
+          # Check if the tag starts with a v and is cargo-semver compatible, i.e `vX.Y.Z` with
+          # an optional `-suffix`.
+          if [[ ! "${{ inputs.release_tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
+            echo "Error: release_tag '${{ inputs.release_tag }}' is not of the form vX.Y.Z or vX.Y.Z-<suffix>."
+            exit 1
+          fi
       - id: create-release
         run: |
           if [[ "${{ inputs.release_tag }}" != "" ]]; then
