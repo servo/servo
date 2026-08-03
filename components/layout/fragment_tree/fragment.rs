@@ -105,7 +105,7 @@ pub(crate) struct TextFragment {
     pub is_empty_for_text_cursor: bool,
     /// The source text of this fragment, populated only when
     /// `LayoutContext::capture_display_list` is true. Used to build the
-    /// embedder-first [`embedder_traits::DisplayList`].
+    /// embedder-facing [`embedder_traits::DisplayList`].
     pub text_for_display_list: Option<Box<str>>,
 }
 
