@@ -475,8 +475,9 @@ impl ServiceWorkerGlobalScope {
                         Some(IntroductionType::WORKER),
                         1,
                         true,
+                        true,
                     );
-                    _ = global_scope.run_a_classic_script(&mut realm, script, RethrowErrors::No);
+                    _ = global_scope.run_a_classic_script(&mut realm, script, RethrowErrors::No, None);
                     global.dispatch_activate(&mut realm);
                 }
 
