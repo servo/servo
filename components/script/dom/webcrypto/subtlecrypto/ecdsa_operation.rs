@@ -195,7 +195,9 @@ pub(crate) fn verify(
         },
         NAMED_CURVE_P521 => {
             let Handle::P521PublicKey(q) = key.handle() else {
-                return Err(Error::Operation(None));
+                return Err(Error::Operation(Some(
+                    "Key handle is not a P521PublicKey.".into(),
+                )));
             };
             match Signature::<NistP521>::from_slice(signature) {
                 Ok(signature) => {

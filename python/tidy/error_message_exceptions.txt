@@ -97,8 +97,6 @@
 ./components/script/dom/stream/writablestream.rs 1
 ./components/script/dom/timeranges.rs 2
 ./components/script/dom/webcrypto/crypto.rs 1
-./components/script/dom/webcrypto/subtlecrypto/ecdsa_operation.rs 1
-./components/script/dom/webcrypto/subtlecrypto/x448_operation.rs 2
 ./components/script/dom/webgl/webglrenderingcontext.rs 4
 ./components/script/dom/webgpu/gpu.rs 1
 ./components/script/dom/webgpu/gpuadapter.rs 3
