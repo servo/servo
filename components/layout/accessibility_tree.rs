@@ -604,7 +604,9 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        if let Some((dom_node, dom_damage)) = dom_damage_map.get(&self.id) {
+        if self.dirty_state.has_damage() &&
+            let Some((dom_node, dom_damage)) = dom_damage_map.get(&self.id)
+        {
             local_damage.insert(self.update_node_and_populate_new_descendants_from_dom_node(
                 ref_self,
                 dom_node,
@@ -780,13 +782,17 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        if dom_damage.contains(AccessibilityDamage::Node) &&
-            dom_node.type_id() == Some(LayoutNodeType::Text)
-        {
-            let text_content = dom_node.text_content();
-            trace!("node text content = {text_content:?}");
-            // FIXME: this should take into account editing selection units (grapheme clusters?)
-            local_damage.insert(self.set_value(&text_content));
+        if dom_damage.contains(AccessibilityDamage::Node) {
+            // TODO: We may need to track role from DOM node and role from ARIA separately since
+            // the role from ARIA may change.
+            local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
+
+            if dom_node.type_id() == Some(LayoutNodeType::Text) {
+                let text_content = dom_node.text_content();
+                trace!("node text content = {text_content:?}");
+                // FIXME: this should take into account editing selection units (grapheme clusters?)
+                local_damage.insert(self.set_value(&text_content));
+            }
         }
 
         if dom_damage.contains(AccessibilityDamage::Box) {
@@ -796,13 +802,6 @@ impl AccessibilityNode {
                 local_damage.insert(self.clear_hidden());
             }
         }
-
-        // TODO: We may need to track role from DOM node and role from ARIA separately since
-        // the role from ARIA may change.
-        // Also, we should have a type of damage for the role from DOM node so we don't need to
-        // recompute it every time - it may be able to change without the node being re-created
-        // in some limited cases like `<a>` with/without `href`.
-        local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
 
         local_damage
     }
@@ -1108,6 +1107,10 @@ impl AccessibilityUpdate {
 impl DirtyState {
     fn updated(&self) -> bool {
         self.contains(DirtyState::Updated)
+    }
+
+    fn has_damage(&self) -> bool {
+        self.contains(DirtyState::HasDamage)
     }
 
     fn descendant_has_damage(&self) -> bool {
