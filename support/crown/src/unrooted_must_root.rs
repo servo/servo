@@ -176,6 +176,11 @@ fn is_unrooted_ty<'tcx>(
                     match_def_path(
                         cx,
                         did.did(),
+                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Values],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did(),
                         &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
                     )
                 {
@@ -520,6 +525,7 @@ symbols! {
     RefMut
     Iter
     IterMut
+    Values
     collections
     hash
     map
