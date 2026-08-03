@@ -10,6 +10,9 @@ use euclid::default::{Rect, Size2D, Transform2D};
 use log::warn;
 use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan, Report, ReportsChan, perform_memory_report,
+};
 use rustc_hash::FxHashMap;
 use servo_base::generic_channel::GenericSender;
 use servo_base::{Epoch, generic_channel};
@@ -38,13 +41,20 @@ impl CanvasPaintThread {
     /// communicate with it.
     pub fn start(
         paint_api: CrossProcessPaintApi,
+        mem_profiler_chan: ProfilerChan,
     ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
         let (ipc_sender, ipc_receiver) = generic_channel::channel::<CanvasMsg>().unwrap();
         let msg_receiver = ipc_receiver.route_preserving_errors();
         let (create_sender, create_receiver) = unbounded();
+        let registration = mem_profiler_chan.prepare_memory_reporting(
+            "canvas".into(),
+            create_sender.clone(),
+            ConstellationCanvasMsg::CollectMemoryReport,
+        );
         thread::Builder::new()
             .name("Canvas".to_owned())
             .spawn(move || {
+                let _registration = registration;
                 let mut canvas_paint_thread = CanvasPaintThread::new(
                     paint_api);
                 loop {
@@ -69,6 +79,9 @@ impl CanvasPaintThread {
                                     if let Err(error) = creator.send(canvas_paint_thread.create_canvas(size)) {
                                         warn!("Create canvas response failed ({error})");
                                     }
+                                },
+                                Ok(ConstellationCanvasMsg::CollectMemoryReport(sender)) => {
+                                    canvas_paint_thread.collect_memory_reports(sender);
                                 },
                                 Ok(ConstellationCanvasMsg::Exit(exit_sender)) => {
                                     let _ = exit_sender.send(());
@@ -97,6 +110,20 @@ impl CanvasPaintThread {
         self.canvases.insert(canvas_id, canvas);
 
         Some(canvas_id)
+    }
+
+    fn collect_memory_reports(&self, sender: ReportsChan) {
+        let live_canvas_count = self.canvases.len();
+        perform_memory_report(|ops| {
+            let reports = self
+                .canvases
+                .iter()
+                .flat_map(|(canvas_id, canvas)| {
+                    canvas.memory_report(*canvas_id, live_canvas_count, ops)
+                })
+                .collect();
+            sender.send(ProcessReports::new(reports));
+        });
     }
 
     #[servo_tracing::instrument(
@@ -325,6 +352,23 @@ impl Canvas {
             #[cfg(feature = "vello")]
             "vello" => Some(Self::Vello(CanvasData::new(size, paint_api))),
             _ => Some(Self::VelloCPU(CanvasData::new(size, paint_api))),
+        }
+    }
+
+    fn memory_report(
+        &self,
+        canvas_id: CanvasId,
+        live_canvas_count: usize,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> Vec<Report> {
+        match self {
+            #[cfg(feature = "vello")]
+            Canvas::Vello(canvas_data) => {
+                canvas_data.memory_report(canvas_id, live_canvas_count, ops)
+            },
+            Canvas::VelloCPU(canvas_data) => {
+                canvas_data.memory_report(canvas_id, live_canvas_count, ops)
+            },
         }
     }
 

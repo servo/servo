@@ -12,6 +12,12 @@ use webrender_api::ImageDescriptor;
 
 use crate::canvas_data::Filter;
 
+pub(crate) struct CanvasStoreSizesPerType {
+    pub name: &'static str,
+    pub size: usize,
+    pub kind: profile_traits::mem::ReportKind,
+}
+
 // This defines required methods for a DrawTarget. The prototypes are derived from the now-removed
 // Azure backend's methods.
 pub(crate) trait GenericDrawTarget {
@@ -19,6 +25,10 @@ pub(crate) trait GenericDrawTarget {
 
     fn new(size: Size2D<u32>) -> Self;
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
+    fn get_canvas_store_sizes(
+        &self,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> Vec<CanvasStoreSizesPerType>;
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>);
     fn copy_surface(

@@ -48,6 +48,35 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         }
     }
 
+    // Called once per canvas
+    pub(crate) fn memory_report(
+        &self,
+        canvas_id: CanvasId,
+        live_canvas_count: usize,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> Vec<profile_traits::mem::Report> {
+        let dimentions = self.draw_target.get_size();
+        let number_of_canvases = format!("canvases({live_canvas_count})");
+        let canvas_info_str = format!(
+            "canvas(id={}, {}x{})",
+            canvas_id.0, dimentions.width, dimentions.height
+        );
+        self.draw_target
+            .get_canvas_store_sizes(ops)
+            .into_iter()
+            .map(|canvas_store_type| profile_traits::mem::Report {
+                path: profile_traits::path![
+                    "canvas",
+                    number_of_canvases,
+                    canvas_info_str,
+                    canvas_store_type.name
+                ],
+                kind: canvas_store_type.kind,
+                size: canvas_store_type.size,
+            })
+            .collect()
+    }
+
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn draw_image(
         &mut self,

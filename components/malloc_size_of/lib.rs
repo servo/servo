@@ -1115,6 +1115,17 @@ impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
     }
 }
 
+impl MallocSizeOf for vello_cpu::Pixmap {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        let data = self.data();
+        if data.is_empty() {
+            0
+        } else {
+            unsafe { ops.malloc_size_of(data.as_ptr()) }
+        }
+    }
+}
+
 impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         0

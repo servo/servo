@@ -5947,7 +5947,10 @@ where
     fn create_canvas_paint_thread(
         &self,
     ) -> (Sender<ConstellationCanvasMsg>, GenericSender<CanvasMsg>) {
-        CanvasPaintThread::start(self.paint_proxy.cross_process_paint_api.clone())
+        CanvasPaintThread::start(
+            self.paint_proxy.cross_process_paint_api.clone(),
+            self.mem_profiler_chan.clone(),
+        )
     }
 
     fn handle_embedder_control_response(

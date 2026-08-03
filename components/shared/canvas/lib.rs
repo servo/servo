@@ -8,6 +8,7 @@
 
 use crossbeam_channel::Sender;
 use euclid::default::Size2D;
+use profile_traits::mem::ReportsChan;
 
 use crate::canvas::CanvasId;
 
@@ -20,5 +21,6 @@ pub enum ConstellationCanvasMsg {
         sender: Sender<Option<CanvasId>>,
         size: Size2D<u64>,
     },
+    CollectMemoryReport(ReportsChan),
     Exit(Sender<()>),
 }
