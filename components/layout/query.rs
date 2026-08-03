@@ -95,32 +95,35 @@ pub(crate) fn process_box_area_request(
     area: BoxAreaType,
     exclude_transform_and_inline: bool,
 ) -> Option<Rect<Au, CSSPixel>> {
-    let fragments = node.fragments_for_pseudo(None);
-    let mut rects = fragments
-        .iter()
-        .filter(|fragment| {
-            !exclude_transform_and_inline ||
-                fragment
-                    .retrieve_box_fragment()
-                    .is_none_or(|fragment| !fragment.with_style().is_inline_box())
-        })
-        .filter_map(|node| node.cumulative_box_area_rect(area, layout_thread.into()))
-        .peekable();
+    // Borrow fragments to avoid cloning (hot path for accessibility & getBoundingClientRect)
+    node.with_fragments(|fragments| {
+        let mut rects = fragments
+            .iter()
+            .filter(|fragment| {
+                !exclude_transform_and_inline ||
+                    fragment
+                        .retrieve_box_fragment()
+                        .is_none_or(|fragment| !fragment.with_style().is_inline_box())
+            })
+            .filter_map(|node| node.cumulative_box_area_rect(area, layout_thread.into()))
+            .peekable();
 
-    rects.peek()?;
-    let rect_union = rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
+        rects.peek()?;
+        let rect_union = rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
 
-    if exclude_transform_and_inline {
-        return Some(rect_union);
-    }
+        if exclude_transform_and_inline {
+            return Some(rect_union);
+        }
 
-    let Some(transform) =
-        root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, &fragments)
-    else {
-        return Some(Rect::new(rect_union.origin, Size2D::zero()));
-    };
+        let Some(transform) =
+            root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, fragments)
+        else {
+            return Some(Rect::new(rect_union.origin, Size2D::zero()));
+        };
 
-    transform_au_rectangle(rect_union, transform)
+        transform_au_rectangle(rect_union, transform)
+    })
+    .flatten()
 }
 
 pub(crate) fn process_box_areas_request(
