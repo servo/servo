@@ -9,15 +9,32 @@
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 
-/// A container timing candidate, sent from layout to the paint thread.
+/// A container timing candidate, sent from layout to the paint thread, and also used
+/// by the paint thread to track the current best entry for each container identifier.
 /// Represents the painted area of a descendant element within a container
 /// that has the `containertiming` attribute.
+///
+/// `first_render_time` and `paint_time` are unknown at construction time: layout has no
+/// notion of when compositing actually happens, so records are created with both unset
+/// and only [`ContainerTimingRecord::mark_painted`] fills them in, once the paint thread
+/// knows the real paint time.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ContainerTimingRecord {
+    /// A stable per-node identity for the container root, derived from
+    /// `style::dom::OpaqueNode::id()`. Used to correlate candidates for the same
+    /// container across builds and paints, since `identifier` (the `containertiming`
+    /// attribute value) is optional and not guaranteed unique -- multiple distinct
+    /// containers may share the same (or no) identifier.
+    pub container_id: usize,
     /// The value of the `containertiming` attribute on the container element.
     pub identifier: String,
     /// The viewport-clipped painted area in CSS pixels (as area = width * height).
     pub size: usize,
+    /// The time of the first paint for this container. Set once and never changed
+    /// afterwards.
+    pub first_render_time: Option<CrossProcessInstant>,
+    /// The most recent paint time for this container.
+    pub paint_time: Option<CrossProcessInstant>,
     /// The viewport-clipped rect (x, y, width, height) in CSS pixels.
     pub rect_x: f32,
     pub rect_y: f32,
@@ -27,6 +44,7 @@ pub struct ContainerTimingRecord {
 
 impl ContainerTimingRecord {
     pub fn new(
+        container_id: usize,
         identifier: String,
         size: usize,
         rect_x: f32,
@@ -35,30 +53,36 @@ impl ContainerTimingRecord {
         rect_height: f32,
     ) -> Self {
         Self {
+            container_id,
             identifier,
             size,
+            first_render_time: None,
+            paint_time: None,
             rect_x,
             rect_y,
             rect_width,
             rect_height,
         }
     }
-}
 
-/// A completed container timing entry, stored in the paint thread.
-#[derive(Clone, Debug)]
-pub struct ContainerTiming {
-    /// The value of the `containertiming` attribute.
-    pub identifier: String,
-    /// Total accumulated painted size.
-    pub size: usize,
-    /// The bounding rect of all accumulated painted regions.
-    pub rect_x: f32,
-    pub rect_y: f32,
-    pub rect_width: f32,
-    pub rect_height: f32,
-    /// The time of the first paint for this container.
-    pub first_render_time: CrossProcessInstant,
-    /// The most recent paint time for this container.
-    pub paint_time: CrossProcessInstant,
+    /// Records a paint of this container at `time`. `paint_time` is updated every time,
+    /// but `first_render_time` is only ever set the first time this is called.
+    pub fn mark_painted(&mut self, time: CrossProcessInstant) {
+        self.first_render_time.get_or_insert(time);
+        self.paint_time = Some(time);
+    }
+
+    /// Updates this record's identifier, size, and rect from a freshly-arrived `latest`
+    /// candidate, leaving `first_render_time`/`paint_time` untouched -- those are only
+    /// ever set by [`Self::mark_painted`], and overwriting the whole record would erase
+    /// them, making a later `mark_painted` treat an already-painted container as if it
+    /// were being painted for the first time.
+    pub fn update_metrics(&mut self, latest: ContainerTimingRecord) {
+        self.identifier = latest.identifier;
+        self.size = latest.size;
+        self.rect_x = latest.rect_x;
+        self.rect_y = latest.rect_y;
+        self.rect_width = latest.rect_width;
+        self.rect_height = latest.rect_height;
+    }
 }

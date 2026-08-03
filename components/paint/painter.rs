@@ -566,8 +566,10 @@ impl Painter {
                                     *pipeline_id,
                                     PaintMetricEvent::ContainerTiming(
                                         entry.identifier.clone(),
-                                        entry.first_render_time,
-                                        entry.paint_time,
+                                        entry
+                                            .first_render_time
+                                            .expect("set by mark_painted in flush"),
+                                        entry.paint_time.expect("set by mark_painted in flush"),
                                         entry.size,
                                         entry.rect_x,
                                         entry.rect_y,

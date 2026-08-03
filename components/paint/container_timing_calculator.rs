@@ -6,7 +6,7 @@
 //!
 //! <https://wicg.github.io/container-timing/>
 
-use paint_api::container_timing_candidate::{ContainerTiming, ContainerTimingRecord};
+use paint_api::container_timing_candidate::ContainerTimingRecord;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::WebViewId;
@@ -44,22 +44,21 @@ impl ContainerTimingCalculator {
         self.containers
             .entry(pipeline_id)
             .or_default()
-            .candidates
-            .push(candidate);
+            .record_candidate(candidate);
     }
 
     pub(crate) fn remove_candidates_for_pipeline(&mut self, pipeline_id: &PipelineId) {
         self.containers.remove(pipeline_id);
     }
 
-    /// Drain all pending candidates for `pipeline_id`, compute the updated
-    /// [`ContainerTiming`] entries, and return any that changed since the last
-    /// call. `paint_time` is the time the frame was composited.
+    /// Stamp `paint_time` on every container touched since the last call for
+    /// `pipeline_id`, and return only those records. `paint_time` is the time the frame
+    /// was composited.
     pub(crate) fn calculate(
         &mut self,
         paint_time: CrossProcessInstant,
         pipeline_id: PipelineId,
-    ) -> Vec<ContainerTiming> {
+    ) -> Vec<ContainerTimingRecord> {
         let Some(state) = self.containers.get_mut(&pipeline_id) else {
             return Vec::new();
         };
@@ -70,97 +69,62 @@ impl ContainerTimingCalculator {
 /// Per-pipeline accumulated state for container timing.
 #[derive(Default)]
 struct PipelineContainerTimings {
-    /// Pending candidates collected during the most recent display list build.
-    candidates: Vec<ContainerTimingRecord>,
-    /// The current best [`ContainerTiming`] for each identifier.
-    latest: FxHashMap<String, ContainerTiming>,
+    /// Every container ever seen for this pipeline, for as long as the document (and
+    /// its `containertiming` attribute) is around. Grows monotonically -- entries are
+    /// only ever appended or replaced wholesale, never removed. This can't be keyed by
+    /// `identifier` since that's optional and not guaranteed unique; entries are matched
+    /// up by `container_id` instead.
+    records: Vec<ContainerTimingRecord>,
+    /// Indices into `records` that received a new paint since the last `flush`, and so
+    /// need their `paint_time`/`first_render_time` set and reported to the constellation.
+    dirty: Vec<usize>,
 }
 
 impl PipelineContainerTimings {
-    /// Consume all pending candidates, update `latest`, and return all
-    /// containers whose size or rect changed.
-    fn flush(&mut self, paint_time: CrossProcessInstant) -> Vec<ContainerTiming> {
-        if self.candidates.is_empty() {
+    /// Store a freshly-arrived candidate as the permanent record for its container.
+    /// Layout only ever hands off a container once it's already accumulated that
+    /// container's up-to-date total size and bounding rect (see
+    /// `PaintTimingHandler::update_container_timing`), so there's nothing left to merge
+    /// here -- except that an existing record's `first_render_time`/`paint_time` (set by
+    /// a previous `flush`) must survive, since layout never knows about them and a
+    /// wholesale overwrite would erase them. Marks the record dirty so the next `flush`
+    /// reports it.
+    fn record_candidate(&mut self, candidate: ContainerTimingRecord) {
+        let index = self
+            .records
+            .iter()
+            .position(|record| record.container_id == candidate.container_id);
+
+        let index = match index {
+            Some(index) => {
+                self.records[index].update_metrics(candidate);
+                index
+            },
+            None => {
+                self.records.push(candidate);
+                self.records.len() - 1
+            },
+        };
+        self.dirty.push(index);
+    }
+
+    /// Stamp `paint_time` (and `first_render_time`, only the first time) on every record
+    /// touched since the last flush, and return them.
+    fn flush(&mut self, paint_time: CrossProcessInstant) -> Vec<ContainerTimingRecord> {
+        if self.dirty.is_empty() {
             return Vec::new();
         }
 
-        // Aggregate candidates by identifier: accumulate size and expand bounding rect.
-        let mut aggregated: FxHashMap<String, AggregatedCandidate> = FxHashMap::default();
-        for candidate in self.candidates.drain(..) {
-            let entry = aggregated.entry(candidate.identifier.clone()).or_default();
-            entry.size += candidate.size;
-            entry.expand(
-                candidate.rect_x,
-                candidate.rect_y,
-                candidate.rect_width,
-                candidate.rect_height,
-            );
+        // The same container can be marked dirty more than once per round (e.g. painted
+        // across multiple builds before we got around to flushing) -- dedup the indices
+        // before reporting, so we don't send duplicate entries for one container.
+        let dirty_indices: FxHashSet<usize> = self.dirty.drain(..).collect();
+        let mut updated = Vec::with_capacity(dirty_indices.len());
+        for index in dirty_indices {
+            let record = &mut self.records[index];
+            record.mark_painted(paint_time);
+            updated.push(record.clone());
         }
-
-        let mut updated = Vec::new();
-
-        for (identifier, agg) in aggregated {
-            match self.latest.get_mut(&identifier) {
-                None => {
-                    // First paint for this container.
-                    let entry = ContainerTiming {
-                        identifier: identifier.clone(),
-                        size: agg.size,
-                        rect_x: agg.rect_x,
-                        rect_y: agg.rect_y,
-                        rect_width: agg.rect_width,
-                        rect_height: agg.rect_height,
-                        first_render_time: paint_time,
-                        paint_time,
-                    };
-                    updated.push(entry.clone());
-                    self.latest.insert(identifier, entry);
-                },
-                Some(existing) => {
-                    // Update if the painted area grew.
-                    if agg.size > existing.size {
-                        existing.size = agg.size;
-                        existing.rect_x = agg.rect_x;
-                        existing.rect_y = agg.rect_y;
-                        existing.rect_width = agg.rect_width;
-                        existing.rect_height = agg.rect_height;
-                        existing.paint_time = paint_time;
-                        updated.push(existing.clone());
-                    }
-                },
-            }
-        }
-
         updated
-    }
-}
-
-/// Intermediate accumulator for candidates within one display-list build.
-#[derive(Default)]
-struct AggregatedCandidate {
-    size: usize,
-    rect_x: f32,
-    rect_y: f32,
-    rect_width: f32,
-    rect_height: f32,
-}
-
-impl AggregatedCandidate {
-    fn expand(&mut self, x: f32, y: f32, w: f32, h: f32) {
-        if self.rect_width == 0.0 && self.rect_height == 0.0 {
-            self.rect_x = x;
-            self.rect_y = y;
-            self.rect_width = w;
-            self.rect_height = h;
-        } else {
-            let min_x = self.rect_x.min(x);
-            let min_y = self.rect_y.min(y);
-            let max_x = (self.rect_x + self.rect_width).max(x + w);
-            let max_y = (self.rect_y + self.rect_height).max(y + h);
-            self.rect_x = min_x;
-            self.rect_y = min_y;
-            self.rect_width = max_x - min_x;
-            self.rect_height = max_y - min_y;
-        }
     }
 }

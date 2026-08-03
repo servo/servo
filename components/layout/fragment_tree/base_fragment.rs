@@ -222,11 +222,11 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                 },
                 _ => {},
             }
-
-            if node.has_container_timing() {
-                flags.insert(FragmentFlags::HAS_CONTAINER_TIMING);
-            }
         };
+
+        if node.has_container_timing() {
+            flags.insert(FragmentFlags::HAS_CONTAINER_TIMING);
+        }
 
         Self {
             tag: Some(node.into()),
@@ -280,7 +280,7 @@ bitflags! {
         const IS_INPUT_ELEMENT = 1 << 12;
         /// Whether this is a <button> element, or an <input> that uses button layout.
         const IS_BUTTON = 1 << 13;
-        /// Whether or not this element has the `containertiming` attribute.
+        /// Whether or not this element (or ancestor) has the `containertiming` attribute.
         /// <https://wicg.github.io/container-timing/>
         const HAS_CONTAINER_TIMING = 1 << 14;
 

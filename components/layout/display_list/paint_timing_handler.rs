@@ -8,8 +8,8 @@ use app_units::Au;
 use euclid::Rect;
 use paint_api::container_timing_candidate::ContainerTimingRecord;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
-use servo_geometry::FastLayoutTransform;
 use rustc_hash::FxHashMap;
+use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use webrender_api::units::{LayoutRect, LayoutSize};
@@ -35,7 +35,6 @@ pub(crate) struct PaintTimingHandler {
     reported_lcp_nodes: HashSet<OpaqueNode>,
     /// Container timing records accumulated during this display list build, keyed by
     /// container root node. Sent to the paint thread at the end of the build.
-    /// <https://wicg.github.io/container-timing/>
     container_timing_records: FxHashMap<OpaqueNode, ContainerTimingRecord>,
 }
 

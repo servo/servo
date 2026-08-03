@@ -374,7 +374,7 @@ impl Node {
             // the correct inherited value for each node.
             let self_has_ct = node
                 .downcast::<Element>()
-                .is_none_or(|e| e.has_attribute(&LocalName::from("containertiming")));
+                .is_some_and(|e| e.has_attribute(&LocalName::from("containertiming")));
             node.set_flag(
                 NodeFlags::HAS_CONTAINER_TIMING,
                 parent_has_container_timing || self_has_ct,
