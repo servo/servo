@@ -461,6 +461,9 @@ impl WebView {
             .servo
             .paint()
             .resize_rendering_context(self.id(), new_size);
+
+        // The accessibility root node's bounds cover the viewport, so they have to follow it.
+        self.send_accessibility_root_node();
     }
 
     /// Get the HiDPI scale factor for this [`WebView`].
@@ -670,6 +673,9 @@ impl WebView {
             .servo
             .paint()
             .set_page_zoom(self.id(), new_zoom);
+
+        // The accessibility root node scales CSS pixels by the zoom, so it has to follow it.
+        self.send_accessibility_root_node();
     }
 
     /// Get the page zoom of the [`WebView`].
