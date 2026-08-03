@@ -117,9 +117,8 @@ struct ItemResolver<'a> {
     clip_store: &'a StackingContextTreeClipStore,
     root_scroll_node_id: ScrollTreeNodeId,
     root_scroll_offset: LayoutVector2D,
-    /// Accumulated clip rectangles in root (viewport) space, memoized by [`ClipId`].
-    /// `None` means the chain does not clip.
-    resolved_clips: FxHashMap<ClipId, Option<LayoutRect>>,
+    /// Memoized accumulated clip rectangles in root (viewport) space.
+    resolved_clips: FxHashMap<ClipId, LayoutRect>,
 }
 
 impl ItemResolver<'_> {
@@ -173,7 +172,7 @@ impl ItemResolver<'_> {
         // construction) means "no clip."
         let clip = self.clip_store.0.get(clip_id.0)?;
         if let Some(resolved) = self.resolved_clips.get(&clip_id) {
-            return *resolved;
+            return Some(*resolved);
         }
 
         // A clip collapsed by a degenerate transform clips out everything.
@@ -187,7 +186,7 @@ impl ItemResolver<'_> {
             Some(parent) => rect.intersection(&parent).unwrap_or_else(LayoutRect::zero),
             None => rect,
         };
-        self.resolved_clips.insert(clip_id, Some(resolved));
+        self.resolved_clips.insert(clip_id, resolved);
         Some(resolved)
     }
 
@@ -211,9 +210,7 @@ impl ItemResolver<'_> {
 fn transform_rect(transform: &FastLayoutTransform, rect: &LayoutRect) -> Option<LayoutRect> {
     match transform {
         FastLayoutTransform::Offset(offset) => Some(rect.translate(*offset)),
-        FastLayoutTransform::Transform { transform, .. } => {
-            transform.outer_transformed_box2d(rect)
-        },
+        FastLayoutTransform::Transform { transform, .. } => transform.outer_transformed_box2d(rect),
     }
 }
 
@@ -290,11 +287,7 @@ mod tests {
         )
     }
 
-    fn item(
-        rect: LayoutRect,
-        spatial_node_id: ScrollTreeNodeId,
-        clip_id: ClipId,
-    ) -> RecordedItem {
+    fn item(rect: LayoutRect, spatial_node_id: ScrollTreeNodeId, clip_id: ClipId) -> RecordedItem {
         RecordedItem {
             rect,
             clip_rect: rect,
@@ -411,7 +404,11 @@ mod tests {
             &clip_store,
         );
 
-        assert_eq!(display_list.items.len(), 1, "The scrolled-out item is culled");
+        assert_eq!(
+            display_list.items.len(),
+            1,
+            "The scrolled-out item is culled"
+        );
         assert_eq!(display_list.items[0].rect, rect(0., 320., 100., 50.));
     }
 
