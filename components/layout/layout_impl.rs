@@ -81,7 +81,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
-use crate::accessibility_tree::AccessibilityTree;
+use crate::accessibility_tree::{AccessibilityTree, au_rect_to_accesskit_rect};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
@@ -946,8 +946,33 @@ impl LayoutThread {
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
-        let (tree_update, counters) =
-            accessibility_tree.update_tree(root_element, damage, rooted_nodes);
+        // Only compute bounds from a stacking context tree matching current fragment tree
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let bounds_query = stacking_context_tree
+            .as_ref()
+            .filter(|_| !self.need_new_stacking_context_tree.get())
+            .map(|stacking_context_tree| {
+                move |node: &ServoLayoutNode<'_>| {
+                    // Border box with transforms, matching getBoundingClientRect()
+                    process_box_area_request(
+                        self,
+                        stacking_context_tree,
+                        *node,
+                        BoxAreaType::Border,
+                        false, /* exclude_transform_and_inline */
+                    )
+                    .map(au_rect_to_accesskit_rect)
+                }
+            });
+
+        let (tree_update, counters) = accessibility_tree.update_tree(
+            root_element,
+            damage,
+            bounds_query
+                .as_ref()
+                .map(|query| query as &dyn Fn(&ServoLayoutNode<'_>) -> Option<accesskit::Rect>),
+            rooted_nodes,
+        );
         if let Some(tree_update) = tree_update {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage

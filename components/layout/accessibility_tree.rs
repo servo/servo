@@ -8,8 +8,12 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
+use app_units::Au;
 use bitflags::bitflags;
-use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType};
+use euclid::Rect;
+use layout_api::{
+    AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType, NodeRenderingType,
+};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
@@ -18,10 +22,12 @@ use servo_base::print_tree::PrintTree;
 use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
 use style::dom::OpaqueNode;
+use style_traits::CSSPixel;
 use web_atoms::{LocalName, local_name};
 
 use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
+use crate::dom::NodeExt;
 
 bitflags! {
     /// Damage which was caused by changes to the accessibility tree. These changes can cause other
@@ -35,7 +41,31 @@ bitflags! {
         const RoleChanged = 0b0010;
         /// This node's computed label or text value (for a text node) changed.
         const TextChanged = 0b0100;
+        /// This node's computed bounds changed.
+        const BoundsChanged = 0b1000;
     }
+}
+
+impl LocalAccessibilityDamage {
+    /// Damage that requires ancestor recomputation. Bounds excluded: computed independently per node.
+    const AFFECTS_ANCESTORS: Self = Self::SubtreeChanged
+        .union(Self::RoleChanged)
+        .union(Self::TextChanged);
+}
+
+/// Computes the bounds for a DOM node's accessibility node, or `None` if it has no geometry.
+/// Bounds must be in CSS pixels, relative to viewport origin (see [`accesskit`] composition model).
+pub(super) type AccessibilityBoundsQuery<'a> =
+    &'a dyn Fn(&ServoLayoutNode<'_>) -> Option<accesskit::Rect>;
+
+/// Convert a rectangle as layout reports it into the one [`accesskit`] wants.
+pub(super) fn au_rect_to_accesskit_rect(rect: Rect<Au, CSSPixel>) -> accesskit::Rect {
+    accesskit::Rect::new(
+        rect.min_x().to_f64_px(),
+        rect.min_y().to_f64_px(),
+        rect.max_x().to_f64_px(),
+        rect.max_y().to_f64_px(),
+    )
 }
 
 /// Changes which have occurred during the current update.
@@ -181,13 +211,14 @@ impl AccessibilityTree {
         &mut self,
         root_dom_node: &ServoLayoutNode<'dom>,
         mut damage_from_dom: VecDeque<(ServoLayoutNode<'dom>, AccessibilityDamage)>,
+        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> (Option<accesskit::TreeUpdate>, UpdateCounters) {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
 
         self.ensure_root_node(root_dom_node, &mut damage_from_dom, &mut update);
 
-        self.apply_changes_from_dom_tree(damage_from_dom, &mut update);
+        self.apply_changes_from_dom_tree(damage_from_dom, bounds_query, &mut update);
 
         update.finalize(self)
     }
@@ -214,6 +245,7 @@ impl AccessibilityTree {
     fn apply_changes_from_dom_tree<'dom>(
         &mut self,
         damage_from_dom: VecDeque<(ServoLayoutNode<'dom>, AccessibilityDamage)>,
+        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
         update: &mut AccessibilityUpdate,
     ) {
         let mut dom_damage_map = FxHashMap::from(
@@ -229,11 +261,19 @@ impl AccessibilityTree {
         let Some(damage_root) = damage_root else {
             return;
         };
+        // The walk below may not start at the true tree root, so seed the inherited bounds from
+        // the nearest ancestor with already-known bounds (from a previous update).
+        let inherited_bounds = damage_root
+            .borrow()
+            .ancestors()
+            .find_map(|ancestor| ancestor.borrow().bounds());
         let local_damage = damage_root.borrow_mut().update_subtree(
             damage_root.clone(),
             &mut dom_damage_map,
             self,
             update,
+            bounds_query,
+            inherited_bounds,
         );
 
         damage_root.borrow().update_ancestors(local_damage, update);
@@ -594,17 +634,26 @@ impl AccessibilityNode {
         dom_damage_map: &mut FxHashMap<NodeId, (ServoLayoutNode<'dom>, AccessibilityDamage)>,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
+        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
+        inherited_bounds: Option<accesskit::Rect>,
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
+        // Bounds to propagate to any dirty children below, if this node doesn't have its own.
+        let mut bounds = inherited_bounds;
 
         if let Some((dom_node, dom_damage)) = dom_damage_map.get(&self.id) {
-            local_damage.insert(self.update_node_and_populate_new_descendants_from_dom_node(
-                ref_self,
-                dom_node,
-                *dom_damage,
-                tree,
-                update,
-            ));
+            let (node_damage, new_bounds) = self
+                .update_node_and_populate_new_descendants_from_dom_node(
+                    ref_self,
+                    dom_node,
+                    *dom_damage,
+                    tree,
+                    update,
+                    bounds_query,
+                    inherited_bounds,
+                );
+            local_damage.insert(node_damage);
+            bounds = new_bounds;
 
             self.dirty_state -= DirtyState::HasDamage;
         }
@@ -616,9 +665,15 @@ impl AccessibilityNode {
                 if !child_node.dirty_state.self_or_descendant_has_damage() {
                     continue;
                 }
-                let child_damage =
-                    child_node.update_subtree(strong_child_node, dom_damage_map, tree, update);
-                if !child_damage.is_empty() {
+                let child_damage = child_node.update_subtree(
+                    strong_child_node,
+                    dom_damage_map,
+                    tree,
+                    update,
+                    bounds_query,
+                    bounds,
+                );
+                if child_damage.intersects(LocalAccessibilityDamage::AFFECTS_ANCESTORS) {
                     local_damage.insert(LocalAccessibilityDamage::SubtreeChanged);
                 }
             }
@@ -666,19 +721,38 @@ impl AccessibilityNode {
         dom_damage: AccessibilityDamage,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
-    ) -> LocalAccessibilityDamage {
+        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
+        inherited_bounds: Option<accesskit::Rect>,
+    ) -> (LocalAccessibilityDamage, Option<accesskit::Rect>) {
         update.counters.nodes_updated_from_dom += 1;
 
         let mut local_damage = LocalAccessibilityDamage::empty();
 
         local_damage.insert(self.update_properties_from_dom_node(dom_node, dom_damage));
+
+        // Bounds are refreshed unconditionally whenever a query is available, independent of
+        // `dom_damage`, since geometry can change without other accessibility-relevant damage.
+        let mut bounds = inherited_bounds;
+        if let Some(bounds_query) = bounds_query {
+            let (bounds_damage, new_bounds) =
+                self.update_bounds_from_dom_node(dom_node, bounds_query, inherited_bounds);
+            local_damage.insert(bounds_damage);
+            bounds = new_bounds;
+        }
+
         local_damage.insert(
             self.update_children_and_populate_new_descendants_from_dom_node(
-                ref_self, dom_node, dom_damage, tree, update,
+                ref_self,
+                dom_node,
+                dom_damage,
+                tree,
+                update,
+                bounds_query,
+                bounds,
             ),
         );
 
-        local_damage
+        (local_damage, bounds)
     }
 
     /// Update this node's [`Self::children`] from its corresponding DOM node. If any children are
@@ -690,6 +764,8 @@ impl AccessibilityNode {
         dom_damage: AccessibilityDamage,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
+        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
+        bounds: Option<accesskit::Rect>,
     ) -> LocalAccessibilityDamage {
         if !dom_damage.contains(AccessibilityDamage::Children) {
             return LocalAccessibilityDamage::empty();
@@ -740,13 +816,16 @@ impl AccessibilityNode {
             child.parent_node = Some(weak_self.clone());
 
             if update.is_new(&child_id) {
-                let child_damage = child.update_node_and_populate_new_descendants_from_dom_node(
-                    child_ref.clone(),
-                    &dom_child,
-                    AccessibilityDamage::Rebuild,
-                    tree,
-                    update,
-                );
+                let (child_damage, _) = child
+                    .update_node_and_populate_new_descendants_from_dom_node(
+                        child_ref.clone(),
+                        &dom_child,
+                        AccessibilityDamage::Rebuild,
+                        tree,
+                        update,
+                        bounds_query,
+                        bounds,
+                    );
                 child.update_node_local(child_damage, update);
                 update.add(&mut child);
             } else {
@@ -784,6 +863,35 @@ impl AccessibilityNode {
         }
 
         local_damage
+    }
+
+    /// Update this node's bounds from layout, given a query function and the bounds inherited from
+    /// an ancestor (used as a fallback for nodes without their own box). Returns the damage caused by
+    /// the update, and the bounds descendants without their own box should inherit.
+    fn update_bounds_from_dom_node(
+        &mut self,
+        dom_node: &ServoLayoutNode<'_>,
+        bounds_query: AccessibilityBoundsQuery<'_>,
+        inherited_bounds: Option<accesskit::Rect>,
+    ) -> (LocalAccessibilityDamage, Option<accesskit::Rect>) {
+        let own_bounds = bounds_query(dom_node);
+
+        let inheritable_bounds = match dom_node.rendering_type() {
+            NodeRenderingType::Rendered => own_bounds,
+            NodeRenderingType::DelegatesRendering => own_bounds.or(inherited_bounds), // display: contents
+            NodeRenderingType::NotRendered => None,
+        };
+
+        let bounds = match dom_node.type_id() {
+            Some(LayoutNodeType::Text) => own_bounds.or(inherited_bounds), // Fallback for text fragments
+            _ => own_bounds,
+        };
+
+        let damage = match bounds {
+            Some(bounds) => self.set_bounds(bounds),
+            None => self.clear_bounds(), // display: none case
+        };
+        (damage, inheritable_bounds)
     }
 
     /// Update this node's properties based on changes already made to the accessibility tree.
@@ -927,6 +1035,28 @@ impl AccessibilityNode {
         LocalAccessibilityDamage::TextChanged
     }
 
+    fn bounds(&self) -> Option<accesskit::Rect> {
+        self.accesskit_node.bounds()
+    }
+
+    fn set_bounds(&mut self, bounds: accesskit::Rect) -> LocalAccessibilityDamage {
+        if Some(bounds) == self.accesskit_node.bounds() {
+            return LocalAccessibilityDamage::empty();
+        }
+        self.accesskit_node.set_bounds(bounds);
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::BoundsChanged
+    }
+
+    fn clear_bounds(&mut self) -> LocalAccessibilityDamage {
+        if self.accesskit_node.bounds().is_none() {
+            return LocalAccessibilityDamage::empty();
+        }
+        self.accesskit_node.clear_bounds();
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::BoundsChanged
+    }
+
     fn assert_integrity(&self, expected_parent: Option<WeakRefCell<AccessibilityNode>>) {
         debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
 
@@ -965,6 +1095,9 @@ impl Debug for AccessibilityNode {
         }
         if let Some(label) = self.label() {
             write!(f, "\nlabel: {label:?}")?;
+        }
+        if let Some(bounds) = self.bounds() {
+            write!(f, "\nbounds: {bounds:?}")?;
         }
         if !self.child_ids().is_empty() {
             write!(f, "\nchildren: {:?}", self.child_ids())?;
