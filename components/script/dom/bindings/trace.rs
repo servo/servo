@@ -136,6 +136,11 @@ impl<K, V, S> HashMapTracedValues<K, V, S> {
     pub(crate) fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    #[inline]
+    pub(crate) fn values(&self) -> std::collections::hash_map::Values<'_, K, V> {
+        self.0.values()
+    }
 }
 
 impl<K, V, S> HashMapTracedValues<K, V, S>

@@ -520,8 +520,8 @@ impl IDBFactory {
             error!("Failed to send SyncOperation::AbortPendingUpgrade");
         }
 
-        for (_, requests) in connections.iter() {
-            for (_, request) in requests.iter() {
+        for requests in connections.values() {
+            for request in requests.values() {
                 if let Some(database) = request.pending_connection() {
                     database.close_a_database_connection(true /* forced */);
                 }
