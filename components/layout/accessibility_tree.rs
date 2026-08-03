@@ -164,9 +164,6 @@ enum TreeChange {
 
     /// The node is no longer a child of its previous parent.
     Removed,
-
-    /// The node will be removed from the tree due to its parent's DOM node being hidden.
-    Hidden,
 }
 
 impl AccessibilityTree {
@@ -371,7 +368,6 @@ impl AccessibilityTree {
             .iter()
             .filter_map(|(id, change)| match change {
                 TreeChange::Removed => Some(id),
-                TreeChange::Hidden => Some(id),
                 TreeChange::PendingMove => None,
                 TreeChange::New => None,
                 TreeChange::Moved => None,
@@ -403,7 +399,6 @@ impl AccessibilityTree {
                     "Pending move found for node id {id:?} when draining tree state changes"
                 ),
                 TreeChange::Removed => (),
-                TreeChange::Hidden => (),
                 TreeChange::New => (),
                 TreeChange::Moved => (),
             });
@@ -614,7 +609,6 @@ impl AccessibilityNode {
                 ref_self,
                 dom_node,
                 *dom_damage,
-                false,
                 tree,
                 update,
             ));
@@ -675,7 +669,6 @@ impl AccessibilityNode {
         ref_self: ArcRefCell<Self>,
         dom_node: &ServoLayoutNode<'dom>,
         dom_damage: AccessibilityDamage,
-        rebuild: bool,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
@@ -686,12 +679,7 @@ impl AccessibilityNode {
         local_damage.insert(self.update_properties_from_dom_node(dom_node, dom_damage));
         local_damage.insert(
             self.update_children_and_populate_new_descendants_from_dom_node(
-                ref_self,
-                dom_node,
-                dom_damage,
-                rebuild || local_damage.contains(LocalAccessibilityDamage::VisibilityChanged),
-                tree,
-                update,
+                ref_self, dom_node, dom_damage, tree, update,
             ),
         );
 
@@ -707,12 +695,10 @@ impl AccessibilityNode {
         ref_self: ArcRefCell<AccessibilityNode>,
         dom_node: &ServoLayoutNode<'dom>,
         dom_damage: AccessibilityDamage,
-        rebuild: bool,
         tree: &mut AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) -> LocalAccessibilityDamage {
-        let children_damaged = dom_damage.contains(AccessibilityDamage::Children);
-        if !(children_damaged || rebuild) {
+        if !dom_damage.contains(AccessibilityDamage::Children) {
             return LocalAccessibilityDamage::empty();
         }
 
@@ -720,25 +706,23 @@ impl AccessibilityNode {
         let mut old_child_ids = self.child_ids().iter().peekable();
         let mut unchanged_count = 0usize;
 
-        if !rebuild {
-            // Iterate over existing children and DOM children while they match. No action is necessary
-            // for these nodes.
-            while let Some(&old_id) = old_child_ids.peek() &&
-                let Some(dom_child) = remaining_dom_children.peek()
-            {
-                if tree.existing_id_for_opaque(dom_child.opaque()) == Some(*old_id) {
-                    unchanged_count += 1;
-                    old_child_ids.next();
-                    remaining_dom_children.next();
-                } else {
-                    break;
-                }
+        // Iterate over existing children and DOM children while they match. No action is necessary
+        // for these nodes.
+        while let Some(&old_id) = old_child_ids.peek() &&
+            let Some(dom_child) = remaining_dom_children.peek()
+        {
+            if tree.existing_id_for_opaque(dom_child.opaque()) == Some(*old_id) {
+                unchanged_count += 1;
+                old_child_ids.next();
+                remaining_dom_children.next();
+            } else {
+                break;
             }
+        }
 
-            // If we iterated over all the DOM children without finding any changes, we're done.
-            if old_child_ids.peek().is_none() && remaining_dom_children.peek().is_none() {
-                return LocalAccessibilityDamage::empty();
-            }
+        // If we iterated over all the DOM children without finding any changes, we're done.
+        if old_child_ids.peek().is_none() && remaining_dom_children.peek().is_none() {
+            return LocalAccessibilityDamage::empty();
         }
 
         // Remove all child nodes after the first `unchanged_count`.
@@ -752,19 +736,6 @@ impl AccessibilityNode {
         // may end up being "Moved" even though they haven't changed parents, and may even be in the
         // same position as previously.
         let weak_self = ref_self.downgrade();
-
-        if self.is_hidden() {
-            for dom_child in remaining_dom_children {
-                if let Some(id) = tree.existing_id_for_opaque(dom_child.opaque()) {
-                    update.set_tree_state_change(id, TreeChange::Hidden);
-                }
-            }
-            self.child_nodes.clear();
-            self.accesskit_node.clear_children();
-            self.dirty_state -= DirtyState::DescendantHasDamage;
-            return LocalAccessibilityDamage::SubtreeChanged;
-        }
-
         for dom_child in remaining_dom_children {
             let (child_id, child_ref) = tree.get_or_create_node(&dom_child, update);
 
@@ -775,19 +746,17 @@ impl AccessibilityNode {
             let mut child = child_ref.borrow_mut();
             child.parent_node = Some(weak_self.clone());
 
-            if rebuild || update.is_new(&child_id) {
+            if update.is_new(&child_id) {
                 let child_damage = child.update_node_and_populate_new_descendants_from_dom_node(
                     child_ref.clone(),
                     &dom_child,
                     AccessibilityDamage::Rebuild,
-                    rebuild,
                     tree,
                     update,
                 );
                 child.update_node_local(child_damage, update);
                 update.add(&mut child);
-            }
-            if !update.is_new(&child_id) {
+            } else {
                 update.set_tree_state_change(child_id, TreeChange::PendingMove);
             }
 
@@ -799,11 +768,6 @@ impl AccessibilityNode {
         // and then set it here.
         self.accesskit_node.set_children(new_child_ids);
         self.dirty_state |= DirtyState::Updated;
-
-        if rebuild {
-            // Since we rebuilt the entire subtree, any damage to descendants was already resolved.
-            self.dirty_state -= DirtyState::DescendantHasDamage;
-        }
 
         LocalAccessibilityDamage::SubtreeChanged
     }
@@ -1083,7 +1047,6 @@ impl AccessibilityUpdate {
             .map(|old_change| match (old_change, change) {
                 (TreeChange::PendingMove, TreeChange::Removed) => TreeChange::Moved,
                 (TreeChange::Removed, TreeChange::PendingMove) => TreeChange::Moved,
-                (_, TreeChange::Hidden) => TreeChange::Hidden,
                 _ => {
                     unreachable!("Logically impossible state change: {old_change:?} → {change:?}")
                 },

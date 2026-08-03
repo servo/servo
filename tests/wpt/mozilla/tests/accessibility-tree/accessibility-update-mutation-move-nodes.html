@@ -16,9 +16,9 @@
       ServoTestUtils.ensureAccessibilityActive();
       let initial = ServoTestUtils.forceAccessibilityUpdate();
 
-      assert_equals(initial.nodesUpdatedFromDom, 18, "nodesUpdatedFromDom");
-      assert_equals(initial.nodesUpdatedFromTree, 18, "nodesUpdatedFromTree");
-      assert_equals(initial.nodesInTreeUpdate, 18, "nodesInTreeUpdate");
+      assert_equals(initial.nodesUpdatedFromDom, 23, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 23, "nodesUpdatedFromTree");
+      assert_equals(initial.nodesInTreeUpdate, 23, "nodesInTreeUpdate");
 
       div1.moveBefore(h1, null);
       div2.appendChild(h2);

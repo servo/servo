@@ -572,7 +572,10 @@ fn test_accessibility_display_none_change() {
     let em = heading_children[1];
     assert_eq!(em.is_hidden(), true);
     let em_children: Vec<_> = em.children().collect();
-    assert_eq!(em_children.len(), 0);
+    assert_eq!(em_children.len(), 1);
+    let text_child = em_children[0];
+    assert_eq!(text_child.value(), Some("really, really".to_owned()));
+    assert_eq!(text_child.is_hidden(), true,);
 
     assert_eq!(heading.label(), Some("We  love the web".to_owned()));
 
