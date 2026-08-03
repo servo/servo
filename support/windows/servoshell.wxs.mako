@@ -4,7 +4,7 @@
            UpgradeCode="060cd15d-eab1-4614-b438-3988e3efdcf1"
            Language="1033"
            Codepage="1252"
-           Version="0.4.0"
+           Version="0.5.0"
            InstallerVersion="200">
     <SummaryInformation Keywords="Installer"
                         Description="Servo Tech Demo Installer"
