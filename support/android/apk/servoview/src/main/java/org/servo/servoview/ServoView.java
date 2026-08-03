@@ -29,7 +29,7 @@ public class ServoView extends SurfaceView
         RunCallback,
         Choreographer.FrameCallback {
     private static final String LOGTAG = "ServoView";
-    private GLThread glThread;
+    private final GLThread glThread;
     protected Servo servo = null;
     private String servoArgs;
     private String initialUri;
@@ -37,16 +37,11 @@ public class ServoView extends SurfaceView
     private boolean experimentalMode;
 
     public ServoView(Context context) {
-        super(context);
-        init();
+        this(context, null);
     }
 
     public ServoView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
-    }
-
-    private void init() {
         setFocusable(true);
         setFocusableInTouchMode(true);
         setClickable(true);
