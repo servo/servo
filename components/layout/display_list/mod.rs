@@ -306,18 +306,21 @@ impl DisplayListBuilder<'_> {
     /// Record a content display item for the embedder snapshot, if capture is enabled.
     /// The rectangles are in the coordinate space of `spatial_node_id` and are resolved
     /// to document/viewport space once the traversal completes.
+    ///
+    /// `content` is only invoked when the item is actually recorded, so its
+    /// allocations are not paid when capture is disabled (the default).
     fn capture_display_list_item(
         &mut self,
         state: &TraversalState,
         rect: units::LayoutRect,
         clip_rect: units::LayoutRect,
         spatial_node_id: ScrollTreeNodeId,
-        content: DisplayListItemContent,
+        content: impl FnOnce() -> DisplayListItemContent,
     ) {
         if self.capture_suppressed_by_opacity_depth == 0 &&
             let Some(capture) = self.display_list_capture.as_mut()
         {
-            capture.record(rect, clip_rect, spatial_node_id, state.clip_id, content);
+            capture.record(rect, clip_rect, spatial_node_id, state.clip_id, content());
         }
     }
 
@@ -882,7 +885,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             rect.to_webrender(),
             common.clip_rect,
             state.spatial_id,
-            DisplayListItemContent::Iframe {
+            || DisplayListItemContent::Iframe {
                 pipeline_id: fragment.pipeline_id,
             },
         );
@@ -929,15 +932,11 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         let common = self.common_properties(state, clip, &style);
 
         if let Some(image_key) = fragment.image_key {
-            self.capture_display_list_item(
-                state,
-                rect,
-                common.clip_rect,
-                state.spatial_id,
+            self.capture_display_list_item(state, rect, common.clip_rect, state.spatial_id, || {
                 DisplayListItemContent::Image {
                     url: fragment.url.clone(),
-                },
-            );
+                }
+            });
             self.wr().push_image(
                 &common,
                 rect,
@@ -1050,7 +1049,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                 painting_area,
                 common.clip_rect,
                 state.spatial_id,
-                DisplayListItemContent::SolidColor {
+                || DisplayListItemContent::SolidColor {
                     color: display_list_color(&background_color),
                 },
             );
@@ -1258,7 +1257,7 @@ impl Fragment {
                     rect.to_webrender(),
                     common.clip_rect,
                     state.spatial_id,
-                    DisplayListItemContent::Text {
+                    || DisplayListItemContent::Text {
                         text: text.to_owned(),
                         color: capture_color,
                     },
@@ -1788,7 +1787,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 } else {
                     state.spatial_id
                 },
-                DisplayListItemContent::SolidColor {
+                || DisplayListItemContent::SolidColor {
                     color: display_list_color(&background_color),
                 },
             );
@@ -1908,11 +1907,11 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
-        for (index, image) in b.background_image.0.iter().enumerate().rev() {
-            let Ok(resolved_image) = builder.image_resolver.resolve_image(node, image) else {
+        // Bound under a distinct name because `ResolvedImage::Image` shadows `image`.
+        for (index, css_image) in b.background_image.0.iter().enumerate().rev() {
+            let Ok(resolved_image) = builder.image_resolver.resolve_image(node, css_image) else {
                 continue;
             };
-            let source_url = image_source_url(image);
             match resolved_image {
                 ResolvedImage::Gradient(_) | ResolvedImage::Color(_) => {
                     let intrinsic = NaturalSizes::empty();
@@ -1972,7 +1971,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                                 } else {
                                     state.spatial_id
                                 },
-                                DisplayListItemContent::SolidColor {
+                                || DisplayListItemContent::SolidColor {
                                     color: display_list_color(&color),
                                 },
                             );
@@ -2044,7 +2043,9 @@ impl<'a> BuilderForBoxFragment<'a> {
                             } else {
                                 state.spatial_id
                             },
-                            DisplayListItemContent::Image { url: source_url },
+                            || DisplayListItemContent::Image {
+                                url: image_source_url(css_image),
+                            },
                         );
 
                         let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
