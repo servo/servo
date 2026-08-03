@@ -276,7 +276,7 @@ warp = "0.4.2"
 web_atoms = "0.2.4"
 webdriver = { version = "0.53.0", default-features = false }
 webpki-roots = "1.0"
-webrender = { version = "0.70", features = ["capture"] }
+webrender = { version = "0.70", features = ["serde"] }
 webrender_api = "0.70"
 wgpu-core = "30"
 wgpu-types = "30"
