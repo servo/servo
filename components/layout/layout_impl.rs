@@ -1493,6 +1493,7 @@ impl LayoutThread {
             paint_timing_handler,
             reflow_statistics,
             pref!(layout_display_list_capture_enabled),
+            pref!(layout_text_painting_enabled),
         );
         self.paint_api.send_display_list(
             self.webview_id,

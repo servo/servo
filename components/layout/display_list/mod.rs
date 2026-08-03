@@ -143,6 +143,10 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// contents invisible. WebRender applies opacity to the whole stacking context,
     /// so individual primitive builders cannot otherwise see an invisible ancestor.
     capture_suppressed_by_opacity_depth: usize,
+
+    /// `layout_text_painting_enabled`, read once per build since reading a
+    /// preference takes a process-global lock.
+    text_painting_enabled: bool,
 }
 
 /// Convert a resolved CSS [`AbsoluteColor`] to an embedder-facing [`ColorF`].
@@ -219,6 +223,7 @@ impl DisplayListBuilder<'_> {
         paint_timing_handler: &mut PaintTimingHandler,
         reflow_statistics: &mut ReflowStatistics,
         capture_display_list: bool,
+        text_painting_enabled: bool,
     ) -> (BuiltDisplayList, Option<DisplayList>) {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -250,6 +255,7 @@ impl DisplayListBuilder<'_> {
             reflow_statistics,
             display_list_capture: capture_display_list.then(DisplayListCapture::default),
             capture_suppressed_by_opacity_depth: 0,
+            text_painting_enabled,
         };
 
         // Clear any caret color from previous display list constructions.
@@ -1291,7 +1297,7 @@ impl Fragment {
             }
         }
 
-        if pref!(layout_text_painting_enabled) {
+        if builder.text_painting_enabled {
             builder.wr().push_text(
                 &common,
                 glyph_bounds,
