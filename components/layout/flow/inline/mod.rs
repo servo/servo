@@ -72,6 +72,7 @@ pub mod construct;
 pub mod inline_box;
 pub mod line;
 mod line_breaker;
+mod shaping_queue;
 pub mod text_run;
 pub mod text_transform;
 
@@ -95,7 +96,6 @@ use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
 };
-use line_breaker::LineBreaker;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
@@ -124,6 +124,7 @@ use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::inline::line::TextRunOffsets;
+use crate::flow::inline::shaping_queue::ShapingQueue;
 use crate::flow::inline::text_run::{FontAndScriptInfo, TextRunItem, TextRunSegment};
 use crate::flow::{
     BlockLevelBox, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
@@ -1982,16 +1983,19 @@ impl InlineFormattingContext {
             })
         };
 
-        let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
+        let mut shaping_queue = ShapingQueue::new(&text_content, options);
         for item in &mut builder.inline_items {
             match item {
                 InlineItem::TextRun(text_run) => {
-                    text_run.borrow_mut().segment_and_shape(
+                    let shaping_queue_entries = text_run.borrow_mut().segment(
+                        text_run.clone(),
                         &text_content,
                         layout_context,
-                        &mut new_linebreaker,
                         &bidi_levels,
                     );
+                    for entry in shaping_queue_entries.into_iter() {
+                        shaping_queue.push(entry);
+                    }
                 },
                 InlineItem::StartInlineBox(inline_box) => {
                     let inline_box = &mut *inline_box.borrow_mut();
@@ -2001,16 +2005,27 @@ impl InlineFormattingContext {
                     ) {
                         inline_box.default_font = Some(font);
                     }
+
+                    if inline_box.breaks_shaping_at_start {
+                        shaping_queue.flush();
+                    }
                 },
                 InlineItem::Atomic(_, index_in_text, bidi_level) => {
+                    shaping_queue.flush();
                     *bidi_level = bidi_levels.level(*index_in_text);
+                },
+                InlineItem::EndInlineBox(inline_box) => {
+                    if inline_box.borrow().breaks_shaping_at_end {
+                        shaping_queue.flush();
+                    }
                 },
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(..) |
                 InlineItem::OutOfFlowFloatBox(_) |
-                InlineItem::EndInlineBox(..) |
                 InlineItem::BlockLevel { .. } => {},
             }
         }
+
+        shaping_queue.flush();
 
         let default_font = get_font_for_first_font_for_style(
             &shared_inline_styles.style.borrow(),

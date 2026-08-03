@@ -10,8 +10,8 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{
-    ByteIndex, FontContext, FontRef, ShapedTextSlice, ShapedTextSlicer, ShapingFlags,
-    ShapingOptions, TextByteRange,
+    ByteIndex, FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions,
+    TextByteRange,
 };
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
@@ -20,28 +20,26 @@ use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::text::{Utf32CodeUnits, is_bidi_control};
+use smallvec::SmallVec;
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
 use style::computed_values::text_rendering::T as TextRendering;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::computed_values::word_break::T as WordBreak;
 use style::font_face::FontLanguageOverride;
 use style::properties::ComputedValues;
-use style::str::char_is_whitespace;
 use style::values::computed::{
     FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures, FontVariantNumeric,
-    OverflowWrap,
 };
 use unicode_bidi::Level;
 use unicode_script::Script;
 
-use super::line_breaker::LineBreaker;
 use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::inline::line::TextRunOffsets;
+use crate::flow::inline::shaping_queue::ShapingQueueEntry;
 use crate::flow::inline::{BidiLevels, LineBlockSizes, LineItem, SegmentContentFlags};
 use crate::fragment_tree::BaseFragmentInfo;
 
@@ -200,6 +198,11 @@ pub(crate) struct TextRunSegment {
     /// The shaped runs within this segment.
     #[conditional_malloc_size_of]
     pub runs: Vec<Arc<ShapedTextSlice>>,
+
+    /// The shaped text that was used to produce this segment. [`Self::runs`] are slices
+    /// of this shaped text.
+    #[conditional_malloc_size_of]
+    pub shaped_text: Option<Arc<ShapedText>>,
 }
 
 impl TextRunSegment {
@@ -214,6 +217,7 @@ impl TextRunSegment {
             character_range,
             runs: Vec::new(),
             break_at_start: false,
+            shaped_text: None,
         }
     }
 
@@ -299,140 +303,7 @@ impl TextRunSegment {
         }
     }
 
-    /// Shape the text of this [`TextRunSegment`], first finding "words" for the shaper by processing
-    /// the linebreaks found in the owning [`super::InlineFormattingContext`]. Linebreaks are filtered,
-    /// based on the style of the parent inline box.
-    fn shape_text(
-        &mut self,
-        parent_style: &ComputedValues,
-        formatting_context_text: &str,
-        linebreaker: &mut LineBreaker,
-        old_text_run_item: Option<TextRunItem>,
-    ) {
-        // Gather the linebreaks that apply to this segment from the inline formatting context's collection
-        // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
-        // piece of text is processed.
-        let range = self.byte_range.clone();
-        let linebreaks = linebreaker.advance_to_linebreaks_in_range(self.byte_range.clone());
-        let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
-
-        let options: ShapingOptions = (&self.info).into();
-        let shaped_text = old_text_run_item
-            .and_then(|old_text_run_item| {
-                let TextRunItem::TextSegment(old_text_segment) = old_text_run_item else {
-                    return None;
-                };
-                if !self.is_compatible_with_old_shaping_result(&old_text_segment) {
-                    return None;
-                }
-                Some(old_text_segment.runs.first()?.shaped_text())
-            })
-            .unwrap_or_else(|| {
-                self.info
-                    .font_info
-                    .font
-                    .shape_text(&formatting_context_text[range.clone()], &options)
-            });
-
-        let mut shaped_text_slicer = ShapedTextSlicer::new(shaped_text);
-
-        self.runs.clear();
-        self.runs.reserve(linebreaks.len());
-        self.break_at_start = false;
-
-        let text_style = parent_style.get_inherited_text().clone();
-        let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
-            text_style.overflow_wrap == OverflowWrap::Anywhere ||
-            text_style.overflow_wrap == OverflowWrap::BreakWord;
-
-        let mut last_slice = self.byte_range.start..self.byte_range.start;
-        for break_index in linebreak_iter {
-            if *break_index == self.byte_range.start {
-                self.break_at_start = true;
-                continue;
-            }
-
-            // Extend the slice to the next UAX#14 line break opportunity.
-            let mut slice = last_slice.end..*break_index;
-            let word = &formatting_context_text[slice.clone()];
-
-            // Split off any trailing whitespace into a separate glyph run.
-            let mut whitespace = slice.end..slice.end;
-            let rev_char_indices = word.char_indices().rev().peekable();
-
-            let mut non_whitespace_slice_ends_with_whitespace = false;
-            let mut ends_with_whitespace = false;
-            if let Some((first_white_space_index, first_white_space_character)) = rev_char_indices
-                .take_while(|&(_, character)| char_is_whitespace(character))
-                .last()
-            {
-                ends_with_whitespace = true;
-                whitespace.start = slice.start + first_white_space_index;
-
-                // If line breaking for a piece of text that has `white-space-collapse:
-                // break-spaces` there is a line break opportunity *after* every preserved space,
-                // but not before. This means that we should not split off the first whitespace.
-                //
-                // An exception to this is if the style tells us that we can break in the middle of words.
-                if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
-                    !can_break_anywhere
-                {
-                    whitespace.start += first_white_space_character.len_utf8();
-                    non_whitespace_slice_ends_with_whitespace = true;
-                }
-
-                slice.end = whitespace.start;
-            }
-
-            // If there's no whitespace and `word-break` is set to `keep-all`, try increasing the slice.
-            // TODO: This should only happen for CJK text.
-            if !ends_with_whitespace &&
-                *break_index != self.byte_range.end &&
-                text_style.word_break == WordBreak::KeepAll &&
-                !can_break_anywhere
-            {
-                continue;
-            }
-
-            // Only advance the last slice if we are not going to try to expand the slice.
-            last_slice = slice.start..*break_index;
-
-            // Push the non-whitespace part of the range.
-            if !slice.is_empty() {
-                let character_count = formatting_context_text[slice].chars().count();
-                self.runs.push(shaped_text_slicer.slice_for_character_count(
-                    character_count,
-                    false, /* is_whitespace */
-                    non_whitespace_slice_ends_with_whitespace,
-                ));
-            }
-
-            if whitespace.is_empty() {
-                continue;
-            }
-
-            // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
-            // between each white space character in the white space that we trimmed off.
-            if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces {
-                for _ in formatting_context_text[whitespace].chars() {
-                    self.runs.push(shaped_text_slicer.slice_for_character_count(
-                        1, true, /* is_whitespace */
-                        true, /* ends_with_whitespace */
-                    ));
-                }
-                continue;
-            }
-
-            let character_count = formatting_context_text[whitespace].chars().count();
-            self.runs.push(shaped_text_slicer.slice_for_character_count(
-                character_count,
-                true, /* is_whitespace */
-                true, /* ends_with_whitespace */
-            ));
-        }
-    }
-
-    fn is_compatible_with_old_shaping_result(&self, old_segment: &Self) -> bool {
+    pub(crate) fn is_compatible_with_old_shaping_result(&self, old_segment: &Self) -> bool {
         old_segment.info == self.info && self.byte_range == old_segment.byte_range
     }
 }
@@ -512,13 +383,13 @@ impl TextRun {
         }
     }
 
-    pub(super) fn segment_and_shape(
+    pub(super) fn segment(
         &mut self,
+        self_arc_ref_cell: ArcRefCell<TextRun>,
         formatting_context_text: &str,
         layout_context: &LayoutContext,
-        linebreaker: &mut LineBreaker,
         bidi_levels: &BidiLevels,
-    ) {
+    ) -> SmallVec<[ShapingQueueEntry; 1]> {
         let parent_style = self.inline_styles.style.borrow().clone();
         let items = self.segment_text_by_font(
             layout_context,
@@ -530,17 +401,20 @@ impl TextRun {
         // If a previous box tree layout seeded this [`TextRun`] with old shaping results, use those
         // to try to prevent re-shaping.
         let mut old_text_run_items = std::mem::replace(&mut self.items, items).into_iter();
-        for item in self.items.iter_mut() {
-            let old_text_run_item = old_text_run_items.next();
-            if let TextRunItem::TextSegment(text_segment) = item {
-                text_segment.shape_text(
-                    &parent_style,
-                    formatting_context_text,
-                    linebreaker,
+
+        self.items
+            .iter()
+            .enumerate()
+            .map(move |(index, text_run_item)| {
+                let old_text_run_item = old_text_run_items.next();
+                ShapingQueueEntry::new(
+                    self_arc_ref_cell.clone(),
+                    text_run_item,
+                    index,
                     old_text_run_item,
-                );
-            }
-        }
+                )
+            })
+            .collect()
     }
 
     /// Take the [`TextRun`]'s text and turn it into [`TextRunSegment`]s. Each segment has a matched
@@ -851,6 +725,6 @@ where
     }
 }
 
-fn script_is_specific(script: Script) -> bool {
+pub(crate) fn script_is_specific(script: Script) -> bool {
     script != Script::Common && script != Script::Inherited
 }
