@@ -28,7 +28,6 @@ use servo_geometry::FastLayoutTransform;
 use webrender_api::units::{LayoutRect, LayoutVector2D};
 
 use super::clip::{ClipId, StackingContextTreeClipStore};
-use super::paint_traversal::TraversalState;
 
 /// A display list item recorded during the paint traversal, before it has been
 /// resolved out of the coordinate space of the spatial node it was painted in.
