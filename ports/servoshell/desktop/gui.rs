@@ -593,6 +593,20 @@ impl Gui {
                     let id = egui::Id::new(webview_id);
                     ctx.accesskit_node_builder(id, |node| {
                         node.set_tree_id(tree_id);
+                        // The grafted WebView tree reports bounds in device independent pixels
+                        // relative to the WebView's own origin, so this node supplies the offset
+                        // of the WebView within the window. `available_rect` is in egui points,
+                        // and one device independent pixel is one egui point, because egui's own
+                        // root node already applies the points-to-physical-pixels scale to this
+                        // entire subtree. Multiplying by `pixels_per_point` here would apply that
+                        // scale twice.
+                        //
+                        // Only the transform is set: AccessKit consumers exclude graft nodes from
+                        // the presented tree, so bounds on this node would never be read.
+                        node.set_transform(accesskit::Affine::translate((
+                            available_rect.min.x as f64,
+                            available_rect.min.y as f64,
+                        )));
                     });
                 }
             }
