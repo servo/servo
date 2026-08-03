@@ -57,8 +57,9 @@ impl WebViewDisplayListCaptures {
         self.captures.insert(pipeline_id, capture);
         self.observe_root(root_pipeline_id);
 
+        // A single-pipeline `WebView` needs no traversal to know the capture is reachable.
         if let Some(root) = self.root_pipeline_id &&
-            (pipeline_id == root || self.is_reachable_from(root, pipeline_id))
+            (pipeline_id == root || self.reachable_from(root).contains(&pipeline_id))
         {
             self.dirty = true;
         }
@@ -183,48 +184,32 @@ impl WebViewDisplayListCaptures {
         }
     }
 
+    /// The pipelines reachable from `root` by following `Iframe` items, including `root`.
+    fn reachable_from(&self, root: PipelineId) -> Vec<PipelineId> {
+        let mut reachable = vec![root];
+        let mut index = 0;
+        while let Some(&pipeline_id) = reachable.get(index) {
+            index += 1;
+            let Some(capture) = self.captures.get(&pipeline_id) else {
+                continue;
+            };
+            for item in &capture.items {
+                if let DisplayListItemContent::Iframe { pipeline_id } = item.content &&
+                    !reachable.contains(&pipeline_id)
+                {
+                    reachable.push(pipeline_id);
+                }
+            }
+        }
+        reachable
+    }
+
     /// Discard captures for pipelines that are not reachable from the given root
     /// through `Iframe` items, so captures from before a navigation do not linger.
     fn discard_unreachable_from(&mut self, root: PipelineId) {
-        let mut reachable = vec![root];
-        let mut index = 0;
-        while let Some(&pipeline_id) = reachable.get(index) {
-            index += 1;
-            let Some(capture) = self.captures.get(&pipeline_id) else {
-                continue;
-            };
-            for item in &capture.items {
-                if let DisplayListItemContent::Iframe { pipeline_id } = item.content &&
-                    !reachable.contains(&pipeline_id)
-                {
-                    reachable.push(pipeline_id);
-                }
-            }
-        }
+        let reachable = self.reachable_from(root);
         self.captures
             .retain(|pipeline_id, _| reachable.contains(pipeline_id));
-    }
-
-    fn is_reachable_from(&self, root: PipelineId, target: PipelineId) -> bool {
-        let mut reachable = vec![root];
-        let mut index = 0;
-        while let Some(&pipeline_id) = reachable.get(index) {
-            index += 1;
-            if pipeline_id == target {
-                return true;
-            }
-            let Some(capture) = self.captures.get(&pipeline_id) else {
-                continue;
-            };
-            for item in &capture.items {
-                if let DisplayListItemContent::Iframe { pipeline_id } = item.content &&
-                    !reachable.contains(&pipeline_id)
-                {
-                    reachable.push(pipeline_id);
-                }
-            }
-        }
-        false
     }
 }
 
