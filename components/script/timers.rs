@@ -813,10 +813,11 @@ impl JsTimerTask {
                     Some(IntroductionType::DOM_TIMER),
                     1,
                     false,
+                    true,
                 );
 
                 // Step 9.6.9. Run the classic script script.
-                _ = global.run_a_classic_script(cx, script, RethrowErrors::No);
+                _ = global.run_a_classic_script(cx, script, RethrowErrors::No, None);
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and
             // "report", and with callback this value set to thisArg.
