@@ -87,6 +87,7 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         line_number: u32,
         external: bool,
+        no_script_rval: bool,
     ) -> ClassicScript {
         let mut source = if self.unminified_js_dir().is_some() {
             let mut script_source = ModuleSource {
@@ -114,7 +115,7 @@ impl GlobalScope {
             url.as_str(),
             introduction_type,
             muted_errors,
-            true, // noScriptRval
+            no_script_rval,
             line_number,
         );
 
@@ -153,6 +154,7 @@ impl GlobalScope {
         cx: &mut JSContext,
         script: ClassicScript,
         rethrow_errors: RethrowErrors,
+        rval: Option<MutableHandleValue>,
     ) -> ErrorResult {
         // TODO Step 1. Let settings be the settings object of script.
 
@@ -183,7 +185,8 @@ impl GlobalScope {
                 },
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
-                    rooted!(&in(cx) let mut rval = UndefinedValue());
+                    rooted!(&in(cx) let mut default_rval = UndefinedValue());
+                    let rval = rval.unwrap_or_else(|| default_rval.handle_mut());
                     let script_ptr = NonNull::new(compiled_script.get())
                         .expect("Compiled script must not be null");
                     result = evaluate_script(
@@ -191,7 +194,7 @@ impl GlobalScope {
                         script_ptr,
                         script.url,
                         script.fetch_options,
-                        rval.handle_mut(),
+                        rval,
                     );
                 },
             }

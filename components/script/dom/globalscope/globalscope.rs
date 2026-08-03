@@ -2959,11 +2959,7 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        // <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
-        // If `can_run_script` returns `false`, then return early
-        if !self.can_run_script() {
-            return Ok(());
-        }
+        assert!(self.can_run_script());
 
         run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             let url = self.api_base_url();

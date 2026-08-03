@@ -246,6 +246,7 @@ impl FetchResponseListener for ScriptFetchContext {
             Some(IntroductionType::WORKER),
             1,
             true,
+            true,
         );
 
         // Step 6 Run onComplete given script.
@@ -671,7 +672,7 @@ impl WorkerGlobalScope {
                 Script::Classic(script) => {
                     _ = self
                         .globalscope
-                        .run_a_classic_script(cx, script, RethrowErrors::No);
+                        .run_a_classic_script(cx, script, RethrowErrors::No, None);
                 },
                 Script::Module(module_tree) => {
                     self.globalscope.run_a_module_script(cx, module_tree, false);
@@ -834,7 +835,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             // Run the classic script script, with rethrow errors set to true.
             let result = self
                 .globalscope
-                .run_a_classic_script(cx, script, RethrowErrors::Yes);
+                .run_a_classic_script(cx, script, RethrowErrors::Yes, None);
 
             if let Err(error) = result {
                 if self.is_closing() {
