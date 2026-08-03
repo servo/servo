@@ -61,7 +61,7 @@ bitflags! {
     pub struct AccessibilityDamage: u16 {
         const Node = 0b0001;
         const Children = 0b0010;
-        const Box = 0b0100;
+        const Style = 0b0100;
         const Rebuild = 0b1111;
     }
 }

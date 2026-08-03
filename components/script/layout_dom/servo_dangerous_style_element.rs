@@ -518,7 +518,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
                 old_box.position != new_box.position
             {
                 if old_box.display.is_none() != new_box.display.is_none() {
-                    *accessibility_damage |= AccessibilityDamage::Box;
+                    *accessibility_damage |= AccessibilityDamage::Style;
                 }
                 return true;
             }

@@ -9,9 +9,7 @@ use std::sync::{LazyLock, atomic};
 
 use accesskit::{NodeId, Role};
 use bitflags::bitflags;
-use layout_api::{
-    AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType, NodeRenderingType,
-};
+use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
@@ -24,7 +22,6 @@ use web_atoms::{LocalName, local_name};
 
 use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
-use crate::dom::NodeExt;
 
 bitflags! {
     /// Damage which was caused by changes to the accessibility tree. These changes can cause other
@@ -795,8 +792,13 @@ impl AccessibilityNode {
             }
         }
 
-        if dom_damage.contains(AccessibilityDamage::Box) {
-            if matches!(dom_node.rendering_type(), NodeRenderingType::NotRendered) {
+        if dom_damage.contains(AccessibilityDamage::Style) &&
+            let Some(dom_element) = dom_node.as_element() &&
+            dom_element.style_data().is_some()
+        {
+            let data = dom_element.element_data();
+            let style = data.styles.primary();
+            if style.clone_display().is_none() {
                 local_damage.insert(self.set_hidden());
             } else {
                 local_damage.insert(self.clear_hidden());
