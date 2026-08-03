@@ -4197,16 +4197,18 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     .collect::<SmallVec<[_; 20]>>();
 
                 if self_and_ancestors.last() != other_and_ancestors.last() {
-                    let random = as_uintptr(self_and_ancestors.last().unwrap()) <
-                        as_uintptr(other_and_ancestors.last().unwrap());
-                    let random = if random {
+                    // Auto-deref and compare the addresses of GC-owned `&Node`s,
+                    // more stable than addresses of SmallVec-owned `&Root<Dom<Node>>`
+                    let arbitrary = as_uintptr::<Node>(self_and_ancestors.last().unwrap()) <
+                        as_uintptr::<Node>(other_and_ancestors.last().unwrap());
+                    let arbitrary = if arbitrary {
                         NodeConstants::DOCUMENT_POSITION_FOLLOWING
                     } else {
                         NodeConstants::DOCUMENT_POSITION_PRECEDING
                     };
 
                     // Disconnected.
-                    return random +
+                    return arbitrary +
                         NodeConstants::DOCUMENT_POSITION_DISCONNECTED +
                         NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
                 }

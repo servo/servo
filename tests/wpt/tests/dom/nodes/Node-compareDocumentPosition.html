@@ -29,13 +29,22 @@ testNodes.forEach(function(referenceName) {
       // constraint that this is to be consistent, together and terminate these
       // steps."
       if (furthestAncestor(reference) !== furthestAncestor(other)) {
-        // TODO: Test that it's consistent.
-        assert_in_array(result, [Node.DOCUMENT_POSITION_DISCONNECTED +
-                                 Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                 Node.DOCUMENT_POSITION_PRECEDING,
-                                 Node.DOCUMENT_POSITION_DISCONNECTED +
-                                 Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
-                                 Node.DOCUMENT_POSITION_FOLLOWING]);
+        var expected1 = Node.DOCUMENT_POSITION_DISCONNECTED +
+                        Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                        Node.DOCUMENT_POSITION_PRECEDING;
+        var expected2 = Node.DOCUMENT_POSITION_DISCONNECTED +
+                        Node.DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC +
+                        Node.DOCUMENT_POSITION_FOLLOWING;
+        assert_in_array(result, [expected1, expected2]);
+
+        // TODO: What does "consistent" mean exactly? Is it transitive? A total order?
+        // Here we test that the relation is anticommutative: a < b => b > a; a > b => b < a
+        var anticommutativeResult = other.compareDocumentPosition(reference);
+        if (result === expected1) {
+          assert_equals(anticommutativeResult, expected2);
+        } else {
+          assert_equals(anticommutativeResult, expected1);
+        }
         return;
       }
 
