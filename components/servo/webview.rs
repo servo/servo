@@ -8,7 +8,8 @@ use std::rc::{Rc, Weak};
 use std::time::Duration;
 
 use accesskit::{
-    Node as AccesskitNode, NodeId, Role, Tree, TreeId, TreeUpdate, Uuid as AccesskitUuid,
+    Affine as AccesskitAffine, Node as AccesskitNode, NodeId, Rect as AccesskitRect, Role, Tree,
+    TreeId, TreeUpdate, Uuid as AccesskitUuid,
 };
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -942,9 +943,6 @@ impl WebView {
     }
 
     pub(crate) fn notify_document_accessibility_tree_id(&self, grafted_tree_id: TreeId) {
-        let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
-            return;
-        };
         let old_grafted_tree_id = self
             .inner_mut()
             .grafted_accesskit_tree_id
@@ -954,8 +952,51 @@ impl WebView {
         if old_grafted_tree_id == Some(grafted_tree_id) {
             return;
         }
+        self.send_accessibility_root_node();
+    }
+
+    /// Send the `WebView`-level accessibility root node, which grafts in the current document's
+    /// tree and carries the viewport bounds and scale that the document's own node bounds are
+    /// resolved against.
+    ///
+    /// This must be re-sent whenever that geometry changes, not only when the grafted document
+    /// changes, because the document nodes underneath are expressed relative to it.
+    pub(crate) fn send_accessibility_root_node(&self) {
+        let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
+            return;
+        };
+        let Some(grafted_tree_id) = self.inner().grafted_accesskit_tree_id else {
+            return;
+        };
         let root_node_id = NodeId(0);
         let mut root_node = AccesskitNode::new(Role::ScrollView);
+        // The root node covers the whole viewport, in the same coordinate space as the bounds of
+        // the document nodes grafted underneath it: CSS pixels relative to the viewport origin.
+        //
+        // Its transform converts those CSS pixels into the device independent pixels that the
+        // embedder positions this subtree in. That scale is everything which maps a CSS pixel to
+        // a device pixel — page zoom and pinch zoom — except the HiDPI scale factor, which is
+        // deliberately left out: it is the embedder which scales device independent pixels to the
+        // physical pixels AccessKit ultimately expects, and which translates this subtree to the
+        // WebView's position within its window. See `bounds_for_dom_node()` in
+        // `components/layout/accessibility_tree.rs` for the full contract.
+        let device_pixels_per_css_pixel = self.device_pixels_per_css_pixel().get();
+        let css_pixels_per_device_independent_pixel =
+            device_pixels_per_css_pixel / self.hidpi_scale_factor().get();
+        let size =
+            self.size() / Scale::<f32, CSSPixel, DevicePixel>::new(device_pixels_per_css_pixel);
+        root_node.set_bounds(AccesskitRect::new(
+            0.0,
+            0.0,
+            size.width as f64,
+            size.height as f64,
+        ));
+        // AccessKit asks that a node with an identity transform leave it unset.
+        if css_pixels_per_device_independent_pixel != 1.0 {
+            root_node.set_transform(AccesskitAffine::scale(
+                css_pixels_per_device_independent_pixel as f64,
+            ));
+        }
         let graft_node_id = NodeId(1);
         let mut graft_node = AccesskitNode::new(Role::GenericContainer);
         graft_node.set_tree_id(grafted_tree_id);
