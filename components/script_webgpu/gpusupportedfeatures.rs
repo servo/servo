@@ -4,25 +4,29 @@
 
 // check-tidy: no specs after this line
 
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUFeatureName, GPUSupportedFeaturesMethods, GPUSupportedFeaturesWrap,
+};
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
 use wgpu_types::Features;
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUFeatureName, GPUSupportedFeaturesMethods,
-};
+use crate::JSTraceable;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
-pub(crate) struct GPUSupportedFeatures {
+pub struct GPUSupportedFeatures<D: DomTypes> {
     reflector: Reflector,
     // internal storage for features
     #[custom_trace]
@@ -30,15 +34,20 @@ pub(crate) struct GPUSupportedFeatures {
     #[ignore_malloc_size_of = "defined in wgpu-types"]
     #[no_trace]
     features: Features,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUSupportedFeatures {
+impl<D> GPUSupportedFeatures<D>
+where
+    D: DomTypes<GPUSupportedFeatures = GPUSupportedFeatures<D>>,
+{
     fn new(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
-    ) -> DomRoot<GPUSupportedFeatures> {
+    ) -> DomRoot<GPUSupportedFeatures<D>> {
         let mut set = IndexSet::new();
         // everything that wgpu currently does is considered as part of "core"
         set.insert(GPUFeatureName::Core_features_and_limits);
@@ -92,36 +101,38 @@ impl GPUSupportedFeatures {
         }
         */
 
-        reflect_dom_object_with_proto(
-            cx,
+        reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             Box::new(GPUSupportedFeatures {
                 reflector: Reflector::new(),
                 internal: DomRefCell::new(set),
                 features,
+                phantom: PhantomData,
             }),
             global,
             proto,
+            cx,
+            GPUSupportedFeaturesWrap::<D>,
         )
     }
 
     #[expect(non_snake_case)]
-    pub(crate) fn Constructor(
+    pub fn Constructor(
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         proto: Option<HandleObject>,
         features: Features,
-    ) -> Fallible<DomRoot<GPUSupportedFeatures>> {
+    ) -> Fallible<DomRoot<GPUSupportedFeatures<D>>> {
         Ok(GPUSupportedFeatures::new(cx, global, proto, features))
     }
 }
 
-impl GPUSupportedFeatures {
-    pub(crate) fn wgpu_features(&self) -> &Features {
+impl<D: DomTypes> GPUSupportedFeatures<D> {
+    pub fn wgpu_features(&self) -> &Features {
         &self.features
     }
 }
 
-impl GPUSupportedFeaturesMethods<crate::DomTypeHolder> for GPUSupportedFeatures {
+impl<D: DomTypes> GPUSupportedFeaturesMethods<D> for GPUSupportedFeatures<D> {
     fn Size(&self) -> u32 {
         self.internal.borrow().len() as u32
     }
@@ -153,7 +164,7 @@ pub(crate) fn gpu_to_wgt_feature(feature: GPUFeatureName) -> Option<Features> {
     }
 }
 
-impl Setlike for GPUSupportedFeatures {
+impl<D: DomTypes> Setlike for GPUSupportedFeatures<D> {
     type Key = DOMString;
 
     #[inline(always)]

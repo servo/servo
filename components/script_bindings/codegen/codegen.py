@@ -3530,16 +3530,28 @@ class CGIteratorDerives(CGThing):
     """
     Class for codegen of an implementation of the IteratorDerives trait.
     """
-    def __init__(self, descriptor: Descriptor) -> None:
+    def __init__(self, descriptor: Descriptor, generic: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
+        self.generic = generic
 
     def define(self) -> str:
         iterableInterface = self.descriptor.interface.iterableInterface
         assert iterableInterface is not None
         name = iterableInterface.identifier.name
-        bindingModule = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(self.descriptor)}"
-        return f"""
+        if self.generic:
+            bindingModule = f"crate::codegen::Bindings::{toBindingNamespace(self.descriptor.interface.identifier.name)}"
+            return f"""
+    impl<D: DomTypes> crate::dom::bindings::iterable::IteratorDerives for {name}<D> {{
+        #[inline]
+        fn derives(class: &'static DOMClass) -> bool {{
+            unsafe {{ ptr::eq(class, &{bindingModule}::Class.get().dom_class) }}
+        }}
+    }}
+    """
+        else:
+            bindingModule = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(self.descriptor)}"
+            return f"""
 impl crate::dom::bindings::iterable::IteratorDerives for {name} {{
     #[inline]
     fn derives(class: &'static DOMClass) -> bool {{
@@ -8105,8 +8117,8 @@ class CGConcreteBindingRoot(CGThing):
 
 
         for d in descriptors:
-            ifaceName = d.interface.identifier.name
-            should_skip = ifaceName not in only_interfaces
+            ifaceName:str = d.interface.identifier.name
+            should_skip = ifaceName.removesuffix('Setlike') not in only_interfaces
 
 
             cgthings += [
@@ -8116,6 +8128,7 @@ class CGConcreteBindingRoot(CGThing):
             ]
 
             if should_skip:
+                # Things we should generate even if the type is skipped, i.e., things that are needed in the `script` crate
                 if not generic:
                     if d.interface.isIteratorInterface():
                         cgthings.append(CGDomObjectIteratorWrap(d))
@@ -8126,23 +8139,22 @@ class CGConcreteBindingRoot(CGThing):
                             cgthings.append(CGDomObjectWrap(d, generic=generic))
                 continue
 
+            # These are all things that will be generated in the subcrates
             for marker in ["Serializable", "Transferable"]:
                 if d.interface.getExtendedAttribute(marker):
                     cgthings += [CGStructuredCloneMarker(d, marker)]
 
             if d.concrete:
                 if not d.interface.isIteratorInterface():
-                    cgthings.append(CGAssertInheritance(d, generic =generic))
+                    cgthings.append(CGAssertInheritance(d, generic = generic))
                 else:
-                    cgthings.append(CGIteratorDerives(d))
-
-
+                    cgthings.append(CGIteratorDerives(d, generic = generic))
 
             if (
                 (d.concrete or d.hasDescendants())
                 and not d.interface.isIteratorInterface()
             ):
-                cgthings.append(CGIDLInterface(d, generic=generic))
+                cgthings.append(CGIDLInterface(d, generic = generic))
 
             if not generic:
                 if d.interface.isIteratorInterface():
