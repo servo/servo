@@ -268,12 +268,12 @@ impl TextRunSegment {
             soft_wrap_policy = SegmentStartSoftWrapPolicy::Force;
         }
 
-        // Walk the segment's source text in
-        // combo with its runs. Now each glyph store can be tagged with the
-        // same byte range of its parent `InlineFormattingContext::text_content`.
-        let capture_display_list = ifc.layout_context.capture_display_list;
-        let segment_text =
-            capture_display_list.then(|| &ifc.ifc.text_content[self.byte_range.clone()]);
+        // Walk the segment's source text alongside its runs so each glyph store is
+        // tagged with its byte range within `InlineFormattingContext::text_content`.
+        let segment_text = ifc
+            .layout_context
+            .capture_display_list
+            .then(|| &ifc.ifc.text_content[self.byte_range.clone()]);
         let mut byte_offset_in_segment = 0usize;
 
         let mut character_range_start = self.character_range.start;
