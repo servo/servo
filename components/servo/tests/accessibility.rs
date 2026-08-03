@@ -540,12 +540,37 @@ fn test_accessibility_descendants_of_heading_change() {
 fn test_accessibility_display_none_change() {
     let url = "data:text/html,<!DOCTYPE html>\
                <style>section.subdued em { display: none }</style>
-               <section><h1>We <em>really</em> love the web</h1></section>";
+               <section class='subdued'><h1>We <em>really</em> love the web</h1></section>";
     let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
         .expect("Should have a heading");
+    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
+    let heading_children: Vec<_> = heading.children().collect();
+    assert_eq!(heading_children.len(), 3);
+    let em = heading_children[1];
+    assert_eq!(em.is_hidden(), true);
+    let em_children: Vec<_> = em.children().collect();
+    assert_eq!(em_children.len(), 1);
+    let text_child = em_children[0];
+    assert_eq!(text_child.value(), Some("really".to_owned()));
+    assert_eq!(text_child.is_hidden(), true,);
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('section').removeAttribute('class');",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
+        .expect("Heading should still be in the tree");
     assert_eq!(heading.label(), Some("We really love the web".to_owned()));
     let heading_children: Vec<_> = heading.children().collect();
     assert_eq!(heading_children.len(), 3);
@@ -573,39 +598,10 @@ fn test_accessibility_display_none_change() {
     assert_eq!(em.is_hidden(), true);
     let em_children: Vec<_> = em.children().collect();
     assert_eq!(em_children.len(), 1);
-    let text_child = em_children[0];
-    assert_eq!(text_child.value(), Some("really, really".to_owned()));
-    assert_eq!(text_child.is_hidden(), true,);
-
-    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
-
-    let _ = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "document.querySelector('section').removeAttribute('class');",
-    );
-
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
-    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-
-    let root = assert_tree_structure_and_get_root_web_area(&tree);
-    let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
-        .expect("Heading should still be in the tree");
-    let heading_children: Vec<_> = heading.children().collect();
-    assert_eq!(heading_children.len(), 3);
-    let em = heading_children[1];
-    assert_eq!(em.is_hidden(), false);
-    let em_children: Vec<_> = em.children().collect();
-    assert_eq!(em_children.len(), 1);
     let text = em_children[0];
     assert_eq!(text.value(), Some("really, really".to_owned()));
 
-    assert_eq!(
-        heading.label(),
-        Some("We really, really love the web".to_owned())
-    );
+    assert_eq!(heading.label(), Some("We  love the web".to_owned()));
 }
 
 // ************************************************************************************************
