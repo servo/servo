@@ -160,7 +160,11 @@ mod platform {
 
 #[cfg(all(
     not(windows),
-    any(feature = "use-system-allocator", target_env = "ohos", not(feature = "use-jemalloc"))
+    any(
+        feature = "use-system-allocator",
+        target_env = "ohos",
+        not(feature = "use-jemalloc")
+    )
 ))]
 mod platform {
     pub use std::alloc::System as Allocator;
