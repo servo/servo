@@ -307,7 +307,7 @@ pub struct Preferences {
     pub js_wasm_baseline_enabled: bool,
     pub js_wasm_enabled: bool,
     pub js_wasm_ion_enabled: bool,
-    // feature: Container Timing | #35608 | Web/API/PerformanceContainerTiming
+    // feature: Container Timing | Web/API/PerformanceContainerTiming
     pub container_timing_enabled: bool,
     // feature: Largest Contentful Paint | #42000 | Web/API/LargestContentfulPaint
     pub largest_contentful_paint_enabled: bool,

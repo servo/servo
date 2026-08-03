@@ -350,13 +350,9 @@ impl NodeInfo for ServoLayoutNode<'_> {
 
 /// Reconstruct a [`ServoLayoutNode`] from an [`style::dom::OpaqueNode`] obtained during
 /// display-list building.
-///
-/// # Safety
-///
-/// `opaque.0` must be a `JSObject` pointer for a live DOM node. Layout and display-list
-/// building run synchronously on the layout thread while the script thread is paused, so
-/// the GC cannot collect these objects in the meantime.
-unsafe fn servo_layout_node_from_opaque(opaque: style::dom::OpaqueNode) -> ServoLayoutNode<'static> {
+unsafe fn servo_layout_node_from_opaque(
+    opaque: style::dom::OpaqueNode,
+) -> ServoLayoutNode<'static> {
     use script_bindings::conversions::private_from_object;
 
     unsafe {
@@ -366,10 +362,7 @@ unsafe fn servo_layout_node_from_opaque(opaque: style::dom::OpaqueNode) -> Servo
     }
 }
 
-/// Walk DOM ancestors of `opaque` to find the nearest element with a `containertiming`
-/// attribute and return that element's node.
-/// Called during display-list building from `check_for_container_timing_candidate`.
-/// <https://wicg.github.io/container-timing/>
+/// Returns the nearest ancestor element that has a `containertiming` attribute.
 pub fn container_timing_root_for_node(
     opaque: style::dom::OpaqueNode,
 ) -> Option<style::dom::OpaqueNode> {
@@ -397,15 +390,12 @@ pub fn container_timing_root_for_node(
     }
 }
 
-/// Read the `containertiming` attribute value directly from `opaque`, which must already
-/// be a container timing root element.
-/// <https://wicg.github.io/container-timing/>
+/// Returns the `containertiming` identifier for the given root node.
 pub fn container_timing_identifier_for_root(
     opaque: style::dom::OpaqueNode,
 ) -> Option<std::sync::Arc<str>> {
     use html5ever::{LocalName, ns};
 
-    // Safety: see `servo_layout_node_from_opaque`.
     let node = unsafe { servo_layout_node_from_opaque(opaque) };
 
     let element = node.as_html_element()?;

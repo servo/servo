@@ -6,8 +6,10 @@
 //!
 //! <https://wicg.github.io/container-timing/>
 
+use euclid::Rect;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
+use style_traits::CSSPixel;
 
 /// A container timing candidate, sent from layout to the paint thread, and also used
 /// by the paint thread to track the current best entry for each container identifier.
@@ -35,11 +37,8 @@ pub struct ContainerTimingRecord {
     pub first_render_time: Option<CrossProcessInstant>,
     /// The most recent paint time for this container.
     pub paint_time: Option<CrossProcessInstant>,
-    /// The viewport-clipped rect (x, y, width, height) in CSS pixels.
-    pub rect_x: f32,
-    pub rect_y: f32,
-    pub rect_width: f32,
-    pub rect_height: f32,
+    /// The viewport-clipped, union'd painted rect in CSS pixels.
+    pub intersection_rect: Rect<f32, CSSPixel>,
 }
 
 impl ContainerTimingRecord {
@@ -47,10 +46,7 @@ impl ContainerTimingRecord {
         container_id: usize,
         identifier: String,
         size: usize,
-        rect_x: f32,
-        rect_y: f32,
-        rect_width: f32,
-        rect_height: f32,
+        intersection_rect: Rect<f32, CSSPixel>,
     ) -> Self {
         Self {
             container_id,
@@ -58,10 +54,7 @@ impl ContainerTimingRecord {
             size,
             first_render_time: None,
             paint_time: None,
-            rect_x,
-            rect_y,
-            rect_width,
-            rect_height,
+            intersection_rect,
         }
     }
 
@@ -80,9 +73,6 @@ impl ContainerTimingRecord {
     pub fn update_metrics(&mut self, latest: ContainerTimingRecord) {
         self.identifier = latest.identifier;
         self.size = latest.size;
-        self.rect_x = latest.rect_x;
-        self.rect_y = latest.rect_y;
-        self.rect_width = latest.rect_width;
-        self.rect_height = latest.rect_height;
+        self.intersection_rect = latest.intersection_rect;
     }
 }

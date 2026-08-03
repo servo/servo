@@ -3473,7 +3473,6 @@ impl Document {
             },
             ProgressiveWebMetricType::ContainerTiming { .. } => {
                 // TODO: Create PerformanceContainerTiming entry and queue it.
-                // https://wicg.github.io/container-timing/
             },
         }
     }

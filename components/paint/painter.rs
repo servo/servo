@@ -128,7 +128,6 @@ pub(crate) struct Painter {
     lcp_calculator: LargestContentfulPaintCalculator,
 
     /// Calculator for container timing.
-    /// <https://wicg.github.io/container-timing/>
     container_timing_calculator: ContainerTimingCalculator,
 
     /// A cache that stores data for all animating images uploaded to WebRender. This is used
@@ -561,6 +560,15 @@ impl Painter {
                             .container_timing_calculator
                             .calculate(paint_time, pipeline_id.into())
                         {
+                            #[cfg(feature = "tracing")]
+                            tracing::info!(
+                                name: "ContainerTiming",
+                                servo_profiling = true,
+                                paint_time = ?paint_time,
+                                identifier = ?entry.identifier,
+                                size = ?entry.size,
+                                pipeline_id = ?pipeline_id,
+                            );
                             self.send_to_constellation(
                                 EmbedderToConstellationMessage::PaintMetric(
                                     *pipeline_id,
@@ -571,10 +579,10 @@ impl Painter {
                                             .expect("set by mark_painted in flush"),
                                         entry.paint_time.expect("set by mark_painted in flush"),
                                         entry.size,
-                                        entry.rect_x,
-                                        entry.rect_y,
-                                        entry.rect_width,
-                                        entry.rect_height,
+                                        entry.intersection_rect.origin.x,
+                                        entry.intersection_rect.origin.y,
+                                        entry.intersection_rect.size.width,
+                                        entry.intersection_rect.size.height,
                                     ),
                                 ),
                             );
@@ -1551,7 +1559,6 @@ impl Painter {
     }
 
     /// Append a container timing candidate sent from the layout thread.
-    /// <https://wicg.github.io/container-timing/>
     pub(crate) fn append_container_timing_candidate(
         &mut self,
         candidate: ContainerTimingRecord,

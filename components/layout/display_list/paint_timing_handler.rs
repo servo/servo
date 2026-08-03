@@ -33,9 +33,14 @@ pub(crate) struct PaintTimingHandler {
     lcp_candidate_updated: bool,
     /// The set of nodes that have been reported as LCP candidates.
     reported_lcp_nodes: HashSet<OpaqueNode>,
-    /// Container timing records accumulated during this display list build, keyed by
-    /// container root node. Sent to the paint thread at the end of the build.
+    /// Container timing records accumulated so far, keyed by container root node.
+    /// These persist across display list builds
+    /// These only get removed when the attribute is removed from the container element.
     container_timing_records: FxHashMap<OpaqueNode, ContainerTimingRecord>,
+    /// Container roots (keys into `container_timing_records`) touched since the last
+    /// time candidates were handed off to the paint thread. Cleared once compositing
+    /// has happened for the build that reported them.
+    dirty_containers: FxHashSet<OpaqueNode>,
 }
 
 impl PaintTimingHandler {
@@ -233,8 +238,7 @@ impl PaintTimingHandler {
     }
 
     /// Record a container timing candidate for a painted text or image fragment.
-    /// Walks ancestors to find the container root; detached nodes (no root) are ignored.
-    /// <https://wicg.github.io/container-timing/>
+    /// Walks ancestors to find the container root.
     pub(crate) fn update_container_timing(
         &mut self,
         node: OpaqueNode,
@@ -255,27 +259,14 @@ impl PaintTimingHandler {
 
         let record = self.get_or_create_record(container_root);
         record.size += size;
-        let (new_x, new_y, new_w, new_h) = (
-            intersection_rect.origin.x,
-            intersection_rect.origin.y,
-            intersection_rect.size.width,
-            intersection_rect.size.height,
-        );
-        if record.rect_width == 0.0 && record.rect_height == 0.0 {
-            record.rect_x = new_x;
-            record.rect_y = new_y;
-            record.rect_width = new_w;
-            record.rect_height = new_h;
+        record.intersection_rect = if record.intersection_rect.is_empty() {
+            intersection_rect
         } else {
-            let min_x = record.rect_x.min(new_x);
-            let min_y = record.rect_y.min(new_y);
-            let max_x = (record.rect_x + record.rect_width).max(new_x + new_w);
-            let max_y = (record.rect_y + record.rect_height).max(new_y + new_h);
-            record.rect_x = min_x;
-            record.rect_y = min_y;
-            record.rect_width = max_x - min_x;
-            record.rect_height = max_y - min_y;
-        }
+            record.intersection_rect.union(&intersection_rect)
+        };
+
+        // now this container has been modified, mark it as dirty
+        self.dirty_containers.insert(container_root);
     }
 
     /// Returns the entry for `container_root`, creating a default one if absent.
@@ -287,7 +278,7 @@ impl PaintTimingHandler {
                     script::layout_dom::container_timing_identifier_for_root(container_root)
                         .map(|id| id.to_string())
                         .unwrap_or_default();
-                ContainerTimingRecord::new(identifier, 0, 0.0, 0.0, 0.0, 0.0)
+                ContainerTimingRecord::new(container_root.id(), identifier, 0, Rect::zero())
             })
     }
 
@@ -306,19 +297,29 @@ impl PaintTimingHandler {
     pub(crate) fn lcp_node(&self) -> Option<OpaqueNode> {
         self.lcp_node
     }
-    /// Returns accumulated container timing candidates and clears the internal map.
-    pub(crate) fn take_container_timing_candidates(&mut self) -> Vec<ContainerTimingRecord> {
-        self.container_timing_records
-            .drain()
-            .map(|(_, record)| record)
+    /// Returns true if any container has been touched since the last compositing build
+    pub(crate) fn did_container_timing_update(&self) -> bool {
+        !self.dirty_containers.is_empty()
+    }
+
+    /// Returns the records for containers touched since the last reset.
+    pub(crate) fn take_container_timing_candidates(&self) -> Vec<ContainerTimingRecord> {
+        self.dirty_containers
+            .iter()
+            .filter_map(|container_root| self.container_timing_records.get(container_root))
+            .cloned()
             .collect()
+    }
+
+    /// Clear the list once compositing has happened for the
+    /// build whose candidates were just handed off.
+    pub(crate) fn reset_container_timing_dirty(&mut self) {
+        self.dirty_containers.clear();
     }
 }
 
 /// Walk DOM ancestors of `node` to find the nearest element with a `containertiming`
-/// attribute. Returns `None` for detached nodes (no document root in the ancestor chain).
-/// Equivalent to Chromium's `getContainerRoot`.
-/// <https://wicg.github.io/container-timing/>
+/// attribute.
 fn get_container_root(node: OpaqueNode) -> Option<OpaqueNode> {
     script::layout_dom::container_timing_root_for_node(node)
 }

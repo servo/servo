@@ -133,7 +133,7 @@ pub enum ProgressiveWebMetricType {
     ContainerTiming {
         /// The value of the `containertiming` attribute on the container element.
         identifier: String,
-        /// Total accumulated painted area in CSS px².
+        /// Total accumulated painted area in CSS px squared
         size: usize,
         /// The time of the most recent paint that produced this update.
         paint_time: servo_base::cross_process_instant::CrossProcessInstant,

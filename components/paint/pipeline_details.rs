@@ -48,7 +48,6 @@ pub(crate) struct PipelineDetails {
     pub largest_contentful_paint_metric: Cell<PaintMetricState>,
 
     /// The paint metric status of container timing entries.
-    /// <https://wicg.github.io/container-timing/>
     pub container_timing_metric: Cell<PaintMetricState>,
 
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
