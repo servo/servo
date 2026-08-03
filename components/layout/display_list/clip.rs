@@ -166,6 +166,10 @@ impl StackingContextTreeClipStore {
                     top_right: corner(&rect.round.top_right),
                     bottom_left: corner(&rect.round.bottom_left),
                     bottom_right: corner(&rect.round.bottom_right),
+                    shape_top_left: 1.0,
+                    shape_top_right: 1.0,
+                    shape_bottom_left: 1.0,
+                    shape_bottom_right: 1.0,
                 };
                 Some(self.add(
                     radii,
@@ -197,6 +201,10 @@ impl StackingContextTreeClipStore {
                     top_right: radius,
                     bottom_left: radius,
                     bottom_right: radius,
+                    shape_top_left: 1.0,
+                    shape_top_right: 1.0,
+                    shape_bottom_left: 1.0,
+                    shape_bottom_right: 1.0,
                 };
                 let start = center.add_size(&-radius);
                 let rect = LayoutRect::from_origin_and_size(start, radius * 2.);
@@ -225,6 +233,10 @@ impl StackingContextTreeClipStore {
                     top_right: radius,
                     bottom_left: radius,
                     bottom_right: radius,
+                    shape_top_left: 1.0,
+                    shape_top_right: 1.0,
+                    shape_bottom_left: 1.0,
+                    shape_bottom_right: 1.0,
                 };
                 let start = center.add_size(&-radius);
                 let rect = LayoutRect::from_origin_and_size(start, radius * 2.);

@@ -30,7 +30,7 @@ impl FilterToWebRender for ComputedFilter {
     type Type = FilterOp;
     fn to_webrender(&self, style: &ComputedValues) -> Self::Type {
         match *self {
-            ComputedFilter::Blur(radius) => FilterOp::Blur(radius.px(), radius.px()),
+            ComputedFilter::Blur(radius) => FilterOp::Blur(radius.px(), radius.px(), true),
             ComputedFilter::Brightness(amount) => FilterOp::Brightness(amount.0),
             ComputedFilter::Contrast(amount) => FilterOp::Contrast(amount.0),
             ComputedFilter::Grayscale(amount) => FilterOp::Grayscale(amount.0),
