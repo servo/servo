@@ -167,6 +167,10 @@ pub struct LayoutThread {
     /// Whether the last display list we sent was effectively empty.
     last_display_list_was_empty: Cell<bool>,
 
+    /// Whether the last built display list captured an embedder-facing snapshot. Starts
+    /// out `true` so a pipeline joining an existing `WebView` clears its shared captures.
+    display_list_capture_was_enabled: Cell<bool>,
+
     /// Whether a new display list is necessary due to changes to layout or stacking
     /// contexts. This is set to true every time layout changes, even when a display list
     /// isn't requested for this layout, such as for layout queries. The next time a
@@ -806,6 +810,7 @@ impl LayoutThread {
             have_added_user_agent_stylesheets: false,
             have_ever_generated_display_list: Cell::new(false),
             last_display_list_was_empty: Cell::new(true),
+            display_list_capture_was_enabled: Cell::new(true),
             device_has_changed: false,
             need_containing_block_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
@@ -1496,13 +1501,24 @@ impl LayoutThread {
         );
 
         // Deliver the captured display list snapshot to the embedder, if enabled. When
-        // capture is disabled, explicitly clear the embedder-side retained snapshots so
-        // a later re-enable cannot splice an old subframe into a fresh root capture.
-        let capture_message = match captured_display_list {
-            Some(display_list) => EmbedderMsg::DisplayListCaptured(self.webview_id, display_list),
-            None => EmbedderMsg::DisplayListCaptureCleared(self.webview_id),
-        };
-        let _ = self.embedder_chan.send(capture_message);
+        // capture has just been disabled, clear the embedder-side retained snapshots so a
+        // later re-enable cannot splice an old subframe into a fresh root capture.
+        match captured_display_list {
+            Some(display_list) => {
+                self.display_list_capture_was_enabled.set(true);
+                let _ = self.embedder_chan.send(EmbedderMsg::DisplayListCaptured(
+                    self.webview_id,
+                    display_list,
+                ));
+            },
+            None => {
+                if self.display_list_capture_was_enabled.replace(false) {
+                    let _ = self
+                        .embedder_chan
+                        .send(EmbedderMsg::DisplayListCaptureCleared(self.webview_id));
+                }
+            },
+        }
 
         if paint_timing_handler.did_lcp_candidate_update() &&
             let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()
