@@ -282,7 +282,9 @@ impl ServoInner {
             .or_default()
             .update(display_list, root_pipeline_id);
         if let Some(display_list) = composed_display_list {
-            webview.delegate().notify_display_list(webview, display_list);
+            webview
+                .delegate()
+                .notify_display_list(webview, display_list);
         }
     }
 
@@ -331,7 +333,9 @@ impl ServoInner {
         }
         drop(captures);
         for (webview, display_list) in deliveries {
-            webview.delegate().notify_display_list(webview, display_list);
+            webview
+                .delegate()
+                .notify_display_list(webview, display_list);
         }
     }
 

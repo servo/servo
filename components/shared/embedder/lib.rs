@@ -44,11 +44,11 @@ use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
 use url::Url;
 use uuid::Uuid;
+use webrender_api::ExternalScrollId;
 use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceRect,
     DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
-use webrender_api::ExternalScrollId;
 
 pub use crate::display_list::*;
 pub use crate::embedder_controls::*;
