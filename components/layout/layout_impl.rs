@@ -925,8 +925,16 @@ impl LayoutThread {
         root_element: &ServoLayoutNode,
         reflow_request: &mut ReflowRequest,
         reflow_statistics: &mut ReflowStatistics,
+        reflow_phases_run: ReflowPhasesRun,
     ) -> bool {
-        if !self.needs_accessibility_update() {
+        // Bounds go stale when geometry changes (stacking context tree rebuild or scroll offset)
+        // FIXME(accessibility): layout queries leave bounds stale; need geometry damage tracking
+        let geometry_may_have_changed = self.accessibility_active() &&
+            reflow_phases_run.intersects(
+                ReflowPhasesRun::BuiltStackingContextTree |
+                    ReflowPhasesRun::UpdatedScrollNodeOffset,
+            );
+        if !self.needs_accessibility_update() && !geometry_may_have_changed {
             return false;
         }
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
@@ -1051,6 +1059,7 @@ impl LayoutThread {
             &root_element.as_node(),
             &mut reflow_request,
             &mut reflow_statistics,
+            reflow_phases_run,
         ) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
