@@ -36,12 +36,8 @@ fn test_std_types() {
     let _ = std_types.refcell.borrow_mut();
 
     // slice Iter
-    for val in std_types.vector.iter() {
-       let _ = val;
-    }
-    // iter
     let _ = std_types.vector[..].iter();
-    // iter_mut
+    // slice IterMut
     let _ = std_types_mut.vector[..].iter_mut();
 
     // hashmap Entry
@@ -52,17 +48,17 @@ fn test_std_types() {
         Entry::Vacant(_) => (),
     }
 
-    // hashmap iter
+    // hashmap Iter
     for (_, val) in std_types.hashmap.iter() {
        let _ = val;
     }
 
-    // hasmap values
+    // hashmap Values
     for val in std_types.hashmap.values() {
        let _ = val;
     }
 
-    // hashset iter
+    // hashset Iter
     for val in std_types.hashset.iter() {
        let _ = val;
     }
