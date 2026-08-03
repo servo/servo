@@ -57,13 +57,11 @@ use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
-/// Get a scroll node that would represents this [`ServoLayoutNode`]'s transform and
-/// calculate its cumulative transform from its root scroll node to the scroll node.
-fn root_transform_for_layout_node(
+/// Calculate cumulative transform from root scroll node. Takes fragments (avoids recollecting).
+fn root_transform_for_fragments(
     scroll_tree: &ScrollTree,
-    node: ServoLayoutNode<'_>,
+    fragments: &[Fragment],
 ) -> Option<FastLayoutTransform> {
-    let fragments = node.fragments_for_pseudo(None);
     let box_fragment = fragments
         .first()
         .and_then(Fragment::retrieve_box_fragment)?;
@@ -117,7 +115,7 @@ pub(crate) fn process_box_area_request(
     }
 
     let Some(transform) =
-        root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
+        root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, &fragments)
     else {
         return Some(Rect::new(rect_union.origin, Size2D::zero()));
     };
@@ -131,20 +129,21 @@ pub(crate) fn process_box_areas_request(
     node: ServoLayoutNode<'_>,
     area: BoxAreaType,
 ) -> CSSPixelRectVec {
-    let fragments = node
-        .fragments_for_pseudo(None)
+    let fragments = node.fragments_for_pseudo(None);
+    let transform =
+        root_transform_for_fragments(&stacking_context_tree.paint_info.scroll_tree, &fragments);
+
+    let rects = fragments
         .into_iter()
         .filter_map(move |fragment| fragment.cumulative_box_area_rect(area, layout_thread.into()));
 
-    let Some(transform) =
-        root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
-    else {
-        return fragments
+    let Some(transform) = transform else {
+        return rects
             .map(|rect| Rect::new(rect.origin, Size2D::zero()))
             .collect();
     };
 
-    fragments
+    rects
         .filter_map(move |rect| transform_au_rectangle(rect, transform))
         .collect()
 }
