@@ -545,6 +545,18 @@ impl fmt::Debug for ShapedText {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum ShapedTextSliceType {
+    /// A [`ShapedTextSlice`] that is a word that is not followed by white space.
+    Word,
+    /// A [`ShapedTextSlice`] composed of only white space glyphs.
+    WhiteSpace,
+    /// A [`ShapedTextSlice`] that is a word that ends with a white space glyphs.
+    /// Typically whitespace glyphs are placed in a separate slice, but that may not be
+    /// the case with `white-space: break-spaces`.
+    WordAndWhiteSpace,
+}
+
 /// A slice of a [`ShapedText`] which allows having different views into a shaped
 /// text run. This is used for splitting up shaped text during layout, without
 /// duplicating the entire run.
@@ -567,13 +579,8 @@ pub struct ShapedTextSlice {
     /// <https://drafts.csswg.org/css-text/#word-separator>.
     total_word_separators: usize,
 
-    /// Whether or not this [`ShapedTextSlice`] is entirely whitespace.
-    is_whitespace: bool,
-
-    /// Whether or not this [`ShapedTextSlice`] ends with whitespace glyphs.
-    /// Typically whitespace glyphs are placed in a separate slice,
-    /// but that may not be the case with `white-space: break-spaces`.
-    ends_with_whitespace: bool,
+    /// The [`ShapedTextSliceType`] of this [`ShapedTextSlice`].
+    slice_type: ShapedTextSliceType,
 }
 
 impl ShapedTextSlice {
@@ -606,13 +613,16 @@ impl ShapedTextSlice {
     /// Whether or not this [`ShapedTextSlice`] is entirely whitespace.
     #[inline]
     pub fn is_whitespace(&self) -> bool {
-        self.is_whitespace
+        matches!(self.slice_type, ShapedTextSliceType::WhiteSpace)
     }
 
     /// Whether or not this [`ShapedTextSlice`] ends with whitespace.
     #[inline]
     pub fn ends_with_whitespace(&self) -> bool {
-        self.ends_with_whitespace
+        match self.slice_type {
+            ShapedTextSliceType::Word => false,
+            ShapedTextSliceType::WhiteSpace | ShapedTextSliceType::WordAndWhiteSpace => true,
+        }
     }
 
     /// An iterator over the glyphs represented by this [`ShapedTextSlice`].
@@ -650,8 +660,7 @@ impl ShapedTextSlicer {
     pub fn slice_until_character_offset(
         &mut self,
         desired_character_offset: usize,
-        is_whitespace: bool,
-        ends_with_whitespace: bool,
+        slice_type: ShapedTextSliceType,
     ) -> Option<Arc<ShapedTextSlice>> {
         let mut glyph_count = 0;
         let mut total_word_separators = 0;
@@ -721,9 +730,8 @@ impl ShapedTextSlicer {
             glyph_range,
             total_advance,
             character_count: self.current_character_offset - original_character_offset,
-            is_whitespace,
-            ends_with_whitespace,
             total_word_separators,
+            slice_type,
         }))
     }
 }
