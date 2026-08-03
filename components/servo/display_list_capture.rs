@@ -74,9 +74,12 @@ impl WebViewDisplayListCaptures {
     }
 
     /// Remove a pipeline that Paint has retired. This bounds retained captures that were
-    /// never referenced by a parent display list (for example, a hidden frame).
+    /// never referenced by a parent display list, and drops a retired subframe's content
+    /// from the composed snapshot.
     pub(crate) fn remove_pipeline(&mut self, pipeline_id: PipelineId) {
-        self.captures.remove(&pipeline_id);
+        if self.captures.remove(&pipeline_id).is_some() {
+            self.dirty = true;
+        }
         if self.root_pipeline_id == Some(pipeline_id) {
             self.root_pipeline_id = None;
         }
@@ -276,9 +279,21 @@ mod tests {
                         child,
                         LayoutVector2D::new(0., 30.),
                         vec![
-                            text("visible", rect(10., 40., 50., 10.), DisplayListItemSpace::Document),
-                            text("scrolled away", rect(10., 0., 50., 10.), DisplayListItemSpace::Document),
-                            text("fixed", rect(0., 0., 20., 10.), DisplayListItemSpace::Viewport),
+                            text(
+                                "visible",
+                                rect(10., 40., 50., 10.),
+                                DisplayListItemSpace::Document
+                            ),
+                            text(
+                                "scrolled away",
+                                rect(10., 0., 50., 10.),
+                                DisplayListItemSpace::Document
+                            ),
+                            text(
+                                "fixed",
+                                rect(0., 0., 20., 10.),
+                                DisplayListItemSpace::Viewport
+                            ),
                         ],
                     ),
                     Some(root),
@@ -298,7 +313,11 @@ mod tests {
             .expect("Should compose once the root capture arrives");
 
         let rects: Vec<_> = composed.items.iter().map(|item| item.rect).collect();
-        assert_eq!(rects.len(), 3, "The fully scrolled-out subframe item is culled");
+        assert_eq!(
+            rects.len(),
+            3,
+            "The fully scrolled-out subframe item is culled"
+        );
         // The iframe item itself.
         assert_eq!(rects[0], rect(100., 200., 300., 150.));
         // A document-space subframe item: shifted by the subframe scroll offset and
@@ -473,20 +492,28 @@ mod tests {
     fn unreferenced_subframe_capture_is_evicted_by_the_next_root_capture() {
         let (root, hidden_child) = (pipeline(1), pipeline(2));
         let mut captures = WebViewDisplayListCaptures::default();
-        captures.update(capture(root, LayoutVector2D::zero(), Vec::new()), Some(root));
+        captures.update(
+            capture(root, LayoutVector2D::zero(), Vec::new()),
+            Some(root),
+        );
 
         // Keep an apparently-unreachable capture until the next root capture. It might
         // instead be the first capture from a new root while the frame-tree message is
         // in flight.
-        assert!(captures
-            .update(
-                capture(hidden_child, LayoutVector2D::zero(), Vec::new()),
-                Some(root),
-            )
-            .is_none());
+        assert!(
+            captures
+                .update(
+                    capture(hidden_child, LayoutVector2D::zero(), Vec::new()),
+                    Some(root),
+                )
+                .is_none()
+        );
         assert!(captures.captures.contains_key(&hidden_child));
 
-        captures.update(capture(root, LayoutVector2D::zero(), Vec::new()), Some(root));
+        captures.update(
+            capture(root, LayoutVector2D::zero(), Vec::new()),
+            Some(root),
+        );
         assert!(!captures.captures.contains_key(&hidden_child));
     }
 
@@ -497,9 +524,11 @@ mod tests {
 
         // A subframe can finish layout before its parent, so a lone capture does not
         // establish that it is the WebView's root.
-        assert!(captures
-            .update(capture(child, LayoutVector2D::zero(), Vec::new()), None)
-            .is_none());
+        assert!(
+            captures
+                .update(capture(child, LayoutVector2D::zero(), Vec::new()), None)
+                .is_none()
+        );
         assert!(captures.captures.contains_key(&child));
     }
 
@@ -512,7 +541,11 @@ mod tests {
             capture(
                 child,
                 LayoutVector2D::zero(),
-                vec![text("child", rect(0., 0., 20., 10.), DisplayListItemSpace::Document)],
+                vec![text(
+                    "child",
+                    rect(0., 0., 20., 10.),
+                    DisplayListItemSpace::Document,
+                )],
             ),
             None,
         );
@@ -541,12 +574,14 @@ mod tests {
         );
 
         // Paint still reports the old root while the new root's capture arrives.
-        assert!(captures
-            .update(
-                capture(new_root, LayoutVector2D::zero(), Vec::new()),
-                Some(old_root),
-            )
-            .is_none());
+        assert!(
+            captures
+                .update(
+                    capture(new_root, LayoutVector2D::zero(), Vec::new()),
+                    Some(old_root),
+                )
+                .is_none()
+        );
         assert!(captures.captures.contains_key(&new_root));
 
         let composed = captures.refresh(Some(new_root)).unwrap();
@@ -558,7 +593,10 @@ mod tests {
     fn retired_pipeline_capture_is_removed() {
         let root = pipeline(1);
         let mut captures = WebViewDisplayListCaptures::default();
-        captures.update(capture(root, LayoutVector2D::zero(), Vec::new()), Some(root));
+        captures.update(
+            capture(root, LayoutVector2D::zero(), Vec::new()),
+            Some(root),
+        );
         captures.remove_pipeline(root);
         assert!(captures.is_empty());
         assert!(captures.refresh(Some(root)).is_none());
@@ -601,6 +639,43 @@ mod tests {
             &composed.items[0].content,
             DisplayListItemContent::Iframe { pipeline_id } if *pipeline_id == child
         ));
+    }
+
+    #[test]
+    fn retiring_a_subframe_recomposes_without_it() {
+        let (root, child) = (pipeline(1), pipeline(2));
+        let mut captures = WebViewDisplayListCaptures::default();
+        captures.update(
+            capture(
+                child,
+                LayoutVector2D::zero(),
+                vec![text(
+                    "child",
+                    rect(0., 0., 50., 10.),
+                    DisplayListItemSpace::Document,
+                )],
+            ),
+            Some(root),
+        );
+        let composed = captures
+            .update(
+                capture(
+                    root,
+                    LayoutVector2D::zero(),
+                    vec![iframe(child, rect(0., 0., 100., 100.))],
+                ),
+                Some(root),
+            )
+            .unwrap();
+        assert_eq!(composed.items.len(), 2);
+
+        // The child exits after an in-place iframe navigation, without the parent's
+        // display list being rebuilt, so retiring the pipeline drops it from the snapshot.
+        captures.remove_pipeline(child);
+        let composed = captures
+            .refresh(Some(root))
+            .expect("Retiring a spliced subframe should recompose");
+        assert_eq!(composed.items.len(), 1, "Only the iframe item remains");
     }
 
     #[test]
