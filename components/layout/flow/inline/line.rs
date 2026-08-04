@@ -1045,29 +1045,6 @@ impl TextRunLineItem {
         // Only keep going if we only encountered whitespace.
         self.text.is_empty()
     }
-
-    pub(crate) fn merge_if_possible(
-        &mut self,
-        new_info: &FontAndScriptInfo,
-        new_glyph_store: &Arc<ShapedTextSlice>,
-        new_offsets: &Option<TextRunOffsets>,
-        new_inline_styles: &SharedInlineStyles,
-    ) -> bool {
-        if !Arc::ptr_eq(&self.info.font_info.font, &new_info.font_info.font) ||
-            self.info.font_info.bidi_level != new_info.font_info.bidi_level ||
-            !self.inline_styles.ptr_eq(new_inline_styles)
-        {
-            return false;
-        }
-        self.text.push(new_glyph_store.clone());
-
-        assert_eq!(self.offsets.is_some(), new_offsets.is_some());
-        if let (Some(new_offsets), Some(existing_offsets)) = (new_offsets, self.offsets.as_mut()) {
-            existing_offsets.character_range.end = new_offsets.character_range.end;
-        }
-
-        true
-    }
 }
 
 pub(super) struct AtomicLineItem {

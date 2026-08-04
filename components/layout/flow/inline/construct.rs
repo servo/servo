@@ -4,7 +4,7 @@
 
 use std::borrow::Cow;
 use std::cell::LazyCell;
-use std::ops::{ControlFlow, Range};
+use std::ops::Range;
 
 use icu_properties::BidiClass;
 use layout_api::{LayoutNode, SharedSelection};
@@ -480,18 +480,6 @@ impl InlineFormattingContextBuilder {
 
         self.text_segments.push(new_text);
 
-        if self
-            .try_to_push_text_range_to_previous_text_run(
-                info,
-                &document_selection,
-                &new_utf8_range,
-                &new_character_range,
-            )
-            .is_break()
-        {
-            return;
-        }
-
         let current_inline_styles = self.shared_inline_styles();
         let box_slot = info.node.is_text_node().then(|| info.node.box_slot());
         let text_run = ArcRefCell::new(TextRun::new(
@@ -510,60 +498,6 @@ impl InlineFormattingContextBuilder {
         if let Some(box_slot) = box_slot {
             box_slot.set(LayoutBox::Text(text_run));
         }
-    }
-
-    fn try_to_push_text_range_to_previous_text_run(
-        &mut self,
-        info: &NodeAndStyleInfo,
-        new_text_selection: &Option<Range<Utf32CodeUnits>>,
-        new_range: &Range<usize>,
-        new_character_range: &Range<usize>,
-    ) -> ControlFlow<()> {
-        // First check to see if the last item was actually a text run.
-        let Some(InlineItem::TextRun(text_run_arc)) = self.inline_items.last() else {
-            return ControlFlow::Continue(());
-        };
-
-        // Currently to merge two text runs the styles need to be the same.
-        if !text_run_arc
-            .borrow()
-            .inline_styles
-            .ptr_eq(&self.shared_inline_styles())
-        {
-            return ControlFlow::Continue(());
-        }
-
-        let mut text_run = text_run_arc.borrow_mut();
-        if let Some(next_text_selection) = new_text_selection {
-            if !text_run.document_selection.is_empty() {
-                // If both the new and old text had selections, they are only compatible
-                // if the old selection extends to the start of the new selection
-                if text_run.document_selection.end.0 == next_text_selection.start.0 {
-                    text_run.document_selection.end = next_text_selection.end;
-                } else {
-                    return ControlFlow::Continue(());
-                }
-            } else {
-                // If only the new part of the text run has a selection, we can use it directly.
-                text_run.document_selection = next_text_selection.start..next_text_selection.end;
-            }
-        }
-
-        text_run.text_range.end = new_range.end;
-        text_run.character_range.end = new_character_range.end;
-
-        // If this text node does not have a `TextRun` in the box slot, this means that
-        // it is either new or dirty, which means that the entire `TextRun` just extended
-        // is dirty as well. In this case, never reuse existing shaping results. Clear
-        // all old items to ensure this.
-        let box_slot = info.node.box_slot();
-        let old_text_run = box_slot.take_layout_box_as_text_run();
-        if old_text_run.is_none() {
-            text_run.items.clear();
-        }
-
-        box_slot.set(LayoutBox::Text(text_run_arc.clone()));
-        ControlFlow::Break(())
     }
 
     pub(crate) fn enter_display_contents(&mut self, shared_inline_styles: SharedInlineStyles) {

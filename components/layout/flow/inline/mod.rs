@@ -1682,14 +1682,6 @@ impl InlineFormattingContextLayout<'_> {
         self.update_unbreakable_segment_for_new_content(&block_contribution, inline_advance, flags);
 
         let current_inline_box_identifier = self.current_inline_box_identifier();
-        if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
-            self.current_line_segment.line_items.last_mut() &&
-            *inline_box_identifier == current_inline_box_identifier &&
-            line_item.merge_if_possible(info, &glyph_store, &offsets, &text_run.inline_styles)
-        {
-            return;
-        }
-
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
             current_inline_box_identifier,
             TextRunLineItem {
