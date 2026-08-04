@@ -71,7 +71,8 @@ pub mod codegen {
     #[allow(
         clippy::extra_unused_type_parameters,
         clippy::missing_safety_doc,
-        clippy::result_unit_err
+        clippy::result_unit_err,
+        crown::domroot_inside_dom_struct
     )]
     pub mod GenericBindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
@@ -82,7 +83,8 @@ pub mod codegen {
         unused_variables,
         clippy::large_enum_variant,
         clippy::upper_case_acronyms,
-        clippy::enum_variant_names
+        clippy::enum_variant_names,
+        crown::domroot_inside_dom_struct
     )]
     pub mod GenericUnionTypes {
         include!(concat!(env!("OUT_DIR"), "/GenericUnionTypes.rs"));

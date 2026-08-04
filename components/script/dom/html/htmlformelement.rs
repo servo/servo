@@ -1529,6 +1529,7 @@ impl From<FormDatum> for FormDatumUnrooted {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[allow(crown::domroot_inside_dom_struct)]
 pub(crate) enum FormDatumValue {
     File(DomRoot<File>),
     String(DOMString),
