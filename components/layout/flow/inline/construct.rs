@@ -404,6 +404,9 @@ impl InlineFormattingContextBuilder {
         info: &NodeAndStyleInfo<'dom>,
         document_selection: Option<RangeAny<Utf32CodeUnits>>,
     ) {
+        let original_size_before = self.offset_map.total_original_size();
+        let final_size_before = self.offset_map.total_final_size();
+
         let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
         let mut character_count = 0;
@@ -448,29 +451,33 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
-        let selection = info
-            .node
-            .form_control_selection_in_text_node()
-            .filter(|selection| selection.borrow().enabled)
-            .or_else(|| {
-                document_selection.map(|document_selection| {
-                    let start = document_selection
-                        .start
-                        .map(|offset| self.offset_map.map(offset))
-                        // Range unbounded at the start: the concrete start is offset zero
-                        .unwrap_or(Utf32CodeUnits(0));
-                    let end = document_selection
-                        .end
-                        .map(|offset| self.offset_map.map(offset))
-                        // Range unbounded at the end: the concrete end is the full length
-                        .unwrap_or(Utf32CodeUnits(character_count));
-                    Arc::new(AtomicRefCell::new(ScriptSelection {
-                        range: TextByteRange::default(),
-                        character_range: start.0..end.0,
-                        enabled: true,
-                    }))
-                })
-            });
+        let selection = info.node.form_control_selection_in_text_node().or_else(|| {
+            document_selection.and_then(|document_selection| {
+                let start = document_selection
+                    .start
+                    .map(|offset| {
+                        self.offset_map.map(original_size_before + offset) - final_size_before
+                    })
+                    // Range unbounded at the start: the concrete start is offset zero
+                    .unwrap_or(Utf32CodeUnits(0));
+                let end = document_selection
+                    .end
+                    .map(|offset| {
+                        self.offset_map.map(original_size_before + offset) - final_size_before
+                    })
+                    // Range unbounded at the end: the concrete end is the full length
+                    .unwrap_or(Utf32CodeUnits(character_count));
+
+                if start == end {
+                    return None;
+                }
+                Some(Arc::new(AtomicRefCell::new(ScriptSelection {
+                    range: TextByteRange::default(),
+                    character_range: start.0..end.0,
+                    enabled: true,
+                })))
+            })
+        });
 
         if let Some(last_character) = new_text.chars().next_back() {
             self.on_word_boundary = last_character.is_whitespace();

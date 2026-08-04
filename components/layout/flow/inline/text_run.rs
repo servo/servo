@@ -267,14 +267,14 @@ impl TextRunSegment {
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
             let new_character_range_end = character_range_start + run.character_count();
-            let offsets = text_run.selection.clone().map(|shared_selection| {
-                ifc.shared_selection_for_empty_text_run = Some(shared_selection.clone());
-                TextRunOffsets {
+            let offsets = text_run
+                .selection
+                .clone()
+                .map(|shared_selection| TextRunOffsets {
                     shared_selection,
                     character_range: character_range_start - text_run.character_range.start..
                         new_character_range_end - text_run.character_range.start,
-                }
-            });
+                });
 
             // Break before each unbreakable run in this TextRun, except the first unless the
             // linebreaker was set to break before the first run.
@@ -292,11 +292,21 @@ impl TextRunSegment {
     }
 }
 
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct CaretPlaceholder {
+    /// Character index of the preserved newline in the IFC's transformed text, relative
+    /// to the start of the DOM node.
+    pub character_index: usize,
+    /// The [`SharedSelection`] of this caret placeholder.
+    #[conditional_malloc_size_of]
+    pub shared_selection: SharedSelection,
+}
+
 /// A single item in a [`TextRun`].
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum TextRunItem {
     /// A hard line break i.e. a "\n" as other types line breaks are normalized to "\n".
-    LineBreak { character_index: usize },
+    LineBreak(Option<CaretPlaceholder>),
     /// A preserved tab character that should advance the line to a tab stop.
     Tab { bidi_level: Level },
     /// Any other text for which a font can be matched. We store a `Box` here as [`TextRunSegment`]
@@ -474,9 +484,14 @@ impl TextRun {
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                results.push(TextRunItem::LineBreak {
-                    character_index: current_character_index,
-                });
+                results.push(TextRunItem::LineBreak(self.selection.clone().map(
+                    |shared_selection| CaretPlaceholder {
+                        // The placeholder that is placed after a newline is for the index after that newline.
+                        // The newline itself is at the end of the previous line.
+                        character_index: relative_character_index + 1,
+                        shared_selection,
+                    },
+                )));
                 continue;
             }
 
@@ -556,8 +571,6 @@ impl TextRun {
     }
 
     pub(super) fn layout_into_line_items(&self, ifc: &mut InlineFormattingContextLayout) {
-        ifc.shared_selection_for_empty_text_run = None;
-
         if self.text_range.is_empty() {
             return;
         }
@@ -579,8 +592,8 @@ impl TextRun {
                 // If this whitespace forces a line break, queue up a hard line break the next time we
                 // see any content. We don't line break immediately, because we'd like to finish processing
                 // any ongoing inline boxes before ending the line.
-                TextRunItem::LineBreak { character_index } => {
-                    ifc.defer_forced_line_break_at_character_offset(*character_index);
+                TextRunItem::LineBreak(caret_placeholder) => {
+                    ifc.defer_forced_line_break_at_character_offset(caret_placeholder);
                 },
                 TextRunItem::Tab { bidi_level } => self.process_preserved_tab(ifc, *bidi_level),
                 TextRunItem::TextSegment(segment) => {
