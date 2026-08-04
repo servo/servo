@@ -7,13 +7,13 @@ use std::collections::HashSet;
 use app_units::Au;
 use euclid::Rect;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
-use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
+use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
 use crate::fragment_tree::Tag;
-use crate::query::transform_au_rectangle;
+use crate::query::transform_f32_rectangle;
 
 pub(crate) struct PaintTimingHandler {
     /// The rect of viewport.
@@ -109,12 +109,8 @@ impl PaintTimingHandler {
 
         // Step 8.4: Let clientContentRect be the smallest DOMRectReadOnly
         // containing visibleDimensions with element's transforms applied.
-        let client_content_rect = transform_au_rectangle(
-            f32_rect_to_au_rect(visible_dimensions.to_rect().cast_unit()),
-            transform,
-        )
-        .unwrap_or_default();
-        let client_content_rect = au_rect_to_f32_rect(client_content_rect);
+        let client_content_rect =
+            transform_f32_rectangle(visible_dimensions.to_rect(), transform).unwrap_or_default();
 
         // Step 8.5: Let intersectingClientContentRect be the intersection of
         // clientContentRect with intersectionRect.

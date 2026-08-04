@@ -45,6 +45,7 @@ use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
 use style::values::specified::box_::DisplayInside;
 use style_traits::{CSSPixel, ParsingMode, ToCss};
+use webrender_api::units::LayoutPixel;
 
 use crate::cell::RefOrAtomicRef;
 use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
@@ -1581,14 +1582,23 @@ pub(crate) fn transform_au_rectangle(
     rect_to_transform: Rect<Au, CSSPixel>,
     transform: FastLayoutTransform,
 ) -> Option<Rect<Au, CSSPixel>> {
-    let rect_to_transform = &au_rect_to_f32_rect(rect_to_transform).cast_unit();
-    let outer_transformed_rect = match transform {
+    transform_f32_rectangle(
+        au_rect_to_f32_rect(rect_to_transform).cast_unit(),
+        transform,
+    )
+    .map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
+}
+
+pub(crate) fn transform_f32_rectangle(
+    rect_to_transform: Rect<f32, LayoutPixel>,
+    transform: FastLayoutTransform,
+) -> Option<Rect<f32, LayoutPixel>> {
+    match transform {
         FastLayoutTransform::Offset(offset) => Some(rect_to_transform.translate(offset)),
         FastLayoutTransform::Transform { transform, .. } => {
-            transform.outer_transformed_rect(rect_to_transform)
+            transform.outer_transformed_rect(&rect_to_transform)
         },
-    };
-    outer_transformed_rect.map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
+    }
 }
 
 pub(crate) fn process_effective_overflow_query(node: ServoLayoutNode<'_>) -> Option<AxesOverflow> {
