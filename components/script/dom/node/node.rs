@@ -371,23 +371,6 @@ impl Node {
         }
     }
 
-    /// Clear style and layout data on this [`Node`] and all descendants. This is used to clean
-    /// up the data when a [`Node`] becomes detached from the flat tree. Note that this
-    /// operates on both DOM and flat tree descendants.
-    pub(crate) fn remove_style_and_layout_data_from_subtree(&self, no_gc: &NoGC) {
-        for node in self.traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes) {
-            node.clean_up_style_and_layout_data();
-        }
-    }
-
-    fn clean_up_style_and_layout_data(&self) {
-        self.layout_data.borrow_mut().take();
-        if let Some(element) = self.downcast::<Element>() {
-            element.clean_up_style_data();
-        }
-        self.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
-    }
-
     /// Clean up flags and runs steps 11-14 of remove a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     pub(crate) fn complete_remove_subtree(
@@ -424,9 +407,10 @@ impl Node {
 
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
+        let document = root.owner_doc();
         let cleanup_node = |cx: &mut JSContext, node: &Node| {
-            node.owner_doc().cancel_animations_for_node(node);
-            node.clean_up_style_and_layout_data();
+            document.cancel_animations_for_node(node);
+            document.clean_up_style_and_layout_data_for_node(node);
 
             // Step 11 & 14.1. Run the removing steps.
             // This needs to be in its own loop, because unbind_from_tree may
@@ -486,9 +470,10 @@ impl Node {
             .union(NodeFlags::HANDLED_SNAPSHOT)
             .union(NodeFlags::OVERLAPS_DOCUMENT_SELECTION);
 
+        let document = root.owner_document();
         for node in root.traverse_preorder(ShadowIncluding::No) {
             node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
-            node.clean_up_style_and_layout_data();
+            document.clean_up_style_and_layout_data_for_node(&node);
 
             // Unregister the `id` and `name` attributes for this node. Note that they
             // will be re-registered when added to the tree again.
@@ -513,7 +498,7 @@ impl Node {
                     .traverse_preorder(ShadowIncluding::Yes)
                 {
                     node.set_flag(RESET_FLAGS, false);
-                    node.clean_up_style_and_layout_data();
+                    document.clean_up_style_and_layout_data_for_node(&node);
                 }
             }
         }
@@ -914,6 +899,10 @@ impl Node {
             node = p
         }
         doc.inclusive_descendants_version.set(version);
+    }
+
+    pub(crate) fn clear_layout_data(&self) {
+        self.layout_data.take();
     }
 
     pub(crate) fn dirty(&self, damage: NodeDamage) {

@@ -775,119 +775,153 @@ impl Document {
         closed_any_websocket
     }
 
+    /// This is a port of Gecko's restyle root architecture. The idea is that we track a
+    /// node which is the root of restyle damage. Below that root, certain nodes can be
+    /// marked with a HAS_DIRTY_DESCENDANTS flag which means they should be traversed
+    /// during styling and damage propagation. Above the dirty root nothing should be
+    /// marked with the HAS_DIRTY_DESCENDANTS flag.
+    ///
+    /// The overall algorithm is as follows:
+    /// * When the first dirty element is noted, we just set it as the restyle root.
+    /// * When additional dirty elements are noted, we propagate the given bit up
+    ///   the tree, until we either reach the dirty root or the document root.
+    /// * If we reach the document root, we then propagate the HAS_DIRTY_DESCENDANTS
+    ///   flags up the tree until we cross the path of the new root. Once
+    ///   we find this common ancestor, we record it as the restyle root, and then
+    ///   clear the bits between the new restyle root and the document root.
+    ///
+    /// TODO: This function should take an `Element` and not a `Node`.
     pub(crate) fn note_node_with_dirty_descendants(&self, node: &Node) {
         debug_assert!(*node.owner_doc() == *self);
         if !node.is_connected() {
             return;
         }
 
-        let parent = match node.parent_in_flat_tree() {
-            FlatTreeParent::Parent(parent) => parent,
-            FlatTreeParent::NotInFlatTree => return,
-            FlatTreeParent::RootNode => {
-                // There is no parent so this is the Document node, so we
-                // behave as if we were called with the document element.
-                let Some(document_element) = self.GetDocumentElement() else {
-                    // Trigger update if the document element was removed.
-                    if !self.root_removal_noted.get() {
-                        self.add_restyle_reason(RestyleReason::DOMChanged);
-                        self.root_removal_noted.set(true);
-                    }
-                    return;
-                };
+        let parent_element = match node.parent_in_flat_tree() {
+            FlatTreeParent::Parent(parent) => DomRoot::downcast::<Element>(parent),
+            FlatTreeParent::RootNode => self.GetDocumentElement().inspect(|_| {
                 // This ensures that if the document element is removed in the future, it
                 // will trigger a new empty display list.
+                // TODO: This bookkeeping should move to another method.
                 self.root_removal_noted.set(false);
-
-                if let Some(dirty_root) = self.dirty_root.get() &&
-                    dirty_root.is_connected()
-                {
-                    // There was an existing dirty root so we mark its
-                    // ancestors as dirty until the document element.
-                    for ancestor in dirty_root
-                        .upcast::<Node>()
-                        .inclusive_ancestors_in_flat_tree()
-                    {
-                        if ancestor.is::<Element>() {
-                            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
-                        }
-                    }
-                }
-                self.dirty_root.set(Some(&document_element));
-                return;
-            },
+            }),
+            FlatTreeParent::NotInFlatTree => return,
         };
 
-        if let Some(parent_element) = parent.downcast::<Element>() {
-            if !parent_element.is_styled() {
-                return;
+        // If the parent isn't an element, try to use the document element.
+        let Some(parent_element) = parent_element.or_else(|| self.GetDocumentElement()) else {
+            // If there is no document element, attempt to trigger a new root removal update,
+            // but do not do any updating of the dirty root or HAS_DIRTY_DESCENDANTS flags.
+            // TODO: This bookkeeping should move to another method.
+            if !self.root_removal_noted.get() {
+                self.add_restyle_reason(RestyleReason::DOMChanged);
+                self.root_removal_noted.set(true);
             }
-            if parent_element.is_display_none() {
-                return;
-            }
+            return;
+        };
+
+        // If the parent isn't styled, then it either isn't part of the flat tree or will
+        // be styled later, ensuring the layout of the dirtied node as well.
+        if !parent_element.is_styled() {
+            return;
+        }
+        // If the parent has `display: none`, the change that caused the node to be dirty
+        // will not affect style or layout.
+        if parent_element.is_display_none() {
+            return;
         }
 
-        let element_parent: DomRoot<Element>;
-        let element = match node.downcast::<Element>() {
-            Some(element) => element,
-            None => {
-                // Current node is not an element, it's probably a text node,
-                // we try to get its element parent.
-                match DomRoot::downcast::<Element>(parent) {
-                    Some(parent) => {
-                        element_parent = parent;
-                        &element_parent
-                    },
-                    None => {
-                        // Parent is not an element so it must be a document,
-                        // and this is not an element either, so there is
-                        // nothing to do.
-                        return;
-                    },
-                }
-            },
+        let Some(old_dirty_root) = self.dirty_root.get() else {
+            // If there is no dirty root, then this node (or its parent if it is not an
+            // element) is the new dirty root and we have minimal work to do.
+            let new_dirty_root = match node.downcast::<Element>() {
+                Some(element) => element,
+                None => &*parent_element,
+            };
+
+            new_dirty_root
+                .upcast::<Node>()
+                .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            self.set_dirty_root(Some(new_dirty_root));
+            return;
         };
 
-        let dirty_root = match self.dirty_root.get() {
-            Some(root) if root.is_connected() => root,
-            _ => {
-                element
-                    .upcast::<Node>()
-                    .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
-                self.dirty_root.set(Some(element));
-                return;
-            },
-        };
+        let old_dirty_root_node = old_dirty_root.upcast::<Node>();
+        let start_element = node.downcast::<Element>().unwrap_or(&*parent_element);
+        for ancestor in start_element
+            .upcast::<Node>()
+            .inclusive_ancestors_in_flat_tree()
+        {
+            // Never mark the Document node as having dirty descendants. It's never the dirty root.
+            if !ancestor.is::<Element>() {
+                break;
+            }
 
-        for ancestor in element.upcast::<Node>().inclusive_ancestors_in_flat_tree() {
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
                 return;
             }
 
-            if ancestor.is::<Element>() {
-                ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+
+            // If this node is already under the existing dirty root, there is nothing else to
+            // do apart from marking this node as having dirty descendants. We need to ensure
+            // we mark the root as having dirty descendants now because that has become true.
+            if old_dirty_root_node == &*ancestor {
+                return;
             }
         }
 
-        // Find the new dirty root. If `Node::common_ancestors_in_flat_tree` returns `None`, this
-        // means that the old dirty root is no longer part of the flat tree and `element` is the new
-        // dirty root.
-        let new_dirty_root = element
-            .upcast::<Node>()
-            .common_ancestor_in_flat_tree(dirty_root.upcast())
-            .unwrap_or_else(|| DomRoot::from_ref(element.upcast()));
+        let common_element_ancestor = old_dirty_root_node
+            .inclusive_ancestors_in_flat_tree()
+            .skip(1) // Skip the old root itself.
+            .find_map(|ancestor| {
+                // Never mark the Document node as having dirty descendants. It's never the dirty root.
+                let element = ancestor.downcast::<Element>().map(DomRoot::from_ref)?;
+                if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
+                    return Some(element);
+                }
+                ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+                None
+            });
 
-        let mut has_dirty_descendants = true;
-        for ancestor in dirty_root
+        // In the case that there was no common ancestor dirty root, one or both of the nodes
+        // is not in the flat tree any longer. When this happens just move the dirty root to
+        // the document element.
+        let Some(new_dirty_root) = common_element_ancestor else {
+            let new_dirty_root = self.GetDocumentElement();
+            if let Some(new_dirty_root) = new_dirty_root.as_ref() {
+                new_dirty_root
+                    .upcast::<Node>()
+                    .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            }
+            self.set_dirty_root(new_dirty_root.as_deref());
+            return;
+        };
+
+        // Now mark all nodes *above* the new dirty root as not having dirty descendants
+        // to ensure our invariant that nothing above the dirty root is marked with this
+        // flag.
+        for ancestor in new_dirty_root
             .upcast::<Node>()
             .inclusive_ancestors_in_flat_tree()
+            .skip(1)
         {
-            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, has_dirty_descendants);
-            has_dirty_descendants &= *ancestor != *new_dirty_root;
+            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
         }
 
-        self.dirty_root
-            .set(Some(new_dirty_root.downcast::<Element>().unwrap()));
+        self.set_dirty_root(Some(&*new_dirty_root));
+    }
+
+    fn set_dirty_root(&self, new_dirty_root: Option<&Element>) {
+        // Assertion: No nodes above the dirty root should be marked with the HAS_DIRTY_DESCENDANTS flag.
+        debug_assert!(new_dirty_root.as_ref().is_none_or(|new_dirty_root| {
+            new_dirty_root
+                .upcast::<Node>()
+                .inclusive_ancestors_in_flat_tree()
+                .skip(1)
+                .all(|node| !node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS))
+        }));
+        self.dirty_root.set(new_dirty_root);
     }
 
     pub(crate) fn take_dirty_root(&self) -> Option<DomRoot<Element>> {
@@ -4650,6 +4684,37 @@ impl Document {
         self.image_animation_manager
             .borrow_mut()
             .cancel_animations_for_node(node);
+    }
+
+    /// Clear style and layout data on this [`Node`] and all descendants. This is used to clean
+    /// up the data when a [`Node`] becomes detached from the flat tree. Note that this
+    /// operates on shadow-including descendants.
+    pub(crate) fn remove_style_and_layout_data_from_subtree(
+        &self,
+        no_gc: &NoGC,
+        subtree_root: &Node,
+    ) {
+        for node in subtree_root.traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes) {
+            self.clean_up_style_and_layout_data_for_node(&node);
+        }
+    }
+
+    pub(crate) fn clean_up_style_and_layout_data_for_node(&self, node: &Node) {
+        node.clear_layout_data();
+        if let Some(element) = node.downcast::<Element>() {
+            element.clean_up_style_data();
+
+            // If this element no longer has any layout or style data, nothing underneath it
+            // can either, and it no longer needs to serve as a layout root. This method is
+            // generally called when a node is leaving the flat tree and no longer takes part
+            // in layout.
+            if self.dirty_root == Some(element) {
+                self.dirty_root.clear();
+            }
+        }
+
+        node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
+        node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false);
     }
 
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.

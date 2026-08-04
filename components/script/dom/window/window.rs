@@ -2664,6 +2664,10 @@ impl Window {
             None
         };
 
+        if let Some(selection) = document.selection() {
+            selection.set_flags_for_visible_selection(cx.no_gc());
+        }
+
         let restyle_reason = document.restyle_reason(cx.no_gc());
         document.clear_restyle_reasons();
         let restyle = if restyle_reason.needs_restyle() {
@@ -2699,10 +2703,6 @@ impl Window {
         } else {
             None
         };
-
-        if let Some(selection) = document.selection() {
-            selection.set_flags_for_visible_selection(cx.no_gc());
-        }
 
         // If there are any duplicate ids, their targets may need to be updated in the id map before
         // layout runs, so that the map can gather their elements in DOM order.
