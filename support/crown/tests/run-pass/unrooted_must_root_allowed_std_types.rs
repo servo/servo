@@ -19,13 +19,7 @@ pub struct StdTypes {
     vector: Vec<MustRoot>,
 }
 
-fn new_std_types(_: &()) -> &mut StdTypes {
-    unimplemented!()
-}
-
-fn test_std_types() {
-    let std_types = new_std_types(&());
-
+fn test_std_types(std_types: &mut StdTypes) {
     // Ref
     let foo = std_types.refcell.borrow();
     // RefMut
