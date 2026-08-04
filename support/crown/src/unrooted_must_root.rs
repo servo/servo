@@ -139,8 +139,6 @@ fn is_unrooted_ty<'tcx>(
                         did.did(),
                         &[sym::core, sym::slice, sym::iter, sym.IterMut],
                     ) ||
-                    match_def_path(cx, did.did(), &[sym.accountable_refcell, sym.Ref]) ||
-                    match_def_path(cx, did.did(), &[sym.accountable_refcell, sym.RefMut]) ||
                     match_def_path(
                         cx,
                         did.did(),
@@ -172,6 +170,11 @@ fn is_unrooted_ty<'tcx>(
                         cx,
                         did.did(),
                         &[sym::std, sym.collections, sym.hash, sym.map, sym.Iter],
+                    ) ||
+                    match_def_path(
+                        cx,
+                        did.did(),
+                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Values],
                     ) ||
                     match_def_path(
                         cx,
@@ -515,11 +518,11 @@ symbols! {
     rc
     Rc
     cell
-    accountable_refcell
     Ref
     RefMut
     Iter
     IterMut
+    Values
     collections
     hash
     map
