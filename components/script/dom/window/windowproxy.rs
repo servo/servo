@@ -337,7 +337,7 @@ impl WindowProxy {
         };
 
         let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
-        let load_data = LoadData::new(
+        let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             blank_url,
             Some(document.base_url()),
@@ -351,6 +351,7 @@ impl WindowProxy {
             false,
             sandboxing_flag_set,
         );
+        load_data.is_initial_about_blank = true;
         let load_info = AuxiliaryWebViewCreationRequest {
             load_data: load_data.clone(),
             opener_webview_id: window.webview_id(),
