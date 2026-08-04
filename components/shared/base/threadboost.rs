@@ -17,6 +17,8 @@
 //! TODO: For mobile linux, the ohos implementation could be shared, however other APIs
 //!    like uclamp or enhanced thread priorities might work better there?
 
+use servo_config::pref;
+
 #[cfg(target_env = "ohos")]
 mod ohos {
     //! On `ohos` targets we only have the `OH_QoS_SetThreadQoS` API from qos/qos.h,
@@ -168,6 +170,9 @@ mod ohos {
 ///   if spawned after this call, so placement can be important.
 #[allow(unsafe_code)]
 pub fn mark_thread_as_critical() {
+    if !pref!(perf_thread_boost_enabled) {
+        return;
+    }
     #[cfg(target_env = "ohos")]
     ohos::mark_thread_as_critical()
 }
