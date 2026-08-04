@@ -5,10 +5,10 @@
 use std::thread;
 
 use ::time::Duration;
-use ipc_channel::ipc;
 use profile::time;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::time::{ProfilerCategory, ProfilerData, ProfilerMsg};
+use servo_base::generic_channel;
 use servo_config::opts::OutputOptions;
 
 #[test]
@@ -16,7 +16,7 @@ fn time_profiler_smoke_test() {
     let chan = time::Profiler::create(&None, None);
     assert!(true, "Can create the profiler thread");
 
-    let (ipcchan, _ipcport) = ipc::channel().unwrap();
+    let (ipcchan, _ipcport) = generic_channel::channel().unwrap();
     chan.send(ProfilerMsg::Exit(ipcchan));
     assert!(true, "Can tell the profiler thread to exit");
 }
@@ -73,7 +73,7 @@ fn channel_profiler_test() {
     let val_profile_receiver = profiled_receiver.recv().unwrap();
     assert_eq!(val_profile_receiver, 43);
 
-    let (sender, receiver) = ipc::channel().unwrap();
+    let (sender, receiver) = generic_channel::channel().unwrap();
     chan.send(ProfilerMsg::Get(
         (ProfilerCategory::IpcReceiver, None),
         sender.clone(),
@@ -98,7 +98,7 @@ fn bytes_channel_profiler_test() {
     let val_profile_receiver = profiled_receiver.recv().unwrap();
     assert_eq!(val_profile_receiver, [1, 2, 3]);
 
-    let (sender, receiver) = ipc::channel().unwrap();
+    let (sender, receiver) = generic_channel::channel().unwrap();
     chan.send(ProfilerMsg::Get(
         (ProfilerCategory::IpcBytesReceiver, None),
         sender.clone(),

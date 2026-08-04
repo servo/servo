@@ -6763,6 +6763,7 @@ name = "profile_tests"
 version = "0.5.0"
 dependencies = [
  "ipc-channel",
+ "servo-base",
  "servo-config",
  "servo-profile",
  "servo-profile-traits",
