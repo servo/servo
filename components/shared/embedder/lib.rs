@@ -189,6 +189,15 @@ pub enum ShutdownState {
     FinishedShuttingDown,
 }
 
+/// Metadata for the cursor if it is a custom cursor image
+#[derive(Clone, Deserialize, PartialEq, Eq, Hash, MallocSizeOf, Serialize)]
+pub struct CursorMetadata {
+    pub url: Url,
+    // Aligns with winit which takes u16 coordinates
+    pub hotspot_x: Option<u16>,
+    pub hotspot_y: Option<u16>,
+}
+
 /// A cursor for the window. This is different from a CSS cursor (see
 /// `CursorKind`) in that it has no `Auto` value.
 #[repr(u8)]
@@ -230,6 +239,7 @@ pub enum Cursor {
     AllScroll,
     ZoomIn,
     ZoomOut,
+    Url(usize),
 }
 
 /// A way for Servo to request that the embedder wake up the main event loop.
@@ -494,7 +504,7 @@ pub enum EmbedderMsg {
     /// Sets system clipboard contents
     SetClipboardText(WebViewId, String),
     /// Changes the cursor.
-    SetCursor(WebViewId, Cursor),
+    SetCursor(WebViewId, (Cursor, Option<(Image, CursorMetadata)>)),
     /// A favicon was detected
     NewFavicon(WebViewId, Image),
     /// Get the device independent window rectangle.

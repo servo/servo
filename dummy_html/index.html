@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Form owner test</title>
+</head>
+<body>
+  <iframe id="frame" src="form.html"></iframe>
+
+  <script>
+    const iframe = document.getElementById("frame");
+
+    iframe.addEventListener("load", () => {
+      const pathname = iframe.contentWindow.location.pathname;
+
+      console.log("iframe loaded:", pathname);
+
+
+    });
+  </script>
+</body>
+</html>

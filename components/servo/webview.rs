@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 use std::time::Duration;
@@ -122,7 +123,7 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
-
+    cursor_registry: HashMap<u16, Image>,
     /// The back / forward list of this WebView.
     back_forward_list: Vec<Url>,
 
@@ -170,6 +171,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            cursor_registry: Default::default(),
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
             user_content_manager: builder.user_content_manager.clone(),

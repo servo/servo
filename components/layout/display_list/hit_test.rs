@@ -16,7 +16,7 @@ use style::computed_values::backface_visibility::T as BackfaceVisibility;
 use style::computed_values::pointer_events::T as PointerEvents;
 use style::computed_values::visibility::T as Visibility;
 use style::properties::ComputedValues;
-use style::values::computed::ui::CursorKind;
+use style::values::computed::ui::{Cursor as StyloCursor, CursorImage, CursorKind};
 use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, RectExt};
 
@@ -246,10 +246,13 @@ impl Fragment {
                         fragment_rect.origin.y.to_f32_px(),
                     );
 
+                let (cursor_icon, cursor_images) =
+                    cursor(&style.get_inherited_ui().cursor, auto_cursor);
                 hit_test.results.push(ElementsFromPointResult {
                     node: tag.node,
                     point_in_target,
-                    cursor: cursor(style.get_inherited_ui().cursor.keyword, auto_cursor),
+                    cursor: cursor_icon,
+                    cursor_images,
                 });
 
                 // Since there is no reverse PaintTraversal, hit testing always searches
@@ -329,8 +332,9 @@ fn rounded_rect_contains_point(
         check_corner(rect.bottom_left(), &border_radius.bottom_left, false, true)
 }
 
-fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
-    match kind {
+fn cursor(cursor: &StyloCursor, auto_cursor: Cursor) -> (Cursor, Vec<CursorImage>) {
+    let images = cursor.images.iter().map(|i| i.clone()).collect();
+    let cursor = match cursor.keyword {
         CursorKind::Auto => auto_cursor,
         CursorKind::None => Cursor::None,
         CursorKind::Default => Cursor::Default,
@@ -367,5 +371,6 @@ fn cursor(kind: CursorKind, auto_cursor: Cursor) -> Cursor {
         CursorKind::AllScroll => Cursor::AllScroll,
         CursorKind::ZoomIn => Cursor::ZoomIn,
         CursorKind::ZoomOut => Cursor::ZoomOut,
-    }
+    };
+    (cursor, images)
 }

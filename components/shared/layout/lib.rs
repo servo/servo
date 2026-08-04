@@ -72,6 +72,7 @@ use style::stylist::Stylist;
 #[cfg(debug_assertions)]
 use style::thread_state::{self, ThreadState};
 use style::values::computed::Overflow;
+use style::values::computed::ui::CursorImage;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
@@ -910,8 +911,10 @@ pub struct ElementsFromPointResult {
     /// node fragment rectangle.
     pub point_in_target: Point2D<f32, CSSPixel>,
     /// The [`Cursor`] that's defined on the item that is hit by this
-    /// hit test result.
+    /// hit test result. If None, then we are using a custom cursor and will be setting the cursor
+    /// id when processing images
     pub cursor: Cursor,
+    pub cursor_images: Vec<CursorImage>,
 }
 
 #[derive(Debug, Default, MallocSizeOf)]

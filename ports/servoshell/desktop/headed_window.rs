@@ -534,6 +534,7 @@ impl HeadedWindow {
     pub(crate) fn handle_winit_window_event(
         &self,
         state: Rc<RunningAppState>,
+        event_loop: &ActiveEventLoop,
         window: Rc<ServoShellWindow>,
         event: WindowEvent,
     ) {
@@ -991,6 +992,9 @@ impl PlatformWindow for HeadedWindow {
             Cursor::None => {
                 self.winit_window.set_cursor_visible(false);
                 return;
+            },
+            Cursor::Url(cursor_id) => {
+                todo!();
             },
         };
         self.winit_window.set_cursor(winit_cursor);
