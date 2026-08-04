@@ -555,7 +555,7 @@ impl ServoInner {
             },
             EmbedderMsg::SetCursor(webview_id, cursor) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.set_cursor(cursor.0);
+                    webview.set_cursor(cursor.0, cursor.1);
                 }
             },
             EmbedderMsg::NewFavicon(webview_id, image) => {

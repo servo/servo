@@ -102,6 +102,10 @@ pub struct HeadedWindow {
     visible_input_method: Cell<Option<EmbedderControlId>>,
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
+    /// Current Cursor Type
+    current_cursor: Cell<Cursor>,
+    /// Cached winit CustomCursor
+    current_custom_cursor: RefCell<Option<(usize, winit::window::CustomCursor)>>,
 }
 
 impl HeadedWindow {
@@ -214,6 +218,8 @@ impl HeadedWindow {
             dialogs: Default::default(),
             visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
+            current_cursor: Default::default(),
+            current_custom_cursor: Default::default(),
         })
     }
 
@@ -554,6 +560,9 @@ impl HeadedWindow {
         if event == WindowEvent::RedrawRequested || resized {
             let mut gui = self.gui.borrow_mut();
             gui.update(&state, &window, self);
+            if let Some(webview) = window.active_webview() {
+                self.apply_custom_cursor(&webview, event_loop);
+            }
             gui.paint(&self.winit_window);
         }
 
@@ -781,6 +790,60 @@ impl HeadedWindow {
         }
     }
 
+    fn apply_custom_cursor(&self, webview: &WebView, event_loop: &ActiveEventLoop) {
+        use winit::window::CursorIcon;
+
+        if let Cursor::Url(cursor_id) = self.current_cursor.get() {
+            let cached = self
+                .current_custom_cursor
+                .borrow()
+                .as_ref()
+                .filter(|(k, _)| *k == cursor_id)
+                .map(|(_, c)| c.clone());
+            match cached {
+                Some(c) => {
+                    self.winit_window.set_cursor(c);
+                    self.winit_window.set_cursor_visible(true);
+                    return;
+                },
+                None => {
+                    let Some(image) = webview.custom_cursor_image(cursor_id) else {
+                        let c = CursorIcon::Default;
+                        self.current_cursor.set(Cursor::Default);
+                        *self.current_custom_cursor.borrow_mut() = None;
+                        self.winit_window.set_cursor(c);
+                        self.winit_window.set_cursor_visible(true);
+                        return;
+                    };
+                    match winit::window::CustomCursor::from_rgba(
+                        image.image.data(),
+                        image.image.width as u16,
+                        image.image.height as u16,
+                        image.hotspot_x.unwrap_or_default(),
+                        image.hotspot_y.unwrap_or_default(),
+                    ) {
+                        Ok(source) => {
+                            let c = event_loop.create_custom_cursor(source);
+                            *self.current_custom_cursor.borrow_mut() = Some((cursor_id, c.clone()));
+                            self.winit_window.set_cursor(c);
+                            self.winit_window.set_cursor_visible(true);
+                            return;
+                        },
+                        Err(e) => {
+                            debug!("Error reading image data for custom cursor image: {e}");
+                            let c = CursorIcon::Default;
+                            self.current_cursor.set(Cursor::Default);
+                            *self.current_custom_cursor.borrow_mut() = None;
+                            self.winit_window.set_cursor(c);
+                            self.winit_window.set_cursor_visible(true);
+                            return;
+                        },
+                    }
+                },
+            }
+        }
+    }
+
     pub(crate) fn handle_winit_app_event(&self, state: Rc<RunningAppState>, app_event: AppEvent) {
         if let AppEvent::Accessibility(ref event) = app_event {
             match &event.window_event {
@@ -990,13 +1053,17 @@ impl PlatformWindow for HeadedWindow {
             Cursor::ZoomIn => CursorIcon::ZoomIn,
             Cursor::ZoomOut => CursorIcon::ZoomOut,
             Cursor::None => {
+                self.current_cursor.set(cursor);
                 self.winit_window.set_cursor_visible(false);
                 return;
             },
-            Cursor::Url(cursor_id) => {
-                todo!();
+            // For the url case, we can only set the winit cursor with the event loop
+            Cursor::Url(_) => {
+                self.current_cursor.set(cursor);
+                return;
             },
         };
+        self.current_cursor.set(cursor);
         self.winit_window.set_cursor(winit_cursor);
         self.winit_window.set_cursor_visible(true);
     }
