@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::Path;
+use std::fs::File;
 use std::sync::LazyLock;
 
-use log::warn;
+use ndk::font::{Font as NDK_Font, SystemFontIterator};
+use read_fonts::tables::name::{Name, NameRecord};
+use read_fonts::{FileRef, FontData, TableProvider};
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
@@ -13,7 +15,6 @@ use style::values::computed::{
     FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
 };
 
-use super::xml::{Attribute, Node};
 use crate::{
     FallbackFontSelectionOptions, FontIdentifier, FontTemplate, FontTemplateDescriptor,
     LocalFontIdentifier, LowercaseFontFamilyName,
@@ -21,95 +22,16 @@ use crate::{
 
 static FONT_LIST: LazyLock<FontList> = LazyLock::new(FontList::new);
 
-// Android doesn't provide an API to query system fonts until Android O:
-// https://developer.android.com/reference/android/text/FontConfig.html
-// System font configuration files must be parsed until Android O version is set as the minimum target.
-// Android uses XML files to handle font mapping configurations.
-// On Android API 21+ font mappings are loaded from /etc/fonts.xml.
-// Each entry consists of a family with various font names, or a font alias.
-// Example:
-//   <familyset>
-//       <!-- first font is default -->
-//       <family name="sans-serif">
-//           <font weight="100" style="normal">Roboto-Thin.ttf</font>
-//           <font weight="100" style="italic">Roboto-ThinItalic.ttf</font>
-//           <font weight="300" style="normal">Roboto-Light.ttf</font>
-//           <font weight="300" style="italic">Roboto-LightItalic.ttf</font>
-//           <font weight="400" style="normal">Roboto-Regular.ttf</font>
-//           <font weight="400" style="italic">Roboto-Italic.ttf</font>
-//           <font weight="500" style="normal">Roboto-Medium.ttf</font>
-//           <font weight="500" style="italic">Roboto-MediumItalic.ttf</font>
-//           <font weight="900" style="normal">Roboto-Black.ttf</font>
-//           <font weight="900" style="italic">Roboto-BlackItalic.ttf</font>
-//           <font weight="700" style="normal">Roboto-Bold.ttf</font>
-//           <font weight="700" style="italic">Roboto-BoldItalic.ttf</font>
-//       </family>//
-
-//       <!-- Note that aliases must come after the fonts they reference. -->
-//       <alias name="sans-serif-thin" to="sans-serif" weight="100" />
-//       <alias name="sans-serif-light" to="sans-serif" weight="300" />
-//       <alias name="sans-serif-medium" to="sans-serif" weight="500" />
-//       <alias name="sans-serif-black" to="sans-serif" weight="900" />
-//       <alias name="arial" to="sans-serif" />
-//       <alias name="helvetica" to="sans-serif" />
-//       <alias name="tahoma" to="sans-serif" />
-//       <alias name="verdana" to="sans-serif" />
-
-//       <family name="sans-serif-condensed">
-//           <font weight="300" style="normal">RobotoCondensed-Light.ttf</font>
-//           <font weight="300" style="italic">RobotoCondensed-LightItalic.ttf</font>
-//           <font weight="400" style="normal">RobotoCondensed-Regular.ttf</font>
-//           <font weight="400" style="italic">RobotoCondensed-Italic.ttf</font>
-//           <font weight="700" style="normal">RobotoCondensed-Bold.ttf</font>
-//           <font weight="700" style="italic">RobotoCondensed-BoldItalic.ttf</font>
-//       </family>
-//       <alias name="sans-serif-condensed-light" to="sans-serif-condensed" weight="300" />
-//   </familyset>
-// On Android API 17-20 font mappings are loaded from /system/etc/system_fonts.xml
-// Each entry consists of a family with a nameset and a fileset.
-// Example:
-//  <familyset>
-//      <family>
-//          <nameset>
-//              <name>sans-serif</name>
-//              <name>arial</name>
-//              <name>helvetica</name>
-//              <name>tahoma</name>
-//              <name>verdana</name>
-//          </nameset>
-//          <fileset>
-//              <file>Roboto-Regular.ttf</file>
-//              <file>Roboto-Bold.ttf</file>
-//              <file>Roboto-Italic.ttf</file>
-//              <file>Roboto-BoldItalic.ttf</file>
-//          </fileset>
-//      </family>//
-
-//      <family>
-//          <nameset>
-//              <name>sans-serif-light</name>
-//          </nameset>
-//          <fileset>
-//              <file>Roboto-Light.ttf</file>
-//              <file>Roboto-LightItalic.ttf</file>
-//          </fileset>
-//      </family>//
-
-//      <family>
-//          <nameset>
-//              <name>sans-serif-thin</name>
-//          </nameset>
-//          <fileset>
-//              <file>Roboto-Thin.ttf</file>
-//              <file>Roboto-ThinItalic.ttf</file>
-//          </fileset>
-//      </family>
-//  </familyset>
+#[derive(Clone)]
+enum FontStyle {
+    Normal,
+    Italic,
+}
 
 struct Font {
     filename: String,
     weight: Option<i32>,
-    style: Option<String>,
+    style: FontStyle,
 }
 
 struct FontFamily {
@@ -130,97 +52,99 @@ struct FontList {
 
 impl FontList {
     fn new() -> FontList {
-        // Possible paths containing the font mapping xml file.
-        let paths = [
-            "/etc/fonts.xml",
-            "/system/etc/system_fonts.xml",
-            "/package/etc/fonts.xml",
-        ];
-
-        // Try to load and parse paths until one of them success.
-        let mut result = None;
-        paths.iter().all(|path| {
-            result = Self::from_path(path);
-            result.is_none()
-        });
-
-        if result.is_none() {
-            warn!("Couldn't find font list");
-        }
-
-        match result {
-            Some(result) => result,
-            // If no xml mapping file is found fallback to some default
-            // fonts expected to be on all Android devices.
-            None => FontList {
-                families: Self::fallback_font_families(),
-                aliases: Vec::new(),
-            },
-        }
-    }
-
-    // Creates a new FontList from a path to the font mapping xml file.
-    fn from_path(path: &str) -> Option<FontList> {
-        let bytes = std::fs::read(path).ok()?;
-        let nodes = super::xml::parse(&bytes).ok()?;
-
-        // find familyset root node
-        let familyset = nodes.iter().find_map(|e| match e {
-            Node::Element { name, children, .. } if name.local_name == "familyset" => {
-                Some(children)
-            },
-            _ => None,
-        })?;
-
-        // Parse familyset node
+        let system_font_iterator =
+            SystemFontIterator::new().expect("Failed to create SystemFontIterator");
         let mut families = Vec::new();
-        let mut aliases = Vec::new();
 
-        for node in familyset {
-            if let Node::Element {
-                name,
-                attributes,
-                children,
-            } = node
-            {
-                if name.local_name == "family" {
-                    Self::parse_family(children, attributes, &mut families);
-                } else if name.local_name == "alias" {
-                    // aliases come after the fonts they reference. -->
-                    if !families.is_empty() {
-                        Self::parse_alias(attributes, &mut aliases);
+        for system_font in system_font_iterator {
+            // Obtain the font file
+            // TODO: This operation is slow and might need optimizations.
+            let font_bytes = File::open(system_font.path())
+                .and_then(|file| unsafe { memmap2::Mmap::map(&file) })
+                .unwrap();
+
+            // Read the font file
+            let Ok(font_file) = FileRef::new(&font_bytes) else {
+                continue;
+            };
+
+            match font_file {
+                FileRef::Font(font) => {
+                    let Ok(name_table) = font.name() else {
+                        continue;
+                    };
+                    Self::create_font_family_entry(&system_font, name_table, &mut families);
+                },
+                FileRef::Collection(font_collection) => {
+                    for font in font_collection.iter() {
+                        let Ok(font_binding) = font else {
+                            continue;
+                        };
+                        let Ok(name_table) = font_binding.name() else {
+                            continue;
+                        };
+                        Self::create_font_family_entry(&system_font, name_table, &mut families);
                     }
-                }
+                },
             }
         }
 
-        Some(FontList { families, aliases })
+        FontList {
+            families,
+            // TODO: Also get localized names for these fonts.
+            aliases: Vec::new(),
+        }
     }
 
-    // Fonts expected to exist in Android devices.
-    // Only used in the unlikely case where no font xml mapping files are found.
-    fn fallback_font_families() -> Vec<FontFamily> {
-        let alternatives = [
-            ("sans-serif", "Roboto-Regular.ttf"),
-            ("Droid Sans", "DroidSans.ttf"),
-            (
-                "Lomino",
-                "/system/etc/ml/kali/Fonts/Lomino/Medium/LominoUI_Md.ttf",
-            ),
-        ];
-
-        alternatives
-            .iter()
-            .filter(|item| Path::new(&Self::font_absolute_path(item.1)).exists())
-            .map(|item| FontFamily {
-                name: item.0.into(),
+    fn create_font_family_entry(
+        system_font: &NDK_Font,
+        name_table: Name,
+        families: &mut Vec<FontFamily>,
+    ) {
+        for name_record in name_table.name_record() {
+            let Some((family_name, font_entry)) =
+                Self::create_single_font_entry(system_font, *name_record, name_table.string_data())
+            else {
+                continue;
+            };
+            families.push(FontFamily {
+                name: family_name,
                 fonts: vec![Font {
-                    filename: item.1.into(),
-                    weight: None,
-                    style: None,
+                    filename: font_entry.filename.clone(),
+                    weight: font_entry.weight,
+                    style: font_entry.style.clone(),
                 }],
-            })
-            .collect()
+            });
+        }
+    }
+
+    fn create_single_font_entry(
+        system_font: &NDK_Font,
+        name_record: NameRecord,
+        name_table_data: FontData,
+    ) -> Option<(String, Font)> {
+        // According to TrueType's specifications, https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6name.html
+        // Name table's name id 1 corresponds to the family name. therefore, if the current record's name id is not 1, return None.
+        if name_record.name_id().to_u16() != 1 {
+            return None;
+        }
+
+        let family_name = name_record.string(name_table_data).ok()?.to_string();
+        let filename = system_font.path().file_name()?.to_str()?;
+
+        let style = if system_font.is_italic() {
+            FontStyle::Normal
+        } else {
+            FontStyle::Italic
+        };
+
+        let font_entry = Font {
+            filename: filename.to_string(),
+            weight: Some(system_font.weight().to_u16() as i32),
+            style: style,
+        };
+
+        Some((family_name, font_entry))
     }
 
     // All Android fonts are located in /system/fonts
@@ -242,173 +166,6 @@ impl FontList {
         self.aliases
             .iter()
             .find(|family| family.from.eq_ignore_ascii_case(name))
-    }
-
-    // Parse family and font file names
-    // Example:
-    // <family name="sans-serif">
-    //     <font weight="100" style="normal">Roboto-Thin.ttf</font>
-    //     <font weight="100" style="italic">Roboto-ThinItalic.ttf</font>
-    //     <font weight="300" style="normal">Roboto-Light.ttf</font>
-    //     <font weight="300" style="italic">Roboto-LightItalic.ttf</font>
-    //     <font weight="400" style="normal">Roboto-Regular.ttf</font>
-    // </family>
-    fn parse_family(familyset: &[Node], attrs: &[Attribute], out: &mut Vec<FontFamily>) {
-        // Fallback to old Android API v17 xml format if required
-        let using_api_17 = familyset.iter().any(|node| match node {
-            Node::Element { name, .. } => name.local_name == "nameset",
-            _ => false,
-        });
-        if using_api_17 {
-            Self::parse_family_v17(familyset, out);
-            return;
-        }
-
-        // Parse family name
-        let name = if let Some(name) = Self::find_attrib("name", attrs) {
-            name
-        } else {
-            return;
-        };
-
-        let mut fonts = Vec::new();
-        // Parse font variants
-        for node in familyset {
-            if let Node::Element {
-                name,
-                attributes,
-                children,
-            } = node
-            {
-                if name.local_name == "font" {
-                    FontList::parse_font(children, attributes, &mut fonts);
-                }
-            }
-        }
-
-        out.push(FontFamily { name, fonts });
-    }
-
-    // Parse family and font file names for Androi API < 21
-    // Example:
-    // <family>
-    //     <nameset>
-    //         <name>sans-serif</name>
-    //         <name>arial</name>
-    //         <name>helvetica</name>
-    //         <name>tahoma</name>
-    //         <name>verdana</name>
-    //     </nameset>
-    //     <fileset>
-    //         <file>Roboto-Regular.ttf</file>
-    //         <file>Roboto-Bold.ttf</file>
-    //         <file>Roboto-Italic.ttf</file>
-    //         <file>Roboto-BoldItalic.ttf</file>
-    //     </fileset>
-    // </family>
-    fn parse_family_v17(familyset: &[Node], out: &mut Vec<FontFamily>) {
-        let mut nameset = Vec::new();
-        let mut fileset = Vec::new();
-        for node in familyset {
-            if let Node::Element { name, children, .. } = node {
-                if name.local_name == "nameset" {
-                    Self::collect_contents_with_tag(children, "name", &mut nameset);
-                } else if name.local_name == "fileset" {
-                    Self::collect_contents_with_tag(children, "file", &mut fileset);
-                }
-            }
-        }
-
-        // Create a families for each variation
-        for name in nameset {
-            let fonts: Vec<Font> = fileset
-                .iter()
-                .map(|f| Font {
-                    filename: f.clone(),
-                    weight: None,
-                    style: None,
-                })
-                .collect();
-
-            if !fonts.is_empty() {
-                out.push(FontFamily { name, fonts })
-            }
-        }
-    }
-
-    // Example:
-    // <font weight="100" style="normal">Roboto-Thin.ttf</font>
-    fn parse_font(nodes: &[Node], attrs: &[Attribute], out: &mut Vec<Font>) {
-        // Parse font filename
-        if let Some(filename) = Self::text_content(nodes) {
-            // Parse font weight
-            let weight = Self::find_attrib("weight", attrs).and_then(|w| w.parse().ok());
-            let style = Self::find_attrib("style", attrs);
-
-            out.push(Font {
-                filename,
-                weight,
-                style,
-            })
-        }
-    }
-
-    // Example:
-    // <alias name="sans-serif-thin" to="sans-serif" weight="100" />
-    // <alias name="sans-serif-light" to="sans-serif" weight="300" />
-    // <alias name="sans-serif-medium" to="sans-serif" weight="500" />
-    // <alias name="sans-serif-black" to="sans-serif" weight="900" />
-    // <alias name="arial" to="sans-serif" />
-    // <alias name="helvetica" to="sans-serif" />
-    // <alias name="tahoma" to="sans-serif" />
-    // <alias name="verdana" to="sans-serif" />
-    fn parse_alias(attrs: &[Attribute], out: &mut Vec<FontAlias>) {
-        // Parse alias name and referenced font
-        let from = match Self::find_attrib("name", attrs) {
-            Some(from) => from,
-            _ => {
-                return;
-            },
-        };
-
-        // Parse referenced font
-        let to = match Self::find_attrib("to", attrs) {
-            Some(to) => to,
-            _ => {
-                return;
-            },
-        };
-
-        // Parse optional weight filter
-        let weight = Self::find_attrib("weight", attrs).and_then(|w| w.parse().ok());
-
-        out.push(FontAlias { from, to, weight })
-    }
-
-    fn find_attrib(name: &str, attrs: &[Attribute]) -> Option<String> {
-        attrs
-            .iter()
-            .find(|attr| attr.name.local_name == name)
-            .map(|attr| attr.value.clone())
-    }
-
-    fn text_content(nodes: &[Node]) -> Option<String> {
-        nodes.first().and_then(|child| match child {
-            Node::Text(contents) => Some(contents.trim().into()),
-            Node::Element { .. } => None,
-        })
-    }
-
-    fn collect_contents_with_tag(nodes: &[Node], tag: &str, out: &mut Vec<String>) {
-        for node in nodes {
-            if let Node::Element { name, children, .. } = node {
-                if name.local_name == tag {
-                    if let Some(content) = Self::text_content(children) {
-                        out.push(content);
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -440,17 +197,9 @@ where
             .weight
             .map(|w| StyleFontWeight::from_float(w as f32))
             .unwrap_or(StyleFontWeight::NORMAL);
-        let style = match font.style.as_deref() {
-            Some("italic") => StyleFontStyle::ITALIC,
-            Some("normal") => StyleFontStyle::NORMAL,
-            Some(value) => {
-                warn!(
-                    "unknown value \"{value}\" for \"style\" attribute in the font {}",
-                    font.filename
-                );
-                StyleFontStyle::NORMAL
-            },
-            None => StyleFontStyle::NORMAL,
+        let style = match font.style {
+            FontStyle::Italic => StyleFontStyle::ITALIC,
+            FontStyle::Normal => StyleFontStyle::NORMAL,
         };
         let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
         callback(FontTemplate::new(
