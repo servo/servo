@@ -937,8 +937,10 @@ impl LayoutThread {
             return false;
         }
 
-        // Bounds go stale when geometry changes (stacking context tree rebuild or scroll offset)
-        // FIXME(accessibility): layout queries leave bounds stale; need geometry damage tracking
+        // Bounds go stale when geometry changes (stacking context tree rebuild or scroll offset),
+        // even without any `AccessibilityDamage` from the DOM, so those cases must still reach
+        // `update_tree()` below, which refreshes bounds for the whole tree independently of
+        // `damage`.
         let geometry_may_have_changed = self.accessibility_active() &&
             reflow_phases_run.intersects(
                 ReflowPhasesRun::BuiltStackingContextTree |
@@ -951,16 +953,15 @@ impl LayoutThread {
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
             return false;
         };
-        let Some(damage) = &reflow_request.accessibility_damage else {
-            return false;
-        };
 
         let accessibility_tree = &mut *accessibility_tree;
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        let damage: VecDeque<_> = damage
+        let damage: VecDeque<_> = reflow_request
+            .accessibility_damage
             .iter()
+            .flatten()
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
