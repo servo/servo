@@ -113,14 +113,11 @@ impl CanvasPaintThread {
     }
 
     fn collect_memory_reports(&self, sender: ReportsChan) {
-        let live_canvas_count = self.canvases.len();
         perform_memory_report(|ops| {
             let reports = self
                 .canvases
                 .iter()
-                .flat_map(|(canvas_id, canvas)| {
-                    canvas.collect_memory_report(*canvas_id, live_canvas_count, ops)
-                })
+                .flat_map(|(canvas_id, canvas)| canvas.collect_memory_report(*canvas_id, ops))
                 .collect();
             sender.send(ProcessReports::new(reports));
         });
@@ -358,17 +355,12 @@ impl Canvas {
     fn collect_memory_report(
         &self,
         canvas_id: CanvasId,
-        live_canvas_count: usize,
         ops: &mut malloc_size_of::MallocSizeOfOps,
     ) -> Vec<Report> {
         match self {
             #[cfg(feature = "vello")]
-            Canvas::Vello(canvas_data) => {
-                canvas_data.collect_memory_report(canvas_id, live_canvas_count, ops)
-            },
-            Canvas::VelloCPU(canvas_data) => {
-                canvas_data.collect_memory_report(canvas_id, live_canvas_count, ops)
-            },
+            Canvas::Vello(canvas_data) => canvas_data.collect_memory_report(canvas_id, ops),
+            Canvas::VelloCPU(canvas_data) => canvas_data.collect_memory_report(canvas_id, ops),
         }
     }
 

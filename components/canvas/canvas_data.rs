@@ -56,11 +56,9 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
     pub(crate) fn collect_memory_report(
         &self,
         canvas_id: CanvasId,
-        live_canvas_count: usize,
         ops: &mut MallocSizeOfOps,
     ) -> Vec<Report> {
         let dimentions = self.draw_target.get_size();
-        let number_of_canvases = format!("canvases({live_canvas_count})");
         let canvas_info_string = format!(
             "canvas(id={}, {}x{})",
             canvas_id.0, dimentions.width, dimentions.height
@@ -70,12 +68,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
             .unwrap_or_default()
             .into_iter()
             .map(|canvas_store_type| Report {
-                path: profile_traits::path![
-                    "canvas",
-                    number_of_canvases,
-                    canvas_info_string,
-                    canvas_store_type.name
-                ],
+                path: profile_traits::path!["canvas", canvas_info_string, canvas_store_type.name],
                 kind: canvas_store_type.kind,
                 size: canvas_store_type.size,
             })
