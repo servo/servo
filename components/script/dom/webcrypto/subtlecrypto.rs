@@ -6307,7 +6307,7 @@ impl EncapsulateAlgorithm {
     }
 }
 
-// The value of the key "decapsulate" in the internal object supportedAlgorithms
+/// The value of the key "decapsulate" in the internal object supportedAlgorithms
 struct DecapsulateOperation {}
 
 impl Operation for DecapsulateOperation {
@@ -6356,7 +6356,7 @@ impl DecapsulateAlgorithm {
     }
 }
 
-// The value of the key "getPublicKey" in the internal object supportedAlgorithms
+/// The value of the key "getPublicKey" in the internal object supportedAlgorithms
 struct GetPublicKeyOperation {}
 
 impl Operation for GetPublicKeyOperation {
