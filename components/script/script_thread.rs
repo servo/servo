@@ -2253,7 +2253,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::SimulateColorScheme(id, theme) => {
                 match documents.find_window(id) {
                     Some(window) => {
-                        window.set_theme(theme);
+                        window.set_embedder_theme(theme);
                     },
                     None => warn!("Message sent to closed pipeline {}.", id),
                 }
@@ -2722,11 +2722,11 @@ impl ScriptThread {
     /// Handle changes to the theme, triggering reflow if the theme actually changed.
     fn handle_theme_change_msg(&self, theme: Theme) {
         for (_, document) in self.documents.borrow().iter() {
-            document.window().set_theme(theme);
+            document.window().set_embedder_theme(theme);
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         for load in loads.iter_mut() {
-            load.theme = theme;
+            load.embedder_theme = theme;
         }
     }
 
@@ -3464,7 +3464,7 @@ impl ScriptThread {
             paint_api: self.paint_api.clone(),
             viewport_details: incomplete.viewport_details,
             user_stylesheets,
-            theme: incomplete.theme,
+            theme: incomplete.embedder_theme,
             embedder_chan: self.senders.pipeline_to_embedder_sender.clone(),
         };
 
@@ -3510,7 +3510,7 @@ impl ScriptThread {
             #[cfg(feature = "webgpu")]
             self.gpu_id_hub.clone(),
             incomplete.load_data.inherited_secure_context,
-            incomplete.theme,
+            incomplete.embedder_theme,
             self.this.clone(),
         );
         if self.senders.devtools_server_sender.is_some() {

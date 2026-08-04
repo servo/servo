@@ -374,7 +374,7 @@ impl WindowProxy {
             user_content_manager_id: response.user_content_manager_id,
             // Use the current `WebView`'s theme initially, but the embedder may
             // change this later.
-            theme: window.theme(),
+            embedder_theme: window.embedder_theme(),
             target_snapshot_params: TargetSnapshotParams {
                 sandboxing_flags: sandboxing_flag_set,
                 iframe_element_referrer_policy: ReferrerPolicy::EmptyString,

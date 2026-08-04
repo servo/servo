@@ -510,12 +510,10 @@ impl VirtualMethods for HTMLSlotElement {
             if let Some(shadow_root) = self.containing_shadow_root() {
                 // Shadow roots keep a list of slot descendants, so we need to tell it
                 // about our name change
-                let old_value = match mutation {
-                    AttributeMutation::Set(old, _) => old
-                        .map(|value| value.to_string().into())
-                        .unwrap_or_default(),
-                    AttributeMutation::Removed => attr.value().to_string().into(),
-                };
+                let old_value = mutation
+                    .old_value(attr)
+                    .map(|value| value.into())
+                    .unwrap_or_default();
 
                 shadow_root.unregister_slot(old_value, self);
                 shadow_root.register_slot(self);

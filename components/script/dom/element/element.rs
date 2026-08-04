@@ -5323,6 +5323,13 @@ impl AttributeMutation<'_> {
             AttributeMutation::Removed => None,
         }
     }
+
+    pub(crate) fn old_value(&self, attr: AttrRef<'_>) -> Option<String> {
+        match *self {
+            AttributeMutation::Set(old, _) => old.map(|value| value.to_string()),
+            AttributeMutation::Removed => Some(attr.value().to_string()),
+        }
+    }
 }
 
 /// A holder for an element's "tag name", which will be lazily

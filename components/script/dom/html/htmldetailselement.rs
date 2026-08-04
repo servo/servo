@@ -413,10 +413,7 @@ impl VirtualMethods for HTMLDetailsElement {
         // Step 2. If localName is name, then ensure details exclusivity by closing the given element if needed
         // given element.
         if attr.local_name() == &local_name!("name") {
-            let old_name: Option<DOMString> = match mutation {
-                AttributeMutation::Set(old, _) => old.map(|value| value.to_string().into()),
-                AttributeMutation::Removed => Some(attr.value().to_string().into()),
-            };
+            let old_name = mutation.old_value(attr).map(|value| value.into());
 
             if let Some(shadow_root) = self.containing_shadow_root() {
                 if let Some(old_name) = old_name {
