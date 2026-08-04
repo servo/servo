@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_arc::Arc;
 use style::stylesheets::Stylesheet;
@@ -76,11 +76,11 @@ impl StyleSheetListOwner {
         }
     }
 
-    pub(crate) fn invalidate_stylesheets(&self) {
+    pub(crate) fn invalidate_stylesheets(&self, no_gc: &NoGC) {
         match *self {
-            StyleSheetListOwner::Document(ref doc) => doc.invalidate_stylesheets(),
+            StyleSheetListOwner::Document(ref doc) => doc.invalidate_stylesheets(no_gc),
             StyleSheetListOwner::ShadowRoot(ref shadow_root) => {
-                shadow_root.invalidate_stylesheets()
+                shadow_root.invalidate_stylesheets(no_gc)
             },
         }
     }

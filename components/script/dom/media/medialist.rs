@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_arc::Arc;
 use style::media_queries::{MediaList as StyleMediaList, MediaQuery};
@@ -156,14 +156,14 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
-    fn SetMediaText(&self, value: DOMString) {
+    fn SetMediaText(&self, no_gc: &NoGC, value: DOMString) {
         self.parent_stylesheet.will_modify();
         let global = self.global();
         let mut guard = self.shared_lock().write();
         let media_queries_borrowed = self.media_queries.borrow();
         let media_queries = media_queries_borrowed.write_with(&mut guard);
         *media_queries = Self::parse_media_list(&value.str(), global.as_window());
-        self.parent_stylesheet.notify_invalidations();
+        self.parent_stylesheet.notify_invalidations(no_gc);
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-length>
@@ -193,7 +193,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-appendmedium>
-    fn AppendMedium(&self, medium: DOMString) {
+    fn AppendMedium(&self, no_gc: &NoGC, medium: DOMString) {
         // Step 1
         let global = self.global();
         let medium = medium.str();
@@ -225,11 +225,11 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             .write_with(&mut guard)
             .media_queries
             .push(m.unwrap());
-        self.parent_stylesheet.notify_invalidations();
+        self.parent_stylesheet.notify_invalidations(no_gc);
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-deletemedium>
-    fn DeleteMedium(&self, medium: DOMString) {
+    fn DeleteMedium(&self, no_gc: &NoGC, medium: DOMString) {
         // Step 1
         let global = self.global();
         let medium = medium.str();
@@ -250,6 +250,6 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
             .filter(|q| m_serialized != q.to_css_string())
             .collect();
         media_list.media_queries = new_vec;
-        self.parent_stylesheet.notify_invalidations();
+        self.parent_stylesheet.notify_invalidations(no_gc);
     }
 }

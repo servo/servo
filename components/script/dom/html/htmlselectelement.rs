@@ -224,7 +224,7 @@ impl HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
     pub(crate) fn reset(&self, no_gc: &NoGC) {
         for opt in self.list_of_options(no_gc) {
-            opt.set_selectedness(opt.DefaultSelected());
+            opt.set_selectedness(no_gc, opt.DefaultSelected());
             opt.set_dirtiness(false);
         }
         self.ask_for_reset(no_gc);
@@ -241,7 +241,7 @@ impl HTMLSelectElement {
 
         for opt in self.list_of_options(no_gc) {
             if opt.Selected() {
-                opt.set_selectedness(false);
+                opt.set_selectedness(no_gc, false);
                 last_selected = Some(DomRoot::from_ref(&opt));
             }
             let element = opt.upcast::<Element>();
@@ -251,11 +251,11 @@ impl HTMLSelectElement {
         }
 
         if let Some(last_selected) = last_selected {
-            last_selected.set_selectedness(true);
+            last_selected.set_selectedness(no_gc, true);
         } else if self.display_size() == 1 &&
             let Some(first_enabled) = first_enabled
         {
-            first_enabled.set_selectedness(true);
+            first_enabled.set_selectedness(no_gc, true);
         }
     }
 
@@ -281,7 +281,7 @@ impl HTMLSelectElement {
             let picked = picked.upcast();
             for opt in self.list_of_options(no_gc) {
                 if opt.upcast::<HTMLElement>() != picked {
-                    opt.set_selectedness(false);
+                    opt.set_selectedness(no_gc, false);
                 }
             }
         }
@@ -489,7 +489,7 @@ impl HTMLSelectElement {
                 selection_did_change = true;
             }
 
-            option.set_selectedness(should_be_selected);
+            option.set_selectedness(cx.no_gc(), should_be_selected);
 
             if option_selected_did_change {
                 option.set_dirtiness(true);
@@ -511,7 +511,7 @@ impl HTMLSelectElement {
                 if first_selected.is_none() && option.Selected() {
                     first_selected = Some(DomRoot::from_ref(&option));
                 }
-                option.set_selectedness(false);
+                option.set_selectedness(cx.no_gc(), false);
                 let element = option.upcast::<Element>();
                 if first_enabled.is_none() && !element.disabled_state() {
                     first_enabled = Some(DomRoot::from_ref(&option));
@@ -519,11 +519,11 @@ impl HTMLSelectElement {
             }
 
             if let Some(first_selected) = first_selected {
-                first_selected.set_selectedness(true);
+                first_selected.set_selectedness(cx.no_gc(), true);
             } else if self.display_size() == 1 &&
                 let Some(first_enabled) = first_enabled
             {
-                first_enabled.set_selectedness(true);
+                first_enabled.set_selectedness(cx.no_gc(), true);
             }
 
             self.update_shadow_tree(cx);
@@ -726,15 +726,15 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {
             if opt.Value() == value {
-                opt.set_selectedness(true);
+                opt.set_selectedness(cx.no_gc(), true);
                 opt.set_dirtiness(true);
                 break;
             }
-            opt.set_selectedness(false);
+            opt.set_selectedness(cx.no_gc(), false);
         }
         // Reset remaining <option> elements
         for opt in opt_iter {
-            opt.set_selectedness(false);
+            opt.set_selectedness(cx.no_gc(), false);
         }
 
         self.validity_state(cx)
@@ -761,17 +761,17 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
             let mut opt_iter = self.list_of_options(cx.no_gc());
             for opt in opt_iter.by_ref().take(index as usize) {
                 selection_did_change |= opt.Selected();
-                opt.set_selectedness(false);
+                opt.set_selectedness(cx.no_gc(), false);
             }
             if let Some(selected_option) = opt_iter.next() {
                 selection_did_change |= !selected_option.Selected();
-                selected_option.set_selectedness(true);
+                selected_option.set_selectedness(cx.no_gc(), true);
                 selected_option.set_dirtiness(true);
 
                 // Reset remaining <option> elements
                 for opt in opt_iter {
                     selection_did_change |= opt.Selected();
-                    opt.set_selectedness(false);
+                    opt.set_selectedness(cx.no_gc(), false);
                 }
             }
         }

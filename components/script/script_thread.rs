@@ -2387,7 +2387,7 @@ impl ScriptThread {
             ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
                 let window = self.documents.borrow().find_window(response.pipeline_id);
                 if let Some(ref window) = window {
-                    window.handle_image_rasterization_complete_notification(response);
+                    window.handle_image_rasterization_complete_notification(cx.no_gc(), response);
                 }
             },
         };
@@ -3337,13 +3337,13 @@ impl ScriptThread {
     }
 
     /// Handles animation tick requested during testing.
-    pub(crate) fn handle_tick_all_animations_for_testing(id: PipelineId) {
+    pub(crate) fn handle_tick_all_animations_for_testing(no_gc: &NoGC, id: PipelineId) {
         with_script_thread(|script_thread| {
             let Some(document) = script_thread.documents.borrow().find_document(id) else {
                 warn!("Animation tick for tests for closed pipeline {id}.");
                 return;
             };
-            document.maybe_mark_animating_nodes_as_dirty();
+            document.maybe_mark_animating_nodes_as_dirty(no_gc);
         });
     }
 

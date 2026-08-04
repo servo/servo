@@ -7,7 +7,7 @@ use std::mem;
 
 use cssparser::{Parser as CssParser, ParserInput as CssParserInput, ToCss};
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use selectors::parser::{ParseRelative, SelectorList};
 use servo_arc::Arc;
@@ -150,7 +150,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
-    fn SetSelectorText(&self, value: DOMString) {
+    fn SetSelectorText(&self, no_gc: &NoGC, value: DOMString) {
         let value = value.str();
         let Ok(mut selector) = ({
             let guard = self.css_grouping_rule.shared_lock().read();
@@ -192,6 +192,6 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         );
         self.css_grouping_rule
             .parent_stylesheet()
-            .notify_invalidations();
+            .notify_invalidations(no_gc);
     }
 }

@@ -8,6 +8,7 @@ use std::cell::Cell;
 
 use cssparser::ToCss;
 use embedder_traits::{AnimationState as AnimationsPresentState, UntrustedNodeAddress};
+use js::context::NoGC;
 use libc::c_void;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
@@ -78,7 +79,11 @@ impl Animations {
     // Mark all animations dirty, if they haven't been marked dirty since the
     // specified `current_timeline_value`. Returns true if animations were marked
     // dirty or false otherwise.
-    pub(crate) fn mark_animating_nodes_as_dirty(&self, current_timeline_value: f64) -> bool {
+    pub(crate) fn mark_animating_nodes_as_dirty(
+        &self,
+        no_gc: &NoGC,
+        current_timeline_value: f64,
+    ) -> bool {
         if current_timeline_value <= self.timeline_value_at_last_dirty.get() {
             return false;
         }
@@ -91,7 +96,7 @@ impl Animations {
             .keys()
             .filter_map(|key| rooted_nodes.get(&NoTrace(key.node)))
         {
-            node.dirty(NodeDamage::Style);
+            node.dirty(no_gc, NodeDamage::Style);
         }
 
         true

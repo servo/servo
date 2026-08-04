@@ -180,10 +180,10 @@ impl VirtualMethods for HTMLTableCellElement {
         }
 
         if matches!(*attr.local_name(), local_name!("colspan")) {
-            self.upcast::<Node>().dirty(NodeDamage::Other);
+            self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         }
         if matches!(*attr.local_name(), local_name!("rowspan")) {
-            self.upcast::<Node>().dirty(NodeDamage::Other);
+            self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         }
     }
 

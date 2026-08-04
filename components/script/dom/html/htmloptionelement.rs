@@ -87,11 +87,11 @@ impl HTMLOptionElement {
         )
     }
 
-    pub(crate) fn set_selectedness(&self, selected: bool) {
+    pub(crate) fn set_selectedness(&self, no_gc: &NoGC, selected: bool) {
         self.selectedness.set(selected);
         // Bump the tree version so that any live HTMLCollection (e.g. selectedOptions)
         // rooted at an ancestor invalidates its cached length and cursor.
-        self.upcast::<Node>().rev_version();
+        self.upcast::<Node>().rev_version(no_gc);
     }
 
     pub(crate) fn set_dirtiness(&self, dirtiness: bool) {
@@ -276,7 +276,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         }
 
         option.SetDefaultSelected(cx, default_selected);
-        option.set_selectedness(selected);
+        option.set_selectedness(cx.no_gc(), selected);
         option.update_select_validity(cx);
         Ok(option)
     }
@@ -375,7 +375,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
     fn SetSelected(&self, cx: &mut JSContext, selected: bool) {
         self.dirtiness.set(true);
-        self.set_selectedness(selected);
+        self.set_selectedness(cx.no_gc(), selected);
         self.pick_if_selected_and_reset(cx);
         self.update_select_validity(cx);
     }
@@ -422,14 +422,14 @@ impl VirtualMethods for HTMLOptionElement {
                     AttributeMutation::Set(..) => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
                         if !self.dirtiness.get() && !self.selectedness.get() {
-                            self.set_selectedness(true);
+                            self.set_selectedness(cx.no_gc(), true);
                             selectedness_changed = true;
                         }
                     },
                     AttributeMutation::Removed => {
                         // https://html.spec.whatwg.org/multipage/#concept-option-selectedness
                         if !self.dirtiness.get() && self.selectedness.get() {
-                            self.set_selectedness(false);
+                            self.set_selectedness(cx.no_gc(), false);
                             selectedness_changed = true;
                         }
                     },

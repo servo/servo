@@ -808,14 +808,14 @@ impl VirtualMethods for HTMLTextAreaElement {
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.handle_key_reaction(cx, action, event);
-                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
                         .textinput
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
                     self.handle_key_reaction(cx, action, event);
-                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 }
                 self.maybe_update_shared_selection();
                 event.mark_as_handled();

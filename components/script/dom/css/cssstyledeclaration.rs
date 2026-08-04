@@ -131,7 +131,7 @@ impl CSSStyleOwner {
                     f(&mut *pdb.borrow().write_with(&mut guard), &mut changed)
                 };
                 if changed {
-                    rule.parent_stylesheet().notify_invalidations();
+                    rule.parent_stylesheet().notify_invalidations(cx.no_gc());
                 }
                 result
             },

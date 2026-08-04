@@ -234,7 +234,7 @@ impl HTMLDetailsElement {
             implicit_summary: fallback_summary.as_traced(),
         });
         self.upcast::<Node>()
-            .dirty(crate::dom::node::NodeDamage::Other);
+            .dirty(cx.no_gc(), crate::dom::node::NodeDamage::Other);
     }
 
     pub(crate) fn find_corresponding_summary_element(&self) -> Option<DomRoot<HTMLElement>> {
@@ -478,7 +478,7 @@ impl VirtualMethods for HTMLDetailsElement {
                         event.fire(cx, this.upcast::<EventTarget>());
                     }
                 }));
-            self.upcast::<Node>().dirty(NodeDamage::Other);
+            self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
 
             // Step 3.2. If oldValue is null and value is not null, then ensure details exclusivity
             // by closing other elements if needed given element.

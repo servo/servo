@@ -552,7 +552,7 @@ impl Node {
 
     fn move_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
-        self.dirty(NodeDamage::ContentOrHeritage);
+        self.dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
         self.note_dirty_descendants(cx.no_gc());
         self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
@@ -878,7 +878,7 @@ impl Node {
         self.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS)
     }
 
-    pub(crate) fn rev_version(&self) {
+    pub(crate) fn rev_version(&self, no_gc: &NoGC) {
         // The new version counter is 1 plus the max of the node's current version counter,
         // its descendants version, and the document's version. Normally, this will just be
         // the document's version, but we do have to deal with the case where the node has moved
@@ -889,14 +889,8 @@ impl Node {
             doc.inclusive_descendants_version(),
         ) + 1;
 
-        // This `while` loop is equivalent to iterating over the non-shadow-inclusive ancestors
-        // without creating intermediate rooted DOM objects.
-        let mut node = &MutNullableDom::new(Some(self));
-        while let Some(p) = node.if_is_some(|p| {
-            p.inclusive_descendants_version.set(version);
-            &p.parent_node
-        }) {
-            node = p
+        for node in self.inclusive_ancestors_unrooted(no_gc, ShadowIncluding::No) {
+            node.inclusive_descendants_version.set(version);
         }
         doc.inclusive_descendants_version.set(version);
     }
@@ -905,8 +899,8 @@ impl Node {
         self.layout_data.take();
     }
 
-    pub(crate) fn dirty(&self, damage: NodeDamage) {
-        self.rev_version();
+    pub(crate) fn dirty(&self, no_gc: &NoGC, damage: NodeDamage) {
+        self.rev_version(no_gc);
         if !self.is_connected() {
             return;
         }
@@ -923,7 +917,7 @@ impl Node {
                 self.parent_node
                     .get()
                     .unwrap()
-                    .dirty(NodeDamage::ContentOrHeritage);
+                    .dirty(no_gc, NodeDamage::ContentOrHeritage);
 
                 if damage == NodeDamage::Other {
                     self.add_pending_accessibility_damage(AccessibilityDamage::Text);
