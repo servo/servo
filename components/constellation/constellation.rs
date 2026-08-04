@@ -3752,7 +3752,7 @@ where
         };
 
         if load_data.is_initial_about_blank {
-            assert_eq!(load_data.as_str(), "about:blank");
+            assert_eq!(load_data.url.as_str(), "about:blank");
             // The initial about:blank is not a navigation; the embedder only
             // cares about a navigation that follows it.
             self.handle_allow_navigation_response(source_id, true);
