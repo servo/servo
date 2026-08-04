@@ -19,33 +19,30 @@ pub struct StdTypes {
     vector: Vec<MustRoot>,
 }
 
-fn new_std_types(_: &()) -> &StdTypes {
-    unimplemented!()
-}
-fn new_std_types_mut(_: &()) -> &mut StdTypes {
+fn new_std_types(_: &()) -> &mut StdTypes {
     unimplemented!()
 }
 
 fn test_std_types() {
     let std_types = new_std_types(&());
-    let std_types_mut = new_std_types_mut(&());
 
     // Ref
-    let _ = std_types.refcell.borrow();
+    let foo = std_types.refcell.borrow();
     // RefMut
-    let _ = std_types.refcell.borrow_mut();
+    let foo = std_types.refcell.borrow_mut();
 
     // slice Iter
-    let _ = std_types.vector[..].iter();
+    let foo = std_types.vector[..].iter();
     // slice IterMut
-    let _ = std_types_mut.vector[..].iter_mut();
+    let foo = std_types.vector[..].iter_mut();
 
     // hashmap Entry
-    match std_types_mut.hashmap.entry(()) {
+    let entry = std_types.hashmap.entry(());
+    match entry {
         // OccupiedEntry
-        Entry::Occupied(_) => (),
+        Entry::Occupied(occupied_entry) => (),
         // VacantEntry
-        Entry::Vacant(_) => (),
+        Entry::Vacant(vacant_entry) => (),
     }
 
     // hashmap Iter
