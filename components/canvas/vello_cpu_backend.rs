@@ -12,6 +12,7 @@ use kurbo::Shape;
 use malloc_size_of::MallocSizeOf;
 use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use profile_traits::mem::ReportKind;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
@@ -161,15 +162,15 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
         }
     }
 
-    fn get_canvas_store_sizes(
+    fn canvas_store_sizes(
         &self,
         ops: &mut malloc_size_of::MallocSizeOfOps,
-    ) -> Vec<CanvasStoreSizesPerType> {
-        vec![CanvasStoreSizesPerType {
+    ) -> Option<Vec<CanvasStoreSizesPerType>> {
+        Some(vec![CanvasStoreSizesPerType {
             name: "backing-buffer",
             size: self.pixmap.size_of(ops),
-            kind: profile_traits::mem::ReportKind::ExplicitJemallocHeapSize,
-        }]
+            kind: ReportKind::ExplicitJemallocHeapSize,
+        }])
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {

@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
+use malloc_size_of::MallocSizeOfOps;
 use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
+use profile_traits::mem::Report;
 use servo_base::Epoch;
 use servo_canvas_traits::canvas::*;
 use webrender_api::ImageKey;
@@ -48,27 +50,30 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         }
     }
 
-    // Called once per canvas
-    pub(crate) fn memory_report(
+    /// Returns memory-usage reports for a canvas.
+    ///
+    /// Called once for each canvas during memory reporting.
+    pub(crate) fn collect_memory_report(
         &self,
         canvas_id: CanvasId,
         live_canvas_count: usize,
-        ops: &mut malloc_size_of::MallocSizeOfOps,
-    ) -> Vec<profile_traits::mem::Report> {
+        ops: &mut MallocSizeOfOps,
+    ) -> Vec<Report> {
         let dimentions = self.draw_target.get_size();
         let number_of_canvases = format!("canvases({live_canvas_count})");
-        let canvas_info_str = format!(
+        let canvas_info_string = format!(
             "canvas(id={}, {}x{})",
             canvas_id.0, dimentions.width, dimentions.height
         );
         self.draw_target
-            .get_canvas_store_sizes(ops)
+            .canvas_store_sizes(ops)
+            .unwrap_or_default()
             .into_iter()
-            .map(|canvas_store_type| profile_traits::mem::Report {
+            .map(|canvas_store_type| Report {
                 path: profile_traits::path![
                     "canvas",
                     number_of_canvases,
-                    canvas_info_str,
+                    canvas_info_string,
                     canvas_store_type.name
                 ],
                 kind: canvas_store_type.kind,

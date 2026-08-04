@@ -239,25 +239,12 @@ impl GenericDrawTarget for VelloDrawTarget {
         Self::new_with_renderer(device, queue, Rc::new(RefCell::new(renderer)), size)
     }
 
-    fn get_canvas_store_sizes(
+    fn canvas_store_sizes(
         &self,
         _ops: &mut malloc_size_of::MallocSizeOfOps,
-    ) -> Vec<CanvasStoreSizesPerType> {
-        // TODO: implement a correct way to report the Vello in the memory report.
-        let texture_size = 0;
-        let readback_size = 0;
-        vec![
-            CanvasStoreSizesPerType {
-                name: "backing-texture",
-                size: texture_size,
-                kind: profile_traits::mem::ReportKind::ExplicitNonHeapSize,
-            },
-            CanvasStoreSizesPerType {
-                name: "readback-buffer",
-                size: readback_size,
-                kind: profile_traits::mem::ReportKind::ExplicitNonHeapSize,
-            },
-        ]
+    ) -> Option<Vec<CanvasStoreSizesPerType>> {
+        // TODO: implement a correct way to include Vello types in the memory report.
+        None
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {

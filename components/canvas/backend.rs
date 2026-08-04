@@ -5,6 +5,7 @@
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use paint_api::SerializableImageData;
 use pixels::Snapshot;
+use profile_traits::mem::ReportKind;
 use servo_canvas_traits::canvas::{
     CompositionOptions, FillOrStrokeStyle, FillRule, LineOptions, Path, ShadowOptions, TextRun,
 };
@@ -15,7 +16,7 @@ use crate::canvas_data::Filter;
 pub(crate) struct CanvasStoreSizesPerType {
     pub name: &'static str,
     pub size: usize,
-    pub kind: profile_traits::mem::ReportKind,
+    pub kind: ReportKind,
 }
 
 // This defines required methods for a DrawTarget. The prototypes are derived from the now-removed
@@ -25,10 +26,10 @@ pub(crate) trait GenericDrawTarget {
 
     fn new(size: Size2D<u32>) -> Self;
     fn create_similar_draw_target(&self, size: &Size2D<i32>) -> Self;
-    fn get_canvas_store_sizes(
+    fn canvas_store_sizes(
         &self,
         ops: &mut malloc_size_of::MallocSizeOfOps,
-    ) -> Vec<CanvasStoreSizesPerType>;
+    ) -> Option<Vec<CanvasStoreSizesPerType>>;
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>);
     fn copy_surface(

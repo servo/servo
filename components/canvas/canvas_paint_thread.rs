@@ -119,7 +119,7 @@ impl CanvasPaintThread {
                 .canvases
                 .iter()
                 .flat_map(|(canvas_id, canvas)| {
-                    canvas.memory_report(*canvas_id, live_canvas_count, ops)
+                    canvas.collect_memory_report(*canvas_id, live_canvas_count, ops)
                 })
                 .collect();
             sender.send(ProcessReports::new(reports));
@@ -355,7 +355,7 @@ impl Canvas {
         }
     }
 
-    fn memory_report(
+    fn collect_memory_report(
         &self,
         canvas_id: CanvasId,
         live_canvas_count: usize,
@@ -364,10 +364,10 @@ impl Canvas {
         match self {
             #[cfg(feature = "vello")]
             Canvas::Vello(canvas_data) => {
-                canvas_data.memory_report(canvas_id, live_canvas_count, ops)
+                canvas_data.collect_memory_report(canvas_id, live_canvas_count, ops)
             },
             Canvas::VelloCPU(canvas_data) => {
-                canvas_data.memory_report(canvas_id, live_canvas_count, ops)
+                canvas_data.collect_memory_report(canvas_id, live_canvas_count, ops)
             },
         }
     }
