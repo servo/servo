@@ -9,18 +9,13 @@ use app_units::Au;
 use freetype_sys::{
     FT_Done_Face, FT_Done_MM_Var, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
     FT_FACE_FLAG_SCALABLE, FT_Face, FT_FaceRec, FT_Fixed, FT_Get_MM_Var, FT_HAS_MULTIPLE_MASTERS,
-    FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_Long, FT_MM_Var, FT_New_Face, FT_New_Memory_Face,
-    FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates, FT_UInt,
-    FTErrorMethods,
+    FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_TARGET_LIGHT, FT_Long, FT_MM_Var,
+    FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size,
+    FT_Set_Var_Design_Coordinates, FTErrorMethods,
 };
 use webrender_api::FontVariation;
 
 use crate::platform::freetype::library_handle::FreeTypeLibraryHandle;
-
-// This constant is not present in the freetype
-// bindings due to bindgen not handling the way
-// the macro is defined.
-const FT_LOAD_TARGET_LIGHT: FT_UInt = 1 << 16;
 
 /// A safe wrapper around [FT_Face].
 #[derive(Debug)]
@@ -164,7 +159,7 @@ impl FreeTypeFace {
         // Linux distros use by default, and is a better
         // default than no hinting.
         // TODO(gw): Make this configurable.
-        load_flags |= FT_LOAD_TARGET_LIGHT as i32;
+        load_flags |= FT_LOAD_TARGET_LIGHT;
 
         let face_flags = self.as_ref().face_flags;
         if (face_flags & (FT_FACE_FLAG_FIXED_SIZES as FT_Long)) != 0 {
