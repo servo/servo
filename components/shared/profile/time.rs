@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -46,7 +45,7 @@ pub enum ProfilerMsg {
     /// Message used to get time spend entries for a particular ProfilerBuckets (in nanoseconds)
     Get(
         (ProfilerCategory, Option<TimerMetadata>),
-        IpcSender<ProfilerData>,
+        GenericSender<ProfilerData>,
     ),
     /// Message used to force print the profiling metrics
     Print,
@@ -55,7 +54,7 @@ pub enum ProfilerMsg {
     BlockedLayoutQuery(String),
 
     /// Tells the profiler to shut down.
-    Exit(IpcSender<()>),
+    Exit(GenericSender<()>),
 }
 
 /// Usage sites of variants marked “Rust tracing only” are not visible to rust-analyzer.

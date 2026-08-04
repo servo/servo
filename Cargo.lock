@@ -8798,7 +8798,6 @@ dependencies = [
  "euclid",
  "gleam",
  "image",
- "ipc-channel",
  "log",
  "rayon",
  "rustc-hash 2.1.3",
