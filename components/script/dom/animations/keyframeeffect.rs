@@ -28,7 +28,7 @@ use script_bindings::codegen::GenericBindings::KeyframeEffectBinding::{
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::UnrestrictedDoubleOrKeyframeEffectOptions;
 use script_bindings::conversions::StringificationBehavior;
-use script_bindings::error::{Error, Fallible};
+use script_bindings::error::{Error, Fallible, OperationError};
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
@@ -473,12 +473,10 @@ fn get_property_declarations(
         ) {
             Ok(ConversionResult::Success(property_value)) => property_value,
             Ok(ConversionResult::Failure(error_message)) => {
-                return Err(Error::Operation(
-                    error_message
-                        .to_str()
-                        .ok()
-                        .map(|message| message.to_owned()),
-                ));
+                let msg = error_message.to_str().ok();
+                return Err(Error::OperationNew(msg.map(|string| {
+                    OperationError::ConversionResultError(string.to_owned())
+                })));
             },
             Err(_) => return Err(Error::JSFailed),
         };

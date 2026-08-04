@@ -7,9 +7,32 @@ use std::ffi::CString;
 use js::context::JSContext;
 use js::error::throw_type_error;
 use js::rust::wrappers2::JS_IsExceptionPending;
+use thiserror::Error;
 
 use crate::codegen::PrototypeList::proto_id_to_name;
 use crate::num::Finite;
+
+#[derive(Clone, Error, Debug, MallocSizeOf)]
+pub enum WebCryptoError {
+    #[error("Failed to generate random values")]
+    FailedToGenerateRandomValues,
+}
+
+#[derive(Clone, Error, Debug, MallocSizeOf)]
+pub enum OperationError {
+    #[error("Generic Error: {0}")]
+    Generic(String),
+    #[error("ConversionResultFailure {0}")]
+    ConversionResultError(String),
+    #[error("WebCrypto Error: {0}")]
+    WebCrypto(#[from] WebCryptoError),
+}
+
+impl From<WebCryptoError> for Error {
+    fn from(value: WebCryptoError) -> Self {
+        Error::OperationNew(Some(value.into()))
+    }
+}
 
 /// DOM exceptions that can be thrown by a native DOM method.
 /// <https://webidl.spec.whatwg.org/#dfn-error-names-table>
@@ -72,6 +95,8 @@ pub enum Error {
     Data(Option<String>),
     /// OperationError DOMException
     Operation(Option<String>),
+    /// OperationError DOMException with types instead of string.
+    OperationNew(Option<OperationError>),
     /// NotAllowedError DOMException
     NotAllowed(Option<String>),
     /// EncodingError DOMException
