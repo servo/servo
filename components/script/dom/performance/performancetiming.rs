@@ -21,16 +21,27 @@ pub(crate) struct PerformanceTiming {
     #[no_trace]
     #[conditional_malloc_size_of]
     navigation_timing: Rc<NavigationTiming>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-redirectstart>
     redirect_start: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-redirectend>
     redirect_end: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-fetchstart>
     fetch_start: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-domainlookupstart>
     domain_lookup_start: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-domainlookupend>
     domain_lookup_end: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-connectstart>
     connect_start: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-connectend>
     connect_end: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-secureconnectstart>
     secure_connection_start: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-requeststart>
     request_start: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-responsestart>
     response_start: Cell<u64>,
+    /// <https://www.w3.org/TR/navigation-timing/#dom-performancetiming-responseend>
     response_end: Cell<u64>,
 }
 
