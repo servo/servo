@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Ref;
+use std::ops::Deref;
 
 use devtools_traits::AttrInfo;
 use html5ever::{LocalName, Namespace, Prefix};
@@ -59,7 +60,7 @@ pub(crate) enum AttrValueRef<'a> {
     Borrowed(Ref<'a, AttrValue>),
 }
 
-impl std::ops::Deref for AttrValueRef<'_> {
+impl Deref for AttrValueRef<'_> {
     type Target = AttrValue;
 
     fn deref(&self) -> &AttrValue {
@@ -67,6 +68,12 @@ impl std::ops::Deref for AttrValueRef<'_> {
             AttrValueRef::Direct(value) => value,
             AttrValueRef::Borrowed(value) => value,
         }
+    }
+}
+
+impl AsRef<str> for AttrValueRef<'_> {
+    fn as_ref(&self) -> &str {
+        self.deref()
     }
 }
 

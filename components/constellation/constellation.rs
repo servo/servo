@@ -1067,7 +1067,7 @@ where
             load_data,
             viewport_details: initial_viewport_details,
             user_content_manager_id,
-            theme,
+            embedder_theme: theme,
             target_snapshot_params,
         };
         let pipeline = match Pipeline::spawn(new_pipeline_info, event_loop, self, throttled) {
