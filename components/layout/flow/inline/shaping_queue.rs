@@ -294,7 +294,7 @@ impl<'a> ShapingQueue<'a> {
 
         for entry in self.queue.drain(..) {
             let mut text_run = entry.text_run.borrow_mut();
-            let style = text_run.inline_styles.style.borrow().clone();
+            let style = text_run.inline_styles().style.borrow().clone();
             let (runs, break_at_start) =
                 slicer.slice_shaped_text_at_line_break_opportunities(&entry, &style);
 
