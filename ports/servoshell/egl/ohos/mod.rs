@@ -131,12 +131,12 @@ static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 fn set_efficient_window_method(window: *mut c_void) {
     unsafe {
         let mut usage: u64 = 0;
-        if ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
+        let return_value = ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
             window as *mut ohos_sys_opaque_types::NativeWindow,
             ohos_window_sys::native_window::NativeWindowOperation::GET_USAGE as i32,
             &mut usage,
-        ) != 0
-        {
+        );
+        if return_value != 0 {
             log::warn!(
                 "Could not get NativeWindowHandleOpt. Will continue without efficient windowing mode."
             );
@@ -144,12 +144,12 @@ fn set_efficient_window_method(window: *mut c_void) {
         }
 
         usage = usage & (!ohos_window_sys::native_buffer::native_buffer::OH_NativeBuffer_Usage::NATIVEBUFFER_USAGE_CPU_READ.0 as u64);
-        if ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
+        let return_value = ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
             window as *mut ohos_sys_opaque_types::NativeWindow,
             ohos_window_sys::native_window::NativeWindowOperation::SET_USAGE as i32,
             usage,
-        ) != 0
-        {
+        );
+        if return_value != 0 {
             log::warn!(
                 "Could not set Native WindowHandleOpt. Will continue without efficient windowing mode."
             );
