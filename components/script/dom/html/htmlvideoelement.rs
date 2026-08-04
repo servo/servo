@@ -9,7 +9,7 @@ use std::sync::Arc;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -113,7 +113,12 @@ impl HTMLVideoElement {
         self.video_height.get()
     }
 
-    pub(crate) fn set_natural_dimensions(&self, width: Option<u32>, height: Option<u32>) -> bool {
+    pub(crate) fn set_natural_dimensions(
+        &self,
+        no_gc: &NoGC,
+        width: Option<u32>,
+        height: Option<u32>,
+    ) -> bool {
         if self.video_width.get() == width && self.video_height.get() == height {
             return false;
         }
@@ -121,7 +126,7 @@ impl HTMLVideoElement {
         self.video_width.set(width);
         self.video_height.set(height);
 
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
         true
     }
 
@@ -215,7 +220,7 @@ impl HTMLVideoElement {
         // Step 2. If the poster attribute's value is the empty string or
         // if the attribute is absent, then there is no poster frame; return.
         let Some(poster_url) = poster_url.filter(|poster_url| !poster_url.is_empty()) else {
-            self.htmlmediaelement.set_poster_frame(None);
+            self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
             return;
         };
 
@@ -231,7 +236,7 @@ impl HTMLVideoElement {
         {
             Ok(url) => url,
             Err(_) => {
-                self.htmlmediaelement.set_poster_frame(None);
+                self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
                 return;
             },
         };
@@ -340,7 +345,9 @@ impl HTMLVideoElement {
             ImageResponse::Loaded(image, url) => {
                 debug!("Loaded poster image for video element: {:?}", url);
                 match image.as_raster_image() {
-                    Some(image) => self.htmlmediaelement.set_poster_frame(Some(image)),
+                    Some(image) => self
+                        .htmlmediaelement
+                        .set_poster_frame(cx.no_gc(), Some(image)),
                     None => warn!("Vector images are not yet supported in video poster"),
                 }
                 LoadBlocker::terminate(&self.load_blocker, cx);
@@ -348,7 +355,7 @@ impl HTMLVideoElement {
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::FailedToLoadOrDecode => {
-                self.htmlmediaelement.set_poster_frame(None);
+                self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
                 // A failed load should unblock the document load.
                 LoadBlocker::terminate(&self.load_blocker, cx);
             },

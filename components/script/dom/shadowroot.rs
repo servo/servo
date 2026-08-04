@@ -270,11 +270,11 @@ impl ShadowRoot {
         )
     }
 
-    pub(crate) fn invalidate_stylesheets(&self) {
+    pub(crate) fn invalidate_stylesheets(&self, no_gc: &NoGC) {
         self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
-        self.Host().upcast::<Node>().dirty(NodeDamage::Style);
+        self.Host().upcast::<Node>().dirty(no_gc, NodeDamage::Style);
 
         // Also mark the host element with `RestyleHint::restyle_subtree` so a reflow
         // can traverse into the shadow tree.
@@ -602,7 +602,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
         if result.is_ok() {
             if self.author_styles.borrow().stylesheets.dirty() {
-                self.invalidate_stylesheets();
+                self.invalidate_stylesheets(cx.no_gc());
             }
 
             // Clear the FrozenArray cache.

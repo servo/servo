@@ -856,7 +856,7 @@ impl HTMLInputElement {
                 }
                 self.value_dirty.set(true);
                 self.update_placeholder_shown_state();
-                self.upcast::<Node>().dirty(NodeDamage::Other);
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                 event.mark_as_handled();
             },
             KeyReaction::RedrawSelection => {
@@ -1213,7 +1213,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         }
 
         self.value_changed(cx);
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         Ok(())
     }
 
@@ -1704,7 +1704,7 @@ impl HTMLInputElement {
             broadcast_radio_checked(cx, self, self.radio_group_name().as_ref());
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
@@ -2121,7 +2121,7 @@ impl VirtualMethods for HTMLInputElement {
                         let mut value = textinput.get_content();
                         self.sanitize_value(&mut value);
                         textinput.set_content(value);
-                        self.upcast::<Node>().dirty(NodeDamage::Other);
+                        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
 
                         // Set or remove the length restrictions depending on whether they apply
                         if self.does_minmaxlength_apply() {
@@ -2328,7 +2328,7 @@ impl VirtualMethods for HTMLInputElement {
                         .borrow_mut()
                         .handle_compositionend(compositionevent);
                     self.handle_key_reaction(cx, action, event);
-                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionupdate") {
                     let action = self
@@ -2336,7 +2336,7 @@ impl VirtualMethods for HTMLInputElement {
                         .borrow_mut()
                         .handle_compositionupdate(compositionevent);
                     self.handle_key_reaction(cx, action, event);
-                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
                     self.update_placeholder_shown_state();
                 } else if event.type_() == atom!("compositionstart") {
                     // Update placeholder state when composition starts
@@ -2367,7 +2367,8 @@ impl VirtualMethods for HTMLInputElement {
             }
             if !flags.is_empty() {
                 event.mark_as_handled();
-                self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+                self.upcast::<Node>()
+                    .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(event)

@@ -1218,7 +1218,7 @@ impl Document {
 
         // FIXME(emilio): This is very inefficient, ideally the flag above would
         // be enough and incremental layout could figure out from there.
-        node.dirty(NodeDamage::ContentOrHeritage);
+        node.dirty(no_gc, NodeDamage::ContentOrHeritage);
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
@@ -1505,7 +1505,7 @@ impl Document {
             .upcast::<Node>()
             .traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes)
         {
-            node.dirty(NodeDamage::Other)
+            node.dirty(no_gc, NodeDamage::Other)
         }
     }
 
@@ -1756,14 +1756,14 @@ impl Document {
         // TODO
     }
 
-    pub(crate) fn invalidate_stylesheets(&self) {
+    pub(crate) fn invalidate_stylesheets(&self, no_gc: &NoGC) {
         self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
 
         // Mark the document element dirty so a reflow will be performed.
         //
         // FIXME(emilio): Use the DocumentStylesheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
-            element.upcast::<Node>().dirty(NodeDamage::Style);
+            element.upcast::<Node>().dirty(no_gc, NodeDamage::Style);
         }
     }
 
@@ -4654,10 +4654,10 @@ impl Document {
             .update_for_new_timeline_value(&self.window, current_timeline_value);
     }
 
-    pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self) {
+    pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self, no_gc: &NoGC) {
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .mark_animating_nodes_as_dirty(current_timeline_value);
+            .mark_animating_nodes_as_dirty(no_gc, current_timeline_value);
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
@@ -4733,7 +4733,7 @@ impl Document {
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
             .update_for_new_timeline_value(&self.window, current_timeline_value);
-        self.maybe_mark_animating_nodes_as_dirty();
+        self.maybe_mark_animating_nodes_as_dirty(cx.no_gc());
 
         // > 3. Perform a microtask checkpoint.
         self.window().perform_a_microtask_checkpoint(cx);

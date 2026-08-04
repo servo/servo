@@ -93,7 +93,7 @@ impl HTMLProgressElement {
             progress_bar: progress_bar.as_traced(),
         });
         self.upcast::<Node>()
-            .dirty(crate::dom::node::NodeDamage::Other);
+            .dirty(cx.no_gc(), crate::dom::node::NodeDamage::Other);
     }
 
     fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {

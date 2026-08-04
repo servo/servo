@@ -8,6 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::NoGC;
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
@@ -185,8 +186,13 @@ impl HTMLCanvasElement {
         Ref::filter_map(self.context_mode.borrow(), |ctx| ctx.as_ref()).ok()
     }
 
-    fn set_rendering_context(&self, make_rendering_context: impl FnOnce() -> RenderingContext) {
-        self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
+    fn set_rendering_context(
+        &self,
+        no_gc: &NoGC,
+        make_rendering_context: impl FnOnce() -> RenderingContext,
+    ) {
+        self.upcast::<Node>()
+            .dirty(no_gc, NodeDamage::ContentOrHeritage);
         self.context_mode
             .borrow_mut()
             .replace(make_rendering_context());
@@ -225,7 +231,9 @@ impl HTMLCanvasElement {
         let window = self.owner_window();
         let size = self.get_size();
         let context = CanvasRenderingContext2D::new(cx, window.as_global_scope(), self, size)?;
-        self.set_rendering_context(|| RenderingContext::Context2d(Dom::from_ref(&*context)));
+        self.set_rendering_context(cx.no_gc(), || {
+            RenderingContext::Context2d(Dom::from_ref(&*context))
+        });
         Some(context)
     }
 
@@ -251,7 +259,9 @@ impl HTMLCanvasElement {
 
         // Step 2. Set this's context mode to bitmaprenderer.
         let context = ImageBitmapRenderingContext::new(cx, &self.owner_global(), &canvas);
-        self.set_rendering_context(|| RenderingContext::BitmapRenderer(Dom::from_ref(&*context)));
+        self.set_rendering_context(cx.no_gc(), || {
+            RenderingContext::BitmapRenderer(Dom::from_ref(&*context))
+        });
 
         // Step 3. Return context.
         Some(context)
@@ -275,7 +285,9 @@ impl HTMLCanvasElement {
         let attrs = Self::get_gl_attributes(cx, options)?;
         let context =
             WebGLRenderingContext::new(cx, &window, &canvas, WebGLVersion::WebGL1, size, attrs)?;
-        self.set_rendering_context(|| RenderingContext::WebGL(Dom::from_ref(&*context)));
+        self.set_rendering_context(cx.no_gc(), || {
+            RenderingContext::WebGL(Dom::from_ref(&*context))
+        });
         Some(context)
     }
 
@@ -300,7 +312,9 @@ impl HTMLCanvasElement {
         let size = self.get_size();
         let attrs = Self::get_gl_attributes(cx, options)?;
         let context = WebGL2RenderingContext::new(cx, &window, &canvas, size, attrs)?;
-        self.set_rendering_context(|| RenderingContext::WebGL2(Dom::from_ref(&*context)));
+        self.set_rendering_context(cx.no_gc(), || {
+            RenderingContext::WebGL2(Dom::from_ref(&*context))
+        });
         Some(context)
     }
 
@@ -332,7 +346,9 @@ impl HTMLCanvasElement {
             .expect("Failed to get WebGPU channel")
             .map(|channel| {
                 let context = GPUCanvasContext::new(cx, &global_scope, self, channel);
-                self.set_rendering_context(|| RenderingContext::WebGPU(Dom::from_ref(&*context)));
+                self.set_rendering_context(cx.no_gc(), || {
+                    RenderingContext::WebGPU(Dom::from_ref(&*context))
+                });
                 context
             })
     }
@@ -631,7 +647,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         );
 
         // Step 4. Set this canvas element's context mode to placeholder.
-        self.set_rendering_context(|| RenderingContext::Placeholder(offscreen_canvas.as_traced()));
+        self.set_rendering_context(cx.no_gc(), || {
+            RenderingContext::Placeholder(offscreen_canvas.as_traced())
+        });
 
         // Step 5. Return offscreenCanvas.
         Ok(offscreen_canvas)
@@ -669,7 +687,7 @@ impl VirtualMethods for HTMLCanvasElement {
         match attr.local_name() {
             &local_name!("width") | &local_name!("height") => {
                 self.recreate_contexts_after_resize();
-                self.upcast::<Node>().dirty(NodeDamage::Other);
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
             },
             _ => {},
         };

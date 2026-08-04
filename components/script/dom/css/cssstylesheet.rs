@@ -6,7 +6,7 @@ use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
@@ -201,9 +201,9 @@ impl CSSStyleSheet {
         self.owner_node.get()
     }
 
-    pub(crate) fn set_disabled(&self, disabled: bool) {
+    pub(crate) fn set_disabled(&self, no_gc: &NoGC, disabled: bool) {
         if self.style_stylesheet.borrow().set_disabled(disabled) {
-            self.notify_invalidations();
+            self.notify_invalidations(no_gc);
         }
     }
 
@@ -291,12 +291,12 @@ impl CSSStyleSheet {
     }
 
     /// Invalidate all stylesheet set this stylesheet is a part on.
-    pub(crate) fn notify_invalidations(&self) {
+    pub(crate) fn notify_invalidations(&self, no_gc: &NoGC) {
         if let Some(owner) = self.owner_node() {
-            owner.stylesheet_list_owner().invalidate_stylesheets();
+            owner.stylesheet_list_owner().invalidate_stylesheets(no_gc);
         }
         for adopter in self.adopters.borrow().iter() {
-            adopter.invalidate_stylesheets();
+            adopter.invalidate_stylesheets(no_gc);
         }
     }
 
@@ -306,7 +306,7 @@ impl CSSStyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync> Steps 2+
-    fn do_replace_sync(&self, text: USVString) {
+    fn do_replace_sync(&self, no_gc: &NoGC, text: USVString) {
         // Step 2. Let rules be the result of running parse a stylesheet’s contents from text.
         let global = self.global();
         let window = global.as_window();
@@ -338,7 +338,7 @@ impl CSSStyleSheet {
         self.rule_list.set(None);
 
         // Notify invalidation to update the styles immediately.
-        self.notify_invalidations();
+        self.notify_invalidations(no_gc);
     }
 }
 
@@ -509,7 +509,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 let sheet = trusted_sheet.root();
 
                 // Step 4.1..4.3
-                sheet.do_replace_sync(text);
+                sheet.do_replace_sync(cx.no_gc(), text);
 
                 // Step 4.4. Unset sheet’s disallow modification flag.
                 sheet.disallow_modification.set(false);
@@ -522,7 +522,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replacesync>
-    fn ReplaceSync(&self, text: USVString) -> Result<(), Error> {
+    fn ReplaceSync(&self, no_gc: &NoGC, text: USVString) -> Result<(), Error> {
         // Step 1. If the constructed flag is not set, or the disallow modification flag is set,
         // throw a NotAllowedError DOMException.
         if !self.is_constructed() || self.disallow_modification() {
@@ -535,7 +535,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 "This method can only be called on modifiable style sheets".to_string(),
             )));
         }
-        self.do_replace_sync(text);
+        self.do_replace_sync(no_gc, text);
         Ok(())
     }
 }

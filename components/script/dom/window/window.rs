@@ -725,7 +725,7 @@ impl Window {
         })
     }
 
-    fn pending_layout_image_notification(&self, response: PendingImageResponse) {
+    fn pending_layout_image_notification(&self, no_gc: &NoGC, response: PendingImageResponse) {
         let mut images = self.pending_layout_images.borrow_mut();
         let nodes = images.entry(response.id);
         let nodes = match nodes {
@@ -739,7 +739,7 @@ impl Window {
             for ancillary_data in nodes.get() {
                 match ancillary_data.destination {
                     LayoutImageDestination::BoxTreeConstruction => {
-                        ancillary_data.node.dirty(NodeDamage::Other);
+                        ancillary_data.node.dirty(no_gc, NodeDamage::Other);
                     },
                     LayoutImageDestination::DisplayListBuilding => {
                         self.layout().set_needs_new_display_list();
@@ -758,6 +758,7 @@ impl Window {
 
     pub(crate) fn handle_image_rasterization_complete_notification(
         &self,
+        no_gc: &NoGC,
         response: RasterizationCompleteResponse,
     ) {
         let mut images = self.pending_images_for_rasterization.borrow_mut();
@@ -767,7 +768,7 @@ impl Window {
             Entry::Vacant(_) => return,
         };
         for node in nodes.get() {
-            node.dirty(NodeDamage::Other);
+            node.dirty(no_gc, NodeDamage::Other);
         }
         nodes.remove();
     }
@@ -2608,10 +2609,10 @@ impl Window {
 
     /// Prepares to tick animations and then does a reflow which also advances the
     /// layout animation clock.
-    pub(crate) fn advance_animation_clock(&self, delta: TimeDuration) {
+    pub(crate) fn advance_animation_clock(&self, no_gc: &NoGC, delta: TimeDuration) {
         self.Document()
             .advance_animation_timeline_for_testing(delta);
-        ScriptThread::handle_tick_all_animations_for_testing(self.pipeline_id());
+        ScriptThread::handle_tick_all_animations_for_testing(no_gc, self.pipeline_id());
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This method will wait for
@@ -3741,11 +3742,11 @@ impl Window {
             let mut images = self.pending_layout_images.borrow_mut();
             if !images.contains_key(&id) {
                 let trusted_node = Trusted::new(&*node);
-                let sender = self.register_image_cache_listener(id, move |response, _| {
+                let sender = self.register_image_cache_listener(id, move |response, cx| {
                     trusted_node
                         .root()
                         .owner_window()
-                        .pending_layout_image_notification(response);
+                        .pending_layout_image_notification(cx.no_gc(), response);
                 });
 
                 image_cache.add_listener(ImageLoadListener::new(sender, pipeline_id, id));
@@ -3786,7 +3787,7 @@ impl Window {
             let node = unsafe { from_untrusted_node_address(node) };
             let svg = node.downcast::<SVGSVGElement>().unwrap();
             svg.serialize_and_cache_subtree(cx);
-            node.dirty(NodeDamage::Other);
+            node.dirty(cx.no_gc(), NodeDamage::Other);
         }
     }
 

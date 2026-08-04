@@ -1056,7 +1056,7 @@ pub(crate) fn upgrade_element(
         if let Some(form) = html_element.form_owner() {
             // Even though the tree hasn't structurally mutated,
             // HTMLCollections need to be invalidated.
-            form.upcast::<Node>().rev_version();
+            form.upcast::<Node>().rev_version(cx.no_gc());
             // The spec tells us specifically to enqueue a formAssociated reaction
             // here, but it also says to do that for resetting form owner in general,
             // and we don't need two reactions.

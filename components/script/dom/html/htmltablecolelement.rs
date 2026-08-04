@@ -102,7 +102,7 @@ impl VirtualMethods for HTMLTableColElement {
         }
 
         if matches!(*attr.local_name(), local_name!("span")) {
-            self.upcast::<Node>().dirty(NodeDamage::Other);
+            self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         }
     }
 

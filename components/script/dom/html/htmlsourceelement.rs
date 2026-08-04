@@ -125,7 +125,7 @@ impl VirtualMethods for HTMLSourceElement {
                     let next_sibling_iterator = self.upcast::<Node>().following_siblings();
                     HTMLSourceElement::iterate_next_html_image_element_siblings(
                         next_sibling_iterator,
-                        |image| image.upcast::<Node>().dirty(NodeDamage::Other),
+                        |image| image.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other),
                     );
                 }
             },

@@ -659,7 +659,7 @@ impl HTMLIFrameElement {
             LoadBlocker::terminate(blocker, cx);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         true
     }
 

@@ -6,7 +6,7 @@
 
 use backtrace::Backtrace;
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use layout_api::ReflowPhasesRun;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::domstring::DOMString;
@@ -26,10 +26,10 @@ pub(crate) struct ServoTestUtils {
 }
 
 impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
-    fn AdvanceClock(global: &GlobalScope, ms: i32) {
+    fn AdvanceClock(no_gc: &NoGC, global: &GlobalScope, ms: i32) {
         global
             .as_window()
-            .advance_animation_clock(Duration::milliseconds(ms as i64));
+            .advance_animation_clock(no_gc, Duration::milliseconds(ms as i64));
     }
 
     #[expect(unsafe_code)]

@@ -309,9 +309,9 @@ impl StylesheetContext {
         }
 
         if let Some(ref shadow_root) = self.shadow_root {
-            shadow_root.root().invalidate_stylesheets();
+            shadow_root.root().invalidate_stylesheets(cx.no_gc());
         } else {
-            document.invalidate_stylesheets();
+            document.invalidate_stylesheets(cx.no_gc());
         }
         owner.set_origin_clean(cx, self.origin_clean);
 
