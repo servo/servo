@@ -1780,8 +1780,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self, cx: &mut JSContext) -> DomRoot<Performance> {
-        self.performance
-            .or_init(|| Performance::new(cx, self.as_global_scope(), self.navigation_start.get()))
+        self.performance.or_init(|| {
+            Performance::new(
+                cx,
+                self.as_global_scope(),
+                self.navigation_start.get(),
+                self.Document().navigation_timing(),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers

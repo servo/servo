@@ -345,24 +345,27 @@ bitflags! {
     }
 }
 
-/// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming>
+/// <https://html.spec.whatwg.org/multipage/#document-load-timing-info>
 #[derive(Clone, Debug, Default, MallocSizeOf)]
 pub(crate) struct NavigationTiming {
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventstart>
+    pub(crate) dom_loading: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#navigation-start-time>
+    pub(crate) navigation_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#unload-event-start-time>
     pub(crate) unload_event_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventend>
+    /// <https://html.spec.whatwg.org/multipage/#unload-event-end-time>
     pub(crate) unload_event_end: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-dominteractive>
+    /// <https://html.spec.whatwg.org/multipage/#dom-interactive-time>
     pub(crate) dom_interactive: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart>
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-start-time>
     pub(crate) dom_content_loaded_event_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventend>
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-end-time>
     pub(crate) dom_content_loaded_event_end: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcomplete>
+    /// <https://html.spec.whatwg.org/multipage/#dom-complete-time>
     pub(crate) dom_complete: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventstart>
+    /// <https://html.spec.whatwg.org/multipage/#load-event-start-time>
     pub(crate) load_event_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventend>
+    /// <https://html.spec.whatwg.org/multipage/#load-event-end-time>
     pub(crate) load_event_end: Cell<Option<CrossProcessInstant>>,
     /// Servo-only timing for when top-level content (not iframes) is complete
     pub(crate) top_level_dom_complete: Cell<Option<CrossProcessInstant>>,
@@ -527,8 +530,10 @@ pub(crate) struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
 
     /// [`NavigationTiming`] information for this [`Document`].
+    /// <https://html.spec.whatwg.org/multipage/#load-timing-info>
     #[no_trace]
-    navigation_timing: NavigationTiming,
+    #[conditional_malloc_size_of]
+    navigation_timing: Rc<NavigationTiming>,
 
     /// A [`ResourceFetchTiming`] that holds timing information for this [`Document`].
     #[no_trace]
@@ -1357,11 +1362,6 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#current-document-readiness
     pub(crate) fn set_ready_state(&self, cx: &mut JSContext, state: DocumentReadyState) {
-        let window = self.window();
-        let performance = window.Performance(cx);
-        let now = (*performance.Now()).floor() as u64;
-        let timing = performance.Timing();
-
         match state {
             DocumentReadyState::Loading => {
                 if self.window().is_top_level() {
@@ -1370,7 +1370,7 @@ impl Document {
                         LoadStatus::Started,
                     ));
                     self.send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
-                    timing.update_dom_loading(now);
+                    update_with_current_instant(&self.navigation_timing.dom_loading);
                 }
             },
             DocumentReadyState::Complete => {
@@ -1381,11 +1381,9 @@ impl Document {
                     ));
                 }
                 update_with_current_instant(&self.navigation_timing.dom_complete);
-                timing.update_dom_complete(now);
             },
             DocumentReadyState::Interactive => {
-                update_with_current_instant(&self.navigation_timing.dom_interactive);
-                timing.update_dom_interactive(now);
+                update_with_current_instant(&self.navigation_timing.dom_interactive)
             },
         };
 
@@ -2345,11 +2343,6 @@ impl Document {
                 // Step 9.4. Set the Document's load timing info's load event start time to the current high resolution time given window.
                 update_with_current_instant(&document.navigation_timing.load_event_start);
 
-                let performance = window.Performance(cx);
-                let timing = performance.Timing();
-                let start_time = (*performance.Now()).floor() as u64;
-                timing.update_load_event_start(start_time);
-
                 // Step 9.5. Fire an event named load at window, with legacy target override flag set.
                 let load_event = Event::new(
                     cx,
@@ -2372,7 +2365,6 @@ impl Document {
 
                 // Step 9.8. Set the Document's load timing info's load event end time to the current high resolution time given window.
                 update_with_current_instant(&document.navigation_timing.load_event_end);
-                timing.update_load_event_end((*performance.Now()).floor() as u64);
 
                 // Step 9.9. Assert: Document's page showing is false.
                 // TODO: Adding this assert fails a lot of tests
@@ -2613,18 +2605,11 @@ impl Document {
                 // the current high resolution time given the Document's relevant global object.
                 let document = document.root();
                 update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_start);
-
-                let performance = document.window().Performance(cx);
-                let timing = performance.Timing();
-                timing.update_dom_content_loaded_event_start((*performance.Now()).floor() as u64);
-
                 // Step 6.2. Fire an event named DOMContentLoaded at the Document object, with its bubbles attribute initialized to true.
                 document.upcast::<EventTarget>().fire_bubbling_event(cx, atom!("DOMContentLoaded"));
                 // Step 6.3. Set the Document's load timing info's DOM content loaded event end time to
                 // the current high resolution time given the Document's relevant global object.
                 update_with_current_instant(&document.navigation_timing.dom_content_loaded_event_end);
-                timing.update_dom_content_loaded_event_end((*performance.Now()).floor() as u64);
-
                 // Step 6.4. Enable the client message queue of the ServiceWorkerContainer object
                 // whose associated service worker client is the Document object's relevant settings object.
                 // TODO
@@ -4130,8 +4115,8 @@ impl Document {
         self.resource_fetch_timing.borrow()
     }
 
-    pub(crate) fn navigation_timing(&self) -> &NavigationTiming {
-        &self.navigation_timing
+    pub(crate) fn navigation_timing(&self) -> Rc<NavigationTiming> {
+        self.navigation_timing.clone()
     }
 
     pub(crate) fn performance_timing_attribute(
