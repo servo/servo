@@ -195,6 +195,7 @@ impl CryptoAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#subtlecrypto-interface>
 #[dom_struct]
 pub(crate) struct SubtleCrypto {
     reflector_: Reflector,
