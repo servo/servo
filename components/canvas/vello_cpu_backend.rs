@@ -149,9 +149,9 @@ impl VelloCPUDrawTarget {
 fn vello_worker_thread_count(size: &Size2D<u16>) -> u16 {
     // TODO: Somewhat arbitrary chosen, should be based on a benchmark,
     // measuring were we start to benefit from multithreading
-    const SMALL_CANVAS_SIZE: u16 = 512 * 512;
+    const SMALL_CANVAS_SIZE: u32 = 512 * 512;
     // For small sizes single-threaded is better.
-    if size.width * size.height < SMALL_CANVAS_SIZE {
+    if u32::from(size.width) * u32::from(size.height) < SMALL_CANVAS_SIZE {
         0
     } else {
         // <https://github.com/linebender/vello/blob/c95b228e1cf73bf96338e8c8ae0d145553f8f99c/sparse_strips/vello_cpu/examples/basic.rs#L51>
