@@ -238,7 +238,10 @@ where
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, &limit.str(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
-                    promise.reject_error(cx, Error::Operation(None));
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(format!("Unknown GPUDevice limit: {limit}"))),
+                    );
                     return promise;
                 }
             }
@@ -269,7 +272,10 @@ where
             })
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not Request GPU Device".to_string())),
+            );
         }
         // Step 5
         promise

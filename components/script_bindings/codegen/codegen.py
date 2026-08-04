@@ -3539,26 +3539,19 @@ class CGIteratorDerives(CGThing):
         iterableInterface = self.descriptor.interface.iterableInterface
         assert iterableInterface is not None
         name = iterableInterface.identifier.name
+        (generics, suffix) = ("<D: DomTypes>", "<D>") if self.generic else ("", "")
         if self.generic:
             bindingModule = f"crate::codegen::Bindings::{toBindingNamespace(self.descriptor.interface.identifier.name)}"
-            return f"""
-    impl<D: DomTypes> crate::dom::bindings::iterable::IteratorDerives for {name}<D> {{
+        else:
+            bindingModule = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(self.descriptor)}"
+        return f"""
+    impl{generics} crate::dom::bindings::iterable::IteratorDerives for {name}{suffix} {{
         #[inline]
         fn derives(class: &'static DOMClass) -> bool {{
             unsafe {{ ptr::eq(class, &{bindingModule}::Class.get().dom_class) }}
         }}
     }}
     """
-        else:
-            bindingModule = f"crate::dom::bindings::codegen::Bindings::{toBindingPath(self.descriptor)}"
-            return f"""
-impl crate::dom::bindings::iterable::IteratorDerives for {name} {{
-    #[inline]
-    fn derives(class: &'static DOMClass) -> bool {{
-        unsafe {{ ptr::eq(class, &{bindingModule}::Class.get().dom_class) }}
-    }}
-}}
-"""
 
 
 class CGDomObjectWrap(CGThing):
@@ -8117,7 +8110,7 @@ class CGConcreteBindingRoot(CGThing):
 
 
         for d in descriptors:
-            ifaceName:str = d.interface.identifier.name
+            ifaceName: str = d.interface.identifier.name
             should_skip = ifaceName.removesuffix('Setlike') not in only_interfaces
 
 
