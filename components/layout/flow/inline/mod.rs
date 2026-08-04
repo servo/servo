@@ -184,11 +184,6 @@ pub(crate) struct InlineFormattingContext {
     /// will require reordering during layout.
     has_right_to_left_content: bool,
 
-    /// If this [`InlineFormattingContext`] has a selection shared with its originating
-    /// node in the DOM, this will not be `None`.
-    #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
-    shared_selection: Option<SharedSelection>,
-
     /// The cached multiplier for `tab-size: <number>`:
     /// <https://drafts.csswg.org/css-text/#tab-size-property>
     /// > the advance width of the space character (U+0020) of the nearest block container ancestor
@@ -918,6 +913,8 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// by the boundary between two characters, the text-wrap-mode property of their nearest
     /// common ancestor is used.
     text_wrap_mode: TextWrapMode,
+
+    shared_selection_for_empty_text_run: Option<SharedSelection>,
 }
 
 impl InlineFormattingContextLayout<'_> {
@@ -1033,6 +1030,7 @@ impl InlineFormattingContextLayout<'_> {
         );
         self.inline_box_states.push(inline_box_state.clone());
         self.inline_box_state_stack.push(inline_box_state);
+        self.shared_selection_for_empty_text_run = None;
     }
 
     /// Finish laying out a particular [`InlineBox`] into line items. This will
@@ -1074,7 +1072,8 @@ impl InlineFormattingContextLayout<'_> {
             .line_items
             .push(LineItem::InlineEndBoxPaddingBorderMargin(
                 inline_box_state.identifier,
-            ))
+            ));
+        self.shared_selection_for_empty_text_run = None;
     }
 
     fn finish_last_line(&mut self) {
@@ -1698,15 +1697,6 @@ impl InlineFormattingContextLayout<'_> {
     /// If the current line is empty and this [`InlineFormattingContext`] has a selection, push an
     /// empty [`LineItem::TextRun`] so that text carets can be placed on otherwise empty lines.
     fn possibly_push_empty_text_run_to_line_for_text_caret(&mut self) {
-        let line_start_offset = self.current_line.starting_character_offset;
-        let Some(shared_selection) = self.ifc.shared_selection.clone() else {
-            return;
-        };
-        let offsets = TextRunOffsets {
-            shared_selection,
-            character_range: line_start_offset..line_start_offset + 1,
-        };
-
         // If the last content line item is a text item, then the placeholder for the text caret is not necessary.
         if self
             .current_line
@@ -1718,6 +1708,15 @@ impl InlineFormattingContextLayout<'_> {
         {
             return;
         }
+
+        let line_start_offset = self.current_line.starting_character_offset;
+        let Some(shared_selection) = self.shared_selection_for_empty_text_run.clone() else {
+            return;
+        };
+        let offsets = TextRunOffsets {
+            shared_selection,
+            character_range: line_start_offset..line_start_offset + 1,
+        };
 
         let inline_container_state = self.current_inline_container_state();
         let Some(font) = inline_container_state.default_font.clone() else {
@@ -2035,7 +2034,6 @@ impl InlineFormattingContext {
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
-            shared_selection: builder.shared_selection,
             tab_size_multiplier: Default::default(),
         }
     }
@@ -2116,6 +2114,7 @@ impl InlineFormattingContext {
             depends_on_block_constraints: false,
             white_space_collapse: style_text.white_space_collapse,
             text_wrap_mode: style_text.text_wrap_mode,
+            shared_selection_for_empty_text_run: None,
         };
 
         for item in self.inline_items.iter() {
@@ -2642,6 +2641,8 @@ impl IndependentFormattingContext {
         {
             layout.have_deferred_soft_wrap_opportunity = true;
         }
+
+        layout.shared_selection_for_empty_text_run = None;
     }
 
     /// Picks either the first or the last baseline, depending on `baseline-source`.

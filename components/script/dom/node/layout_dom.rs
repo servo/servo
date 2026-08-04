@@ -280,14 +280,7 @@ impl<'dom> LayoutDom<'dom, Node> {
     ///
     /// As we want to expose the selection on the inner text node of the widget's shadow
     /// DOM, we must find the shadow root and then access the containing element itself.
-    pub(crate) fn selection(self) -> Option<SharedSelection> {
-        if let Some(input) = self.downcast::<HTMLInputElement>() {
-            return input.selection_for_layout();
-        }
-        if let Some(textarea) = self.downcast::<HTMLTextAreaElement>() {
-            return Some(textarea.selection_for_layout());
-        }
-
+    pub(crate) fn form_control_selection_in_text_node(self) -> Option<SharedSelection> {
         let shadow_root = self
             .containing_shadow_root_for_layout()?
             .get_host_for_layout();

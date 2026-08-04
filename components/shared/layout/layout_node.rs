@@ -175,8 +175,10 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// Returned offsets are counted in `char`s in the `self.text_content()` string.
     fn document_selection_in_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>>;
 
-    /// If this node manages a selection, this returns the shared selection for the node.
-    fn selection(&self) -> Option<SharedSelection>;
+    /// For a text node, returns which range of this text is part of a form control selection.
+    ///
+    /// Returned offsets are counted in `char`s in the `self.text_content()` string.
+    fn form_control_selection_in_text_node(&self) -> Option<SharedSelection>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;
