@@ -243,7 +243,7 @@ stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "2d289c14fd
 stylo_traits = { git = "https://github.com/servo/stylo", rev = "2d289c14fdf46952d52cabce63b1f0dc55b2ccde" }
 surfman = { version = "0.13.0", features = ["chains"] }
 swapper = "0.1"
-syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
+syn = { version = "3", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
 sys-locale = "0.3"
 taffy = { version = "0.12.1", default-features = false, features = ["calc", "detailed_layout_info", "grid", "std"] }
