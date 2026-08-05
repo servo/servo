@@ -274,6 +274,13 @@ impl AccessibilityTree {
     /// Recompute bounds for every node in the tree from current layout geometry, independent of
     /// [`AccessibilityDamage`] from the DOM. Nodes whose bounds actually changed are added to
     /// `update`. See [`AccessibilityNode::refresh_bounds_for_subtree()`].
+    ///
+    /// TODO(accessibility): We might not always need to start from the document root. For instance,
+    /// if layout performed an incremental reflow of a specific subtree, we could potentially
+    /// limit the bounds refresh to that subtree and any elements positioned after it in flow order
+    /// (which may have shifted). However, since viewport-relative coordinates are used, any ancestor
+    /// movement/scroll/zoom shifts all descendants, and layout does not currently provide
+    /// fine-grained bounds damage notifications.
     fn refresh_bounds<'dom>(
         &self,
         root_dom_node: &ServoLayoutNode<'dom>,
@@ -846,6 +853,9 @@ impl AccessibilityNode {
     ) -> (LocalAccessibilityDamage, Option<accesskit::Rect>) {
         let own_bounds = bounds_query(dom_node);
 
+        // TODO(accessibility): Other engines (Blink, WebKit, Gecko) compute bounds for `display: contents`
+        // elements (and other box-less elements) by taking the union of the bounding boxes of their rendered
+        // descendants, rather than inheriting ancestor bounds or leaving them empty.
         let inheritable_bounds = match dom_node.rendering_type() {
             NodeRenderingType::Rendered => own_bounds,
             NodeRenderingType::DelegatesRendering => own_bounds.or(inherited_bounds), // display: contents
