@@ -37,7 +37,8 @@ use crate::pinch_zoom::PinchZoom;
 use crate::pipeline_details::PipelineDetails;
 use crate::refresh_driver::BaseRefreshDriver;
 use crate::touch::{
-    PendingTouchInputEvent, TouchHandler, TouchIdMoveTracking, TouchMoveAllowed, TouchSequenceState,
+    PanPolicyInput, PendingTouchInputEvent, TouchHandler, TouchIdMoveTracking, TouchMoveAllowed,
+    TouchSequenceState,
 };
 
 #[derive(Clone, Copy)]
@@ -386,6 +387,13 @@ impl WebViewRenderer {
             .event
             .point()
             .map(|point| point.as_device_point(self.device_pixels_per_page_pixel()));
+        let is_touch_down = matches!(
+            &event.event,
+            InputEvent::Touch(TouchEvent {
+                event_type: TouchEventType::Down,
+                ..
+            })
+        );
         let hit_test_result = match event_point {
             Some(point) => {
                 let hit_test_result = match event.event {
@@ -401,6 +409,32 @@ impl WebViewRenderer {
             },
             None => None,
         };
+
+        // For touch-down, capture the hit node's `touch-action` and scrollable
+        // axes from the scroll tree so the pan axis-lock policy can be decided
+        // at pan-start.
+        if is_touch_down {
+            if let Some(hit) = &hit_test_result {
+                let policy_input = self
+                    .pipelines
+                    .get(&hit.pipeline_id)
+                    .and_then(|pipeline_details| {
+                        pipeline_details
+                            .scroll_tree
+                            .touch_action_and_scrollable_axes_for(hit.external_scroll_id)
+                    })
+                    .map(
+                        |(touch_action, scrollable_x, scrollable_y)| PanPolicyInput {
+                            touch_action,
+                            scrollable_x,
+                            scrollable_y,
+                        },
+                    );
+                if let Some(input) = policy_input {
+                    self.touch_handler.set_pan_policy_input(input);
+                }
+            }
+        }
 
         if let Err(error) = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::ForwardInputEvent(self.id, event, hit_test_result),
