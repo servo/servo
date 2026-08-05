@@ -509,7 +509,10 @@ impl Node {
     /// Fails unless `child` is a child of this node.
     fn remove_child(&self, cx: &mut JSContext, child: &Node, cached_index: Option<u32>) {
         assert!(child.parent_node.get().as_deref() == Some(self));
-        self.note_dirty_descendants(cx.no_gc());
+
+        if let Some(element) = self.downcast::<Element>() {
+            element.note_dirty_descendants(cx.no_gc());
+        }
         self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         let prev_sibling = child.GetPreviousSibling();
@@ -553,7 +556,10 @@ impl Node {
     fn move_child(&self, cx: &mut JSContext, child: &Node) {
         assert!(child.parent_node.get().as_deref() == Some(self));
         self.dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
-        self.note_dirty_descendants(cx.no_gc());
+        if let Some(element) = self.downcast::<Element>() {
+            element.note_dirty_descendants(cx.no_gc());
+        }
+
         self.add_pending_accessibility_damage(AccessibilityDamage::Children);
 
         child.prev_sibling.set(None);
@@ -866,16 +872,6 @@ impl Node {
         }
 
         self.flags.set(flags);
-    }
-
-    // FIXME(emilio): This and the function below should move to Element.
-    pub(crate) fn note_dirty_descendants(&self, no_gc: &NoGC) {
-        self.owner_doc_unrooted(no_gc)
-            .note_node_with_dirty_descendants(self);
-    }
-
-    pub(crate) fn has_dirty_descendants(&self) -> bool {
-        self.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS)
     }
 
     pub(crate) fn rev_version(&self, no_gc: &NoGC) {
@@ -4503,6 +4499,6 @@ pub(crate) enum FlatTreeParent {
     /// This node has a parent (it's not the root), but it does not share a flat tree
     /// relationship with its parent.
     NotInFlatTree,
-    /// This node is in the flat tree, but has no parent node.
+    /// This node is in the flat tree, but has no parent node because it is the root node.
     RootNode,
 }

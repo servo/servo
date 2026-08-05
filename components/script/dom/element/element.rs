@@ -388,16 +388,27 @@ impl Element {
         match damage {
             NodeDamage::Style => {},
             NodeDamage::ContentOrHeritage => {
-                doc.note_node_with_dirty_descendants(self.upcast());
+                doc.note_dirty_element(self);
                 restyle
                     .damage
                     .insert(RestyleDamage::from(LayoutDamage::DescendantHasBoxDamage));
             },
             NodeDamage::Other => {
-                doc.note_node_with_dirty_descendants(self.upcast());
+                doc.note_dirty_element(self);
                 restyle.damage.insert(RestyleDamage::reconstruct());
             },
         }
+    }
+
+    pub(crate) fn has_dirty_descendants(&self) -> bool {
+        self.upcast::<Node>()
+            .get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS)
+    }
+
+    pub(crate) fn note_dirty_descendants(&self, no_gc: &NoGC) {
+        self.upcast::<Node>()
+            .owner_doc_unrooted(no_gc)
+            .note_dirty_element(self);
     }
 
     pub(crate) fn set_is(&self, is: LocalName) {

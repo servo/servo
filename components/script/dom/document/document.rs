@@ -775,6 +775,19 @@ impl Document {
         closed_any_websocket
     }
 
+    fn document_element_changed(&self) {
+        if self.GetDocumentElement().is_some() {
+            // This ensures that if the document element is removed in the future, it
+            // will trigger a new empty display list.
+            self.root_removal_noted.set(false);
+        } else if !self.root_removal_noted.get() {
+            // If there is no document element, attempt to trigger a new root removal update,
+            // but do not do any updating of the dirty root or HAS_DIRTY_DESCENDANTS flags.
+            self.add_restyle_reason(RestyleReason::DOMChanged);
+            self.root_removal_noted.set(true);
+        }
+    }
+
     /// This is a port of Gecko's restyle root architecture. The idea is that we track a
     /// node which is the root of restyle damage. Below that root, certain nodes can be
     /// marked with a HAS_DIRTY_DESCENDANTS flag which means they should be traversed
@@ -789,9 +802,9 @@ impl Document {
     ///   flags up the tree until we cross the path of the new root. Once
     ///   we find this common ancestor, we record it as the restyle root, and then
     ///   clear the bits between the new restyle root and the document root.
-    ///
-    /// TODO: This function should take an `Element` and not a `Node`.
-    pub(crate) fn note_node_with_dirty_descendants(&self, node: &Node) {
+    pub(crate) fn note_dirty_element(&self, element: &Element) {
+        let node = element.upcast::<Node>();
+
         debug_assert!(*node.owner_doc() == *self);
         if !node.is_connected() {
             return;
@@ -799,59 +812,33 @@ impl Document {
 
         let parent_element = match node.parent_in_flat_tree() {
             FlatTreeParent::Parent(parent) => DomRoot::downcast::<Element>(parent),
-            FlatTreeParent::RootNode => self.GetDocumentElement().inspect(|_| {
-                // This ensures that if the document element is removed in the future, it
-                // will trigger a new empty display list.
-                // TODO: This bookkeeping should move to another method.
-                self.root_removal_noted.set(false);
-            }),
-            FlatTreeParent::NotInFlatTree => return,
+            FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => return,
         };
 
-        // If the parent isn't an element, try to use the document element.
-        let Some(parent_element) = parent_element.or_else(|| self.GetDocumentElement()) else {
-            // If there is no document element, attempt to trigger a new root removal update,
-            // but do not do any updating of the dirty root or HAS_DIRTY_DESCENDANTS flags.
-            // TODO: This bookkeeping should move to another method.
-            if !self.root_removal_noted.get() {
-                self.add_restyle_reason(RestyleReason::DOMChanged);
-                self.root_removal_noted.set(true);
+        // The node may not have a parent element if it is a direct descendant of the
+        // `Document` node (i.e. it is the document element aka the `<html>` element in HTML
+        // documents).
+        if let Some(parent_element) = parent_element {
+            // If the parent isn't styled, then it either isn't part of the flat tree or will
+            // be styled later, ensuring the layout of the dirtied node as well.
+            if !parent_element.is_styled() {
+                return;
             }
-            return;
-        };
-
-        // If the parent isn't styled, then it either isn't part of the flat tree or will
-        // be styled later, ensuring the layout of the dirtied node as well.
-        if !parent_element.is_styled() {
-            return;
-        }
-        // If the parent has `display: none`, the change that caused the node to be dirty
-        // will not affect style or layout.
-        if parent_element.is_display_none() {
-            return;
+            // If the parent has `display: none`, the change that caused the node to be dirty
+            // will not affect style or layout.
+            if parent_element.is_display_none() {
+                return;
+            }
         }
 
         let Some(old_dirty_root) = self.dirty_root.get() else {
-            // If there is no dirty root, then this node (or its parent if it is not an
-            // element) is the new dirty root and we have minimal work to do.
-            let new_dirty_root = match node.downcast::<Element>() {
-                Some(element) => element,
-                None => &*parent_element,
-            };
-
-            new_dirty_root
-                .upcast::<Node>()
-                .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
-            self.set_dirty_root(Some(new_dirty_root));
+            node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            self.set_dirty_root(Some(element));
             return;
         };
 
         let old_dirty_root_node = old_dirty_root.upcast::<Node>();
-        let start_element = node.downcast::<Element>().unwrap_or(&*parent_element);
-        for ancestor in start_element
-            .upcast::<Node>()
-            .inclusive_ancestors_in_flat_tree()
-        {
+        for ancestor in element.upcast::<Node>().inclusive_ancestors_in_flat_tree() {
             // Never mark the Document node as having dirty descendants. It's never the dirty root.
             if !ancestor.is::<Element>() {
                 break;
@@ -1141,7 +1128,7 @@ impl Document {
         // not the document element. Needs some layout changes to make
         // that workable.
         if let Some(root) = self.get_document_element_unrooted(no_gc) &&
-            root.upcast::<Node>().has_dirty_descendants()
+            root.has_dirty_descendants()
         {
             condition.insert(RestyleReason::DOMChanged);
         }
@@ -1212,12 +1199,14 @@ impl Document {
     }
 
     pub(crate) fn content_and_heritage_changed(&self, no_gc: &NoGC, node: &Node) {
-        if node.is_connected() {
-            node.note_dirty_descendants(no_gc);
+        if node.is::<Document>() {
+            self.document_element_changed();
         }
 
-        // FIXME(emilio): This is very inefficient, ideally the flag above would
-        // be enough and incremental layout could figure out from there.
+        // TODO: A change to the children of a node only affects style when dealing with
+        // selectors like `:has()`, so the application of this restyle should be more
+        // targeted like in Gecko.
+        // See https://searchfox.org/firefox-main/rev/7d438b99e58d16388e4327f2460d14ad4c8be075/layout/style/RestyleManager.cpp#245.
         node.dirty(no_gc, NodeDamage::ContentOrHeritage);
     }
 
@@ -4636,12 +4625,12 @@ impl Document {
         self.pending_restyles
             .borrow_mut()
             .drain()
-            .filter_map(|(elem, restyle)| {
-                let node = elem.upcast::<Node>();
+            .filter_map(|(element, restyle)| {
+                let node = element.upcast::<Node>();
                 if !node.get_flag(NodeFlags::IS_CONNECTED) {
                     return None;
                 }
-                node.note_dirty_descendants(no_gc);
+                element.note_dirty_descendants(no_gc);
                 Some((node.to_trusted_node_address(), restyle.0))
             })
             .collect()
