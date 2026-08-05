@@ -58,6 +58,45 @@ pub struct AxesScrollSensitivity {
     pub y: ScrollType,
 }
 
+/// A simplified representation of the CSS `touch-action` property, used by the
+/// compositor to decide how a touch gesture may scroll a given node.
+///
+///  NOTE: Directional variants (`pan-left`/`pan-right`/...) are not supported in Stylo at all.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum TouchAction {
+    /// `touch-action: auto` (and `manipulation`, `pan-x pan-y`). The compositor
+    /// applies the scroll-chaining axis lock: lock to the dominant axis only
+    /// when the hit node cannot scroll that axis.
+    Auto,
+    /// `touch-action: pan-x`. The vertical axis is excluded from input-event
+    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
+    PanX,
+    /// `touch-action: pan-y`. The horizontal axis is excluded from input-event
+    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
+    PanY,
+    /// `touch-action: none` (and `pinch-zoom` alone). No single-finger direct
+    /// manipulation: do not scroll.
+    None,
+}
+
+impl From<style::values::specified::TouchAction> for TouchAction {
+    fn from(stylo: style::values::specified::TouchAction) -> Self {
+        use style::values::specified::TouchAction as T;
+        if stylo.contains(T::NONE) {
+            return TouchAction::None;
+        }
+        if stylo.contains(T::AUTO) || stylo.contains(T::MANIPULATION) {
+            return TouchAction::Auto;
+        }
+        match (stylo.contains(T::PAN_X), stylo.contains(T::PAN_Y)) {
+            (true, true) => TouchAction::Auto,
+            (true, false) => TouchAction::PanX,
+            (false, true) => TouchAction::PanY,
+            (false, false) => TouchAction::None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum SpatialTreeNodeInfo {
     ReferenceFrame(ReferenceFrameNodeInfo),
@@ -189,6 +228,12 @@ pub struct ScrollableNodeInfo {
 
     /// Whether this `ScrollableNode` is sensitive to input events.
     pub scroll_sensitivity: AxesScrollSensitivity,
+
+    /// The effective `touch-action` value for this node. The sensitivity above
+    /// is already restricted accordingly (e.g. `pan-x` strips `InputEvents`
+    /// from the y axis), so this field is only consulted to decide the axis
+    /// lock policy at pan-start.
+    pub touch_action: TouchAction,
 
     /// The current offset of this scroll node.
     pub offset: LayoutVector2D,
@@ -511,6 +556,26 @@ impl ScrollTree {
                 },
                 _ => None,
             })
+    }
+
+    /// Look up the [`TouchAction`] and the structurally scrollable axes
+    /// for the scroll node with the given [`ExternalScrollId`].
+    /// Used by the compositor at pan-start to decide the axis-lock policy.
+    pub fn touch_action_and_scrollable_axes_for(
+        &self,
+        external_id: ExternalScrollId,
+    ) -> Option<(TouchAction, bool, bool)> {
+        let node_id = self.node_with_external_scroll_node_id(external_id)?;
+        let info = match &self.get_node(node_id).info {
+            SpatialTreeNodeInfo::Scroll(info) => info,
+            _ => return None,
+        };
+        let scrollable_size = info.scrollable_size();
+        Some((
+            info.touch_action,
+            scrollable_size.width > 0.,
+            scrollable_size.height > 0.,
+        ))
     }
 
     /// Scroll the scroll node with the given [`ExternalScrollId`] on this scroll tree. If
@@ -892,6 +957,7 @@ impl PaintDisplayListInfo {
                     viewport_details.layout_size(),
                 ),
                 scroll_sensitivity: viewport_scroll_sensitivity,
+                touch_action: TouchAction::Auto,
                 offset: LayoutVector2D::zero(),
                 offset_changed: Cell::new(false),
             }),
