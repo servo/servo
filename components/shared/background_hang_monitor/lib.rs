@@ -55,21 +55,6 @@ pub enum HangAnnotation {
 
 /// Hang-alerts are sent by the monitor to the constellation.
 #[derive(Deserialize, Serialize)]
-pub enum HangMonitorAlert {
-    /// A component hang has been detected.
-    Hang(HangAlert),
-}
-
-impl fmt::Debug for HangMonitorAlert {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            HangMonitorAlert::Hang(..) => write!(fmt, "Hang"),
-        }
-    }
-}
-
-/// Hang-alerts are sent by the monitor to the constellation.
-#[derive(Deserialize, Serialize)]
 pub enum HangAlert {
     /// Report a transient hang.
     Transient(MonitoredComponentId, HangAnnotation),

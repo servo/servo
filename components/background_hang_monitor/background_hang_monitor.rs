@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorControlMsg,
     BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
-    HangMonitorAlert, MonitoredComponentId,
+    MonitoredComponentId,
 };
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
 use log::{error, warn};
@@ -173,7 +173,7 @@ struct MonitoredComponent {
 struct BackgroundHangMonitorWorker {
     component_names: FxHashMap<MonitoredComponentId, String>,
     monitored_components: FxHashMap<MonitoredComponentId, MonitoredComponent>,
-    constellation_chan: GenericSender<HangMonitorAlert>,
+    constellation_chan: GenericSender<HangAlert>,
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
     control_port: Option<RoutedReceiver<BackgroundHangMonitorControlMsg>>,
     monitoring_enabled: bool,
@@ -185,7 +185,7 @@ type MonitoredComponentReceiver = Receiver<(MonitoredComponentId, MonitoredCompo
 
 impl BackgroundHangMonitorWorker {
     fn new(
-        constellation_chan: GenericSender<HangMonitorAlert>,
+        constellation_chan: GenericSender<HangAlert>,
         control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         port: MonitoredComponentReceiver,
         monitoring_enabled: bool,
@@ -386,13 +386,11 @@ impl BackgroundHangMonitorWorker {
                     Ok(native_stack) => Some(native_stack.to_hangprofile()),
                     Err(()) => None,
                 };
-                let _ = self
-                    .constellation_chan
-                    .send(HangMonitorAlert::Hang(HangAlert::Permanent(
-                        component_id.clone(),
-                        last_annotation,
-                        profile,
-                    )));
+                let _ = self.constellation_chan.send(HangAlert::Permanent(
+                    component_id.clone(),
+                    last_annotation,
+                    profile,
+                ));
                 monitored.sent_permanent_alert = true;
                 continue;
             }
@@ -402,10 +400,7 @@ impl BackgroundHangMonitorWorker {
                 }
                 let _ = self
                     .constellation_chan
-                    .send(HangMonitorAlert::Hang(HangAlert::Transient(
-                        component_id.clone(),
-                        last_annotation,
-                    )));
+                    .send(HangAlert::Transient(component_id.clone(), last_annotation));
                 monitored.sent_transient_alert = true;
             }
         }
