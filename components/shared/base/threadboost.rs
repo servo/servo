@@ -170,9 +170,8 @@ mod ohos {
 ///   if spawned after this call, so placement can be important.
 #[allow(unsafe_code)]
 pub fn mark_thread_as_critical() {
-    if !pref!(perf_thread_boost_enabled) {
-        return;
+    if pref!(perf_thread_boost_enabled) {
+        #[cfg(target_env = "ohos")]
+        ohos::mark_thread_as_critical()
     }
-    #[cfg(target_env = "ohos")]
-    ohos::mark_thread_as_critical()
 }
