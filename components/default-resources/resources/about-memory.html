@@ -39,19 +39,17 @@
         let result = document.createDocumentFragment();
 
         if (node.container) {
-          const children = Object.entries(node).filter((item) => {
-            return !["total", "size", "container"].includes(item[0]);
-          });
           let details = document.createElement("details");
           let summary = document.createElement("summary");
-          const displayName =
-            name === "canvas" ? `canvases(${children.length})` : name;
-          summary.textContent = `${formattedSize(node.total)} -- ${displayName}`;
+          summary.textContent = `${formattedSize(node.total)} -- ${name}`;
           details.append(summary);
           result.append(details);
 
           // Add the children in descending order of total size.
-          children
+          let entries = Object.entries(node)
+            .filter((item) => {
+              return !["total", "size", "container"].includes(item[0]);
+            })
             .sort((a, b) => b[1].total - a[1].total)
             .forEach((item) =>
               details.append(convertNodeToDOM(item[1], item[0]))
