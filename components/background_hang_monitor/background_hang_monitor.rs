@@ -28,7 +28,7 @@ impl HangMonitorRegister {
     /// Start a new hang monitor worker, and return a handle to register components for monitoring,
     /// as well as a join handle on the worker thread.
     pub fn init(
-        constellation_chan: GenericSender<HangMonitorAlert>,
+        constellation_chan: GenericSender<HangAlert>,
         control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         monitoring_enabled: bool,
     ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
