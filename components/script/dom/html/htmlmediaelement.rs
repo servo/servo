@@ -2191,6 +2191,20 @@ impl HTMLMediaElement {
         let player_id = {
             let player_guard = player.lock().unwrap();
 
+            // We flag the media to enable download buffering when it's supposed to be big and
+            // that happens heuristically for videos with preload="auto" and audio that loops.
+            let is_video = matches!(
+                self.media_type_id(),
+                HTMLMediaElementTypeId::HTMLVideoElement
+            );
+            let should_enable_download_buffering =
+                (is_video || self.Loop()) && self.Preload() == "auto";
+            if let Err(error) =
+                player_guard.set_download_buffering_enabled(should_enable_download_buffering)
+            {
+                warn!("Could not set download buffering: {error:?}");
+            }
+
             if let Err(error) = player_guard.set_mute(self.muted.get()) {
                 warn!("Could not set mute state: {error:?}");
             }
