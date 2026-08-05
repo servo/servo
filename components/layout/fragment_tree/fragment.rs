@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -10,10 +11,12 @@ use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, ShapedTextSlice};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
+use servo_arc::Arc as ServoArc;
 use servo_base::id::PipelineId;
 use servo_base::print_tree::PrintTree;
 use servo_url::ServoUrl;
 use style::Zero;
+use style::properties::ComputedValues;
 use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
 
@@ -23,7 +26,8 @@ use super::{
 };
 use crate::SharedStyle;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
-use crate::flow::inline::line::TextRunOffsets;
+use crate::flow::inline::text_run::SharedTextRunData;
+use crate::fragment_tree::FragmentStatus;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
@@ -89,7 +93,8 @@ impl LayoutRootFragment {
 #[derive(MallocSizeOf)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
-    pub selected_style: SharedStyle,
+    #[conditional_malloc_size_of]
+    pub run_data: Arc<SharedTextRunData>,
     #[conditional_malloc_size_of]
     pub font_metrics: Arc<FontMetrics>,
     pub font_key: FontInstanceKey,
@@ -97,9 +102,9 @@ pub(crate) struct TextFragment {
     pub glyphs: Vec<Arc<ShapedTextSlice>>,
     /// Extra space to add for each justification opportunity.
     pub justification_adjustment: Au,
-    /// When necessary, this field store the [`TextRunOffsets`] for a particular
-    /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
-    pub offsets: Option<Box<TextRunOffsets>>,
+    /// The range of characters this [`TextFragment`] represents within the text of its
+    /// original DOM node (modified by text transformation).
+    pub character_range_in_dom_node: Range<usize>,
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
@@ -108,6 +113,7 @@ pub(crate) struct TextFragment {
 #[derive(MallocSizeOf)]
 pub(crate) struct ImageFragment {
     pub base: BaseFragment,
+    pub style: SharedStyle,
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
@@ -117,6 +123,7 @@ pub(crate) struct ImageFragment {
 #[derive(MallocSizeOf)]
 pub(crate) struct IFrameFragment {
     pub base: BaseFragment,
+    pub style: SharedStyle,
     pub pipeline_id: PipelineId,
 }
 
@@ -392,6 +399,28 @@ impl Fragment {
         }
     }
 
+    pub(crate) fn repair_style(&self, new_style: &ServoArc<ComputedValues>) {
+        if let Some(base) = self.base() {
+            base.set_status(FragmentStatus::StyleChanged);
+        }
+
+        let inner_box_fragment;
+        let shared_style = match self {
+            Fragment::LayoutRoot(fragment) => {
+                inner_box_fragment = fragment.inner_box_fragment();
+                &inner_box_fragment.style
+            },
+            Fragment::Box(fragment) => &fragment.style,
+            Fragment::Text(fragment) => &fragment.run_data.inline_styles.style,
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) => return,
+            Fragment::Positioning(fragment) => &fragment.style,
+            Fragment::Image(fragment) => &fragment.style,
+            Fragment::IFrame(fragment) => &fragment.style,
+            Fragment::Float(fragment) => &fragment.style,
+        };
+        *shared_style.borrow_mut() = new_style.clone();
+    }
+
     pub(crate) fn retrieve_box_fragment(&self) -> Option<RefOrAtomicRef<'_, Arc<BoxFragment>>> {
         match self {
             Fragment::LayoutRoot(layout_root_fragment) => Some(RefOrAtomicRef::AtomicRef(
@@ -406,6 +435,14 @@ impl Fragment {
 }
 
 impl TextFragment {
+    pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
+        self.run_data.inline_styles.style.borrow()
+    }
+
+    pub(crate) fn selected_style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
+        self.run_data.inline_styles.selected.borrow()
+    }
+
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!(
             "Text num_glyphs={} box={:?}",
@@ -460,10 +497,9 @@ impl TextFragment {
         point_in_fragment: Point2D<Au, CSSPixel>,
     ) -> Option<usize> {
         // If the click was far enough above the top of the fragment, then pick the first index.
-        let offsets = self.offsets.as_ref()?;
         let max_vertical_offset = self.base.rect().height().scale_by(0.25);
         if point_in_fragment.y < -max_vertical_offset {
-            return Some(offsets.character_range.start);
+            return Some(self.character_range_in_dom_node.start);
         }
 
         // If the click was below the fragment, return `None`, which will cause the
@@ -475,7 +511,7 @@ impl TextFragment {
             return None;
         }
 
-        let mut current_character = offsets.character_range.start;
+        let mut current_character = self.character_range_in_dom_node.start;
         let mut current_offset = Au::zero();
         for glyph_store in &self.glyphs {
             for glyph in glyph_store.glyphs() {

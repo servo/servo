@@ -78,6 +78,7 @@ pub mod text_transform;
 
 use std::cell::{Cell, OnceCell};
 use std::mem;
+use std::ops::Range;
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
 
@@ -123,7 +124,6 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
-use crate::flow::inline::line::TextRunOffsets;
 use crate::flow::inline::shaping_queue::ShapingQueue;
 use crate::flow::inline::text_run::{
     CaretPlaceholder, FontAndScriptInfo, TextRunItem, TextRunSegment,
@@ -1632,11 +1632,11 @@ impl InlineFormattingContextLayout<'_> {
         glyph_store: Arc<ShapedTextSlice>,
         text_run: &TextRun,
         info: &FontAndScriptInfo,
-        offsets: Option<TextRunOffsets>,
+        character_range: Range<usize>,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
-            SegmentContentFlags::from(text_run.inline_styles.style.borrow().get_inherited_text())
+            SegmentContentFlags::from(text_run.inline_styles().style.borrow().get_inherited_text())
         } else {
             SegmentContentFlags::empty()
         };
@@ -1683,10 +1683,10 @@ impl InlineFormattingContextLayout<'_> {
             current_inline_box_identifier,
             TextRunLineItem {
                 text: vec![glyph_store],
+                text_fragment_run_data: text_run.run_data.clone(),
                 base_fragment_info: text_run.base_fragment_info,
-                inline_styles: text_run.inline_styles.clone(),
                 info: info.clone(),
-                offsets: offsets.map(Box::new),
+                character_range_in_dom_node: character_range,
                 is_empty_for_text_cursor: false,
             },
         ));
@@ -1711,12 +1711,6 @@ impl InlineFormattingContextLayout<'_> {
             return;
         }
 
-        let offsets = TextRunOffsets {
-            shared_selection: caret_placeholder.shared_selection,
-            character_range: caret_placeholder.character_index..
-                caret_placeholder.character_index + 1,
-        };
-
         let inline_container_state = self.current_inline_container_state();
         let Some(font) = inline_container_state.default_font.clone() else {
             return;
@@ -1726,10 +1720,11 @@ impl InlineFormattingContextLayout<'_> {
             self.current_inline_box_identifier(),
             TextRunLineItem {
                 text: Default::default(),
+                text_fragment_run_data: caret_placeholder.run_data,
                 base_fragment_info: BaseFragmentInfo::anonymous(),
-                inline_styles: self.ifc.shared_inline_styles.clone(),
                 info: FontAndScriptInfo::simple_for_font(font),
-                offsets: Some(Box::new(offsets)),
+                character_range_in_dom_node: caret_placeholder.character_index..
+                    caret_placeholder.character_index + 1,
                 is_empty_for_text_cursor: true,
             },
         ));
@@ -2239,7 +2234,7 @@ impl InlineFormattingContext {
             },
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
-                let parent_style = text_run.inline_styles.style.borrow();
+                let parent_style = text_run.inline_styles().style.borrow();
                 text_run.items.iter().all(|item| match item {
                     TextRunItem::LineBreak { .. } => false,
                     TextRunItem::Tab { .. } => false,
@@ -2908,7 +2903,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             },
             InlineItem::TextRun(text_run) => {
                 let text_run = &*text_run.borrow();
-                let parent_style = text_run.inline_styles.style.borrow();
+                let parent_style = text_run.inline_styles().style.borrow();
                 for item in text_run.items.iter() {
                     match item {
                         TextRunItem::LineBreak { .. } => {

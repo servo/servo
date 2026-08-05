@@ -769,7 +769,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     fn visit_iframe(&mut self, state: &TraversalState, fragment: &Arc<IFrameFragment>) {
         fragment.base.visit_fragment(self);
 
-        let style = fragment.base.style();
+        let style = fragment.style.borrow();
         if style.get_inherited_box().visibility != Visibility::Visible {
             return;
         }
@@ -801,7 +801,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     ) {
         fragment.base.visit_fragment(self);
 
-        let style = fragment.base.style();
+        let style = fragment.style.borrow();
         if style.get_inherited_box().visibility != Visibility::Visible {
             return;
         }
@@ -863,7 +863,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     ) {
         fragment.base.visit_fragment(self);
 
-        let style = fragment.base.style();
+        let style = fragment.style();
         if style.get_inherited_box().visibility != Visibility::Visible {
             return;
         }
@@ -1033,7 +1033,7 @@ impl Fragment {
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
 
-        let include_whitespace = fragment.offsets.is_some() ||
+        let include_whitespace = fragment.run_data.selection.is_some() ||
             state
                 .text_decorations
                 .iter()
@@ -1050,7 +1050,7 @@ impl Fragment {
             return;
         }
 
-        let parent_style = fragment.base.style();
+        let parent_style = fragment.style();
         let color = parent_style.clone_color();
         let font_size = parent_style.clone_font_size();
         let font_metrics = &fragment.font_metrics;
@@ -1284,17 +1284,17 @@ impl Fragment {
         fragment_x_offset: Au,
         justification_adjustment: Au,
     ) {
-        let Some(offsets) = fragment.offsets.as_ref() else {
+        let Some(shared_selection) = &fragment.run_data.selection else {
             return;
         };
 
-        let shared_selection = offsets.shared_selection.borrow();
+        let shared_selection = shared_selection.borrow();
         if !shared_selection.enabled {
             return;
         }
 
-        if offsets.character_range.start > shared_selection.character_range.end ||
-            offsets.character_range.end < shared_selection.character_range.start
+        if fragment.character_range_in_dom_node.start > shared_selection.character_range.end ||
+            fragment.character_range_in_dom_node.end < shared_selection.character_range.start
         {
             return;
         }
@@ -1304,14 +1304,14 @@ impl Fragment {
         // This code ensure that it is only painted if the cursor is on the starting index of the empty
         // fragment.
         if fragment.is_empty_for_text_cursor &&
-            !offsets
-                .character_range
+            !fragment
+                .character_range_in_dom_node
                 .contains(&shared_selection.character_range.start)
         {
             return;
         }
 
-        let mut current_character_index = offsets.character_range.start;
+        let mut current_character_index = fragment.character_range_in_dom_node.start;
         let mut current_advance = Au::zero();
         let mut start_advance = None;
         let mut end_advance = None;
@@ -1350,7 +1350,7 @@ impl Fragment {
         let start_x = start_advance.unwrap_or(current_advance);
         let end_x = end_advance.unwrap_or(current_advance);
 
-        let parent_style = fragment.base.style();
+        let parent_style = fragment.style();
         if !shared_selection.character_range.is_empty() {
             let selection_rect = Rect::new(
                 containing_block_rect.origin +
@@ -1360,8 +1360,7 @@ impl Fragment {
             .to_webrender();
 
             if let Some(selection_color) = fragment
-                .selected_style
-                .borrow()
+                .selected_style()
                 .clone_background_color()
                 .as_absolute()
             {

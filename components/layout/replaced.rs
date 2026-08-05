@@ -506,7 +506,7 @@ impl ReplacedContents {
         let (object_fit_size, rect) = self.calculate_fragment_rect(style, size);
         let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
 
-        let base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
+        let base = BaseFragment::new(self.base_fragment_info, rect);
         match &self.kind {
             ReplacedContentKind::Image(image_info) => image_info
                 .image
@@ -533,6 +533,7 @@ impl ReplacedContents {
                 .map(|image_key| {
                     Fragment::Image(Arc::new(ImageFragment {
                         base,
+                        style: style.clone().into(),
                         clip,
                         image_key: Some(image_key),
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
@@ -544,6 +545,7 @@ impl ReplacedContents {
             ReplacedContentKind::Video(video_info) => {
                 vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
+                    style: style.clone().into(),
                     clip,
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
@@ -568,6 +570,7 @@ impl ReplacedContents {
                 );
                 vec![Fragment::IFrame(Arc::new(IFrameFragment {
                     base,
+                    style: style.clone().into(),
                     pipeline_id: iframe.pipeline_id,
                 }))]
             },
@@ -584,6 +587,7 @@ impl ReplacedContents {
 
                 vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
+                    style: style.clone().into(),
                     clip,
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
@@ -636,6 +640,7 @@ impl ReplacedContents {
                     .map(|image_key| {
                         Fragment::Image(Arc::new(ImageFragment {
                             base,
+                            style: style.clone().into(),
                             clip,
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,

@@ -34,7 +34,6 @@ use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
-use crate::flow::inline::line::TextRunOffsets;
 use crate::flow::inline::shaping_queue::ShapingQueueEntry;
 use crate::flow::inline::{BidiLevels, LineBlockSizes, LineItem, SegmentContentFlags};
 use crate::fragment_tree::BaseFragmentInfo;
@@ -267,14 +266,6 @@ impl TextRunSegment {
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
             let new_character_range_end = character_range_start + run.character_count();
-            let offsets = text_run
-                .selection
-                .clone()
-                .map(|shared_selection| TextRunOffsets {
-                    shared_selection,
-                    character_range: character_range_start - text_run.character_range.start..
-                        new_character_range_end - text_run.character_range.start,
-                });
 
             // Break before each unbreakable run in this TextRun, except the first unless the
             // linebreaker was set to break before the first run.
@@ -282,7 +273,14 @@ impl TextRunSegment {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            ifc.push_glyph_store_to_unbreakable_segment(run.clone(), text_run, &self.info, offsets);
+            let run_start = text_run.run_data.character_range_in_ifc_text.start;
+            ifc.push_glyph_store_to_unbreakable_segment(
+                run.clone(),
+                text_run,
+                &self.info,
+                character_range_start - run_start..new_character_range_end - run_start,
+            );
+
             character_range_start = new_character_range_end;
         }
     }
@@ -294,12 +292,12 @@ impl TextRunSegment {
 
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct CaretPlaceholder {
+    /// The [`TextFragmentRunData`] of the [`TextRun`] that contains this caret placeholder.
+    #[conditional_malloc_size_of]
+    pub run_data: Arc<SharedTextRunData>,
     /// Character index of the preserved newline in the IFC's transformed text, relative
     /// to the start of the DOM node.
     pub character_index: usize,
-    /// The [`SharedSelection`] of this caret placeholder.
-    #[conditional_malloc_size_of]
-    pub shared_selection: SharedSelection,
 }
 
 /// A single item in a [`TextRun`].
@@ -314,6 +312,24 @@ pub(crate) enum TextRunItem {
     TextSegment(Box<TextRunSegment>),
 }
 
+/// A data structure that holds per-[`TextRun`] data used on `TextFragment`s.
+/// This ensures that the data is not duplicated between fragments.
+#[derive(Debug, MallocSizeOf)]
+pub(crate) struct SharedTextRunData {
+    /// The [`crate::SharedStyle`] from this [`TextRun`]'s parent element. This is
+    /// shared so that incremental layout can simply update the parent element and
+    /// this [`TextRun`] will be updated automatically.
+    pub inline_styles: SharedInlineStyles,
+    /// The range of characters in this text in `InlineFormattingContext::text_content`
+    /// of the `InlineFormattingContext` that owns this [`TextRun`]. These are counting
+    /// `char`s, *not* UTF-8 offsets.
+    pub character_range_in_ifc_text: Range<usize>,
+    /// The selected text in this [`TextRun`]. This may either be document selection or
+    /// form control selection.
+    #[conditional_malloc_size_of]
+    pub selection: Option<SharedSelection>,
+}
+
 /// A single [`TextRun`] for the box tree. These are all descendants of
 /// [`super::InlineBox`] or the root of the [`super::InlineFormattingContext`].  During
 /// box tree construction, text is split into [`TextRun`]s based on their font, script,
@@ -326,28 +342,18 @@ pub(crate) struct TextRun {
     /// original text node in the DOM for the text.
     pub base_fragment_info: BaseFragmentInfo,
 
+    /// Data to be used by all [`TextFragment`]s spawned by this [`TextRun`] to avoid
+    /// having to clone the data into each fragment.
+    #[conditional_malloc_size_of]
+    pub run_data: Arc<SharedTextRunData>,
+
     /// A weak reference to the parent of this layout box. This becomes valid as soon
     /// as the *parent* of this box is added to the tree.
     pub parent_box: Option<WeakLayoutBox>,
 
-    /// The [`crate::SharedStyle`] from this [`TextRun`]s parent element. This is
-    /// shared so that incremental layout can simply update the parent element and
-    /// this [`TextRun`] will be updated automatically.
-    pub inline_styles: SharedInlineStyles,
-
     /// The range of text in [`super::InlineFormattingContext::text_content`] of the
     /// [`super::InlineFormattingContext`] that owns this [`TextRun`]. These are UTF-8 offsets.
     pub text_range: Range<usize>,
-
-    /// The range of characters in this text in [`super::InlineFormattingContext::text_content`]
-    /// of the [`super::InlineFormattingContext`] that owns this [`TextRun`].
-    /// These are counting `char`s, *not* UTF-8 offsets.
-    pub character_range: Range<usize>,
-
-    /// The selected text in this `TextRun`. This may either be document selection or form control
-    /// selection.
-    #[conditional_malloc_size_of]
-    pub selection: Option<SharedSelection>,
 
     /// The [`TextRunItem`]s of this text run. This is produced by segmenting the incoming text
     /// by things such as font and script as well as separating out hard line breaks.
@@ -370,13 +376,20 @@ impl TextRun {
             .unwrap_or_default();
         Self {
             base_fragment_info,
+            run_data: SharedTextRunData {
+                inline_styles,
+                character_range_in_ifc_text: character_range,
+                selection,
+            }
+            .into(),
             parent_box: None,
-            inline_styles,
             text_range,
-            character_range,
-            selection,
             items,
         }
+    }
+
+    pub(super) fn inline_styles(&self) -> &SharedInlineStyles {
+        &self.run_data.inline_styles
     }
 
     pub(super) fn segment(
@@ -386,7 +399,7 @@ impl TextRun {
         layout_context: &LayoutContext,
         bidi_levels: &BidiLevels,
     ) -> SmallVec<[ShapingQueueEntry; 1]> {
-        let parent_style = self.inline_styles.style.borrow().clone();
+        let parent_style = self.inline_styles().style.borrow().clone();
         let items = self.segment_text_by_font(
             layout_context,
             formatting_context_text,
@@ -477,21 +490,22 @@ impl TextRun {
         let mut next_byte_index = self.text_range.start;
         for (relative_character_index, (character, next_character)) in char_iterator.enumerate() {
             // The current character index within the entire inline formatting context's text.
-            let current_character_index = self.character_range.start + relative_character_index;
+            let current_character_index =
+                self.run_data.character_range_in_ifc_text.start + relative_character_index;
 
             let current_byte_index = next_byte_index;
             next_byte_index += character.len_utf8();
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                results.push(TextRunItem::LineBreak(self.selection.clone().map(
-                    |shared_selection| CaretPlaceholder {
+                results.push(TextRunItem::LineBreak(
+                    self.run_data.selection.is_some().then(|| CaretPlaceholder {
+                        run_data: self.run_data.clone(),
                         // The placeholder that is placed after a newline is for the index after that newline.
                         // The newline itself is at the end of the previous line.
                         character_index: relative_character_index + 1,
-                        shared_selection,
-                    },
-                )));
+                    }),
+                ));
                 continue;
             }
 
@@ -610,7 +624,7 @@ impl TextRun {
         bidi_level: Level,
     ) {
         let advance = ifc_layout.ifc.next_tab_stop_after_inline_advance(
-            &self.inline_styles.style.borrow(),
+            &self.inline_styles().style.borrow(),
             ifc_layout.potential_line_size().inline,
         );
         if advance.is_zero() {
