@@ -223,8 +223,7 @@ impl HTMLVideoElement {
 
         // Step 2. If the poster attribute's value is the empty string or
         // if the attribute is absent, then there is no poster frame; return.
-        let mut poster_url = self.poster_url();
-        *poster_url = None;
+        *self.poster_url.safe_borrow_mut(cx.no_gc()) = None;
         let Some(url) = poster_attribute.filter(|poster_attribute| !poster_attribute.is_empty())
         else {
             self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
@@ -236,24 +235,22 @@ impl HTMLVideoElement {
         // document.
         // Step 4. If url is failure, then return. There is no poster frame.
         let global = self.owner_global();
-        *poster_url = match self
+        let Ok(poster_url) = self
             .owner_document()
             .encoding_parse_a_url(url)
             .map(|url| ensure_blob_referenced_by_url_is_kept_alive(&global, url))
-        {
-            Ok(url) => Some(url),
-            Err(_) => {
-                self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
-                return;
-            },
+        else {
+            self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
+            return;
         };
+        *self.poster_url.safe_borrow_mut(cx.no_gc()) = Some(poster_url.clone());
 
         // We use the image cache for poster frames so we save as much
         // network activity as possible.
         let window = self.owner_window();
         let image_cache = window.image_cache();
         let cache_result = image_cache.get_cached_image_status(
-            poster_url.as_ref().unwrap().url(),
+            poster_url.url(),
             window.origin().immutable().clone(),
             None,
         );
@@ -269,7 +266,7 @@ impl HTMLVideoElement {
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) => id,
             ImageCacheResult::ReadyForRequest(id) => {
-                self.do_fetch_poster_frame(poster_url.as_ref().unwrap().clone(), id, cx);
+                self.do_fetch_poster_frame(poster_url, id, cx);
                 id
             },
             ImageCacheResult::FailedToLoadOrDecode => {
@@ -625,7 +622,11 @@ impl LayoutDom<'_, HTMLVideoElement> {
             current_frame,
             metadata,
             poster_url: unsafe {
-                Some(video.poster_url.borrow_for_layout().clone().unwrap().url())
+                video
+                    .poster_url
+                    .borrow_for_layout()
+                    .clone()
+                    .map(|url| url.url())
             },
         }
     }
