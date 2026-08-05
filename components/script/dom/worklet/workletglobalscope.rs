@@ -63,7 +63,7 @@ pub(crate) struct WorkletGlobalScope {
     #[conditional_malloc_size_of]
     task_manager: Rc<TaskManager>,
 
-    // The "microtask queue" for this WorkletGlobalScope's event loop.
+    /// The "microtask queue" for this WorkletGlobalScope's event loop.
     #[conditional_malloc_size_of]
     microtask_queue: Rc<MicrotaskQueue>,
 

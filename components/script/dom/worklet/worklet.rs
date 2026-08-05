@@ -156,12 +156,21 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         debug!("Adding Worklet module {}.", module_url_record);
 
         // Step 5. Let workletInstance be this.
+
         // Step 6. Run the following steps in parallel:
+
         // Step 6.1. If workletInstance's global scopes is empty:
-        let global_scope = self.window.as_global_scope();
+
+        // Step 6.1.1. Create a worklet global scope given workletInstance.
 
         // Step 6.1.2. Optionally, create additional global scope instances given workletInstance, depending on the specific worklet in question and its specification.
+
         // Step 6.1.3. Wait for all steps of the creation process(es) — including those taking place within the worklet agents — to complete, before moving on.
+
+        // NOTE: Step 6 is implemented by WorkletThread's run method.
+        // Step 6.1, Step 6.1.1, and Step 6.1.3 are implemented in the `get_worklet_global_scope` method.
+
+        let global_scope = self.window.as_global_scope();
 
         // Step 6.2. Let pendingTasks be workletInstance's global scopes's size.
         let pending_tasks_struct = PendingTasksStruct::new();
