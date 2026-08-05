@@ -7,19 +7,15 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
-use fonts::{
-    ByteIndex, FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions,
-    TextByteRange,
-};
+use fonts::{FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions};
 use icu_locid::subtags::Language;
 use icu_properties::{self, LineBreak};
-use layout_api::ScriptSelection;
+use layout_api::SharedSelection;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{Utf32CodeUnits, is_bidi_control};
+use servo_base::text::is_bidi_control;
 use smallvec::SmallVec;
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
@@ -271,25 +267,13 @@ impl TextRunSegment {
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
             let new_character_range_end = character_range_start + run.character_count();
-            let offsets = ifc
-                .ifc
-                .shared_selection
+            let offsets = text_run
+                .selection
                 .clone()
-                .or_else(|| {
-                    if text_run.document_selection.is_empty() {
-                        None
-                    } else {
-                        Some(Arc::new(AtomicRefCell::new(ScriptSelection {
-                            range: TextByteRange::new(ByteIndex::zero(), ByteIndex::zero()),
-                            character_range: text_run.document_selection.start.0..
-                                text_run.document_selection.end.0,
-                            enabled: true,
-                        })))
-                    }
-                })
                 .map(|shared_selection| TextRunOffsets {
                     shared_selection,
-                    character_range: character_range_start..new_character_range_end,
+                    character_range: character_range_start - text_run.character_range.start..
+                        new_character_range_end - text_run.character_range.start,
                 });
 
             // Break before each unbreakable run in this TextRun, except the first unless the
@@ -308,11 +292,21 @@ impl TextRunSegment {
     }
 }
 
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct CaretPlaceholder {
+    /// Character index of the preserved newline in the IFC's transformed text, relative
+    /// to the start of the DOM node.
+    pub character_index: usize,
+    /// The [`SharedSelection`] of this caret placeholder.
+    #[conditional_malloc_size_of]
+    pub shared_selection: SharedSelection,
+}
+
 /// A single item in a [`TextRun`].
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum TextRunItem {
     /// A hard line break i.e. a "\n" as other types line breaks are normalized to "\n".
-    LineBreak { character_index: usize },
+    LineBreak(Option<CaretPlaceholder>),
     /// A preserved tab character that should advance the line to a tab stop.
     Tab { bidi_level: Level },
     /// Any other text for which a font can be matched. We store a `Box` here as [`TextRunSegment`]
@@ -350,8 +344,10 @@ pub(crate) struct TextRun {
     /// These are counting `char`s, *not* UTF-8 offsets.
     pub character_range: Range<usize>,
 
-    /// The range of `char` characters in this `TextRun` that overlap the Document’s selection
-    pub document_selection: Range<Utf32CodeUnits>,
+    /// The selected text in this `TextRun`. This may either be document selection or form control
+    /// selection.
+    #[conditional_malloc_size_of]
+    pub selection: Option<SharedSelection>,
 
     /// The [`TextRunItem`]s of this text run. This is produced by segmenting the incoming text
     /// by things such as font and script as well as separating out hard line breaks.
@@ -365,7 +361,7 @@ impl TextRun {
         inline_styles: SharedInlineStyles,
         text_range: Range<usize>,
         character_range: Range<usize>,
-        document_selection: Range<Utf32CodeUnits>,
+        selection: Option<SharedSelection>,
         old_text_run: Option<ArcRefCell<TextRun>>,
     ) -> Self {
         // If there was a previous box tree layout of this text run, try to preserve the old shaped text.
@@ -378,7 +374,7 @@ impl TextRun {
             inline_styles,
             text_range,
             character_range,
-            document_selection,
+            selection,
             items,
         }
     }
@@ -488,9 +484,14 @@ impl TextRun {
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                results.push(TextRunItem::LineBreak {
-                    character_index: current_character_index,
-                });
+                results.push(TextRunItem::LineBreak(self.selection.clone().map(
+                    |shared_selection| CaretPlaceholder {
+                        // The placeholder that is placed after a newline is for the index after that newline.
+                        // The newline itself is at the end of the previous line.
+                        character_index: relative_character_index + 1,
+                        shared_selection,
+                    },
+                )));
                 continue;
             }
 
@@ -591,8 +592,8 @@ impl TextRun {
                 // If this whitespace forces a line break, queue up a hard line break the next time we
                 // see any content. We don't line break immediately, because we'd like to finish processing
                 // any ongoing inline boxes before ending the line.
-                TextRunItem::LineBreak { character_index } => {
-                    ifc.defer_forced_line_break_at_character_offset(*character_index);
+                TextRunItem::LineBreak(caret_placeholder) => {
+                    ifc.defer_forced_line_break_at_character_offset(caret_placeholder);
                 },
                 TextRunItem::Tab { bidi_level } => self.process_preserved_tab(ifc, *bidi_level),
                 TextRunItem::TextSegment(segment) => {

@@ -256,8 +256,8 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.document_selection_in_text_node()
     }
 
-    fn selection(&self) -> Option<SharedSelection> {
-        self.node.selection()
+    fn form_control_selection_in_text_node(&self) -> Option<SharedSelection> {
+        self.node.form_control_selection_in_text_node()
     }
 
     fn image_url(&self) -> Option<ServoUrl> {

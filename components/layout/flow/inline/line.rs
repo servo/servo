@@ -969,8 +969,8 @@ pub(crate) struct TextRunOffsets {
     /// The selection range of the containing inline formatting context.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
     pub shared_selection: SharedSelection,
-    /// The range of characters this [`TextRun`] represents within the entire text of its
-    /// inline formatting context.
+    /// The range of characters this [`TextRun`] represents within the text of its
+    /// original DOM node (modified by text transformation).
     pub character_range: Range<usize>,
 }
 

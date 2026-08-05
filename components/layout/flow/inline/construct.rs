@@ -5,9 +5,12 @@
 use std::borrow::Cow;
 use std::cell::LazyCell;
 use std::ops::Range;
+use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
+use fonts::TextByteRange;
 use icu_properties::BidiClass;
-use layout_api::{LayoutNode, SharedSelection};
+use layout_api::{LayoutNode, ScriptSelection};
 use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -52,10 +55,6 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// used to properly set the text range of new [`InlineItem::TextRun`]s. Note that this is
     /// different from the UTF-8 code point offset.
     current_character_offset: usize,
-
-    /// If the [`InlineFormattingContext`] that we are building has a selection shared with its
-    /// originating node in the DOM, this will not be `None`.
-    pub shared_selection: Option<SharedSelection>,
 
     /// Whether the last processed node ended with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
@@ -136,7 +135,6 @@ impl InlineFormattingContextBuilder {
             shared_inline_styles_stack: vec![SharedInlineStyles::from_info_and_context(
                 info, context,
             )],
-            shared_selection: info.node.selection(),
             has_right_to_left_content,
             ..Default::default()
         }
@@ -152,8 +150,7 @@ impl InlineFormattingContextBuilder {
 
         let new_characters = Utf32CodeUnits::length_of(string_to_push);
         self.current_character_offset += new_characters.0;
-        self.offset_map
-            .push_range(Utf32CodeUnits(0), new_characters);
+        self.offset_map.push_range(new_characters, new_characters);
     }
 
     fn shared_inline_styles(&self) -> SharedInlineStyles {
@@ -406,9 +403,11 @@ impl InlineFormattingContextBuilder {
         info: &NodeAndStyleInfo<'dom>,
         document_selection: Option<RangeAny<Utf32CodeUnits>>,
     ) {
+        let original_size_before = self.offset_map.total_original_size();
+        let final_size_before = self.offset_map.total_final_size();
+
         let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
-        let original_size_before = self.offset_map.total_original_size();
         let mut character_count = 0;
         let mut new_text = String::with_capacity(text.len());
         for iteration in TextTransformationIterator::new(
@@ -451,18 +450,26 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
-        let document_selection = document_selection.map(|document_selection| {
-            let start = document_selection
-                .start
-                .map(|offset| self.offset_map.map(offset))
-                // Range unbounded at the start: the concrete start is offset zero
-                .unwrap_or(Utf32CodeUnits(0));
-            let end = document_selection
-                .end
-                .map(|offset| self.offset_map.map(offset))
-                // Range unbounded at the end: the concrete end is the full length
-                .unwrap_or(Utf32CodeUnits(character_count));
-            original_size_before + start..original_size_before + end
+        let selection = info.node.form_control_selection_in_text_node().or_else(|| {
+            let mapped_range = document_selection?.map(|offset| {
+                self.offset_map.map(original_size_before + offset) - final_size_before
+            });
+
+            // Range unbounded at the start: the concrete start is offset zero.
+            let start = mapped_range.start.unwrap_or(Utf32CodeUnits(0));
+            // Range unbounded at the end: the concrete end is the full length.
+            let end = mapped_range.end.unwrap_or(Utf32CodeUnits(character_count));
+
+            if start == end {
+                return None;
+            }
+            debug_assert!(end > start);
+
+            Some(Arc::new(AtomicRefCell::new(ScriptSelection {
+                range: TextByteRange::default(),
+                character_range: start.0..end.0,
+                enabled: true,
+            })))
         });
 
         if let Some(last_character) = new_text.chars().next_back() {
@@ -487,7 +494,7 @@ impl InlineFormattingContextBuilder {
             current_inline_styles,
             new_utf8_range,
             new_character_range,
-            document_selection.unwrap_or_default(),
+            selection,
             box_slot
                 .as_ref()
                 .and_then(|box_slot| box_slot.take_layout_box_as_text_run()),

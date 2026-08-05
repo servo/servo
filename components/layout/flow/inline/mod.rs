@@ -91,7 +91,7 @@ use icu_locid::subtags::{Language, language};
 use icu_properties::{self, LineBreak as ICULineBreak};
 use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
-use layout_api::{LayoutNode, SharedSelection};
+use layout_api::LayoutNode;
 use line::{
     AbsolutelyPositionedLineItem, AtomicLineItem, FloatLineItem, LineItem, LineItemLayout,
     TextRunLineItem,
@@ -125,7 +125,9 @@ use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::inline::line::TextRunOffsets;
 use crate::flow::inline::shaping_queue::ShapingQueue;
-use crate::flow::inline::text_run::{FontAndScriptInfo, TextRunItem, TextRunSegment};
+use crate::flow::inline::text_run::{
+    CaretPlaceholder, FontAndScriptInfo, TextRunItem, TextRunSegment,
+};
 use crate::flow::{
     BlockLevelBox, CollapsibleWithParentStartMargin, FloatSide, PlacementState,
     compute_inline_content_sizes_for_block_level_boxes, layout_block_level_child,
@@ -183,11 +185,6 @@ pub(crate) struct InlineFormattingContext {
     /// Whether or not this is an [`InlineFormattingContext`] has right-to-left content, which
     /// will require reordering during layout.
     has_right_to_left_content: bool,
-
-    /// If this [`InlineFormattingContext`] has a selection shared with its originating
-    /// node in the DOM, this will not be `None`.
-    #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
-    shared_selection: Option<SharedSelection>,
 
     /// The cached multiplier for `tab-size: <number>`:
     /// <https://drafts.csswg.org/css-text/#tab-size-property>
@@ -481,15 +478,9 @@ struct LineUnderConstruction {
     /// Whether the current line is for a block-level box.
     for_block_level: bool,
 
-    /// The starting character offset of this line.
-    ///
-    /// This is used to generate empty `TextRunLineItem` to hold text carets on otherwise
-    /// empty lines.
-    ///
-    /// TODO: This is only guaranteed to be accurate for the first line or when the previous line
-    /// ended with a hard line break. Eventually this should be updated during content processing so
-    /// that text carets work outside of text inputs.
-    starting_character_offset: usize,
+    /// If this line is empty and contains a selection, this field will be used to create
+    /// an empty [`TextFragment`] for holding a text caret.
+    caret_placeholder: Option<CaretPlaceholder>,
 }
 
 impl LineUnderConstruction {
@@ -504,7 +495,7 @@ impl LineUnderConstruction {
             placement_among_floats: OnceCell::new(),
             line_items: Vec::new(),
             for_block_level: false,
-            starting_character_offset: 0,
+            caret_placeholder: None,
         }
     }
 
@@ -888,10 +879,12 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// placed on the second line, because we add those borders in
     /// [`InlineFormattingContextLayout::finish_inline_box()`].
     ///
-    /// If this field is `Some`, a hard line break should be processed before any new content. The
-    /// `usize` stores the character offset of the originating hard line break, which is used to
-    /// generate placeholders for carets on otherwise empty lines.
-    force_line_break_before_new_content: Option<usize>,
+    /// If this field is `true`, a hard line break should be processed before any new content.
+    force_line_break_before_new_content: bool,
+
+    /// When deferring a forced line break, this field stores a potential caret placeholder
+    /// used to create a [`TextFragment`] to hold a caret on an otherwise empty line.
+    caret_placeholder: Option<CaretPlaceholder>,
 
     /// When a `<br>` element has `clear`, this needs to be applied after the linebreak,
     /// which will be processed *after* the `<br>` element is processed. This member
@@ -1074,7 +1067,7 @@ impl InlineFormattingContextLayout<'_> {
             .line_items
             .push(LineItem::InlineEndBoxPaddingBorderMargin(
                 inline_box_state.identifier,
-            ))
+            ));
     }
 
     fn finish_last_line(&mut self) {
@@ -1575,7 +1568,10 @@ impl InlineFormattingContextLayout<'_> {
             available_line_space.inline
     }
 
-    fn defer_forced_line_break_at_character_offset(&mut self, line_break_offset: usize) {
+    fn defer_forced_line_break_at_character_offset(
+        &mut self,
+        caret_placeholder: &Option<CaretPlaceholder>,
+    ) {
         // If the current portion of the unbreakable segment does not fit on the current line
         // we need to put it on a new line *before* actually triggering the hard line break.
         if !self.unbreakable_segment_fits_on_line() {
@@ -1586,7 +1582,8 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         // Defer the actual line break until we've cleared all ending inline boxes.
-        self.force_line_break_before_new_content = Some(line_break_offset);
+        self.force_line_break_before_new_content = true;
+        self.caret_placeholder = caret_placeholder.clone();
 
         // In quirks mode, the line-height isn't automatically added to the line. If we consider a
         // forced line break a kind of preserved white space, quirks mode requires that we add the
@@ -1611,10 +1608,10 @@ impl InlineFormattingContextLayout<'_> {
     }
 
     fn possibly_flush_deferred_forced_line_break(&mut self) {
-        let Some(line_break_character_offset) = self.force_line_break_before_new_content.take()
-        else {
+        if !self.force_line_break_before_new_content {
             return;
-        };
+        }
+        self.force_line_break_before_new_content = false;
 
         self.commit_current_segment_to_line();
         self.process_line_break(
@@ -1622,7 +1619,7 @@ impl InlineFormattingContextLayout<'_> {
             false, /* for_block_level */
         );
 
-        self.current_line.starting_character_offset = line_break_character_offset + 1;
+        self.current_line.caret_placeholder = self.caret_placeholder.take();
     }
 
     fn push_line_item_to_unbreakable_segment(&mut self, line_item: LineItem) {
@@ -1698,13 +1695,8 @@ impl InlineFormattingContextLayout<'_> {
     /// If the current line is empty and this [`InlineFormattingContext`] has a selection, push an
     /// empty [`LineItem::TextRun`] so that text carets can be placed on otherwise empty lines.
     fn possibly_push_empty_text_run_to_line_for_text_caret(&mut self) {
-        let line_start_offset = self.current_line.starting_character_offset;
-        let Some(shared_selection) = self.ifc.shared_selection.clone() else {
+        let Some(caret_placeholder) = self.current_line.caret_placeholder.take() else {
             return;
-        };
-        let offsets = TextRunOffsets {
-            shared_selection,
-            character_range: line_start_offset..line_start_offset + 1,
         };
 
         // If the last content line item is a text item, then the placeholder for the text caret is not necessary.
@@ -1718,6 +1710,12 @@ impl InlineFormattingContextLayout<'_> {
         {
             return;
         }
+
+        let offsets = TextRunOffsets {
+            shared_selection: caret_placeholder.shared_selection,
+            character_range: caret_placeholder.character_index..
+                caret_placeholder.character_index + 1,
+        };
 
         let inline_container_state = self.current_inline_container_state();
         let Some(font) = inline_container_state.default_font.clone() else {
@@ -2035,7 +2033,6 @@ impl InlineFormattingContext {
             contains_floats: builder.contains_floats,
             is_single_line_text_input,
             has_right_to_left_content,
-            shared_selection: builder.shared_selection,
             tab_size_multiplier: Default::default(),
         }
     }
@@ -2110,7 +2107,8 @@ impl InlineFormattingContext {
             cloneable_inline_box_end_pbm_size: Au::zero(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
-            force_line_break_before_new_content: None,
+            force_line_break_before_new_content: false,
+            caret_placeholder: None,
             deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
             depends_on_block_constraints: false,
