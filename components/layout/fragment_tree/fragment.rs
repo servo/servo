@@ -500,7 +500,10 @@ impl TextFragment {
         // If the click was far enough above the top of the fragment, then pick the first index.
         let max_vertical_offset = self.base.rect().height().scale_by(0.25);
         if point_in_fragment.y < -max_vertical_offset {
-            return Some(self.character_range_in_dom_node.start);
+            return Some(
+                self.run_data
+                    .map_transformed_offset_to_dom_offset(self.character_range_in_dom_node.start),
+            );
         }
 
         // If the click was below the fragment, return `None`, which will cause the
@@ -528,7 +531,10 @@ impl TextFragment {
             }
         }
 
-        Some(current_character)
+        Some(
+            self.run_data
+                .map_transformed_offset_to_dom_offset(current_character),
+        )
     }
 }
 

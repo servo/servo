@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+
+<title>Clicking in the padding of a &lt;textara&gt; should move the edit point properly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="input-events.js"></script>
+
+<!-- The uppercase ß character is transformed into 'SS'. Clicking beyond that
+transformed character should move the cursor to the end of the line (and not
+to the end of the subsequent line). This shows that `text-transform` is taken
+into account when determining edit points via mouse clicks. -->
+<textarea id="target" style="height: 300px; width: 300px; text-transform: uppercase;">
+&#x00DF;
+</textarea>
+
+<script>
+promise_test(async test => {
+    let targetRect = getTextEntryContentRect(target);
+    await (new test_driver.Actions()
+        .pointerMove(targetRect.right - 10, targetRect.top + 10)
+        .pointerDown().pointerUp()
+        .send());
+    assert_equals(target.selectionStart, 1);
+    assert_equals(target.selectionEnd, 1);
+});
+</script>
