@@ -176,7 +176,6 @@ impl FontResolver for SvgFontResolver {
                 return Some(*font_id);
             }
         }
-        log::error!("FONT BACKUP CCALLED");
         let fallback_options =
             FallbackFontSelectionOptions::new(character, None, icu_locid::subtags::Language::UND);
         for family in fallback_font_families(fallback_options) {
