@@ -79,6 +79,10 @@ fn jpeg_image_bytes() -> Vec<u8> {
     include_bytes!("test.jpeg").to_vec()
 }
 
+fn cur_image_bytes() -> Vec<u8> {
+    include_bytes!("cursor.cur").to_vec()
+}
+
 fn svg_image_bytes() -> Vec<u8> {
     br#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
     <circle cx="50" cy="50" r="40" fill="red"/>
@@ -237,7 +241,7 @@ fn test_notify_pending_response_with_metadata_chunk() {
 #[test]
 fn test_notify_pending_response_complete() {
     let (cache, key_receiver) = create_test_image_cache();
-    let url = ServoUrl::parse("http://example.com/test.jpeg").unwrap();
+    let url = ServoUrl::parse("http://example.com/cursor.cur").unwrap();
     let origin = mock_origin();
 
     let id = match cache.get_cached_image_status(url.clone(), origin.clone(), None) {
@@ -250,10 +254,10 @@ fn test_notify_pending_response_complete() {
         FetchResponseMsg::ProcessResponse(create_request_id(), Ok(create_test_metadata(None))),
     );
 
-    let jpeg_bytes = jpeg_image_bytes();
+    let cur_bytes = cur_image_bytes();
     cache.notify_pending_response(
         id,
-        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(jpeg_bytes)),
+        FetchResponseMsg::ProcessResponseChunk(create_request_id(), DebugVec(cur_bytes)),
     );
 
     cache.notify_pending_response(
@@ -275,7 +279,11 @@ fn test_notify_pending_response_complete() {
 
     let image = cache.get_image(url, origin, None);
     assert!(image.is_some());
-    assert!(image.unwrap().as_raster_image().is_some());
+    let image = image.unwrap();
+    assert!(image.as_raster_image().is_some());
+    let image = image.as_raster_image().unwrap();
+    assert_eq!((*image).first_frame().width, 32);
+    assert_eq!((*image).first_frame().height, 32);
 }
 
 #[test]
@@ -310,7 +318,7 @@ fn test_notify_pending_response_network_error() {
 #[test]
 fn test_image_listener_on_complete_response() {
     let (cache, key_receiver) = create_test_image_cache();
-    let url = ServoUrl::parse("http://example.com/test.jpeg").unwrap();
+    let url = ServoUrl::parse("http://example.com/cursor.cur").unwrap();
     let origin = mock_origin();
 
     let id = match cache.get_cached_image_status(url.clone(), origin.clone(), None) {

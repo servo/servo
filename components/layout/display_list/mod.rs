@@ -751,7 +751,6 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
     fn visit_box(&mut self, state: &TraversalState, fragment: &BoxFragmentWithStyle<'_>) {
         fragment.base.visit_fragment(self);
-
         if let Some(mut inspector_highlight) = self.inspector_highlight.take() &&
             fragment.base.tag == Some(inspector_highlight.tag)
         {
@@ -1055,6 +1054,16 @@ impl Fragment {
         let font_size = parent_style.clone_font_size();
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.device_pixel_ratio.get();
+
+        // Resolve cursor images to trigger fetching during reflow. We will handle these images when
+        // processing hit test results
+        // TODO: Is there alternative way to trigger image resolving for the cursor?
+        let node = fragment.base.tag.map(|tag| tag.node);
+        for image in parent_style.get_inherited_ui().cursor.images.iter() {
+            let Ok(_) = builder.image_resolver.resolve_image(node, &image.image) else {
+                continue;
+            };
+        }
 
         let resolve_thickness = |thickness: &TextDecorationThickness| -> Au {
             let resolved = match thickness {
@@ -1545,6 +1554,22 @@ impl<'a> BuilderForBoxFragment<'a> {
             .contains(FragmentFlags::DO_NOT_PAINT)
         {
             return;
+        }
+
+        // Resolve cursor images to trigger fetching during reflow
+        // TODO: Is there alternative way to trigger image resolving for the cursor?
+        let node = self.fragment.base.tag.map(|tag| tag.node);
+        for image in self
+            .fragment
+            .style()
+            .get_inherited_ui()
+            .cursor
+            .images
+            .iter()
+        {
+            let Ok(_) = builder.image_resolver.resolve_image(node, &image.image) else {
+                continue;
+            };
         }
 
         self.build_background(builder, state);

@@ -190,7 +190,7 @@ pub enum ShutdownState {
 }
 
 /// Metadata for the cursor if it is a custom cursor image
-#[derive(Clone, Deserialize, PartialEq, Eq, Hash, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Hash, MallocSizeOf, Serialize)]
 pub struct CursorMetadata {
     pub url: Url,
     // Aligns with winit which takes u16 coordinates
