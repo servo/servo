@@ -59,7 +59,6 @@ use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
 use crate::script_module::fetch_a_module_script_graph;
 use crate::script_runtime::{IntroductionType, Runtime, ScriptThreadEventCategory};
-use crate::script_thread::ScriptThread;
 use crate::task_source::TaskSourceName;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
@@ -129,6 +128,28 @@ impl Worklet {
     pub(crate) fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
         self.global_type
     }
+
+    pub(crate) fn get_worklet_thread_pool(&self) -> &Rc<WorkletThreadPool> {
+        let global = self.window.global();
+
+        let init = WorkletGlobalScopeInit {
+            to_script_thread_sender: self.window.main_thread_script_chan().clone(),
+            resource_threads: global.resource_threads().clone(),
+            storage_threads: global.storage_threads().clone(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
+            devtools_chan: global.devtools_chan().cloned(),
+            script_to_constellation_sender: global.script_to_constellation_chan().sender,
+            to_embedder_sender: global.script_to_embedder_chan().clone(),
+            image_cache: global.image_cache(),
+            #[cfg(feature = "webgpu")]
+            gpu_id_hub: global.wgpu_id_hub(),
+        };
+
+        self.droppable_field
+            .thread_pool
+            .get_or_init(|| Rc::new(WorkletThreadPool::spawn(init)))
+    }
 }
 
 impl WorkletMethods<crate::DomTypeHolder> for Worklet {
@@ -172,9 +193,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
         // <https://html.spec.whatwg.org/multipage/#concept-worklet-added-modules-list>
 
-        self.droppable_field
-            .thread_pool
-            .get_or_init(|| ScriptThread::worklet_thread_pool(self.global().image_cache()))
+        self.get_worklet_thread_pool()
             .fetch_and_invoke_a_worklet_script(
                 self.window.pipeline_id(),
                 self.droppable_field.worklet_id,

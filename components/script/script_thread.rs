@@ -60,7 +60,7 @@ use js::rust::wrappers2::{JS_AddInterruptCallback, JS_GC, SetWindowProxyClass};
 use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
-use net_traits::image_cache::{ImageCache, ImageCacheFactory, ImageCacheResponseMessage};
+use net_traits::image_cache::{ImageCacheFactory, ImageCacheResponseMessage};
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::{
@@ -143,8 +143,6 @@ use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
-use crate::dom::worklet::WorkletThreadPool;
-use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
@@ -341,9 +339,6 @@ pub struct ScriptThread {
     #[no_trace]
     #[cfg(feature = "webxr")]
     webxr_registry: Option<webxr_api::Registry>,
-
-    /// The worklet thread pool
-    worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
@@ -775,39 +770,6 @@ impl ScriptThread {
         })
     }
 
-    /// The worklet will use the given `ImageCache`.
-    pub(crate) fn worklet_thread_pool(image_cache: Arc<dyn ImageCache>) -> Rc<WorkletThreadPool> {
-        with_optional_script_thread(|script_thread| {
-            let script_thread = script_thread.unwrap();
-            script_thread
-                .worklet_thread_pool
-                .borrow_mut()
-                .get_or_insert_with(|| {
-                    let init = WorkletGlobalScopeInit {
-                        to_script_thread_sender: script_thread.senders.self_sender.clone(),
-                        resource_threads: script_thread.resource_threads.clone(),
-                        storage_threads: script_thread.storage_threads.clone(),
-                        mem_profiler_chan: script_thread.senders.memory_profiler_sender.clone(),
-                        time_profiler_chan: script_thread.senders.time_profiler_sender.clone(),
-                        devtools_chan: script_thread.senders.devtools_server_sender.clone(),
-                        script_to_constellation_sender: script_thread
-                            .senders
-                            .pipeline_to_constellation_sender
-                            .clone(),
-                        to_embedder_sender: script_thread
-                            .senders
-                            .pipeline_to_embedder_sender
-                            .clone(),
-                        image_cache,
-                        #[cfg(feature = "webgpu")]
-                        gpu_id_hub: script_thread.gpu_id_hub.clone(),
-                    };
-                    Rc::new(WorkletThreadPool::spawn(init))
-                })
-                .clone()
-        })
-    }
-
     fn handle_register_paint_worklet(
         &self,
         pipeline_id: PipelineId,
@@ -1020,7 +982,6 @@ impl ScriptThread {
                     webgl_chan: state.webgl_chan,
                     #[cfg(feature = "webxr")]
                     webxr_registry: state.webxr_registry,
-                    worklet_thread_pool: Default::default(),
                     docs_with_no_blocking_loads: Default::default(),
                     custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                     paint_api: state.cross_process_paint_api,
