@@ -5,7 +5,6 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use js::realm::CurrentRealm;
 use script_webgpu::promise::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 use crate::dom::bindings::reflector::DomGlobal;
@@ -102,12 +101,6 @@ pub(crate) mod wgsllanguagefeatures {
 }
 
 impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
-    fn new_in_realm(
-        cx: &mut CurrentRealm,
-    ) -> Rc<<crate::DomTypeHolder as script_bindings::DomTypes>::Promise> {
-        Promise::new_in_realm(cx)
-    }
-
     fn callback_promise(
         self: &Rc<Self>,
         d: &GPUAdapter,
@@ -115,18 +108,10 @@ impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
         let task_manager = <GPUAdapter as DomGlobal>::global(d).task_manager();
         callback_promise(self, d, task_manager.dom_manipulation_task_source())
     }
-
-    fn reject_error(&self, cx: &mut js::context::JSContext, error: script_bindings::error::Error) {
-        Promise::reject_error(self, cx, error);
-    }
 }
 
 impl WebGPUGlobalTrait for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
-    }
-
-    fn global_pipeline_id(&self) -> servo_base::id::PipelineId {
-        self.pipeline_id()
     }
 }

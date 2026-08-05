@@ -14,6 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUAdapterMethods, GPUAdapterWrap, GPUDeviceDescriptor,
 };
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::{DomTypes, cformat};
@@ -207,8 +208,8 @@ where
             GPUSupportedFeatures = GPUSupportedFeatures<D>,
             GPUSupportedLimits = GPUSupportedLimits<D>,
         >,
-    D::Promise: WebGPUPromiseTrait<D>,
-    D::GlobalScope: WebGPUGlobalTrait,
+    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
+    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
 {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
@@ -257,7 +258,7 @@ where
         };
         let device_id = self.global().global_wgpu_id_hub().create_device_id();
         let queue_id = self.global().global_wgpu_id_hub().create_queue_id();
-        let pipeline_id = self.global().global_pipeline_id();
+        let pipeline_id = self.global().pipeline_id();
         if self
             .droppable
             .channel
