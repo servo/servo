@@ -146,9 +146,9 @@ impl VelloCPUDrawTarget {
     }
 }
 
-fn vello_worker_thread_count(size: &Size2D<u16>) -> u16 {
+fn worker_thread_count(size: &Size2D<u16>) -> u16 {
     // TODO: Somewhat arbitrary chosen, should be based on a benchmark,
-    // measuring were we start to benefit from multithreading
+    // measuring where we start to benefit from multithreading
     const SMALL_CANVAS_SIZE: u32 = 512 * 512;
     // For small sizes single-threaded is better.
     if u32::from(size.width) * u32::from(size.height) < SMALL_CANVAS_SIZE {
@@ -166,7 +166,7 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
     fn new(size: Size2D<u32>) -> Self {
         let size = size.cast();
         let settings = RenderSettings {
-            num_threads: vello_worker_thread_count(&size),
+            num_threads: worker_thread_count(&size),
             ..Default::default()
         };
         let ctx = vello_cpu::RenderContext::new_with(size.width, size.height, settings);
