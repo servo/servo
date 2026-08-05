@@ -11,7 +11,7 @@
 //! might have for apps to allow the OS to optimize thread performance.
 //!
 //! TODO(#46813): We provide a default implementation here, but the embedder
-//! should be able to customize this (e.g. if they care more about energery efficiency
+//! should be able to customize this (e.g. if they care more about energy efficiency
 //! then raw performance, for example in battery saving mode).
 //! TODO: For android we should look at the performance hint API in the NDK.
 //! TODO: For mobile linux, the ohos implementation could be shared, however other APIs
