@@ -398,9 +398,18 @@ impl DocumentFocusHandler {
             // Step 2.4: If blur event target is not null, fire a focus event named blur at
             // blur event target, with related blur target as the related target.
             if let Some(blur_event_target) = blur_event_target {
+                // <https://w3c.github.io/uievents/#focusout>
+                // "blur" must be fired before "focusout".
                 self.fire_focus_event(
                     cx,
                     FocusEventType::Blur,
+                    blur_event_target,
+                    related_blur_target,
+                );
+
+                self.fire_focus_event(
+                    cx,
+                    FocusEventType::FocusOut,
                     blur_event_target,
                     related_blur_target,
                 );
@@ -475,9 +484,18 @@ impl DocumentFocusHandler {
             // Step 4.4: If focus event target is not null, fire a focus event named focus at
             // focus event target, with related focus target as the related target.
             if let Some(focus_event_target) = focus_event_target {
+                // <https://w3c.github.io/uievents/#focusin>
+                // "focus" must be fired before "focusIn".
                 self.fire_focus_event(
                     cx,
                     FocusEventType::Focus,
+                    focus_event_target,
+                    related_focus_target,
+                );
+
+                self.fire_focus_event(
+                    cx,
+                    FocusEventType::FocusIn,
                     focus_event_target,
                     related_focus_target,
                 );
@@ -496,13 +514,20 @@ impl DocumentFocusHandler {
         let event_name = match focus_event_type {
             FocusEventType::Focus => "focus".into(),
             FocusEventType::Blur => "blur".into(),
+            FocusEventType::FocusIn => "focusin".into(),
+            FocusEventType::FocusOut => "focusout".into(),
+        };
+
+        let event_bubbles = match focus_event_type {
+            FocusEventType::Focus | FocusEventType::Blur => EventBubbles::DoesNotBubble,
+            FocusEventType::FocusIn | FocusEventType::FocusOut => EventBubbles::Bubbles,
         };
 
         let event = FocusEvent::new(
             cx,
             &self.window,
             event_name,
-            EventBubbles::DoesNotBubble,
+            event_bubbles,
             EventCancelable::NotCancelable,
             Some(&self.window),
             0i32,
@@ -510,6 +535,7 @@ impl DocumentFocusHandler {
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
+        event.set_composed(true);
         event.fire(cx, event_target);
     }
 
