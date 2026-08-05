@@ -1015,7 +1015,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     fn Performance(&self, cx: &mut JSContext) -> DomRoot<Performance> {
         self.performance.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            Performance::new(cx, global_scope, self.navigation_start)
+            Performance::new(cx, global_scope, self.navigation_start, Default::default())
         })
     }
 
