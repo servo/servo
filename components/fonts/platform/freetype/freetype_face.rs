@@ -2,17 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{CStr, c_long};
+use std::ffi::c_long;
+use std::fmt::Debug;
 use std::ptr;
 
 use app_units::Au;
+use fonts_traits::FontData;
 use freetype_sys::{
     FT_Done_Face, FT_Done_MM_Var, FT_F26Dot6, FT_FACE_FLAG_COLOR, FT_FACE_FLAG_FIXED_SIZES,
     FT_FACE_FLAG_SCALABLE, FT_Face, FT_FaceRec, FT_Fixed, FT_Get_MM_Var, FT_HAS_MULTIPLE_MASTERS,
     FT_Int32, FT_LOAD_COLOR, FT_LOAD_DEFAULT, FT_LOAD_TARGET_LIGHT, FT_Long, FT_MM_Var,
-    FT_New_Face, FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size,
-    FT_Set_Var_Design_Coordinates, FTErrorMethods,
+    FT_New_Memory_Face, FT_Pos, FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates,
+    FTErrorMethods,
 };
+use memmap2::Mmap;
+use servo_arc::Arc;
 use webrender_api::FontVariation;
 
 use crate::platform::freetype::library_handle::FreeTypeLibraryHandle;
@@ -21,23 +25,52 @@ use crate::platform::freetype::library_handle::FreeTypeLibraryHandle;
 #[derive(Debug)]
 pub(crate) struct FreeTypeFace {
     /// ## Safety Invariant
-    /// The pointer must have been returned from [FT_New_Face] or [FT_New_Memory_Face]
-    /// and must not be freed before `FreetypeFace::drop` is called.
+    /// The pointer must have been returned from [FT_New_Memory_Face]
+    /// backed by `_data`.
     face: ptr::NonNull<FT_FaceRec>,
+    _data: FontBackingStore,
+}
+
+pub(crate) enum FontBackingStore {
+    Web(FontData),
+    /// Memory-mapped file of a system font.
+    Local(Arc<Mmap>),
+}
+
+impl AsRef<[u8]> for FontBackingStore {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Self::Web(font_data) => font_data.as_ref(),
+            Self::Local(mmap) => mmap.as_ref(),
+        }
+    }
+}
+
+impl Debug for FontBackingStore {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("FontBackingStore")
+            .field("len", &self.as_ref().len())
+            .finish()
+    }
 }
 
 impl FreeTypeFace {
     pub(crate) fn new_from_memory(
         library: &FreeTypeLibraryHandle,
-        data: &[u8],
+        font_backing_store: FontBackingStore,
+        face_index: u32,
     ) -> Result<Self, &'static str> {
         let mut face = ptr::null_mut();
+        let data = font_backing_store.as_ref();
+        // SAFETY: By storing the font_backing_store in Self below, we ensure that the
+        // data referenced by the face created here is kept alive for the duration of
+        // this instance. Freetype will not mutate this memory.
         let result = unsafe {
             FT_New_Memory_Face(
                 library.freetype_library,
                 data.as_ptr(),
                 data.len() as FT_Long,
-                0,
+                face_index as FT_Long,
                 &mut face,
             )
         };
@@ -49,32 +82,10 @@ impl FreeTypeFace {
             return Err("Could not create FreeType face");
         };
 
-        Ok(Self { face })
-    }
-
-    pub(crate) fn new_from_file(
-        library: &FreeTypeLibraryHandle,
-        filename: &CStr,
-        index: u32,
-    ) -> Result<Self, &'static str> {
-        let mut face = ptr::null_mut();
-        let result = unsafe {
-            FT_New_Face(
-                library.freetype_library,
-                filename.as_ptr(),
-                index as FT_Long,
-                &mut face,
-            )
-        };
-
-        if 0 != result {
-            return Err("Could not create FreeType face");
-        }
-        let Some(face) = ptr::NonNull::new(face) else {
-            return Err("Could not create FreeType face");
-        };
-
-        Ok(Self { face })
+        Ok(Self {
+            face,
+            _data: font_backing_store,
+        })
     }
 
     pub(crate) fn as_ref(&self) -> &FT_FaceRec {
@@ -250,9 +261,14 @@ impl Drop for FreeTypeFace {
         // The FreeType documentation says that both `FT_New_Face` and `FT_Done_Face`
         // should be protected by a mutex.
         // See https://freetype.org/freetype2/docs/reference/ft2-library_setup.html.
-        let _guard = FreeTypeLibraryHandle::get().lock();
-        if unsafe { FT_Done_Face(self.face.as_ptr()) } != 0 {
-            log::error!("FT_Done_Face failed, leaking memory");
+        let result_code = {
+            let _guard = FreeTypeLibraryHandle::get().lock();
+            // SAFETY: This is the same pointer we allocated with, and we kept the
+            // underlying memory alive via Self._data.
+            unsafe { FT_Done_Face(self.face.as_ptr()) }
+        };
+        if result_code != 0 {
+            log::error!("FT_Done_Face failed: {result_code}");
         }
     }
 }
