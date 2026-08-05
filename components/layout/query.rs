@@ -122,8 +122,7 @@ pub(crate) fn process_box_area_request(
         };
 
         transform_au_rectangle(rect_union, transform)
-    })
-    .flatten()
+    })?
 }
 
 pub(crate) fn process_box_areas_request(

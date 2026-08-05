@@ -927,15 +927,18 @@ impl LayoutThread {
         reflow_statistics: &mut ReflowStatistics,
         reflow_phases_run: ReflowPhasesRun,
     ) -> bool {
+        if !self.accessibility_active() {
+            return false;
+        }
+
         // Bounds go stale when geometry changes (stacking context tree rebuild or scroll offset),
         // even without any `AccessibilityDamage` from the DOM, so those cases must still reach
         // `update_tree()` below, which refreshes bounds for the whole tree independently of
         // `damage`.
-        let geometry_may_have_changed = self.accessibility_active() &&
-            reflow_phases_run.intersects(
-                ReflowPhasesRun::BuiltStackingContextTree |
-                    ReflowPhasesRun::UpdatedScrollNodeOffset,
-            );
+        let geometry_may_have_changed = reflow_phases_run.intersects(
+            ReflowPhasesRun::BuiltStackingContextTree |
+                ReflowPhasesRun::UpdatedScrollNodeOffset,
+        );
         if !self.needs_accessibility_update() && !geometry_may_have_changed {
             return false;
         }
