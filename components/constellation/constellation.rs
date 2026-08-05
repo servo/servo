@@ -95,7 +95,9 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::{process, thread};
 
-use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangAlert};
+use background_hang_monitor_api::{
+    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangAlert,
+};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
 use devtools_traits::{
