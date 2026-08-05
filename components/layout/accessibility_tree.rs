@@ -280,10 +280,10 @@ impl AccessibilityTree {
         bounds_query: AccessibilityBoundsQuery<'_>,
         update: &mut AccessibilityUpdate,
     ) {
-        let Some(root_id) = self.existing_id_for_opaque(root_dom_node.opaque()) else {
+        let Some(root_node) = self.root_node else {
             return;
         };
-        self.assert_node_for_id(&root_id)
+        root_node
             .borrow_mut()
             .refresh_bounds_for_subtree(root_dom_node, bounds_query, self, update, None);
     }
