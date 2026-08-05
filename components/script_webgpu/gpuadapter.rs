@@ -5,7 +5,6 @@
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
 use jstraceable_derive::JSTraceable;
@@ -193,9 +192,6 @@ where
     }
 
     fn global(&self) -> DomRoot<D::GlobalScope> {
-        let cx = unsafe { JSContext::get_from_thread() };
-        let cx = &mut cx.expect("JS runtime has shut down");
-        let _realm = script_bindings::realms::enter_auto_realm::<D>(cx, self);
         <Self as DomGlobalGeneric<D>>::global_from_reflector(self)
     }
 }
