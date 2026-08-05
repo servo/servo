@@ -221,4 +221,6 @@ skip = [
 [sources.allow-org]
 github = [
     "servo",
+    # TODO: Remove this after 0.1.1 release
+    "linebender",
 ]
