@@ -2121,7 +2121,7 @@ fn create_element_for_token(
     // Record if the tokenizer saw duplicate attributes on this element,
     // used for CSP nonce validation (step 3 of "is element nonceable").
     if had_duplicate_attributes {
-        element.set_had_duplicate_attributes();
+        element.set_had_duplicate_attributes(cx.no_gc());
     }
 
     // Step 12. If willExecuteScript is true:

@@ -181,8 +181,8 @@ fn create_html_element(
             // interface, localName, the HTML namespace, prefix, "undefined", is, and registry.
             let element = create_native_html_element(cx, name, prefix, document, creator, proto);
             element.set_is(definition.name.clone());
-            element.set_custom_element_state(CustomElementState::Undefined);
-            element.set_custom_element_registry(registry.as_deref());
+            element.set_custom_element_state(CustomElementState::Undefined, cx.no_gc());
+            element.set_custom_element_registry(registry.as_deref(), cx.no_gc());
 
             match mode {
                 // Step 4.3. If synchronousCustomElements is true, then run this step while catching any exceptions:
@@ -213,7 +213,7 @@ fn create_html_element(
                         registry.as_deref(),
                     ) {
                         Ok(element) => {
-                            element.set_custom_element_definition(definition.clone());
+                            element.set_custom_element_definition(definition.clone(), cx.no_gc());
                             element
                         },
                         Err(error) => {
@@ -234,8 +234,9 @@ fn create_html_element(
                             let element = DomRoot::upcast::<Element>(HTMLUnknownElement::new(
                                 cx, local_name, prefix, document, proto,
                             ));
-                            element.set_custom_element_state(CustomElementState::Failed);
-                            element.set_custom_element_registry(registry.as_deref());
+                            element
+                                .set_custom_element_state(CustomElementState::Failed, cx.no_gc());
+                            element.set_custom_element_registry(registry.as_deref(), cx.no_gc());
                             element
                         },
                     };
@@ -250,8 +251,8 @@ fn create_html_element(
                     let result = DomRoot::upcast::<Element>(HTMLElement::new(
                         cx, name.local, prefix, document, proto,
                     ));
-                    result.set_custom_element_state(CustomElementState::Undefined);
-                    result.set_custom_element_registry(registry.as_deref());
+                    result.set_custom_element_state(CustomElementState::Undefined, cx.no_gc());
+                    result.set_custom_element_registry(registry.as_deref(), cx.no_gc());
                     // Step 4.2.2. Enqueue a custom element upgrade reaction given result and definition.
                     ScriptThread::enqueue_upgrade_reaction(cx, &result, definition);
                     return result;
@@ -272,13 +273,13 @@ fn create_html_element(
     match is {
         Some(is) => {
             result.set_is(is);
-            result.set_custom_element_state(CustomElementState::Undefined);
-            result.set_custom_element_registry(registry.as_deref());
+            result.set_custom_element_state(CustomElementState::Undefined, cx.no_gc());
+            result.set_custom_element_registry(registry.as_deref(), cx.no_gc());
         },
         None => {
             if is_valid_custom_element_name(&name.local) {
-                result.set_custom_element_state(CustomElementState::Undefined);
-                result.set_custom_element_registry(registry.as_deref());
+                result.set_custom_element_state(CustomElementState::Undefined, cx.no_gc());
+                result.set_custom_element_registry(registry.as_deref(), cx.no_gc());
             } else {
                 // Note: This is a performance optimization. See the doc comment of the method for
                 // more information.

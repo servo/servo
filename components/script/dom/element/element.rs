@@ -335,8 +335,8 @@ impl Element {
         }
     }
 
-    pub(crate) fn set_had_duplicate_attributes(&self) {
-        self.ensure_rare_data().had_duplicate_attributes = true;
+    pub(crate) fn set_had_duplicate_attributes(&self, no_gc: &NoGC) {
+        self.ensure_rare_data(no_gc).had_duplicate_attributes = true;
     }
 
     pub(crate) fn new(
@@ -365,8 +365,11 @@ impl Element {
         self.rare_data.borrow_mut()
     }
 
-    pub(crate) fn ensure_rare_data(&self) -> RefMut<'_, Box<ElementRareData>> {
-        let mut rare_data = self.rare_data.borrow_mut();
+    pub(crate) fn ensure_rare_data<'a: 'b, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+    ) -> RefMut<'b, Box<ElementRareData>> {
+        let mut rare_data = self.rare_data.safe_borrow_mut(no_gc);
         if rare_data.is_none() {
             *rare_data = Some(Default::default());
         }
@@ -435,10 +438,10 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
-    pub(crate) fn set_custom_element_state(&self, state: CustomElementState) {
+    pub(crate) fn set_custom_element_state(&self, state: CustomElementState, no_gc: &NoGC) {
         // no need to inflate rare data for uncustomized
         if state != CustomElementState::Uncustomized {
-            self.ensure_rare_data().custom_element_state = state;
+            self.ensure_rare_data(no_gc).custom_element_state = state;
         }
 
         let in_defined_state = matches!(
@@ -460,27 +463,40 @@ impl Element {
         self.get_custom_element_state() == CustomElementState::Custom
     }
 
-    pub(crate) fn set_custom_element_definition(&self, definition: Rc<CustomElementDefinition>) {
-        self.ensure_rare_data().custom_element_definition = Some(definition);
+    pub(crate) fn set_custom_element_definition(
+        &self,
+        definition: Rc<CustomElementDefinition>,
+        no_gc: &NoGC,
+    ) {
+        self.ensure_rare_data(no_gc).custom_element_definition = Some(definition);
     }
 
     pub(crate) fn get_custom_element_definition(&self) -> Option<Rc<CustomElementDefinition>> {
         self.rare_data().as_ref()?.custom_element_definition.clone()
     }
 
-    pub(crate) fn clear_custom_element_definition(&self) {
-        self.ensure_rare_data().custom_element_definition = None;
+    pub(crate) fn clear_custom_element_definition(&self, no_gc: &NoGC) {
+        self.ensure_rare_data(no_gc).custom_element_definition = None;
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn push_callback_reaction(&self, function: Rc<Function>, args: Box<[Heap<JSVal>]>) {
-        self.ensure_rare_data()
+    pub(crate) fn push_callback_reaction(
+        &self,
+        function: Rc<Function>,
+        args: Box<[Heap<JSVal>]>,
+        no_gc: &NoGC,
+    ) {
+        self.ensure_rare_data(no_gc)
             .custom_element_reaction_queue
             .push(CustomElementReaction::Callback(function, args));
     }
 
-    pub(crate) fn push_upgrade_reaction(&self, definition: Rc<CustomElementDefinition>) {
-        self.ensure_rare_data()
+    pub(crate) fn push_upgrade_reaction(
+        &self,
+        definition: Rc<CustomElementDefinition>,
+        no_gc: &NoGC,
+    ) {
+        self.ensure_rare_data(no_gc)
             .custom_element_reaction_queue
             .push(CustomElementReaction::Upgrade(definition));
     }
@@ -764,7 +780,7 @@ impl Element {
         shadow_root.set_serializable(serializable);
 
         // Step 12. Set element’s shadow root to shadow
-        self.ensure_rare_data().shadow_root = Some(Dom::from_ref(&*shadow_root));
+        self.ensure_rare_data(cx.no_gc()).shadow_root = Some(Dom::from_ref(&*shadow_root));
         shadow_root
             .upcast::<Node>()
             .set_containing_shadow_root(Some(&shadow_root));
@@ -852,10 +868,11 @@ impl Element {
 
     /// Return all IntersectionObserverRegistration for this element.
     /// Lazily initialize the raredata if it does not exist.
-    pub(crate) fn registered_intersection_observers_mut(
-        &self,
-    ) -> RefMut<'_, Vec<IntersectionObserverRegistration>> {
-        RefMut::map(self.ensure_rare_data(), |rare_data| {
+    pub(crate) fn registered_intersection_observers_mut<'a: 'b, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+    ) -> RefMut<'b, Vec<IntersectionObserverRegistration>> {
+        RefMut::map(self.ensure_rare_data(no_gc), |rare_data| {
             &mut rare_data.registered_intersection_observers
         })
     }
@@ -894,15 +911,20 @@ impl Element {
     pub(crate) fn add_initial_intersection_observer_registration(
         &self,
         observer: &IntersectionObserver,
+        no_gc: &NoGC,
     ) {
-        self.ensure_rare_data()
+        self.ensure_rare_data(no_gc)
             .registered_intersection_observers
             .push(IntersectionObserverRegistration::new_initial(observer));
     }
 
     /// Removes a certain IntersectionObserver.
-    pub(crate) fn remove_intersection_observer(&self, observer: &IntersectionObserver) {
-        self.ensure_rare_data()
+    pub(crate) fn remove_intersection_observer(
+        &self,
+        observer: &IntersectionObserver,
+        no_gc: &NoGC,
+    ) {
+        self.ensure_rare_data(no_gc)
             .registered_intersection_observers
             .retain(|reg_obs| *reg_obs.observer != *observer)
     }
@@ -1014,9 +1036,18 @@ impl Element {
         cx: &mut JSContext,
         document: &Document,
     ) -> DomRoot<Range> {
-        self.ensure_rare_data()
-            .contenteditable_selection_range
-            .or_init(|| Range::new_with_doc(cx, document, None))
+        let Some(selection_range) = self
+            .rare_data()
+            .as_ref()
+            .and_then(|data| data.contenteditable_selection_range.get())
+        else {
+            let range = Range::new_with_doc(cx, document, None);
+            self.ensure_rare_data(cx.no_gc())
+                .contenteditable_selection_range
+                .set(Some(&*range));
+            return range;
+        };
+        selection_range
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
@@ -1732,8 +1763,12 @@ impl Element {
         *self.prefix.borrow_mut() = prefix;
     }
 
-    pub(crate) fn set_custom_element_registry(&self, registry: Option<&CustomElementRegistry>) {
-        self.ensure_rare_data().custom_element_registry = registry.map(Dom::from_ref);
+    pub(crate) fn set_custom_element_registry(
+        &self,
+        registry: Option<&CustomElementRegistry>,
+        no_gc: &NoGC,
+    ) {
+        self.ensure_rare_data(no_gc).custom_element_registry = registry.map(Dom::from_ref);
     }
 
     pub(crate) fn custom_element_registry(&self) -> Option<DomRoot<CustomElementRegistry>> {
@@ -2494,8 +2529,8 @@ impl Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
-    pub(crate) fn update_nonce_internal_slot(&self, nonce: String) {
-        self.ensure_rare_data().cryptographic_nonce = nonce;
+    pub(crate) fn update_nonce_internal_slot(&self, nonce: String, no_gc: &NoGC) {
+        self.ensure_rare_data(no_gc).cryptographic_nonce = nonce;
     }
 
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes>
@@ -2531,7 +2566,7 @@ impl Element {
         // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
         self.set_string_attribute(cx, &local_name!("nonce"), "".into());
         // Step 2.3: Set element's [[CryptographicNonce]] to nonce.
-        self.update_nonce_internal_slot(nonce);
+        self.update_nonce_internal_slot(nonce, cx.no_gc());
     }
 
     /// <https://www.w3.org/TR/CSP/#is-element-nonceable>
@@ -2738,13 +2773,15 @@ impl Element {
     }
 
     pub(crate) fn ensure_element_internals(&self, cx: &mut JSContext) -> DomRoot<ElementInternals> {
-        let mut rare_data = self.ensure_rare_data();
-        DomRoot::from_ref(rare_data.element_internals.get_or_insert_with(|| {
+        let Some(element_internals) = self.get_element_internals() else {
             let elem = self
                 .downcast::<HTMLElement>()
                 .expect("ensure_element_internals should only be called for an HTMLElement");
-            Dom::from_ref(&*ElementInternals::new(cx, elem))
-        }))
+            let internals = ElementInternals::new(cx, elem);
+            self.ensure_rare_data(cx.no_gc()).element_internals = Some(Dom::from_ref(&*internals));
+            return internals;
+        };
+        element_internals
     }
 
     pub(crate) fn outer_html(&self, cx: &mut JSContext) -> Fallible<DOMString> {
@@ -4529,9 +4566,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
     fn Part(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
-        self.ensure_rare_data()
-            .part
-            .or_init(|| DOMTokenList::new(cx, self, &local_name!("part"), None))
+        let Some(part) = self.rare_data().as_ref().and_then(|data| data.part.get()) else {
+            let part = DOMTokenList::new(cx, self, &local_name!("part"), None);
+            self.ensure_rare_data(cx.no_gc()).part.set(Some(&*part));
+            return part;
+        };
+        part
     }
 
     /// <https://drafts.csswg.org/web-animations-1/#dom-animatable-animate>
@@ -4686,7 +4726,7 @@ impl VirtualMethods for Element {
             },
             local_name!("name") => {
                 // Keep the name in rare data for fast access
-                self.ensure_rare_data().name_attribute =
+                self.ensure_rare_data(cx.no_gc()).name_attribute =
                     mutation.new_value(attr).and_then(|value| {
                         let value = value.as_atom();
                         if value != &atom!("") {
@@ -4886,7 +4926,7 @@ impl VirtualMethods for Element {
         }
         let elem = copy.downcast::<Element>().unwrap();
         if let Some(rare_data) = self.rare_data().as_ref() {
-            elem.update_nonce_internal_slot(rare_data.cryptographic_nonce.clone());
+            elem.update_nonce_internal_slot(rare_data.cryptographic_nonce.clone(), cx.no_gc());
         }
     }
 }
@@ -4913,7 +4953,8 @@ impl Element {
             rect.size = doc.window().viewport_details().size.round().to_i32();
         }
 
-        self.ensure_rare_data().client_rect = Some(self.owner_window().cache_layout_value(rect));
+        self.ensure_rare_data(no_gc).client_rect =
+            Some(self.owner_window().cache_layout_value(rect));
         rect
     }
 

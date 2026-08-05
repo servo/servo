@@ -149,6 +149,7 @@ impl HTMLDialogElement {
                 .focus_handler()
                 .focused_area()
                 .element(),
+            cx.no_gc(),
         );
 
         // TODO: Step 17. Let document be subject's node document.
@@ -223,11 +224,14 @@ impl HTMLDialogElement {
         // TODO: Step 11. Set subject's request close source element to null.
 
         // Step 12. If subject's previously focused element is not null, then:
-        if let Some(element) = self.upcast::<HTMLElement>().previously_focused_element() {
+        if let Some(element) = self
+            .upcast::<HTMLElement>()
+            .previously_focused_element(cx.no_gc())
+        {
             // Step 12.1. Let element be subject's previously focused element.
             // Step 12.2. Set subject's previously focused element to null.
             self.upcast::<HTMLElement>()
-                .set_previously_focused_element(None);
+                .set_previously_focused_element(None, cx.no_gc());
 
             // Step 12.3. If subject's node document's focused area of the document's DOM anchor is
             // a shadow-including inclusive descendant of subject, or wasModal is true, then run the
@@ -404,6 +408,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
                 .focus_handler()
                 .focused_area()
                 .element(),
+            cx.no_gc(),
         );
 
         // TODO: Step 8. Let document be this's node document.

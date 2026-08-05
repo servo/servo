@@ -173,10 +173,10 @@ fn html_constructor(
             // Step 7.2-7.5 are performed in the generated caller code.
 
             // Step 7.6 Set element's custom element state to "custom".
-            element.set_custom_element_state(CustomElementState::Custom);
+            element.set_custom_element_state(CustomElementState::Custom, cx.no_gc());
 
             // Step 7.7 Set element's custom element definition to definition.
-            element.set_custom_element_definition(definition);
+            element.set_custom_element_definition(definition, cx.no_gc());
 
             // Step 7.8 Set element's is value to isValue.
             if let Some(is_value) = is_value {
