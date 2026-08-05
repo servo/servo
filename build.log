@@ -1,3 +1,0 @@
-No build type specified so assuming `--dev`.
-Building `debug` build with crown disabled (no JS garbage collection linting).
-Failed in 0:00:06

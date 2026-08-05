@@ -318,7 +318,7 @@ fn test_notify_pending_response_network_error() {
 #[test]
 fn test_image_listener_on_complete_response() {
     let (cache, key_receiver) = create_test_image_cache();
-    let url = ServoUrl::parse("http://example.com/cursor.cur").unwrap();
+    let url = ServoUrl::parse("http://example.com/test.jpeg").unwrap();
     let origin = mock_origin();
 
     let id = match cache.get_cached_image_status(url.clone(), origin.clone(), None) {
