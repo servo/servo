@@ -520,11 +520,14 @@ impl IDBFactory {
             error!("Failed to send SyncOperation::AbortPendingUpgrade");
         }
 
-        for requests in connections.values() {
-            for request in requests.values() {
-                if let Some(database) = request.pending_connection() {
-                    database.close_a_database_connection(true /* forced */);
-                }
+        let snapshot: Vec<DomRoot<IDBOpenDBRequest>> = connections
+            .values()
+            .flat_map(|requests| requests.values())
+            .map(|req| DomRoot::from_ref(&**req))
+            .collect();
+        for request in &snapshot {
+            if let Some(database) = request.pending_connection() {
+                database.close_a_database_connection(true /* forced */);
             }
         }
     }

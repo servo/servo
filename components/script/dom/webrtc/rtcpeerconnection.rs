@@ -761,7 +761,13 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         self.controller.borrow_mut().as_ref().unwrap().quit();
 
         // Step 6
-        for val in self.data_channels.borrow().values() {
+        let snapshot: Vec<DomRoot<RTCDataChannel>> = self
+            .data_channels
+            .borrow()
+            .values()
+            .map(|dc| DomRoot::from_ref(&**dc))
+            .collect();
+        for val in &snapshot {
             val.on_state_change(cx, DataChannelState::Closed);
         }
 

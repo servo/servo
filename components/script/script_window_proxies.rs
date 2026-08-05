@@ -37,7 +37,12 @@ impl ScriptWindowProxies {
         &self,
         name: &DOMString,
     ) -> Option<DomRoot<WindowProxy>> {
-        for proxy in self.map.borrow().values() {
+        let map = self.map.borrow();
+        let proxies: Vec<DomRoot<WindowProxy>> = map
+            .values()
+            .map(|proxy| DomRoot::from_ref(&**proxy))
+            .collect();
+        for proxy in &proxies {
             if proxy.get_name() == *name {
                 return Some(DomRoot::from_ref(&**proxy));
             }
