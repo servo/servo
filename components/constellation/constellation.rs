@@ -96,7 +96,7 @@ use std::thread::JoinHandle;
 use std::{process, thread};
 
 use background_hang_monitor_api::{
-    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
+    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangAlert,
 };
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
@@ -313,11 +313,11 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    pub(crate) background_hang_monitor_sender: GenericSender<HangMonitorAlert>,
+    pub(crate) background_hang_monitor_sender: GenericSender<HangAlert>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
-    background_hang_monitor_receiver: RoutedReceiver<HangMonitorAlert>,
+    background_hang_monitor_receiver: RoutedReceiver<HangAlert>,
 
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
@@ -1220,7 +1220,7 @@ where
         enum Request {
             PipelineNamespace(PipelineNamespaceRequest),
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
-            BackgroundHangMonitor(HangMonitorAlert),
+            BackgroundHangMonitor(HangAlert),
             Embedder(EmbedderToConstellationMessage),
             RemoveProcess(usize),
         }
@@ -1303,17 +1303,10 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
-        match message {
-            HangMonitorAlert::Profile(bytes) => self
-                .constellation_to_embedder_proxy
-                .send(ConstellationToEmbedderMsg::ReportProfile(bytes)),
-            HangMonitorAlert::Hang(hang) => {
-                // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
-                // via the embedder?
-                warn!("Component hang alert: {:?}", hang);
-            },
-        }
+    fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
+        // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
+        // via the embedder?
+        warn!("Component hang alert: {:?}", message);
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1414,11 +1407,6 @@ where
             },
             EmbedderToConstellationMessage::RefreshCursor(pipeline_id) => {
                 self.handle_refresh_cursor(pipeline_id)
-            },
-            EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
-                self.send_message_to_all_background_hang_monitors(
-                    BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration),
-                );
             },
             EmbedderToConstellationMessage::ExitFullScreen(webview_id) => {
                 self.handle_exit_fullscreen_msg(webview_id);

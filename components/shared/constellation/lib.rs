@@ -13,7 +13,6 @@ mod structured_data;
 
 use std::collections::VecDeque;
 use std::fmt;
-use std::time::Duration;
 
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
@@ -84,8 +83,6 @@ pub enum EmbedderToConstellationMessage {
     /// recently hovered cursor position and resetting the cursor. This happens after a
     /// display list update is rendered.
     RefreshCursor(PipelineId),
-    /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
-    ToggleProfiler(Duration, Duration),
     /// Request to exit from fullscreen mode
     ExitFullScreen(WebViewId),
     /// Media session action.

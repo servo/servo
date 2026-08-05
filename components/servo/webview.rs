@@ -5,7 +5,6 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
-use std::time::Duration;
 
 use accesskit::{
     Node as AccesskitNode, NodeId, Role, Tree, TreeId, TreeUpdate, Uuid as AccesskitUuid,
@@ -736,19 +735,6 @@ impl WebView {
     /// that share this [`WebView`]'s [`RenderingContext`].
     pub fn capture_webrender(&self) {
         self.inner().servo.paint().capture_webrender(self.id());
-    }
-
-    /// Enable the sampling profiler for debugging performance issues.
-    ///
-    /// The `rate` determines how often samples are taken and `max_duration` is
-    /// the maximum period for which sampling is enabled.
-    ///
-    /// Note that the profiler is enabled globally i.e., for all [`WebView`]s managed
-    /// by Servo rather than just the [`WebView`] on which this method is invoked.
-    pub fn toggle_sampling_profiler(&self, rate: Duration, max_duration: Duration) {
-        self.inner().servo.constellation_proxy().send(
-            EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration),
-        );
     }
 
     /// Paint the contents of this [`WebView`] into its [`RenderingContext`].
