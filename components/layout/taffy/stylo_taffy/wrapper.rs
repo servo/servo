@@ -13,7 +13,7 @@ use style::values::specified::position::NamedArea;
 use style::{Atom, OwnedSlice};
 use taffy::prelude::TaffyAuto;
 
-use super::{convert, stylo};
+use super::{as_clamped_i16, convert, stylo};
 
 /// A wrapper struct for anything that Deref's to a [`ComputedValues`], which
 /// implements Taffy's layout traits and can used with Taffy's layout algorithms.
@@ -343,6 +343,20 @@ impl<T: Deref<Target = ComputedValues>> taffy::GridContainerStyle for TaffyStylo
                 }))
             },
             GridTemplateAreas::None => None,
+        }
+    }
+
+    fn grid_template_area_row_count(&self) -> u16 {
+        match &self.style.get_position().grid_template_areas {
+            GridTemplateAreas::Areas(areas) => as_clamped_i16(areas.0.strings.len() as i32) as u16,
+            GridTemplateAreas::None => 0,
+        }
+    }
+
+    fn grid_template_area_column_count(&self) -> u16 {
+        match &self.style.get_position().grid_template_areas {
+            GridTemplateAreas::Areas(areas) => as_clamped_i16(areas.0.width as i32) as u16,
+            GridTemplateAreas::None => 0,
         }
     }
 

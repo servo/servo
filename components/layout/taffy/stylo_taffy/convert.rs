@@ -7,7 +7,7 @@ use stylo_atoms::atom;
 use taffy::MaxTrackSizingFunction;
 use taffy::style_helpers::*;
 
-use super::stylo;
+use super::{as_clamped_i16, stylo};
 
 #[inline]
 pub fn length_percentage(val: &stylo::LengthPercentage) -> taffy::LengthPercentage {
@@ -232,10 +232,6 @@ pub fn grid_auto_flow(input: stylo::GridAutoFlow) -> taffy::GridAutoFlow {
         (false, false) => taffy::GridAutoFlow::Column,
         (false, true) => taffy::GridAutoFlow::ColumnDense,
     }
-}
-
-fn as_clamped_i16(input: i32) -> i16 {
-    input.clamp(i16::MIN as i32, i16::MAX as i32) as i16
 }
 
 #[inline]
