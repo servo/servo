@@ -371,6 +371,35 @@
       {}
      ]
     ],
+    "progress-determinate.html": [
+     "47901c095b143fa159f3e4b4127fa6e2aafb236d",
+     [
+      "appearance/progress-determinate.html",
+      [
+       [
+        "/_mozilla/appearance/progress-determinate-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "fuzzy": [
+        [
+         null,
+         [
+          [
+           0,
+           6
+          ],
+          [
+           0,
+           20
+          ]
+         ]
+        ]
+       ]
+      }
+     ]
+    ],
     "text-advance-less-than-ink-clipping.html": [
      "a726bd2881ff7cb29a9e68f8e7f1fae728b9382e",
      [

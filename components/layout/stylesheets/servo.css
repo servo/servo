@@ -539,7 +539,6 @@ progress {
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
 
-
 progress::-moz-progress-bar {
   display: block;
   height: 100%;
