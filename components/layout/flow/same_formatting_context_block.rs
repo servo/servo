@@ -277,15 +277,28 @@ impl SameFormattingContextBlock {
             },
         };
 
+        let is_anonymous = matches!(
+            self.base.style.pseudo(),
+            Some(PseudoElement::ServoAnonymousBox)
+        );
+
         // https://drafts.csswg.org/css-sizing-4/#stretch-fit-sizing
         // > If this is a block axis size, and the element is in a Block Layout formatting context,
         // > and the parent element does not have a block-start border or padding and is not an
         // > independent formatting context, treat the element’s block-start margin as zero
         // > for the purpose of calculating this size. Do the same for the block-end margin.
-        let ignore_block_margins_for_stretch = LogicalSides1D::new(
-            pbm.border.block_start.is_zero() && pbm.padding.block_start.is_zero(),
-            pbm.border.block_end.is_zero() && pbm.padding.block_end.is_zero(),
-        );
+        //
+        // However, as resolved in https://github.com/w3c/csswg-drafts/issues/13260, we should
+        // check the containing block instead of the parent. Note that anonymous blocks don't
+        // establish a containing block.
+        let ignore_block_margins_for_stretch = if is_anonymous {
+            ignore_block_margins_for_stretch
+        } else {
+            LogicalSides1D::new(
+                pbm.border.block_start.is_zero() && pbm.padding.block_start.is_zero(),
+                pbm.border.block_end.is_zero() && pbm.padding.block_end.is_zero(),
+            )
+        };
 
         let flow_layout = self.contents.layout(
             layout_context,
@@ -314,10 +327,6 @@ impl SameFormattingContextBlock {
             }
         }
 
-        let is_anonymous = matches!(
-            self.base.style.pseudo(),
-            Some(PseudoElement::ServoAnonymousBox)
-        );
         let tentative_block_size = if is_anonymous {
             // Anonymous blocks do not establish a containing block for their children,
             // so we can't use that. However, they always have their sizing properties
