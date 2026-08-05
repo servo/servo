@@ -319,7 +319,22 @@ pub struct Preferences {
     pub layout_css_attr_enabled: bool,
     pub layout_css_ellipse_corners_enabled: bool,
     pub layout_css_progress_function_enabled: bool,
+
+    /// Capture a snapshot of each built layout display list and deliver it to the
+    /// embedder via `WebViewDelegate::notify_display_list`. This is an introspection
+    /// API for embedders that do their own text extraction or native rendering; it
+    /// has a runtime cost and is therefore off by default.
+    ///
+    /// The preference is read at each layout. Text content only reaches snapshots
+    /// for content laid out while the preference is enabled, so a snapshot produced
+    /// right after enabling it may lack text items until the next full layout.
+    pub layout_display_list_capture_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
+    /// Whether the layout engine rasterizes text glyphs into the display list painted
+    /// by the renderer. On by default. Embedders that render text themselves (from
+    /// captured display lists) can disable this so the painted output carries no
+    /// glyphs.
+    pub layout_text_painting_enabled: bool,
     pub layout_threads: i64,
     /// The minimum number of parallelizable jobs required before turning on parallelism
     /// for a set of jobs.
@@ -557,8 +572,10 @@ impl Preferences {
             layout_css_attr_enabled: false,
             layout_css_ellipse_corners_enabled: false,
             layout_css_progress_function_enabled: false,
+            layout_display_list_capture_enabled: false,
             layout_grid_enabled: false,
             layout_style_sharing_cache_enabled: true,
+            layout_text_painting_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_parallelism_job_count_minimum: 4,

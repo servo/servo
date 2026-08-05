@@ -132,6 +132,7 @@ pub(crate) struct WebViewInner {
 
 impl Drop for WebViewInner {
     fn drop(&mut self) {
+        self.servo.clear_display_list_captures(self.id);
         self.servo
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::CloseWebView(self.id));
@@ -754,6 +755,17 @@ impl WebView {
     /// Paint the contents of this [`WebView`] into its [`RenderingContext`].
     pub fn paint(&self) {
         self.inner().servo.paint().render(self.id());
+    }
+
+    /// The current scroll offset, in layout pixels, of this [`WebView`]'s root
+    /// scrolling node as applied by the renderer for the most recently painted
+    /// frame
+    pub fn root_scroll_offset(&self) -> Option<(f32, f32)> {
+        self.inner()
+            .servo
+            .paint()
+            .root_scroll_offset(self.id())
+            .map(|offset| (offset.x, offset.y))
     }
 
     /// Get the [`UserContentManager`] associated with this [`WebView`].

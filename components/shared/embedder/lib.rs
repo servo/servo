@@ -8,6 +8,7 @@
 //! is not exposed in the API or doesn't involve messages sent to the embedding/libservo layer, it
 //! is probably a better fit for the `servo_constellation_traits` crate.
 
+pub mod display_list;
 pub mod embedder_controls;
 pub mod input_events;
 pub mod resources;
@@ -49,6 +50,7 @@ use webrender_api::units::{
     DeviceVector2D, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D,
 };
 
+pub use crate::display_list::*;
 pub use crate::embedder_controls::*;
 pub use crate::input_events::*;
 use crate::user_contents::UserContentManagerId;
@@ -546,6 +548,12 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
+    /// A captured display-list snapshot for one pipeline of this `WebView`'s frame tree.
+    DisplayListCaptured(WebViewId, DisplayList),
+    /// Discard retained display-list captures for this `WebView`, sent when capture is
+    /// disabled mid-build so a later re-enable can't compose stale snapshots into a
+    /// fresh root.
+    DisplayListCaptureCleared(WebViewId),
 }
 
 impl Debug for EmbedderMsg {

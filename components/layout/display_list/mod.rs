@@ -8,6 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use clip::Clip;
 pub(crate) use clip::ClipId;
+use embedder_traits::{DisplayList, DisplayListItemContent};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
@@ -21,6 +22,7 @@ use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
+use style::computed_values::background_attachment::SingleComputedValue as BackgroundAttachment;
 use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
@@ -34,6 +36,7 @@ use style::properties::ComputedValues;
 use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
 use style::values::computed::basic_shape::ClipPath as ComputedClipPath;
+use style::values::computed::image::Image;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
     NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
@@ -72,6 +75,7 @@ use crate::replaced::NaturalSizes;
 use crate::style_ext::{BorderStyleColor, ComputedValuesExt};
 
 mod background;
+mod capture;
 mod clip;
 mod conversions;
 mod gradient;
@@ -80,6 +84,7 @@ mod paint_timing_handler;
 mod paint_traversal;
 mod stacking_context;
 
+use capture::DisplayListCapture;
 pub(crate) use hit_test::HitTest;
 pub(crate) use paint_timing_handler::PaintTimingHandler;
 pub(crate) use stacking_context::*;
@@ -128,6 +133,44 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Statistics collected about the reflow, in order to write tests for incremental layout.
     reflow_statistics: &'a mut ReflowStatistics,
+
+    /// When `Some`, records content display items in paint order for delivery to the
+    /// embedder. Populated only when the `layout_display_list_capture_enabled`
+    /// preference is set.
+    display_list_capture: Option<DisplayListCapture>,
+
+    /// The number of enclosing stacking contexts whose opacity makes all of their
+    /// contents invisible. WebRender applies opacity to the whole stacking context,
+    /// so individual primitive builders cannot otherwise see an invisible ancestor.
+    capture_suppressed_by_opacity_depth: usize,
+
+    /// `layout_text_painting_enabled`, read once per build since reading a
+    /// preference takes a process-global lock.
+    text_painting_enabled: bool,
+}
+
+/// Convert a resolved CSS [`AbsoluteColor`] to an embedder-facing [`ColorF`].
+fn display_list_color(color: &AbsoluteColor) -> ColorF {
+    let srgb = color.to_color_space(ColorSpace::Srgb);
+    ColorF {
+        r: srgb.components.0,
+        g: srgb.components.1,
+        b: srgb.components.2,
+        a: srgb.alpha,
+    }
+}
+
+/// The URL a CSS [`Image`] value loads from, when it names one, for the embedder
+/// display list snapshot.
+fn image_source_url(image: &Image) -> Option<ServoUrl> {
+    match image {
+        Image::Url(image_url) => image_url.url().map(|url| url.clone().into()),
+        Image::ImageSet(image_set) => image_set
+            .items
+            .get(image_set.selected_index)
+            .and_then(|item| image_source_url(&item.image)),
+        _ => None,
+    }
 }
 
 struct InspectorHighlight {
@@ -179,7 +222,9 @@ impl DisplayListBuilder<'_> {
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
         reflow_statistics: &mut ReflowStatistics,
-    ) -> BuiltDisplayList {
+        capture_display_list: bool,
+        text_painting_enabled: bool,
+    ) -> (BuiltDisplayList, Option<DisplayList>) {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
         let pipeline_id = paint_info.pipeline_id;
@@ -208,6 +253,9 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
+            display_list_capture: capture_display_list.then(DisplayListCapture::default),
+            capture_suppressed_by_opacity_depth: 0,
+            text_painting_enabled,
         };
 
         // Clear any caret color from previous display list constructions.
@@ -235,11 +283,45 @@ impl DisplayListBuilder<'_> {
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
 
-        webrender_display_list_builder.end().1
+        // Resolve the recorded items out of their spatial nodes' coordinate spaces and
+        // assemble the embedder-facing display list snapshot, if capture is enabled.
+        let captured_display_list = builder.display_list_capture.take().map(|capture| {
+            capture.finish(
+                pipeline_id.into(),
+                builder.paint_info,
+                &stacking_context_tree.clip_store,
+            )
+        });
+
+        (
+            webrender_display_list_builder.end().1,
+            captured_display_list,
+        )
     }
 
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
         self.webrender_display_list_builder
+    }
+
+    /// Record a content display item for the embedder snapshot, if capture is enabled.
+    /// The rectangles are in the coordinate space of `spatial_node_id` and are resolved
+    /// to document/viewport space once the traversal completes.
+    ///
+    /// `content` is only invoked when the item is actually recorded, so its
+    /// allocations are not paid when capture is disabled (the default).
+    fn capture_display_list_item(
+        &mut self,
+        state: &TraversalState,
+        rect: units::LayoutRect,
+        clip_rect: units::LayoutRect,
+        spatial_node_id: ScrollTreeNodeId,
+        content: impl FnOnce() -> DisplayListItemContent,
+    ) {
+        if self.capture_suppressed_by_opacity_depth == 0 &&
+            let Some(capture) = self.display_list_capture.as_mut()
+        {
+            capture.record(rect, clip_rect, spatial_node_id, state.clip_id, content());
+        }
     }
 
     fn pipeline_id(&self) -> wr::PipelineId {
@@ -716,11 +798,12 @@ impl DisplayListBuilder<'_> {
 }
 
 impl PaintTraversalHandler for DisplayListBuilder<'_> {
-    /// A tuple composed of the number of real WebRender stacking contexts pushed
-    /// and the previous `Self::current_reference_frame_scroll_node_id` value of
-    /// the `DisplayListBuilder` when a stacking context was visited (or `None` if
-    /// the value was unmodified).
-    type StackingContextState = (usize, Option<ScrollTreeNodeId>);
+    /// A tuple composed of the number of real WebRender stacking contexts pushed,
+    /// the previous `Self::current_reference_frame_scroll_node_id` value of the
+    /// `DisplayListBuilder` when a stacking context was visited (or `None` if the
+    /// value was unmodified), and whether this stacking context suppresses capture
+    /// of its descendants because of exactly-transparent opacity.
+    type StackingContextState = (usize, Option<ScrollTreeNodeId>, bool);
 
     fn visit_stacking_context(
         &mut self,
@@ -731,7 +814,23 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         if self.push_webrender_stacking_context_if_necessary(stacking_context) {
             stacking_contexts_pushed += 1;
         }
-        (stacking_contexts_pushed, old_reference_frame)
+
+        // Opacity is applied by WebRender to the entire stacking context, after its
+        // descendants' primitives have been emitted. Track an exactly-transparent
+        // ancestor here so the embedder snapshot does not claim its descendants are
+        // visible content.
+        let capture_suppressed_by_opacity = stacking_context
+            .fragment()
+            .is_some_and(|fragment| fragment.style().clone_opacity() <= 0.0);
+        if capture_suppressed_by_opacity {
+            self.capture_suppressed_by_opacity_depth += 1;
+        }
+
+        (
+            stacking_contexts_pushed,
+            old_reference_frame,
+            capture_suppressed_by_opacity,
+        )
     }
 
     fn leave_stacking_context(
@@ -739,13 +838,18 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         _: &TraversalState,
         stacking_context_state: Self::StackingContextState,
     ) {
-        let (stacking_contexts_pushed, old_reference_frame) = stacking_context_state;
+        let (stacking_contexts_pushed, old_reference_frame, capture_suppressed_by_opacity) =
+            stacking_context_state;
         for _ in 0..stacking_contexts_pushed {
             self.wr().pop_stacking_context();
         }
 
         if let Some(old_reference_frame) = old_reference_frame {
             self.current_reference_frame_scroll_node_id = old_reference_frame;
+        }
+
+        if capture_suppressed_by_opacity {
+            self.capture_suppressed_by_opacity_depth -= 1;
         }
     }
 
@@ -776,6 +880,15 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
         let rect = fragment.base.rect().translate(state.origin.to_vector());
         let common = self.common_properties(state, rect.to_webrender(), &style);
+        self.capture_display_list_item(
+            state,
+            rect.to_webrender(),
+            common.clip_rect,
+            state.spatial_id,
+            || DisplayListItemContent::Iframe {
+                pipeline_id: fragment.pipeline_id,
+            },
+        );
         self.wr().push_iframe(
             rect.to_webrender(),
             common.clip_rect,
@@ -819,6 +932,11 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         let common = self.common_properties(state, clip, &style);
 
         if let Some(image_key) = fragment.image_key {
+            self.capture_display_list_item(state, rect, common.clip_rect, state.spatial_id, || {
+                DisplayListItemContent::Image {
+                    url: fragment.url.clone(),
+                }
+            });
             self.wr().push_image(
                 &common,
                 rect,
@@ -926,6 +1044,15 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         if background_color.alpha > 0.0 {
             let common = self.common_properties(state, painting_area, &source_style);
             let color = rgba(background_color);
+            self.capture_display_list_item(
+                state,
+                painting_area,
+                common.clip_rect,
+                state.spatial_id,
+                || DisplayListItemContent::SolidColor {
+                    color: display_list_color(&background_color),
+                },
+            );
             self.wr().push_rect(&common, painting_area, color);
 
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
@@ -1114,6 +1241,30 @@ impl Fragment {
             fragment.justification_adjustment,
         );
 
+        // Capture this run for the embedder display list snapshot, if enabled. Use the
+        // (untransformed) inline rect rather than the inflated glyph bounds, so that
+        // the reported rectangle matches the text's layout box.
+        //
+        // Guard on the color alpha and the element's own CSS `opacity`, so text the
+        // page deliberately renders invisible is excluded. An exactly-transparent
+        // ancestor is tracked while entering stacking contexts above. A fully
+        // transparent color can still paint when a `text-shadow` is set.
+        if let Some(text) = fragment.text_for_display_list.as_deref() {
+            let capture_color = display_list_color(&color);
+            if capture_color.a > 0.0 && parent_style.clone_opacity() > 0.0 {
+                builder.capture_display_list_item(
+                    state,
+                    rect.to_webrender(),
+                    common.clip_rect,
+                    state.spatial_id,
+                    || DisplayListItemContent::Text {
+                        text: text.to_owned(),
+                        color: capture_color,
+                    },
+                );
+            }
+        }
+
         for text_decoration in state.text_decorations.iter() {
             if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
                 let mut rect = rect;
@@ -1145,21 +1296,27 @@ impl Fragment {
             }
         }
 
-        builder.wr().push_text(
-            &common,
-            glyph_bounds,
-            &glyphs,
-            fragment.font_key,
-            rgba(color),
-            None,
-        );
+        if builder.text_painting_enabled {
+            builder.wr().push_text(
+                &common,
+                glyph_bounds,
+                &glyphs,
+                fragment.font_key,
+                rgba(color),
+                None,
+            );
 
-        builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
+            builder.check_if_paintable(
+                glyph_bounds,
+                common.clip_rect,
+                parent_style.clone_opacity(),
+            );
 
-        // From <https://www.w3.org/TR/paint-timing/#contentful>:
-        // An element target is contentful when one or more of the following apply:
-        // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        builder.mark_is_contentful();
+            // From <https://www.w3.org/TR/paint-timing/#contentful>:
+            // An element target is contentful when one or more of the following apply:
+            // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
+            builder.mark_is_contentful();
+        }
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration
@@ -1619,6 +1776,21 @@ impl<'a> BuilderForBoxFragment<'a> {
             let layer_index = b.background_image.0.len() - 1;
             let bounds = painter.painting_area(self, builder, layer_index);
             let common = painter.common_properties(self, builder, state, layer_index, bounds);
+            builder.capture_display_list_item(
+                state,
+                bounds,
+                common.clip_rect,
+                if background::get_cyclic(&b.background_attachment.0, layer_index) ==
+                    &BackgroundAttachment::Fixed
+                {
+                    builder.current_reference_frame_scroll_node_id
+                } else {
+                    state.spatial_id
+                },
+                || DisplayListItemContent::SolidColor {
+                    color: display_list_color(&background_color),
+                },
+            );
             builder
                 .wr()
                 .push_rect(&common, bounds, rgba(background_color));
@@ -1735,8 +1907,9 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let node = self.fragment.base.tag.map(|tag| tag.node);
         // Reverse because the property is top layer first, we want to paint bottom layer first.
-        for (index, image) in b.background_image.0.iter().enumerate().rev() {
-            let Ok(resolved_image) = builder.image_resolver.resolve_image(node, image) else {
+        // Bound under a distinct name because `ResolvedImage::Image` shadows `image`.
+        for (index, css_image) in b.background_image.0.iter().enumerate().rev() {
+            let Ok(resolved_image) = builder.image_resolver.resolve_image(node, css_image) else {
                 continue;
             };
             match resolved_image {
@@ -1786,8 +1959,25 @@ impl<'a> BuilderForBoxFragment<'a> {
                             }
                         },
                         ResolvedImage::Color(color) => {
-                            let color = rgba(style.resolve_color(color));
-                            builder.wr().push_rect(&layer.common, layer.bounds, color);
+                            let color = style.resolve_color(color);
+                            builder.capture_display_list_item(
+                                state,
+                                layer.bounds,
+                                layer.common.clip_rect,
+                                if background::get_cyclic(&b.background_attachment.0, index) ==
+                                    &BackgroundAttachment::Fixed
+                                {
+                                    builder.current_reference_frame_scroll_node_id
+                                } else {
+                                    state.spatial_id
+                                },
+                                || DisplayListItemContent::SolidColor {
+                                    color: display_list_color(&color),
+                                },
+                            );
+                            builder
+                                .wr()
+                                .push_rect(&layer.common, layer.bounds, rgba(color));
                         },
                         _ => {},
                     }
@@ -1842,6 +2032,22 @@ impl<'a> BuilderForBoxFragment<'a> {
                     };
 
                     if let Some(layer) = layer {
+                        builder.capture_display_list_item(
+                            state,
+                            layer.bounds,
+                            layer.common.clip_rect,
+                            if background::get_cyclic(&b.background_attachment.0, index) ==
+                                &BackgroundAttachment::Fixed
+                            {
+                                builder.current_reference_frame_scroll_node_id
+                            } else {
+                                state.spatial_id
+                            },
+                            || DisplayListItemContent::Image {
+                                url: image_source_url(css_image),
+                            },
+                        );
+
                         let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
                         if needs_blending {
                             push_stacking_context(builder, layer.blend_mode, Default::default());

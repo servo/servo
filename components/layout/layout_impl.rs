@@ -167,6 +167,10 @@ pub struct LayoutThread {
     /// Whether the last display list we sent was effectively empty.
     last_display_list_was_empty: Cell<bool>,
 
+    /// Whether the last built display list captured an embedder-facing snapshot. Starts
+    /// out `true` so a pipeline joining an existing `WebView` clears its shared captures.
+    display_list_capture_was_enabled: Cell<bool>,
+
     /// Whether a new display list is necessary due to changes to layout or stacking
     /// contexts. This is set to true every time layout changes, even when a display list
     /// isn't requested for this layout, such as for layout queries. The next time a
@@ -806,6 +810,7 @@ impl LayoutThread {
             have_added_user_agent_stylesheets: false,
             have_ever_generated_display_list: Cell::new(false),
             last_display_list_was_empty: Cell::new(true),
+            display_list_capture_was_enabled: Cell::new(true),
             device_has_changed: false,
             need_containing_block_calculation: Cell::new(false),
             need_new_display_list: Cell::new(false),
@@ -1211,6 +1216,7 @@ impl LayoutThread {
             parallelism_job_count_minimum: pref!(layout_parallelism_job_count_minimum) as usize,
             parallelism_job_size_minimum: pref!(layout_parallelism_job_size_minimum) as usize,
             device_size: reflow_request.viewport_details.device_size.cast_unit(),
+            capture_display_list: pref!(layout_display_list_capture_enabled),
         };
 
         let restyle = reflow_request
@@ -1477,7 +1483,7 @@ impl LayoutThread {
             },
         };
 
-        let built_display_list = DisplayListBuilder::build(
+        let (built_display_list, captured_display_list) = DisplayListBuilder::build(
             stacking_context_tree,
             fragment_tree,
             image_resolver.clone(),
@@ -1486,12 +1492,34 @@ impl LayoutThread {
             &self.debug,
             paint_timing_handler,
             reflow_statistics,
+            pref!(layout_display_list_capture_enabled),
+            pref!(layout_text_painting_enabled),
         );
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,
             built_display_list,
         );
+
+        // Deliver the captured display list snapshot to the embedder, if enabled. When
+        // capture has just been disabled, clear the embedder-side retained snapshots so a
+        // later re-enable cannot splice an old subframe into a fresh root capture.
+        match captured_display_list {
+            Some(display_list) => {
+                self.display_list_capture_was_enabled.set(true);
+                let _ = self.embedder_chan.send(EmbedderMsg::DisplayListCaptured(
+                    self.webview_id,
+                    display_list,
+                ));
+            },
+            None => {
+                if self.display_list_capture_was_enabled.replace(false) {
+                    let _ = self
+                        .embedder_chan
+                        .send(EmbedderMsg::DisplayListCaptureCleared(self.webview_id));
+                }
+            },
+        }
 
         if paint_timing_handler.did_lcp_candidate_update() &&
             let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()

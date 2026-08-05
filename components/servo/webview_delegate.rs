@@ -8,11 +8,12 @@ use std::rc::Rc;
 use embedder_traits::{
     AlertResponse, AllowOrDeny, AuthenticationResponse, BluetoothDeviceDescription,
     ConfirmResponse, ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation,
-    ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
-    FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
-    NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
-    SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
-    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
+    ContextMenuItem, Cursor, DisplayList, EmbedderControlId, EmbedderControlResponse,
+    FilePickerRequest, FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus,
+    MediaSessionEvent, NewWebViewDetails, Notification, PermissionFeature, PromptResponse,
+    RgbColor, ScreenGeometry, SelectElementOptionOrOptgroup, SelectElementRequest,
+    SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
+    WebResourceResponseMsg,
 };
 use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::{GenericCallback, GenericSender, SendError};
@@ -1088,6 +1089,17 @@ pub trait WebViewDelegate {
         _tree_update: accesskit::TreeUpdate,
     ) {
     }
+
+    /// A new layout [`DisplayList`] snapshot is available for this [`WebView`].
+    ///
+    /// Delivered after relevant display-list builds in any of the [`WebView`]'s frames,
+    /// once Paint knows the frame tree's root pipeline, when
+    /// `layout_display_list_capture_enabled` is set. Covers the entire frame tree:
+    /// subframe items are spliced in after their `Iframe` items, positioned and
+    /// clipped within the iframe's rectangle. See [`DisplayList`] and
+    /// [`embedder_traits::DisplayListItemSpace`] for item content and coordinate
+    /// details.
+    fn notify_display_list(&self, _webview: WebView, _display_list: DisplayList) {}
 }
 
 pub(crate) struct DefaultWebViewDelegate;

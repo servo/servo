@@ -44,7 +44,7 @@ use script::{JSEngineSetup, ServiceWorkerManager};
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
 pub use servo_base::id::WebViewId;
-use servo_base::id::{EMBEDDER_PIPELINE_NAMESPACE_ID, PipelineNamespace};
+use servo_base::id::{EMBEDDER_PIPELINE_NAMESPACE_ID, PipelineId, PipelineNamespace};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth::BluetoothThreadFactory;
 #[cfg(feature = "bluetooth")]
@@ -81,6 +81,7 @@ use style::global_style_data::StyleThreadPool;
 use webxr::WebXrRegistry;
 
 use crate::clipboard_delegate::StringRequest;
+use crate::display_list_capture::WebViewDisplayListCaptures;
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
@@ -249,6 +250,10 @@ struct ServoInner {
     /// [`InputEventId`]s that have been handled, but for which the embedder has
     /// not been notified yet.
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
+    /// Retained per-pipeline display-list captures for each `WebView`, used to compose
+    /// the frame-tree-wide snapshots delivered via
+    /// [`WebViewDelegate::notify_display_list`].
+    display_list_captures: RefCell<FxHashMap<WebViewId, WebViewDisplayListCaptures>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
 }
@@ -259,6 +264,79 @@ impl ServoInner {
             .borrow()
             .get(&id)
             .and_then(WebView::from_weak_handle)
+    }
+
+    /// Integrate a newly captured per-pipeline [`DisplayList`] and deliver a composed,
+    /// frame-tree-wide snapshot to the `WebView`'s delegate once one is available.
+    fn handle_display_list_captured(&self, webview_id: WebViewId, display_list: DisplayList) {
+        let Some(webview) = self.get_webview_handle(webview_id) else {
+            self.display_list_captures.borrow_mut().remove(&webview_id);
+            return;
+        };
+
+        let root_pipeline_id = self.paint.borrow().root_pipeline_id(webview_id);
+        let composed_display_list = self
+            .display_list_captures
+            .borrow_mut()
+            .entry(webview_id)
+            .or_default()
+            .update(display_list, root_pipeline_id);
+        if let Some(display_list) = composed_display_list {
+            webview
+                .delegate()
+                .notify_display_list(webview, display_list);
+        }
+    }
+
+    fn clear_display_list_captures(&self, webview_id: WebViewId) {
+        self.display_list_captures.borrow_mut().remove(&webview_id);
+    }
+
+    fn remove_display_list_capture_pipeline(&self, webview_id: WebViewId, pipeline_id: PipelineId) {
+        let mut captures_by_webview = self.display_list_captures.borrow_mut();
+        let is_empty = {
+            let Some(captures) = captures_by_webview.get_mut(&webview_id) else {
+                return;
+            };
+            captures.remove_pipeline(pipeline_id);
+            captures.is_empty()
+        };
+        if is_empty {
+            captures_by_webview.remove(&webview_id);
+        }
+    }
+
+    /// Compose retained captures once Paint has applied any pending frame-tree update.
+    fn refresh_display_list_captures(&self) {
+        let roots: Vec<_> = {
+            let paint = self.paint.borrow();
+            self.display_list_captures
+                .borrow()
+                .keys()
+                .copied()
+                .map(|webview_id| (webview_id, paint.root_pipeline_id(webview_id)))
+                .collect()
+        };
+        let mut deliveries = Vec::new();
+        let mut captures = self.display_list_captures.borrow_mut();
+        for (webview_id, root_pipeline_id) in roots {
+            let Some(webview) = self.get_webview_handle(webview_id) else {
+                captures.remove(&webview_id);
+                continue;
+            };
+            if let Some(display_list) = captures
+                .get_mut(&webview_id)
+                .and_then(|captures| captures.refresh(root_pipeline_id))
+            {
+                deliveries.push((webview, display_list));
+            }
+        }
+        drop(captures);
+        for (webview, display_list) in deliveries {
+            webview
+                .delegate()
+                .notify_display_list(webview, display_list);
+        }
     }
 
     #[servo_tracing::instrument(level = "debug", skip_all)]
@@ -278,8 +356,14 @@ impl ServoInner {
                     },
                 }
             }
+            for message in &messages {
+                if let PaintMessage::PipelineExited(webview_id, pipeline_id, _) = message {
+                    self.remove_display_list_capture_pipeline(*webview_id, *pipeline_id);
+                }
+            }
             paint.handle_messages(messages);
         }
+        self.refresh_display_list_captures();
 
         let mut selector = EmbedderMessageSelector::new(
             &self.embedder_receiver,
@@ -744,6 +828,12 @@ impl ServoInner {
                     webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
+            EmbedderMsg::DisplayListCaptured(webview_id, display_list) => {
+                self.handle_display_list_captured(webview_id, display_list);
+            },
+            EmbedderMsg::DisplayListCaptureCleared(webview_id) => {
+                self.clear_display_list_captures(webview_id);
+            },
         }
     }
 
@@ -771,6 +861,7 @@ impl ServoInner {
                 }
             },
             ConstellationToEmbedderMsg::WebViewClosed(webview_id) => {
+                self.clear_display_list_captures(webview_id);
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview.delegate().notify_closed(webview);
                 }
@@ -1027,6 +1118,7 @@ impl Servo {
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
             pending_handled_input_events: Default::default(),
+            display_list_captures: Default::default(),
             event_loop_waker,
         }))
     }
@@ -1083,6 +1175,10 @@ impl Servo {
         let mut preferences = prefs::get().clone();
         preferences.set_value(name, value);
         prefs::set(preferences);
+    }
+
+    pub(crate) fn clear_display_list_captures(&self, webview_id: WebViewId) {
+        self.0.clear_display_list_captures(webview_id);
     }
 
     pub fn network_manager<'a>(&'a self) -> Ref<'a, NetworkManager> {

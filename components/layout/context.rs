@@ -61,6 +61,11 @@ pub(crate) struct LayoutContext<'a> {
 
     /// The device dimensions on which this layout is running, in device pixels.
     pub device_size: Size2D<f32, DevicePixel>,
+
+    /// When TRUE, each [`crate::fragment_tree::TextFragment`] retains its source
+    /// text so that a [`embedder_traits::DisplayList`] can be captured during
+    /// display-list construction. A mirror of `layout_display_list_capture_enabled`
+    pub capture_display_list: bool,
 }
 
 impl LayoutContext<'_> {
