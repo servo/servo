@@ -3174,8 +3174,7 @@ dependencies = [
 [[package]]
 name = "glifo"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed4a1bb24121291d27230c1b1b44e07d6a9b28cefdb32fe1581dfb84e14f940a"
+source = "git+https://github.com/linebender/vello?rev=2a3e7dd6e7f9307a013681026e75d508ebd0d368#2a3e7dd6e7f9307a013681026e75d508ebd0d368"
 dependencies = [
  "bytemuck",
  "foldhash 0.2.0",
@@ -10982,8 +10981,7 @@ dependencies = [
 [[package]]
 name = "vello_common"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2e9aed918117e8152c9eddfd8362d73c465c23f26c44786aa331707b8a64fa2"
+source = "git+https://github.com/linebender/vello?rev=2a3e7dd6e7f9307a013681026e75d508ebd0d368#2a3e7dd6e7f9307a013681026e75d508ebd0d368"
 dependencies = [
  "bytemuck",
  "fearless_simd 0.4.1",
@@ -11009,8 +11007,7 @@ dependencies = [
 [[package]]
 name = "vello_cpu"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac7349e1f55f6b801c7c277958df4ea53e7f20f21e8014910ad888b2ecda93ea"
+source = "git+https://github.com/linebender/vello?rev=2a3e7dd6e7f9307a013681026e75d508ebd0d368#2a3e7dd6e7f9307a013681026e75d508ebd0d368"
 dependencies = [
  "bytemuck",
  "crossbeam-channel",
