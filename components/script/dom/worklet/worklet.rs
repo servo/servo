@@ -155,28 +155,20 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         };
         debug!("Adding Worklet module {}.", module_url_record);
 
-        // Step 5. Let workletInstance be this.
-
-        // Step 6. Run the following steps in parallel:
-
-        // Step 6.1. If workletInstance's global scopes is empty:
-
-        // Step 6.1.1. Create a worklet global scope given workletInstance.
-
-        // Step 6.1.2. Optionally, create additional global scope instances given workletInstance, depending on the specific worklet in question and its specification.
-
-        // Step 6.1.3. Wait for all steps of the creation process(es) — including those taking place within the worklet agents — to complete, before moving on.
-
-        // NOTE: Step 6 is implemented by WorkletThread's run method.
-        // Step 6.1, Step 6.1.1, and Step 6.1.3 are implemented in the `get_worklet_global_scope` method.
-
         let global_scope = self.window.as_global_scope();
 
-        // Step 6.2. Let pendingTasks be workletInstance's global scopes's size.
         let pending_tasks_struct = PendingTasksStruct::new();
 
-        // Step 6.3. Let addedSuccessfully be false.
+        // NOTE: The following steps are split between `WorkletThread::get_worklet_global_scope` and `WorkledThread::fetch_and_invoke_a_worklet_script` methods:
+        // Step 5. Let workletInstance be this.
+        // Step 6. Run the following steps in parallel:
+        // Step 6.1. If workletInstance's global scopes is empty:
+        // Step 6.1.1. Create a worklet global scope given workletInstance.
+        // Step 6.1.2. Optionally, create additional global scope instances given workletInstance, depending on the specific worklet in question and its specification.
+        // Step 6.1.3. Wait for all steps of the creation process(es) — including those taking place within the worklet agents — to complete, before moving on.
+        // Step 6.2. Let pendingTasks be workletInstance's global scopes's size.
 
+        // Step 6.3. Let addedSuccessfully be false.
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
         // <https://html.spec.whatwg.org/multipage/#concept-worklet-added-modules-list>
 
@@ -606,7 +598,7 @@ impl WorkletThread {
                     self.process_control(control, cx);
                 }
 
-                for (_, worklet_global_scope) in self.global_scopes.iter() {
+                for worklet_global_scope in self.global_scopes.values() {
                     worklet_global_scope.perform_a_microtask_checkpoint(cx);
                 }
 

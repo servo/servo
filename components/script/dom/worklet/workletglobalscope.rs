@@ -64,6 +64,7 @@ pub(crate) struct WorkletGlobalScope {
     task_manager: Rc<TaskManager>,
 
     /// The "microtask queue" for this WorkletGlobalScope's event loop.
+    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     #[conditional_malloc_size_of]
     microtask_queue: Rc<MicrotaskQueue>,
 
