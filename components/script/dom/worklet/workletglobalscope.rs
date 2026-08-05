@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
+use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
+use embedder_traits::ScriptToEmbedderChan;
 use js::context::JSContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
@@ -33,8 +34,10 @@ use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
+use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
+use crate::task::TaskCanceller;
+use crate::task_manager::TaskManager;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -55,10 +58,23 @@ pub(crate) struct WorkletGlobalScope {
 
     #[no_trace]
     origin: MutableOrigin,
+
+    /// The [`TaskManager`] for this [`WorkletGlobalScope`].
+    #[conditional_malloc_size_of]
+    task_manager: Rc<TaskManager>,
+
+    /// The "microtask queue" for this WorkletGlobalScope's event loop.
+    /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
+    #[conditional_malloc_size_of]
+    microtask_queue: Rc<MicrotaskQueue>,
+
+    #[conditional_malloc_size_of]
+    closing: Arc<AtomicBool>,
 }
 
 impl WorkletGlobalScope {
     /// Create a new heap-allocated `WorkletGlobalScope`.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
         pipeline_id: PipelineId,
@@ -67,6 +83,8 @@ impl WorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        closing: Arc<AtomicBool>,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
@@ -77,14 +95,18 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
+                closing,
+                microtask_queue,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
+                cx,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,
                 executor,
                 init,
-                cx,
+                closing,
+                microtask_queue,
             )),
         };
 
@@ -102,7 +124,11 @@ impl WorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        closing: Arc<AtomicBool>,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> Self {
+        let script_event_loop_sender = executor.event_loop_sender();
+
         Self {
             globalscope: GlobalScope::new_inherited(
                 init.devtools_chan.clone(),
@@ -124,7 +150,16 @@ impl WorkletGlobalScope {
             to_script_thread_sender: init.to_script_thread_sender.clone(),
             executor,
             pipeline_id,
+            task_manager: Rc::new(TaskManager::new(
+                Some(script_event_loop_sender),
+                pipeline_id,
+                Some(TaskCanceller {
+                    cancelled: closing.clone(),
+                }),
+            )),
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
+            microtask_queue,
+            closing,
         }
     }
 
@@ -134,25 +169,6 @@ impl WorkletGlobalScope {
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
-    }
-
-    /// Evaluate a JS script in this global.
-    pub(crate) fn evaluate_js(
-        &self,
-        script: Cow<'_, str>,
-        cx: &mut JSContext,
-    ) -> Result<(), JavaScriptEvaluationError> {
-        let mut realm = enter_auto_realm(cx, self);
-        let cx = &mut realm.current_realm();
-
-        debug!("Evaluating Dom in a worklet.");
-        self.globalscope.evaluate_js_on_global(
-            cx,
-            script,
-            "",
-            Some(IntroductionType::WORKLET),
-            None,
-        )
     }
 
     /// Register a paint worklet to the script thread.
@@ -194,6 +210,17 @@ impl WorkletGlobalScope {
                 Some(global) => global.perform_a_worklet_task(cx, task),
                 None => warn!("This is not a paint worklet."),
             },
+        }
+    }
+
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.task_manager.clone()
+    }
+
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
+        if !self.closing.load(Ordering::SeqCst) {
+            self.microtask_queue
+                .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
         }
     }
 }

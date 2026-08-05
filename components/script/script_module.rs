@@ -75,6 +75,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::{
     Console, DedicatedWorkerGlobalScope, SharedWorkerGlobalScope, WorkerGlobalScope,
+    WorkletGlobalScope,
 };
 use crate::dom::window::Window;
 use crate::module_loading::{
@@ -703,7 +704,9 @@ impl FetchResponseListener for ModuleContext {
         let global = self.owner.root();
         let (_url, module_type) = &self.module_request;
 
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        if !global.is::<WorkletGlobalScope>() {
+            network_listener::submit_timing(cx, &self, &response, &timing);
+        }
 
         let module_map = global.module_map();
 
@@ -1167,7 +1170,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
 #[expect(clippy::too_many_arguments)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
-pub(crate) fn fetch_a_module_worker_script_graph(
+pub(crate) fn fetch_a_module_script_graph(
     cx: &mut JSContext,
     global: &GlobalScope,
     url: UrlWithBlobClaim,
@@ -1175,6 +1178,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
     destination: Destination,
     referrer: Referrer,
     credentials_mode: CredentialsMode,
+    introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
     let global_scope = DomRoot::from_ref(global);
@@ -1204,7 +1208,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         referrer,
         None,
         true,
-        Some(IntroductionType::WORKER),
+        introduction_type,
         move |cx, module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.

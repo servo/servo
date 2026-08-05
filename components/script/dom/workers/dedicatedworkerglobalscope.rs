@@ -58,9 +58,9 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
-use crate::script_module::fetch_a_module_worker_script_graph;
+use crate::script_module::fetch_a_module_script_graph;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{Runtime, ThreadSafeJSContext};
+use crate::script_runtime::{IntroductionType, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -526,7 +526,7 @@ impl DedicatedWorkerGlobalScope {
                         },
                         WorkerType::Module => {
                             let worker_scope = DomRoot::from_ref(scope);
-                            fetch_a_module_worker_script_graph(
+                            fetch_a_module_script_graph(
                                 cx,
                                 global_scope,
                                 worker_url,
@@ -534,6 +534,7 @@ impl DedicatedWorkerGlobalScope {
                                 Destination::Worker,
                                 referrer,
                                 credentials,
+                                Some(IntroductionType::WORKER),
                                 move |cx, module_tree| {
                                     worker_scope.on_complete(cx, module_tree.map(Script::Module));
                                 },

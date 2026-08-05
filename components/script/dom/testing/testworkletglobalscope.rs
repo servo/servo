@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
@@ -19,6 +22,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
+use crate::microtask::MicrotaskQueue;
 
 // check-tidy: no specs after this line
 
@@ -31,6 +35,7 @@ pub(crate) struct TestWorkletGlobalScope {
 }
 
 impl TestWorkletGlobalScope {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         pipeline_id: PipelineId,
         base_url: ServoUrl,
@@ -38,11 +43,14 @@ impl TestWorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        closing: Arc<AtomicBool>,
+        microtask_queue: Rc<MicrotaskQueue>,
     ) -> DomRoot<TestWorkletGlobalScope> {
         debug!(
             "Creating test worklet global scope for pipeline {}.",
             pipeline_id
         );
+
         let global = Box::new(TestWorkletGlobalScope {
             worklet_global: WorkletGlobalScope::new_inherited(
                 pipeline_id,
@@ -50,6 +58,8 @@ impl TestWorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                closing,
+                microtask_queue,
             ),
             lookup_table: Default::default(),
         });

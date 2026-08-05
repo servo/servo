@@ -2928,6 +2928,8 @@ impl GlobalScope {
             worker.task_manager()
         } else if let Some(window) = self.downcast::<Window>() {
             window.task_manager()
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.task_manager()
         } else {
             unreachable!("Attempted to use task manager with unsupported global");
         }
@@ -3082,6 +3084,8 @@ impl GlobalScope {
             window.perform_a_microtask_checkpoint(cx);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.perform_a_microtask_checkpoint(cx);
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.perform_a_microtask_checkpoint(cx);
         }
     }
 
