@@ -150,6 +150,7 @@ use servo_base::id::{
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
     ScriptEventLoopId, WebViewId,
 };
+use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_base::{Epoch, generic_channel};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
@@ -628,7 +629,7 @@ where
         thread::Builder::new()
             .name("Constellation".to_owned())
             .spawn(move || {
-                servo_base::threadboost::mark_thread_as_critical();
+                servo_base::threadboost::boost_thread(ThreadPriority::Elevated, BoostAffinity::Boost);
                 let (script_ipc_sender, script_ipc_receiver) =
                     generic_channel::channel().expect("ipc channel failure");
                 let script_receiver = script_ipc_receiver.route_preserving_errors();

@@ -85,6 +85,7 @@ use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId, WebViewId,
 };
+use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_base::{Epoch, generic_channel};
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
@@ -503,7 +504,10 @@ impl ScriptThreadFactory for ScriptThread {
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(Rc::as_ptr(&script_thread)));
                 });
-                servo_base::threadboost::mark_thread_as_critical();
+                servo_base::threadboost::boost_thread(
+                    ThreadPriority::Critical,
+                    BoostAffinity::Boost,
+                );
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
                 memory_profiler_sender.run_with_memory_reporting(

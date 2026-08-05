@@ -33,6 +33,7 @@ use servo_base::Epoch;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
 use servo_base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use servo_geometry::DeviceIndependentPixel;
@@ -215,7 +216,12 @@ impl Painter {
             rayon::ThreadPoolBuilder::new()
                 .num_threads(worker_threads)
                 .thread_name(|idx| format!("WRWorker#{}", idx))
-                .start_handler(|_| servo_base::threadboost::mark_thread_as_critical())
+                .start_handler(|_| {
+                    servo_base::threadboost::boost_thread(
+                        ThreadPriority::Elevated,
+                        BoostAffinity::Boost,
+                    )
+                })
                 .build()
                 .expect("Unable to initialize WebRender worker pool."),
         ));
@@ -1608,13 +1614,13 @@ struct BoostWebRenderThread;
 
 impl RenderBackendHooks for BoostWebRenderThread {
     fn init_thread(&self) {
-        servo_base::threadboost::mark_thread_as_critical();
+        servo_base::threadboost::boost_thread(ThreadPriority::Elevated, BoostAffinity::Boost);
     }
 }
 
 impl SceneBuilderHooks for BoostWebRenderThread {
     fn register(&self) {
-        servo_base::threadboost::mark_thread_as_critical();
+        servo_base::threadboost::boost_thread(ThreadPriority::Elevated, BoostAffinity::Boost);
     }
 
     fn pre_scene_build(&self) {}
