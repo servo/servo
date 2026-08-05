@@ -22,7 +22,7 @@ use style::values::computed::{
 };
 use webrender_api::FontVariation;
 
-/// Used to dynamically query fonts used in SVGs and insert them into the fontDB that [`ImageCacheImpl`] via usvg_options.
+/// Used to dynamically query fonts used in SVGs and insert them into the fontDB used when rasterizing.
 pub struct SvgFontResolver {
     /// Cache for Font to ID
     font_id_cache: Mutex<FxHashMap<Font, fontdb::ID>>,
