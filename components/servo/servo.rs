@@ -1001,10 +1001,6 @@ impl Servo {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
 
-        // Note: This marks the embedder thread as critical, we'll want to
-        // evaluate that in the future.
-        servo_base::threadboost::mark_thread_as_critical();
-
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             paint,
