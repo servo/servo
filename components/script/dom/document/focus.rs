@@ -398,12 +398,8 @@ impl DocumentFocusHandler {
             // Step 2.4: If blur event target is not null, fire a focus event named blur at
             // blur event target, with related blur target as the related target.
             if let Some(blur_event_target) = blur_event_target {
-                // According to https://w3c.github.io/uievents/#focusout,
-                // "Blur" must be fired before "FocusOut".
-                // "A user agent MUST dispatch this event when an event target loses focus.
-                // The event target MUST be the element which lost focus. The blur event MUST fire before the dispatch of this event type.
-                // This event type is similar to blur, but does bubble."
-                // "This event" refers to "focusout" in this context.
+                // <https://w3c.github.io/uievents/#focusout>
+                // "blur" must be fired before "focusout".
                 self.fire_focus_event(
                     cx,
                     FocusEventType::Blur,
@@ -488,12 +484,8 @@ impl DocumentFocusHandler {
             // Step 4.4: If focus event target is not null, fire a focus event named focus at
             // focus event target, with related focus target as the related target.
             if let Some(focus_event_target) = focus_event_target {
-                // According to https://w3c.github.io/uievents/#focusin,
-                // "Focus" must be fired before "FocusIn".
-                // "A user agent MUST dispatch this event when an event target receives focus.
-                // The event target MUST be the element which received focus. The focus event MUST fire before the dispatch of this event type.
-                // This event type is similar to focus, but does bubble."
-                // "This event" refers to "focusin" in this context.
+                // <https://w3c.github.io/uievents/#focusin>
+                // "focus" must be fired before "focusIn".
                 self.fire_focus_event(
                     cx,
                     FocusEventType::Focus,
