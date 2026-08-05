@@ -16,7 +16,7 @@ use servo_canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
 };
-use vello_cpu::{kurbo, peniko};
+use vello_cpu::{RenderSettings, kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 
 use crate::backend::{Convert, GenericDrawTarget};
@@ -146,13 +146,32 @@ impl VelloCPUDrawTarget {
     }
 }
 
+fn worker_thread_count(size: &Size2D<u16>) -> u16 {
+    // TODO: Somewhat arbitrary chosen, should be based on a benchmark,
+    // measuring where we start to benefit from multithreading
+    const SMALL_CANVAS_SIZE: u32 = 512 * 512;
+    // For small sizes single-threaded is better.
+    if u32::from(size.width) * u32::from(size.height) < SMALL_CANVAS_SIZE {
+        0
+    } else {
+        // <https://github.com/linebender/vello/blob/c95b228e1cf73bf96338e8c8ae0d145553f8f99c/sparse_strips/vello_cpu/examples/basic.rs#L51>
+        // According to this example 2-4 give the best results.
+        3
+    }
+}
+
 impl GenericDrawTarget for VelloCPUDrawTarget {
     type SourceSurface = Arc<vello_cpu::Pixmap>;
 
     fn new(size: Size2D<u32>) -> Self {
         let size = size.cast();
+        let settings = RenderSettings {
+            num_threads: worker_thread_count(&size),
+            ..Default::default()
+        };
+        let ctx = vello_cpu::RenderContext::new_with(size.width, size.height, settings);
         Self {
-            ctx: vello_cpu::RenderContext::new(size.width, size.height),
+            ctx,
             resources: vello_cpu::Resources::new(),
             pixmap: vello_cpu::Pixmap::new(size.width, size.height),
             clips: Vec::new(),
