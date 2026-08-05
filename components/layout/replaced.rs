@@ -140,6 +140,7 @@ pub(crate) struct ImageInfo {
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
     pub image_key: Option<ImageKey>,
+    pub poster_url: Option<ServoUrl>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -549,7 +550,7 @@ impl ReplacedContents {
                     clip,
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
-                    url: None,
+                    url: video_info.poster_url.clone(),
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {

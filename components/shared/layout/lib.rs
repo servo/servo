@@ -223,7 +223,7 @@ pub struct PendingImage {
     pub is_internal_request: InternalRequest,
 }
 
-/// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG
+/// A data structure to track vector image that are fully loaded (i.e has a parsed SVG
 /// tree) but not yet rasterized to the size needed by layout. The rasterization is
 /// happening in the image cache.
 #[derive(Debug)]
@@ -248,6 +248,7 @@ pub struct MediaMetadata {
 pub struct HTMLMediaData {
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
+    pub poster_url: Option<ServoUrl>,
 }
 
 pub struct LayoutConfig {
