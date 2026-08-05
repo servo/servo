@@ -818,7 +818,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
         let font_resolver = usvg::FontResolver {
             select_font: Box::new(move |font, database| font_resolver.resolve(font, database)),
             select_fallback: Box::new(move |char, ids, database| {
-                font_resolver2.backup_resolve(char, ids, database)
+                font_resolver2.resolve_fallback(char, ids, database)
             }),
         };
 

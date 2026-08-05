@@ -26,7 +26,7 @@ use webrender_api::FontVariation;
 pub struct SvgFontResolver {
     /// Cache for Font to ID
     font_id_cache: Mutex<FxHashMap<Font, fontdb::ID>>,
-    fallback_id_cache: Mutex<FxHashMap<char, fontdb::ID>>,
+    fallback_id_cache: Mutex<FxHashMap<char, Vec<fontdb::ID>>>,
     context: Arc<FontContext>,
 }
 
@@ -164,7 +164,7 @@ impl FontResolver for SvgFontResolver {
         self.insert_into_database(font, database)
     }
 
-    fn backup_resolve(
+    fn resolve_fallback(
         &self,
         character: char,
         excluded: &[fontdb::ID],
@@ -172,7 +172,10 @@ impl FontResolver for SvgFontResolver {
     ) -> Option<fontdb::ID> {
         {
             let id_cache = self.fallback_id_cache.lock().unwrap();
-            if let Some(font_id) = id_cache.get(&character) {
+            if let Some(font_id) = id_cache
+                .get(&character)
+                .and_then(|font_ids| font_ids.iter().find(|font_id| !excluded.contains(font_id)))
+            {
                 return Some(*font_id);
             }
         }
@@ -216,10 +219,13 @@ impl FontResolver for SvgFontResolver {
                     continue;
                 }
 
-                if let Some(id) = ids.get(data_and_index.index as usize).copied() {
-                    self.fallback_id_cache.lock().unwrap().insert(character, id);
-                    return Some(id);
-                }
+                self.fallback_id_cache
+                    .lock()
+                    .unwrap()
+                    .entry(character)
+                    .or_default()
+                    .push(*id);
+                return Some(*id);
             }
         }
         None

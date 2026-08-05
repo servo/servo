@@ -31,11 +31,11 @@ pub trait FontResolver: Sync + Send {
     /// Adding new fonts to the database is allowed. Return an index into the database
     /// if the font resolves to an entry, otherwise return None.
     fn resolve(&self, font: &Font, database: &mut Arc<fontdb::Database>) -> Option<fontdb::ID>;
-    /// Backup resolve.
-    fn backup_resolve(
+    /// Backup resolve. Find a font that can represent `char` and is not in `excluded`.
+    fn resolve_fallback(
         &self,
         char: char,
-        ids: &[fontdb::ID],
+        excluded: &[fontdb::ID],
         database: &mut Arc<fontdb::Database>,
     ) -> Option<fontdb::ID>;
 }

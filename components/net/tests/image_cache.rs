@@ -33,7 +33,7 @@ impl FontResolver for DummyFontResolver {
         None
     }
 
-    fn backup_resolve(
+    fn resolve_fallback(
         &self,
         _: char,
         _: &[fontdb::ID],
