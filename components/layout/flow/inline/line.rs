@@ -24,7 +24,9 @@ use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxT
 use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
 use crate::cell::ArcRefCell;
 use crate::flow::inline::text_run::FontAndScriptInfo;
-use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
+use crate::fragment_tree::{
+    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, TextFragment,
+};
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize, ToLogical,
     ToLogicalWithContainingBlock,
@@ -579,6 +581,9 @@ impl LineItemLayout<'_, '_> {
             margin.to_physical(containing_block_writing_mode),
             None, /* specific_layout_info */
         );
+        if self.for_block_level {
+            fragment.base.flags.insert(FragmentFlags::DO_NOT_PAINT);
+        }
 
         let offset_from_parent_ifc = LogicalVec2 {
             inline: pbm_sums.inline_start + self.current_state.inline_advance,
