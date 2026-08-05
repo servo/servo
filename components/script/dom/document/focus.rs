@@ -543,6 +543,7 @@ impl DocumentFocusHandler {
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
+        event.set_composed(true);
         event.fire(cx, event_target);
     }
 
