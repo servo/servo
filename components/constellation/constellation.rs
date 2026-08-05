@@ -1305,9 +1305,6 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_background_hang_monitor(&self, message: HangMonitorAlert) {
         match message {
-            HangMonitorAlert::Profile(bytes) => self
-                .constellation_to_embedder_proxy
-                .send(ConstellationToEmbedderMsg::ReportProfile(bytes)),
             HangMonitorAlert::Hang(hang) => {
                 // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
                 // via the embedder?
