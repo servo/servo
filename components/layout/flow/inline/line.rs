@@ -9,6 +9,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use fonts::ShapedTextSlice;
 use itertools::Either;
+use servo_base::text::Utf32CodeUnits;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -965,7 +966,7 @@ pub(super) struct TextRunLineItem {
     pub text: Vec<Arc<ShapedTextSlice>>,
     /// The range of characters this [`TextRunLineItem`] represents within the text of its
     /// original DOM node (modified by text transformation).
-    pub character_range_in_dom_node: Range<usize>,
+    pub character_range_in_dom_node: Range<Utf32CodeUnits>,
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,

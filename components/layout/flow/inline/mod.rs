@@ -100,6 +100,7 @@ use line::{
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_base::text::Utf32CodeUnits;
 use style::Zero;
 use style::computed_values::line_break::T as LineBreak;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
@@ -1632,7 +1633,7 @@ impl InlineFormattingContextLayout<'_> {
         glyph_store: Arc<ShapedTextSlice>,
         text_run: &TextRun,
         info: &FontAndScriptInfo,
-        character_range: Range<usize>,
+        character_range: Range<Utf32CodeUnits>,
     ) {
         let inline_advance = glyph_store.total_advance();
         let flags = if glyph_store.is_whitespace() {
@@ -1723,8 +1724,8 @@ impl InlineFormattingContextLayout<'_> {
                 text_fragment_run_data: caret_placeholder.run_data,
                 base_fragment_info: BaseFragmentInfo::anonymous(),
                 info: FontAndScriptInfo::simple_for_font(font),
-                character_range_in_dom_node: caret_placeholder.character_index..
-                    caret_placeholder.character_index + 1,
+                character_range_in_dom_node: Utf32CodeUnits(caret_placeholder.character_index)..
+                    Utf32CodeUnits(caret_placeholder.character_index + 1),
                 is_empty_for_text_cursor: true,
             },
         ));
