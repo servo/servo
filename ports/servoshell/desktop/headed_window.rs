@@ -9,9 +9,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::env;
 use std::rc::Rc;
-use std::time::Duration;
 
 use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
@@ -341,20 +339,6 @@ impl HeadedWindow {
         ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
-            })
-            .shortcut(CMD_OR_CONTROL, 'P', || {
-                let rate = env::var("SAMPLING_RATE")
-                    .ok()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(10);
-                let duration = env::var("SAMPLING_DURATION")
-                    .ok()
-                    .and_then(|s| s.parse().ok())
-                    .unwrap_or(10);
-                active_webview.toggle_sampling_profiler(
-                    Duration::from_millis(rate),
-                    Duration::from_secs(duration),
-                );
             })
             .shortcut(CMD_OR_CONTROL, 'X', || {
                 active_webview

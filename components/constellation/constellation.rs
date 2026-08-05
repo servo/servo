@@ -1415,11 +1415,6 @@ where
             EmbedderToConstellationMessage::RefreshCursor(pipeline_id) => {
                 self.handle_refresh_cursor(pipeline_id)
             },
-            EmbedderToConstellationMessage::ToggleProfiler(rate, max_duration) => {
-                self.send_message_to_all_background_hang_monitors(
-                    BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration),
-                );
-            },
             EmbedderToConstellationMessage::ExitFullScreen(webview_id) => {
                 self.handle_exit_fullscreen_msg(webview_id);
             },
