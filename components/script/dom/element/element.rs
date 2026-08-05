@@ -1024,9 +1024,18 @@ impl Element {
         cx: &mut JSContext,
         document: &Document,
     ) -> DomRoot<Range> {
-        self.ensure_rare_data(cx.no_gc())
-            .contenteditable_selection_range
-            .or_init(|| Range::new_with_doc(cx, document, None))
+        let Some(selection_range) = self
+            .rare_data()
+            .as_ref()
+            .and_then(|data| data.contenteditable_selection_range.get())
+        else {
+            let range = Range::new_with_doc(cx, document, None);
+            self.ensure_rare_data(cx.no_gc())
+                .contenteditable_selection_range
+                .set(Some(&*range));
+            return range;
+        };
+        selection_range
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
@@ -2752,13 +2761,15 @@ impl Element {
     }
 
     pub(crate) fn ensure_element_internals(&self, cx: &mut JSContext) -> DomRoot<ElementInternals> {
-        let mut rare_data = self.ensure_rare_data(cx.no_gc());
-        DomRoot::from_ref(rare_data.element_internals.get_or_insert_with(|| {
+        let Some(element_internals) = self.get_element_internals() else {
             let elem = self
                 .downcast::<HTMLElement>()
                 .expect("ensure_element_internals should only be called for an HTMLElement");
-            Dom::from_ref(&*ElementInternals::new(cx, elem))
-        }))
+            let internals = ElementInternals::new(cx, elem);
+            self.ensure_rare_data(cx.no_gc()).element_internals = Some(Dom::from_ref(&*internals));
+            return internals;
+        };
+        element_internals
     }
 
     pub(crate) fn outer_html(&self, cx: &mut JSContext) -> Fallible<DOMString> {
@@ -4543,9 +4554,12 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
     fn Part(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
-        self.ensure_rare_data(cx.no_gc())
-            .part
-            .or_init(|| DOMTokenList::new(cx, self, &local_name!("part"), None))
+        let Some(part) = self.rare_data().as_ref().and_then(|data| data.part.get()) else {
+            let part = DOMTokenList::new(cx, self, &local_name!("part"), None);
+            self.ensure_rare_data(cx.no_gc()).part.set(Some(&*part));
+            return part;
+        };
+        part
     }
 
     /// <https://drafts.csswg.org/web-animations-1/#dom-animatable-animate>
