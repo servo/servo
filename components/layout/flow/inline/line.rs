@@ -21,10 +21,8 @@ use unicode_bidi::{BidiInfo, Level};
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
-use crate::flow::inline::text_run::FontAndScriptInfo;
-use crate::fragment_tree::{
-    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment, TextFragmentRunData,
-};
+use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
+use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize, ToLogical,
     ToLogicalWithContainingBlock,
@@ -708,7 +706,7 @@ impl LineItemLayout<'_, '_> {
                     font_key,
                     glyphs: text_item.text,
                     justification_adjustment: self.justification_adjustment,
-                    character_range: text_item.character_range,
+                    character_range_in_dom_node: text_item.character_range_in_dom_node,
                     is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
                 })),
                 content_rect,
@@ -961,13 +959,13 @@ impl LineItem {
 }
 
 pub(super) struct TextRunLineItem {
-    pub text_fragment_run_data: Arc<TextFragmentRunData>,
+    pub text_fragment_run_data: Arc<SharedTextRunData>,
     pub info: FontAndScriptInfo,
     pub base_fragment_info: BaseFragmentInfo,
     pub text: Vec<Arc<ShapedTextSlice>>,
     /// The range of characters this [`TextRunLineItem`] represents within the text of its
     /// original DOM node (modified by text transformation).
-    pub character_range: Range<usize>,
+    pub character_range_in_dom_node: Range<usize>,
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,

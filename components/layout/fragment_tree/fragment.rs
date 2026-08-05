@@ -9,7 +9,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, ShapedTextSlice};
-use layout_api::{BoxAreaType, SharedSelection};
+use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::PipelineId;
@@ -26,7 +26,7 @@ use super::{
 };
 use crate::SharedStyle;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
-use crate::flow::inline::SharedInlineStyles;
+use crate::flow::inline::text_run::SharedTextRunData;
 use crate::fragment_tree::FragmentStatus;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::layout_impl::LayoutThread;
@@ -90,29 +90,11 @@ impl LayoutRootFragment {
     }
 }
 
-/// A data structure that holds per-`TextRun` data used on `TextFragment`s.
-/// This ensures that the data is not duplicated between fragments.
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextFragmentRunData {
-    /// The [`crate::SharedStyle`] from this `TextRun`'s parent element. This is
-    /// shared so that incremental layout can simply update the parent element and
-    /// this [`TextRun`] will be updated automatically.
-    pub inline_styles: SharedInlineStyles,
-    /// The range of characters in this text in `InlineFormattingContext::text_content`
-    /// of the `InlineFormattingContext` that owns this `TextRun`. These are counting
-    /// `char`s, *not* UTF-8 offsets.
-    pub character_range: Range<usize>,
-    /// The selected text in this `TextRun`. This may either be document selection or form control
-    /// selection.
-    #[conditional_malloc_size_of]
-    pub selection: Option<SharedSelection>,
-}
-
 #[derive(MallocSizeOf)]
 pub(crate) struct TextFragment {
     pub base: BaseFragment,
     #[conditional_malloc_size_of]
-    pub run_data: Arc<TextFragmentRunData>,
+    pub run_data: Arc<SharedTextRunData>,
     #[conditional_malloc_size_of]
     pub font_metrics: Arc<FontMetrics>,
     pub font_key: FontInstanceKey,
@@ -122,7 +104,7 @@ pub(crate) struct TextFragment {
     pub justification_adjustment: Au,
     /// The range of characters this [`TextFragment`] represents within the text of its
     /// original DOM node (modified by text transformation).
-    pub character_range: Range<usize>,
+    pub character_range_in_dom_node: Range<usize>,
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
@@ -421,20 +403,22 @@ impl Fragment {
         if let Some(base) = self.base() {
             base.set_status(FragmentStatus::StyleChanged);
         }
-        self.with_shared_style(|style| *style.borrow_mut() = new_style.clone());
-    }
 
-    fn with_shared_style(&self, callback: impl FnOnce(&SharedStyle)) {
-        match self {
-            Fragment::LayoutRoot(fragment) => callback(&fragment.inner_box_fragment().style),
-            Fragment::Box(fragment) => callback(&fragment.style),
-            Fragment::Text(fragment) => callback(&fragment.run_data.inline_styles.style),
-            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) => {},
-            Fragment::Positioning(fragment) => callback(&fragment.style),
-            Fragment::Image(fragment) => callback(&fragment.style),
-            Fragment::IFrame(fragment) => callback(&fragment.style),
-            Fragment::Float(fragment) => callback(&fragment.style),
-        }
+        let inner_box_fragment;
+        let shared_style = match self {
+            Fragment::LayoutRoot(fragment) => {
+                inner_box_fragment = fragment.inner_box_fragment();
+                &inner_box_fragment.style
+            },
+            Fragment::Box(fragment) => &fragment.style,
+            Fragment::Text(fragment) => &fragment.run_data.inline_styles.style,
+            Fragment::AbsoluteOrFixedPositionedPlaceholder(_) => return,
+            Fragment::Positioning(fragment) => &fragment.style,
+            Fragment::Image(fragment) => &fragment.style,
+            Fragment::IFrame(fragment) => &fragment.style,
+            Fragment::Float(fragment) => &fragment.style,
+        };
+        *shared_style.borrow_mut() = new_style.clone();
     }
 
     pub(crate) fn retrieve_box_fragment(&self) -> Option<RefOrAtomicRef<'_, Arc<BoxFragment>>> {
@@ -515,7 +499,7 @@ impl TextFragment {
         // If the click was far enough above the top of the fragment, then pick the first index.
         let max_vertical_offset = self.base.rect().height().scale_by(0.25);
         if point_in_fragment.y < -max_vertical_offset {
-            return Some(self.character_range.start);
+            return Some(self.character_range_in_dom_node.start);
         }
 
         // If the click was below the fragment, return `None`, which will cause the
@@ -527,7 +511,7 @@ impl TextFragment {
             return None;
         }
 
-        let mut current_character = self.character_range.start;
+        let mut current_character = self.character_range_in_dom_node.start;
         let mut current_offset = Au::zero();
         for glyph_store in &self.glyphs {
             for glyph in glyph_store.glyphs() {

@@ -1293,8 +1293,8 @@ impl Fragment {
             return;
         }
 
-        if fragment.character_range.start > shared_selection.character_range.end ||
-            fragment.character_range.end < shared_selection.character_range.start
+        if fragment.character_range_in_dom_node.start > shared_selection.character_range.end ||
+            fragment.character_range_in_dom_node.end < shared_selection.character_range.start
         {
             return;
         }
@@ -1305,13 +1305,13 @@ impl Fragment {
         // fragment.
         if fragment.is_empty_for_text_cursor &&
             !fragment
-                .character_range
+                .character_range_in_dom_node
                 .contains(&shared_selection.character_range.start)
         {
             return;
         }
 
-        let mut current_character_index = fragment.character_range.start;
+        let mut current_character_index = fragment.character_range_in_dom_node.start;
         let mut current_advance = Au::zero();
         let mut start_advance = None;
         let mut end_advance = None;

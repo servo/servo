@@ -36,7 +36,7 @@ use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::flow::inline::shaping_queue::ShapingQueueEntry;
 use crate::flow::inline::{BidiLevels, LineBlockSizes, LineItem, SegmentContentFlags};
-use crate::fragment_tree::{BaseFragmentInfo, TextFragmentRunData};
+use crate::fragment_tree::BaseFragmentInfo;
 
 // There are two reasons why we might want to break at the start:
 //
@@ -273,7 +273,7 @@ impl TextRunSegment {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            let run_start = text_run.run_data.character_range.start;
+            let run_start = text_run.run_data.character_range_in_ifc_text.start;
             ifc.push_glyph_store_to_unbreakable_segment(
                 run.clone(),
                 text_run,
@@ -294,7 +294,7 @@ impl TextRunSegment {
 pub(crate) struct CaretPlaceholder {
     /// The [`TextFragmentRunData`] of the [`TextRun`] that contains this caret placeholder.
     #[conditional_malloc_size_of]
-    pub run_data: Arc<TextFragmentRunData>,
+    pub run_data: Arc<SharedTextRunData>,
     /// Character index of the preserved newline in the IFC's transformed text, relative
     /// to the start of the DOM node.
     pub character_index: usize,
@@ -312,6 +312,24 @@ pub(crate) enum TextRunItem {
     TextSegment(Box<TextRunSegment>),
 }
 
+/// A data structure that holds per-[`TextRun`] data used on `TextFragment`s.
+/// This ensures that the data is not duplicated between fragments.
+#[derive(Debug, MallocSizeOf)]
+pub(crate) struct SharedTextRunData {
+    /// The [`crate::SharedStyle`] from this [`TextRun`]'s parent element. This is
+    /// shared so that incremental layout can simply update the parent element and
+    /// this [`TextRun`] will be updated automatically.
+    pub inline_styles: SharedInlineStyles,
+    /// The range of characters in this text in `InlineFormattingContext::text_content`
+    /// of the `InlineFormattingContext` that owns this [`TextRun`]. These are counting
+    /// `char`s, *not* UTF-8 offsets.
+    pub character_range_in_ifc_text: Range<usize>,
+    /// The selected text in this [`TextRun`]. This may either be document selection or
+    /// form control selection.
+    #[conditional_malloc_size_of]
+    pub selection: Option<SharedSelection>,
+}
+
 /// A single [`TextRun`] for the box tree. These are all descendants of
 /// [`super::InlineBox`] or the root of the [`super::InlineFormattingContext`].  During
 /// box tree construction, text is split into [`TextRun`]s based on their font, script,
@@ -327,7 +345,7 @@ pub(crate) struct TextRun {
     /// Data to be used by all [`TextFragment`]s spawned by this [`TextRun`] to avoid
     /// having to clone the data into each fragment.
     #[conditional_malloc_size_of]
-    pub run_data: Arc<TextFragmentRunData>,
+    pub run_data: Arc<SharedTextRunData>,
 
     /// A weak reference to the parent of this layout box. This becomes valid as soon
     /// as the *parent* of this box is added to the tree.
@@ -358,9 +376,9 @@ impl TextRun {
             .unwrap_or_default();
         Self {
             base_fragment_info,
-            run_data: TextFragmentRunData {
+            run_data: SharedTextRunData {
                 inline_styles,
-                character_range,
+                character_range_in_ifc_text: character_range,
                 selection,
             }
             .into(),
@@ -473,7 +491,7 @@ impl TextRun {
         for (relative_character_index, (character, next_character)) in char_iterator.enumerate() {
             // The current character index within the entire inline formatting context's text.
             let current_character_index =
-                self.run_data.character_range.start + relative_character_index;
+                self.run_data.character_range_in_ifc_text.start + relative_character_index;
 
             let current_byte_index = next_byte_index;
             next_byte_index += character.len_utf8();

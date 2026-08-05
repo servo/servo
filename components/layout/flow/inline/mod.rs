@@ -1686,7 +1686,7 @@ impl InlineFormattingContextLayout<'_> {
                 text_fragment_run_data: text_run.run_data.clone(),
                 base_fragment_info: text_run.base_fragment_info,
                 info: info.clone(),
-                character_range,
+                character_range_in_dom_node: character_range,
                 is_empty_for_text_cursor: false,
             },
         ));
@@ -1723,7 +1723,7 @@ impl InlineFormattingContextLayout<'_> {
                 text_fragment_run_data: caret_placeholder.run_data,
                 base_fragment_info: BaseFragmentInfo::anonymous(),
                 info: FontAndScriptInfo::simple_for_font(font),
-                character_range: caret_placeholder.character_index..
+                character_range_in_dom_node: caret_placeholder.character_index..
                     caret_placeholder.character_index + 1,
                 is_empty_for_text_cursor: true,
             },
