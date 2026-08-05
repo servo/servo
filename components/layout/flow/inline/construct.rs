@@ -150,8 +150,7 @@ impl InlineFormattingContextBuilder {
 
         let new_characters = Utf32CodeUnits::length_of(string_to_push);
         self.current_character_offset += new_characters.0;
-        self.offset_map
-            .push_range(Utf32CodeUnits(0), new_characters);
+        self.offset_map.push_range(new_characters, new_characters);
     }
 
     fn shared_inline_styles(&self) -> SharedInlineStyles {
@@ -452,31 +451,25 @@ impl InlineFormattingContextBuilder {
         }
 
         let selection = info.node.form_control_selection_in_text_node().or_else(|| {
-            document_selection.and_then(|document_selection| {
-                let start = document_selection
-                    .start
-                    .map(|offset| {
-                        self.offset_map.map(original_size_before + offset) - final_size_before
-                    })
-                    // Range unbounded at the start: the concrete start is offset zero
-                    .unwrap_or(Utf32CodeUnits(0));
-                let end = document_selection
-                    .end
-                    .map(|offset| {
-                        self.offset_map.map(original_size_before + offset) - final_size_before
-                    })
-                    // Range unbounded at the end: the concrete end is the full length
-                    .unwrap_or(Utf32CodeUnits(character_count));
+            let mapped_range = document_selection?.map(|offset| {
+                self.offset_map.map(original_size_before + offset) - final_size_before
+            });
 
-                if start == end {
-                    return None;
-                }
-                Some(Arc::new(AtomicRefCell::new(ScriptSelection {
-                    range: TextByteRange::default(),
-                    character_range: start.0..end.0,
-                    enabled: true,
-                })))
-            })
+            // Range unbounded at the start: the concrete start is offset zero.
+            let start = mapped_range.start.unwrap_or(Utf32CodeUnits(0));
+            // Range unbounded at the end: the concrete end is the full length.
+            let end = mapped_range.end.unwrap_or(Utf32CodeUnits(character_count));
+
+            if start == end {
+                return None;
+            }
+            debug_assert!(end > start);
+
+            Some(Arc::new(AtomicRefCell::new(ScriptSelection {
+                range: TextByteRange::default(),
+                character_range: start.0..end.0,
+                enabled: true,
+            })))
         });
 
         if let Some(last_character) = new_text.chars().next_back() {

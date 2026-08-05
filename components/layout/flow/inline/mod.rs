@@ -879,9 +879,7 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// placed on the second line, because we add those borders in
     /// [`InlineFormattingContextLayout::finish_inline_box()`].
     ///
-    /// If this field is `Some`, a hard line break should be processed before any new content. The
-    /// `usize` stores the character offset of the originating hard line break, which is used to
-    /// generate placeholders for carets on otherwise empty lines.
+    /// If this field is `true`, a hard line break should be processed before any new content.
     force_line_break_before_new_content: bool,
 
     /// When deferring a forced line break, this field stores a potential caret placeholder
@@ -1613,6 +1611,7 @@ impl InlineFormattingContextLayout<'_> {
         if !self.force_line_break_before_new_content {
             return;
         }
+        self.force_line_break_before_new_content = false;
 
         self.commit_current_segment_to_line();
         self.process_line_break(
