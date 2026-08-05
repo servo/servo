@@ -30,6 +30,7 @@ use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{BoxTreeString, NodeAndStyleInfo};
 use crate::flow::BlockLevelBox;
 use crate::flow::float::FloatBox;
+use crate::flow::inline::text_run::SharedTextRunData;
 use crate::flow::inline::text_transform::{OffsetMap, TextTransformationIterator};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -106,7 +107,7 @@ pub(crate) struct InlineFormattingContextBuilder {
 
     /// An [`OffsetMap`] used to map selections from their offset before inline formatting
     /// context text transformation to their offsets after transformation.
-    pub offset_map: OffsetMap,
+    pub offset_map: ArcRefCell<OffsetMap>,
 }
 
 impl InlineFormattingContextBuilder {
@@ -150,7 +151,9 @@ impl InlineFormattingContextBuilder {
 
         let new_characters = Utf32CodeUnits::length_of(string_to_push);
         self.current_character_offset += new_characters.0;
-        self.offset_map.push_range(new_characters, new_characters);
+        self.offset_map
+            .borrow_mut()
+            .push_range(new_characters, new_characters);
     }
 
     fn shared_inline_styles(&self) -> SharedInlineStyles {
@@ -403,8 +406,8 @@ impl InlineFormattingContextBuilder {
         info: &NodeAndStyleInfo<'dom>,
         document_selection: Option<RangeAny<Utf32CodeUnits>>,
     ) {
-        let original_size_before = self.offset_map.total_original_size();
-        let final_size_before = self.offset_map.total_final_size();
+        let mut offset_map = self.offset_map.borrow_mut();
+        let original_size_before = offset_map.total_original_size();
 
         let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
@@ -416,7 +419,7 @@ impl InlineFormattingContextBuilder {
             self.last_inline_box_ended_with_collapsible_white_space,
             self.on_word_boundary,
         ) {
-            self.offset_map.push_iteration(&iteration);
+            offset_map.push_iteration(&iteration);
             for &character in iteration.characters() {
                 character_count += 1;
 
@@ -451,14 +454,11 @@ impl InlineFormattingContextBuilder {
         }
 
         let selection = info.node.form_control_selection_in_text_node().or_else(|| {
-            let mapped_range = document_selection?.map(|offset| {
-                self.offset_map.map(original_size_before + offset) - final_size_before
-            });
-
+            let document_selection = document_selection?;
             // Range unbounded at the start: the concrete start is offset zero.
-            let start = mapped_range.start.unwrap_or(Utf32CodeUnits(0));
+            let start = document_selection.start.unwrap_or(Utf32CodeUnits(0));
             // Range unbounded at the end: the concrete end is the full length.
-            let end = mapped_range.end.unwrap_or(Utf32CodeUnits(character_count));
+            let end = document_selection.end.unwrap_or(Utf32CodeUnits(text.len()));
 
             if start == end {
                 return None;
@@ -491,10 +491,15 @@ impl InlineFormattingContextBuilder {
         let box_slot = info.node.is_text_node().then(|| info.node.box_slot());
         let text_run = ArcRefCell::new(TextRun::new(
             info.into(),
-            current_inline_styles,
+            SharedTextRunData {
+                inline_styles: current_inline_styles,
+                character_range_in_ifc_text: new_character_range,
+                original_offset: original_size_before,
+                selection,
+                offset_map: self.offset_map.clone(),
+            }
+            .into(),
             new_utf8_range,
-            new_character_range,
-            selection,
             box_slot
                 .as_ref()
                 .and_then(|box_slot| box_slot.take_layout_box_as_text_run()),
@@ -528,8 +533,8 @@ impl InlineFormattingContextBuilder {
         }
 
         assert!(self.inline_box_stack.is_empty());
-        assert_eq!(
-            self.offset_map.total_final_size().0,
+        debug_assert_eq!(
+            self.offset_map.borrow().total_final_size().0,
             self.current_character_offset
         );
 

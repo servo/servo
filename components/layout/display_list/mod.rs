@@ -16,6 +16,7 @@ use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
+use servo_base::text::Utf32CodeUnits;
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
@@ -1284,7 +1285,8 @@ impl Fragment {
         fragment_x_offset: Au,
         justification_adjustment: Au,
     ) {
-        let Some(shared_selection) = &fragment.run_data.selection else {
+        let run_data = &fragment.run_data;
+        let Some(shared_selection) = &run_data.selection else {
             return;
         };
 
@@ -1293,8 +1295,16 @@ impl Fragment {
             return;
         }
 
-        if fragment.character_range_in_dom_node.start > shared_selection.character_range.end ||
-            fragment.character_range_in_dom_node.end < shared_selection.character_range.start
+        // The selection character range is in pre-transformed character offsets, so use the
+        // OffsetMap contained within `run_data` to convert it to post-transformed character
+        // offsets. This allows updating this selection directly from the DOM (skipping layout).
+        let dom_selection_range = &shared_selection.character_range;
+        let selection_character_range = run_data.map_dom_range_to_transformed_range(
+            Utf32CodeUnits(dom_selection_range.start)..Utf32CodeUnits(dom_selection_range.end),
+        );
+
+        if fragment.character_range_in_dom_node.start > selection_character_range.end ||
+            fragment.character_range_in_dom_node.end < selection_character_range.start
         {
             return;
         }
@@ -1306,7 +1316,7 @@ impl Fragment {
         if fragment.is_empty_for_text_cursor &&
             !fragment
                 .character_range_in_dom_node
-                .contains(&shared_selection.character_range.start)
+                .contains(&selection_character_range.start)
         {
             return;
         }
@@ -1316,9 +1326,9 @@ impl Fragment {
         let mut start_advance = None;
         let mut end_advance = None;
         for glyph_store in fragment.glyphs.iter() {
-            let glyph_store_character_count = glyph_store.character_count();
+            let glyph_store_character_count = Utf32CodeUnits(glyph_store.character_count());
             if current_character_index + glyph_store_character_count <
-                shared_selection.character_range.start
+                selection_character_range.start
             {
                 current_advance += glyph_store.total_advance() +
                     (justification_adjustment * glyph_store.total_word_separators() as i32);
@@ -1326,22 +1336,22 @@ impl Fragment {
                 continue;
             }
 
-            if current_character_index >= shared_selection.character_range.end {
+            if current_character_index >= selection_character_range.end {
                 break;
             }
 
             for glyph in glyph_store.glyphs() {
-                if current_character_index >= shared_selection.character_range.start {
+                if current_character_index >= selection_character_range.start {
                     start_advance = start_advance.or(Some(current_advance));
                 }
 
-                current_character_index += glyph.character_count();
+                current_character_index += Utf32CodeUnits(glyph.character_count());
                 current_advance += glyph.advance();
                 if glyph.char_is_word_separator() {
                     current_advance += justification_adjustment;
                 }
 
-                if current_character_index <= shared_selection.character_range.end {
+                if current_character_index <= selection_character_range.end {
                     end_advance = Some(current_advance);
                 }
             }
@@ -1351,7 +1361,7 @@ impl Fragment {
         let end_x = end_advance.unwrap_or(current_advance);
 
         let parent_style = fragment.style();
-        if !shared_selection.character_range.is_empty() {
+        if !selection_character_range.is_empty() {
             let selection_rect = Rect::new(
                 containing_block_rect.origin +
                     Vector2D::new(fragment_x_offset + start_x, Au::zero()),
