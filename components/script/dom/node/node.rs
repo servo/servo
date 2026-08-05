@@ -3116,7 +3116,7 @@ impl Node {
                     None,
                 );
                 // TODO: Move this into `Element::create`
-                element.set_custom_element_registry(registry.as_deref());
+                element.set_custom_element_registry(registry.as_deref(), cx.no_gc());
                 DomRoot::upcast::<Node>(element)
             },
         };

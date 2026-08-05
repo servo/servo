@@ -10,7 +10,7 @@ use app_units::Au;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::{HandleObject, MutableHandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
@@ -279,7 +279,7 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#observe-target-element>
-    fn observe_target_element(&self, target: &Element) {
+    fn observe_target_element(&self, target: &Element, no_gc: &NoGC) {
         // Step 1
         // > If target is in observer’s internal [[ObservationTargets]] slot, return.
         let is_present = self
@@ -297,7 +297,7 @@ impl IntersectionObserver {
         // > a previousIsIntersecting property set to false, and a previousIsVisible property set to false.
         // Step 3
         // > Append intersectionObserverRegistration to target’s internal [[RegisteredIntersectionObservers]] slot.
-        target.add_initial_intersection_observer_registration(self);
+        target.add_initial_intersection_observer_registration(self, no_gc);
 
         if self.observation_targets.borrow().is_empty() {
             self.connect_to_owner();
@@ -318,12 +318,12 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#unobserve-target-element>
-    fn unobserve_target_element(&self, target: &Element) {
+    fn unobserve_target_element(&self, target: &Element, no_gc: &NoGC) {
         // Step 1
         // > Remove the IntersectionObserverRegistration record whose observer property is equal to
         // > this from target’s internal [[RegisteredIntersectionObservers]] slot, if present.
         target
-            .registered_intersection_observers_mut()
+            .registered_intersection_observers_mut(no_gc)
             .retain(|registration| &*registration.observer != self);
 
         // Step 2
@@ -796,24 +796,24 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > Run the observe a target Element algorithm, providing this and target.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observe>
-    fn Observe(&self, target: &Element) {
-        self.observe_target_element(target);
+    fn Observe(&self, no_gc: &NoGC, target: &Element) {
+        self.observe_target_element(target, no_gc);
     }
 
     /// > Run the unobserve a target Element algorithm, providing this and target.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-unobserve>
-    fn Unobserve(&self, target: &Element) {
-        self.unobserve_target_element(target);
+    fn Unobserve(&self, no_gc: &NoGC, target: &Element) {
+        self.unobserve_target_element(target, no_gc);
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-disconnect>
-    fn Disconnect(&self) {
+    fn Disconnect(&self, no_gc: &NoGC) {
         // > For each target in this’s internal [[ObservationTargets]] slot:
         self.observation_targets.borrow().iter().for_each(|target| {
             // > 1. Remove the IntersectionObserverRegistration record whose observer property is equal to
             // >    this from target’s internal [[RegisteredIntersectionObservers]] slot.
-            target.remove_intersection_observer(self);
+            target.remove_intersection_observer(self, no_gc);
         });
         // > 2. Remove target from this’s internal [[ObservationTargets]] slot.
         self.observation_targets.borrow_mut().clear();
