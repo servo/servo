@@ -333,7 +333,7 @@ fn rounded_rect_contains_point(
 }
 
 fn cursor(cursor: &StyloCursor, auto_cursor: Cursor) -> (Cursor, Vec<CursorImage>) {
-    let images = cursor.images.iter().map(|i| i.clone()).collect();
+    let images = cursor.images.iter().cloned().collect();
     let cursor = match cursor.keyword {
         CursorKind::Auto => auto_cursor,
         CursorKind::None => Cursor::None,

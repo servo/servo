@@ -804,7 +804,6 @@ impl HeadedWindow {
                 Some(c) => {
                     self.winit_window.set_cursor(c);
                     self.winit_window.set_cursor_visible(true);
-                    return;
                 },
                 None => {
                     let Some(image) = webview.custom_cursor_image(cursor_id) else {
@@ -827,7 +826,6 @@ impl HeadedWindow {
                             *self.current_custom_cursor.borrow_mut() = Some((cursor_id, c.clone()));
                             self.winit_window.set_cursor(c);
                             self.winit_window.set_cursor_visible(true);
-                            return;
                         },
                         Err(e) => {
                             debug!("Error reading image data for custom cursor image: {e}");
@@ -836,7 +834,6 @@ impl HeadedWindow {
                             *self.current_custom_cursor.borrow_mut() = None;
                             self.winit_window.set_cursor(c);
                             self.winit_window.set_cursor_visible(true);
-                            return;
                         },
                     }
                 },
