@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashSet;
+
 use euclid::Rect;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
@@ -27,6 +29,8 @@ pub(crate) struct PaintTimingHandler {
     /// Flag to indicate if there is an update to LCP candidate.
     /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     lcp_candidate_updated: bool,
+    /// The set of nodes that have been reported as LCP candidates.
+    reported_lcp_nodes: HashSet<OpaqueNode>,
 }
 
 impl PaintTimingHandler {
@@ -38,6 +42,7 @@ impl PaintTimingHandler {
             lcp_candidate: None,
             lcp_candidate_updated: false,
             viewport_rect: LayoutRect::from_size(viewport_size),
+            reported_lcp_nodes: HashSet::new(),
         }
     }
 
@@ -87,6 +92,18 @@ impl PaintTimingHandler {
         transform: FastLayoutTransform,
         url: Option<ServoUrl>,
     ) {
+        // From <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>:
+        // Each pending image record in paintedImages and text element in
+        // paintedTextNodes will only be reported exactly once, from mark paint
+        // timing, for the first paint where the element is considered
+        // paintable (i.e. has opacity and visibility) and contentful
+        // (i.e. image resource or blocking fonts are sufficiently loaded).
+        if let Some(node) = tag.map(|tag| tag.node) &&
+            !self.reported_lcp_nodes.insert(node)
+        {
+            return;
+        }
+
         // From <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>:
         //  Let intersectionRect be the value returned by the intersection rect algorithm using imageElement as the target and viewport as the root.
         let intersection_rect = self.calculate_intersection_rect(bounds, clip_rect, transform);
