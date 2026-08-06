@@ -23,7 +23,7 @@ default = ["bundled", "default_web_features", "js_jit"]
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["gamepad", "clipboard", "webgpu", "webxr"]
+default_web_features = ["clipboard", "webgpu", "webxr"]
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
 
