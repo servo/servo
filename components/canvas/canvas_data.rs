@@ -58,7 +58,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         canvas_id: CanvasId,
         ops: &mut MallocSizeOfOps,
     ) -> Vec<Report> {
-        let dimentions = self.draw_target.get_size();
+        let dimensions = self.draw_target.get_size();
         let canvas_info_string = format!(
             "canvas(id={}, {}x{})",
             canvas_id.0, dimentions.width, dimentions.height
