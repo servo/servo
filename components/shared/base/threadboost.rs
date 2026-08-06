@@ -52,7 +52,7 @@ mod ohos {
 
     static NON_LITTLE_CPU_CORES: LazyLock<Option<Box<[CoreId]>>> = LazyLock::new(|| {
         non_little_cpus()
-            .inspect_err(|err| log::error!("Failed to determine non-little cpu cores: {}", err))
+            .inspect_err(|error| log::error!("Failed to determine non-little cpu cores: {error}"))
             .ok()?
             .map(|cores| cores.into_boxed_slice())
     });
@@ -60,7 +60,7 @@ mod ohos {
     fn parse_cpu_list() -> Result<Vec<CoreId>, String> {
         let cpu_possible_file = "/sys/devices/system/cpu/possible";
         let list = fs::read_to_string(cpu_possible_file)
-            .map_err(|e| format!("failed to read {cpu_possible_file}: {e:?}"))?;
+            .map_err(|error| format!("failed to read {cpu_possible_file}: {error:?}"))?;
 
         let mut cpus = Vec::new();
         // See <https://docs.kernel.org/admin-guide/cputopology.html> / cpulist_parse
@@ -69,8 +69,8 @@ mod ohos {
                 if let (Ok(a), Ok(b)) = (a.trim().parse::<CoreId>(), b.trim().parse::<CoreId>()) {
                     cpus.extend(a..=b);
                 }
-            } else if let Ok(c) = part.trim().parse::<CoreId>() {
-                cpus.push(c);
+            } else if let Ok(core_id) = part.trim().parse::<CoreId>() {
+                cpus.push(core_id);
             } else {
                 log::warn!("Unexpected CPU line: {part:?} in {cpu_possible_file}.");
             }
@@ -84,10 +84,10 @@ mod ohos {
     fn capacity_of(cpu: CoreId) -> Result<u64, String> {
         let cpu_capacity_file = format!("/sys/devices/system/cpu/cpu{cpu}/cpu_capacity");
         fs::read_to_string(cpu_capacity_file)
-            .map_err(|e| e.to_string())?
+            .map_err(|error| error.to_string())?
             .trim()
             .parse::<u64>()
-            .map_err(|e| e.to_string())
+            .map_err(|error| error.to_string())
     }
 
     /// Determine the CPU ids of cores not in the little class.
@@ -112,7 +112,7 @@ mod ohos {
         let chosen: Vec<CoreId> = cpu_and_caps
             .iter()
             .filter(|&&(_, cap)| cap > little)
-            .map(|&(c, _)| c)
+            .map(|&(cpu, _)| cpu)
             .collect();
         if chosen.len() < 2 {
             return Ok(None);
@@ -130,8 +130,8 @@ mod ohos {
         };
         let ret = unsafe {
             let mut set: libc::cpu_set_t = std::mem::zeroed();
-            for &c in cpus {
-                libc::CPU_SET(c.into(), &mut set);
+            for &cpu in cpus {
+                libc::CPU_SET(cpu.into(), &mut set);
             }
             libc::sched_setaffinity(0, size_of::<libc::cpu_set_t>(), &set)
         };
@@ -151,9 +151,8 @@ mod ohos {
         }
         if let Err(error) = pin_thread_to_medium_or_large_cpus() {
             log::warn!(
-                "Failed to pin {} to medium or large cpus: {:?}",
+                "Failed to pin {} to medium or large cpus: {error:?}",
                 std::thread::current().name().unwrap_or("<unnamed>"),
-                error
             );
         }
     }
