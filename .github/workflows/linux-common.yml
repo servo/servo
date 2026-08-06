@@ -140,7 +140,7 @@ jobs:
       # and also don't need it for builds running on our self-hosted runners (cached cargo target directory).
       # On forks expected activity is much lower, so the 10GB cache will be sufficient for the expected
       # use-case of running `./mach try linux-wpt`.
-      # Sccache can be turned off by adding a repository level variable SCCACHE_GHA_ENABLED and
+      # `sccache` can be turned off by adding a repository-level variable SCCACHE_GHA_ENABLED and
       # setting the value to `false`. See <https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#creating-configuration-variables-for-a-repository>.
       - name: Install sccache
         if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
@@ -150,7 +150,7 @@ jobs:
         run: |
           {
             # Set / Increment SCCACHE_GHA_VERSION as a repository level variable in your fork
-            # to purge the cache, if you believe you're encountering issues
+            # to purge the cache, if you believe you're encountering issues.
             echo "SCCACHE_GHA_VERSION=${{ vars.SCCACHE_GHA_VERSION || '1' }}"
             echo "SCCACHE_GHA_ENABLED=true"
             echo "RUSTC_WRAPPER=sccache"
