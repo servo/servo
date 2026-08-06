@@ -61,7 +61,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         let dimensions = self.draw_target.get_size();
         let canvas_info_string = format!(
             "canvas(id={}, {}x{})",
-            canvas_id.0, dimentions.width, dimentions.height
+            canvas_id.0, dimensions.width, dimensions.height
         );
         self.draw_target
             .canvas_store_sizes(ops)
