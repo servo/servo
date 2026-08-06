@@ -9,8 +9,10 @@ use std::sync::Arc;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts::FontIdentifier;
 use kurbo::Shape;
+use malloc_size_of::MallocSizeOf;
 use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
+use profile_traits::mem::ReportKind;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
@@ -19,7 +21,7 @@ use servo_canvas_traits::canvas::{
 use vello_cpu::{RenderSettings, kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 
-use crate::backend::{Convert, GenericDrawTarget};
+use crate::backend::{CanvasStoreSizesPerType, Convert, GenericDrawTarget};
 use crate::canvas_data::Filter;
 
 thread_local! {
@@ -177,6 +179,17 @@ impl GenericDrawTarget for VelloCPUDrawTarget {
             clips: Vec::new(),
             state: State::Rendered,
         }
+    }
+
+    fn canvas_store_sizes(
+        &self,
+        ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> Option<Vec<CanvasStoreSizesPerType>> {
+        Some(vec![CanvasStoreSizesPerType {
+            name: "backing-buffer",
+            size: self.pixmap.size_of(ops),
+            kind: ReportKind::ExplicitJemallocHeapSize,
+        }])
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {

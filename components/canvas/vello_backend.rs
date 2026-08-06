@@ -37,7 +37,7 @@ use vello::wgpu::{
 use vello::{kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 
-use crate::backend::{Convert as _, GenericDrawTarget};
+use crate::backend::{CanvasStoreSizesPerType, Convert as _, GenericDrawTarget};
 use crate::canvas_data::Filter;
 
 thread_local! {
@@ -237,6 +237,14 @@ impl GenericDrawTarget for VelloDrawTarget {
             log::error!("VELLO WGPU ERROR: {error}");
         }));
         Self::new_with_renderer(device, queue, Rc::new(RefCell::new(renderer)), size)
+    }
+
+    fn canvas_store_sizes(
+        &self,
+        _ops: &mut malloc_size_of::MallocSizeOfOps,
+    ) -> Option<Vec<CanvasStoreSizesPerType>> {
+        // TODO: implement a correct way to include Vello types in the memory report.
+        None
     }
 
     fn clear_rect(&mut self, rect: &Rect<f32>, transform: Transform2D<f64>) {
