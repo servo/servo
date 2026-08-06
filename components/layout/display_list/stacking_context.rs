@@ -1034,19 +1034,19 @@ impl BoxFragmentWithStyle<'_> {
         let mut x_sensitivity: ScrollType = overflow.x.into();
         let mut y_sensitivity: ScrollType = overflow.y.into();
         let touch_action = TouchAction::from(style.get_box().touch_action);
-        // `touch-action` only restricts direct manipulation (input events);
-        // script-driven scrolling is unaffected, so we only strip
-        // `ScrollType::InputEvents` from the excluded axis.
+        // `touch-action` only restricts direct touch manipulation; mouse wheel
+        // (`InputEvents`) and script-driven scrolling are unaffected, so we only
+        // strip `ScrollType::Touch` from the excluded axis.
         match touch_action {
             TouchAction::PanX => {
-                y_sensitivity.remove(ScrollType::InputEvents);
+                y_sensitivity.remove(ScrollType::Touch);
             },
             TouchAction::PanY => {
-                x_sensitivity.remove(ScrollType::InputEvents);
+                x_sensitivity.remove(ScrollType::Touch);
             },
             TouchAction::None => {
-                x_sensitivity.remove(ScrollType::InputEvents);
-                y_sensitivity.remove(ScrollType::InputEvents);
+                x_sensitivity.remove(ScrollType::Touch);
+                y_sensitivity.remove(ScrollType::Touch);
             },
             TouchAction::Auto => {},
         }

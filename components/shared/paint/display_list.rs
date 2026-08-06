@@ -32,11 +32,15 @@ pub struct ScrollType(u8);
 
 bitflags! {
     impl ScrollType: u8 {
-        /// This node can be scrolled by input events or an input event originated this
-        /// scroll.
+        /// This node can be scrolled by mouse wheel or other non-touch input events, or
+        /// such an input event originated this scroll.
         const InputEvents = 1 << 0;
         /// This node can be scrolled by script events or script originated this scroll.
         const Script = 1 << 1;
+        /// This node can be scrolled by touch direct manipulation, or a touch event
+        /// originated this scroll. Distinct from [`InputEvents`] so that `touch-action`
+        /// can restrict touch panning without affecting mouse wheel scrolling.
+        const Touch = 1 << 2;
     }
 }
 
@@ -45,7 +49,9 @@ impl From<Overflow> for ScrollType {
     fn from(overflow: Overflow) -> Self {
         match overflow {
             Overflow::Hidden => ScrollType::Script,
-            Overflow::Scroll | Overflow::Auto => ScrollType::Script | ScrollType::InputEvents,
+            Overflow::Scroll | Overflow::Auto => {
+                ScrollType::Script | ScrollType::InputEvents | ScrollType::Touch
+            },
             Overflow::Visible | Overflow::Clip => ScrollType::empty(),
         }
     }

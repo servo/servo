@@ -47,6 +47,9 @@ pub(crate) struct ScrollEvent {
     pub scroll: Scroll,
     /// Scroll the scroll node that is found at this point.
     pub point: DevicePoint,
+    /// The kind of input that originated this scroll. `Touch` respects `touch-action`
+    /// restrictions; `InputEvents` (mouse wheel, keyboard) does not.
+    pub scroll_type: ScrollType,
 }
 
 #[derive(Clone, Copy)]
@@ -374,6 +377,9 @@ impl WebViewRenderer {
         self.on_scroll_window_event(
             Scroll::Delta((-fling_action.delta).into()),
             fling_action.cursor,
+            // Fling is a continuation of a touch pan, so it must respect
+            // `touch-action` like the originating touch gesture.
+            ScrollType::Touch,
         );
         true
     }
@@ -776,14 +782,20 @@ impl WebViewRenderer {
 
     pub(crate) fn notify_scroll_event(&mut self, scroll: Scroll, point: WebViewPoint) {
         let point = point.as_device_point(self.device_pixels_per_page_pixel());
-        self.on_scroll_window_event(scroll, point);
+        self.on_scroll_window_event(scroll, point, ScrollType::InputEvents);
     }
 
-    fn on_scroll_window_event(&mut self, scroll: Scroll, cursor: DevicePoint) {
+    fn on_scroll_window_event(
+        &mut self,
+        scroll: Scroll,
+        cursor: DevicePoint,
+        scroll_type: ScrollType,
+    ) {
         self.pending_scroll_zoom_events
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
                 scroll,
                 point: cursor,
+                scroll_type,
             }));
     }
 
@@ -862,6 +874,7 @@ impl WebViewRenderer {
                 render_api,
                 combined_event.point.to_f32(),
                 combined_event.scroll,
+                combined_event.scroll_type,
             )
         });
         if let Some(ref scroll_result) = scroll_result {
@@ -891,6 +904,7 @@ impl WebViewRenderer {
         render_api: &RenderApi,
         cursor: DevicePoint,
         scroll: Scroll,
+        scroll_type: ScrollType,
     ) -> Option<ScrollResult> {
         let scroll_location = match scroll {
             Scroll::Delta(delta) => {
@@ -921,7 +935,7 @@ impl WebViewRenderer {
                 let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
                     hit_test_result.external_scroll_id,
                     scroll_location,
-                    ScrollType::InputEvents,
+                    scroll_type,
                 );
                 if let Some((external_scroll_id, offset)) = scroll_result {
                     // We would like to cache the hit test for the node that that actually scrolls

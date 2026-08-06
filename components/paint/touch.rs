@@ -8,7 +8,7 @@ use std::rc::Rc;
 use embedder_traits::{InputEventId, PaintHitTestResult, Scroll, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
-use paint_api::display_list::TouchAction;
+use paint_api::display_list::{ScrollType, TouchAction};
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::id::WebViewId;
 use style_traits::CSSPixel;
@@ -533,6 +533,7 @@ impl TouchHandler {
                             Some(ScrollZoomEvent::Scroll(ScrollEvent {
                                 scroll: Scroll::Delta((-delta).into()),
                                 point,
+                                scroll_type: ScrollType::Touch,
                             }))
                         },
                         // Locked to a single axis: zero the other axis in both the
@@ -549,6 +550,7 @@ impl TouchHandler {
                             Some(ScrollZoomEvent::Scroll(ScrollEvent {
                                 scroll: Scroll::Delta((-pan_delta).into()),
                                 point,
+                                scroll_type: ScrollType::Touch,
                             }))
                         },
                     }
@@ -599,6 +601,7 @@ impl TouchHandler {
                         Some(ScrollZoomEvent::Scroll(ScrollEvent {
                             scroll: Scroll::Delta((-pan_delta).into()),
                             point,
+                            scroll_type: ScrollType::Touch,
                         }))
                     }
                 } else {
