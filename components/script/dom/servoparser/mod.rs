@@ -68,6 +68,7 @@ use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElemen
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
+use crate::dom::element::create::create_element;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::documentmetadata::processingoptions::{
@@ -935,6 +936,7 @@ pub(crate) struct ParserContext {
     parent_info: Option<PipelineId>,
     target_snapshot_params: TargetSnapshotParams,
     load_origin: LoadOrigin,
+    document: Option<Trusted<Document>>,
 }
 
 impl ParserContext {
@@ -966,6 +968,7 @@ impl ParserContext {
             },
             target_snapshot_params,
             load_origin,
+            document: None,
         }
     }
 
@@ -1044,12 +1047,14 @@ impl ParserContext {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#loading-a-document>
-    fn load_document(&mut self, cx: &mut JSContext) {
+    fn load_document(
+        &mut self,
+        cx: &mut JSContext,
+        parser: Option<&ServoParser>,
+        document: &Document,
+    ) {
         assert!(!self.has_loaded_document);
         self.has_loaded_document = true;
-        let Some(ref parser) = self.parser.as_ref().map(|p| p.root()) else {
-            return;
-        };
         // Step 1. Let type be the computed type of navigationParams's response.
         let content_type = &self.navigation_params.content_type;
         let mime_type = MimeClassifier::default().classify(
@@ -1067,23 +1072,34 @@ impl ParserContext {
                 "<html><body><p>Unknown content type ({}).</p></body></html>",
                 mime_type,
             );
-            self.load_inline_unknown_content(cx, parser, page);
+            self.load_inline_unknown_content(
+                cx,
+                parser.expect("Must have a parser for unknown content"),
+                page,
+            );
             return;
         };
         match media_type {
             // Return the result of loading an HTML document, given navigationParams.
-            MediaType::Html => self.load_html_document(parser),
+            MediaType::Html => self.load_html_document(cx, document),
             // Return the result of loading an XML document given navigationParams and type.
-            MediaType::Xml => self.load_xml_document(parser),
+            MediaType::Xml => self.load_xml_document(document),
             // Return the result of loading a text document given navigationParams and type.
             MediaType::JavaScript | MediaType::Text | MediaType::Css => {
-                self.load_text_document(cx, parser)
+                self.load_text_document(cx, parser.expect("Must have a parser for text"))
             },
             // Return the result of loading a json document given navigationParams and type.
-            MediaType::Json => self.load_json_document(cx, parser),
+            MediaType::Json => {
+                self.load_json_document(cx, parser.expect("Must have a parser for JSON"))
+            },
             // Return the result of loading a media document given navigationParams and type.
             MediaType::Image | MediaType::AudioVideo => {
-                self.load_media_document(cx, parser, media_type, &mime_type);
+                self.load_media_document(
+                    cx,
+                    parser.expect("Must have a parser for media"),
+                    media_type,
+                    &mime_type,
+                );
                 return;
             },
             MediaType::Font => {
@@ -1091,40 +1107,50 @@ impl ParserContext {
                     "<html><body><p>Unable to load font with content type ({}).</p></body></html>",
                     mime_type,
                 );
-                self.load_inline_unknown_content(cx, parser, page);
+                self.load_inline_unknown_content(
+                    cx,
+                    parser.expect("Must have a parser for inline unknown"),
+                    page,
+                );
                 return;
             },
         };
 
-        parser.parse_bytes_chunk(
-            cx,
-            std::mem::take(&mut self.navigation_params.resource_header),
-        );
+        if let Some(parser) = parser {
+            parser.parse_bytes_chunk(
+                cx,
+                std::mem::take(&mut self.navigation_params.resource_header),
+            );
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-html>
-    fn load_html_document(&mut self, parser: &ServoParser) {
+    fn load_html_document(&mut self, cx: &mut JSContext, document: &Document) {
         // Step 1. Let document be the result of creating and initializing a
         // Document object given "html", "text/html", and navigationParams.
-        self.initialize_document_object(&parser.document);
+        self.initialize_document_object(document);
+        // Step 2. If document's URL is about:blank, then populate with html/head/body given document.
+        if document.is_initial_about_blank() {
+            populate_about_blank(cx, document);
+        }
         // The first task that the networking task source places on the task queue while fetching
         // runs must process link headers given document, navigationParams's response, and "media",
         // after the task has been processed by the HTML parser.
-        self.process_link_headers_in_media_phase_with_task(&parser.document);
+        self.process_link_headers_in_media_phase_with_task(document);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#read-xml>
-    fn load_xml_document(&mut self, parser: &ServoParser) {
+    fn load_xml_document(&mut self, document: &Document) {
         // When faced with displaying an XML file inline, provided navigation params navigationParams
         // and a string type, user agents must follow the requirements defined in XML and Namespaces in XML,
         // XML Media Types, DOM, and other relevant specifications to create and initialize a
         // Document object document, given "xml", type, and navigationParams, and return that Document.
         // They must also create a corresponding XML parser. [XML] [XMLNS] [RFC7303] [DOM]
-        self.initialize_document_object(&parser.document);
+        self.initialize_document_object(document);
         // The first task that the networking task source places on the task queue while fetching
         // runs must process link headers given document, navigationParams's response, and "media",
         // after the task has been processed by the XML parser.
-        self.process_link_headers_in_media_phase_with_task(&parser.document);
+        self.process_link_headers_in_media_phase_with_task(document);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-text>
@@ -1262,6 +1288,14 @@ impl ParserContext {
             .performance(cx)
             .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
+
+    pub(crate) fn finish_synchronous_load(&self, cx: &mut JSContext) {
+        let document = self.document.as_ref().expect("Must have a document").root();
+        document.set_ready_state(cx, DocumentReadyState::Complete);
+        document.set_current_parser(None);
+        document.start_the_end_loading_phase();
+        document.finish_load(LoadType::PageSource(self.url.clone()), cx);
+    }
 }
 
 impl FetchResponseListener for ParserContext {
@@ -1346,23 +1380,27 @@ impl FetchResponseListener for ParserContext {
             source_origin,
         );
 
-        let parser = match ScriptThread::page_headers_available(
+        let Some(document) = ScriptThread::page_headers_available(
             self.webview_id,
             self.pipeline_id,
             metadata.as_ref(),
             origin.clone(),
             cx,
-        ) {
-            Some(parser) => parser,
-            None => return,
+        ) else {
+            return;
         };
-        if parser.aborted.get() {
+
+        self.document = Some(Trusted::new(&*document));
+
+        if document
+            .get_current_parser()
+            .is_some_and(|parser| parser.aborted.get())
+        {
             return;
         }
 
-        let mut realm = enter_auto_realm(cx, &*parser.document);
+        let mut realm = enter_auto_realm(cx, &*document);
         let cx = &mut realm;
-        let document = &parser.document;
         let window = document.window();
 
         // https://html.spec.whatwg.org/multipage/#attempt-to-populate-the-history-entry%27s-document
@@ -1410,7 +1448,9 @@ impl FetchResponseListener for ParserContext {
         if let Some(endpoints) = endpoints_list {
             window.set_endpoints_list(endpoints);
         }
-        self.parser = Some(Trusted::new(&*parser));
+        if let Some(parser) = document.get_current_parser() {
+            self.parser = Some(Trusted::new(&*parser));
+        }
         self.navigation_params = NavigationParams {
             policy_container,
             content_type,
@@ -1481,6 +1521,9 @@ impl FetchResponseListener for ParserContext {
                     return;
                 },
             };
+            let parser = document
+                .get_current_parser()
+                .expect("Must have a parser for errors");
             self.load_inline_unknown_content(cx, &parser, page);
         }
     }
@@ -1490,6 +1533,9 @@ impl FetchResponseListener for ParserContext {
             return;
         }
         let Some(parser) = self.parser.as_ref().map(|p| p.root()) else {
+            return;
+        };
+        let Some(document) = self.document.as_ref().map(|document| document.root()) else {
             return;
         };
         if parser.aborted.get() {
@@ -1502,7 +1548,7 @@ impl FetchResponseListener for ParserContext {
                 .extend_from_slice(&payload);
             // the number of bytes in buffer is greater than or equal to 1445.
             if self.navigation_params.resource_header.len() >= 1445 {
-                self.load_document(cx);
+                self.load_document(cx, Some(&parser), &document);
             }
         } else {
             parser.parse_bytes_chunk(cx, payload);
@@ -1519,11 +1565,10 @@ impl FetchResponseListener for ParserContext {
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        let parser = match self.parser.as_ref() {
-            Some(parser) => parser.root(),
-            None => return,
-        };
-        if parser.aborted.get() || self.is_synthesized_document {
+        let parser = self.parser.as_ref().map(|parser| parser.root());
+        if parser.as_ref().is_some_and(|parser| parser.aborted.get()) ||
+            self.is_synthesized_document
+        {
             return;
         }
 
@@ -1532,34 +1577,43 @@ impl FetchResponseListener for ParserContext {
             debug!("Failed to load page URL {}, error: {error:?}", self.url);
         }
 
+        let Some(document) = self.document.as_ref().map(|document| document.root()) else {
+            return;
+        };
+
         // https://mimesniff.spec.whatwg.org/#read-the-resource-header
         //
         // the end of the resource is reached.
         if !self.has_loaded_document {
-            self.load_document(cx);
+            self.load_document(cx, parser.as_deref(), &document);
         }
 
-        let mut realm = enter_auto_realm(cx, &*parser);
+        let mut realm = enter_auto_realm(cx, &*document);
         let cx = &mut realm;
 
         if status.is_ok() {
-            parser.document.set_resource_fetch_timing(timing);
+            document.set_resource_fetch_timing(timing);
         }
 
-        parser.last_chunk_received.set(true);
-        if !parser.suspended.get() {
-            parser.parse_sync(cx);
+        if let Some(parser) = parser {
+            parser.last_chunk_received.set(true);
+            if !parser.suspended.get() {
+                parser.parse_sync(cx);
+            }
         }
 
         // TODO: Only update if this is the current document resource.
         if let Some(pushed_index) = self.pushed_entry_index {
-            let document = &parser.document;
             let performance_entry =
-                PerformanceNavigationTiming::new(cx, &document.global(), document);
+                PerformanceNavigationTiming::new(cx, &document.global(), &document);
             document
                 .global()
                 .performance(cx)
                 .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
+        }
+
+        if document.is_initial_about_blank() {
+            self.finish_synchronous_load(cx);
         }
     }
 
@@ -2247,4 +2301,25 @@ fn attach_declarative_shadow_inner(
         },
         Err(_) => false,
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#populate-with-html/head/body>
+fn populate_about_blank(cx: &mut JSContext, document: &Document) {
+    let mut create_html_element = |name| {
+        create_element(
+            cx,
+            QualName::new(None, ns!(html), name),
+            None,
+            document,
+            ElementCreator::ParserCreated(0),
+            CustomElementCreationMode::Synchronous,
+            None,
+        )
+    };
+    let html = create_html_element(local_name!("html"));
+    let head = create_html_element(local_name!("head"));
+    let body = create_html_element(local_name!("body"));
+    let _ = document.upcast::<Node>().AppendChild(cx, html.upcast());
+    let _ = html.upcast::<Node>().AppendChild(cx, head.upcast());
+    let _ = html.upcast::<Node>().AppendChild(cx, body.upcast());
 }

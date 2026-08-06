@@ -3806,6 +3806,13 @@ impl Document {
         let has_focus = window.parent_info().is_none();
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         let shared_style_locks = window.script_thread().shared_style_locks().clone();
+        // Step 15 of <https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context>
+        let quirks_mode = if is_initial_about_blank {
+            QuirksMode::Quirks
+        } else {
+            // <https://dom.spec.whatwg.org/#concept-document-quirks>
+            QuirksMode::NoQuirks
+        };
 
         Document {
             node: Node::new_document_node(),
@@ -3817,8 +3824,7 @@ impl Document {
             last_modified,
             url: DomRefCell::new(url),
             about_base_url: DomRefCell::new(about_base_url),
-            // https://dom.spec.whatwg.org/#concept-document-quirks
-            quirks_mode: Cell::new(QuirksMode::NoQuirks),
+            quirks_mode: Cell::new(quirks_mode),
             event_handler: DocumentEventHandler::new(window),
             focus_handler: DocumentFocusHandler::new(window, has_focus),
             embedder_controls: DocumentEmbedderControls::new(window),
