@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod decoding;
+#[cfg(target_env = "ohos")]
+mod ohos_decoder;
 mod snapshot;
 
 use std::borrow::Cow;
@@ -540,8 +542,13 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             None
         },
         Ok(format) => {
-            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(format, buffer)
-            else {
+            //let image_decoder_result = ohos_decoder::OhosImageDecoder::make_decoder(format, buffer);
+            let image_decoder_result = cfg_select! {
+               target_env = "ohos" => {ohos_decoder::OhosImageDecoder::make_decoder(format, buffer) }
+               _ => { decoding::DefaultImageDecoder::make_decoder(format, buffer) }
+            };
+
+            let Ok(image_decoder) = image_decoder_result else {
                 return None;
             };
 
