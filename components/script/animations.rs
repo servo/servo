@@ -197,7 +197,7 @@ impl Animations {
         let has_running_animations = self.has_running_animations.get();
         let has_pending_events = !self.pending_events.borrow().is_empty();
 
-        // Do not send the NoAnimationCallbacksPresent state until all pending
+        // Do not send the AnimationCallbacksAbsent state until all pending
         // animation events are delivered.
         let state = match has_running_animations || has_pending_events {
             true => AnimationsPresentState::AnimationsPresent,
