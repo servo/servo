@@ -25,3 +25,9 @@ enum ServiceWorkerUpdateViaCache {
   "all",
   "none"
 };
+
+// https://cookiestore.spec.whatwg.org/#dom-serviceworkerregistration-cookies
+partial interface ServiceWorkerRegistration {
+  [SameObject, Exposed=(ServiceWorker,Window), Pref="dom_cookiestore_enabled"]
+  readonly attribute CookieStoreManager cookies;
+};
