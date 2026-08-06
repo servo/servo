@@ -13455,6 +13455,15 @@
       }
      ]
     ],
+    "mousedown-edit-point-textarea-003.html": [
+     "274c6dd2b6537f87758af08d46a9bf9d5eddf5c8",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "sequential-focus-navigation-across-documents-001.html": [
      "40c2ff0e0fd0e85110825c7836eb767880d6dd61",
      [

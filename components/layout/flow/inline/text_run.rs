@@ -351,6 +351,17 @@ impl SharedTextRunData {
         offset_map.map(range.start + self.original_offset) - offset_in_ifc_text..
             offset_map.map(range.end + self.original_offset) - offset_in_ifc_text
     }
+
+    /// Map an offset in the originating `TextRun`s DOM node's transformed text (by white
+    /// space collapse and `text-transform`) to untransformed text for use by the DOM.
+    pub(crate) fn map_transformed_offset_to_dom_offset(
+        &self,
+        offset: Utf32CodeUnits,
+    ) -> Utf32CodeUnits {
+        let offset_map = self.offset_map.borrow();
+        let offset_in_ifc_text = Utf32CodeUnits(self.character_range_in_ifc_text.start);
+        offset_map.reverse_map(offset + offset_in_ifc_text) - self.original_offset
+    }
 }
 
 /// A single [`TextRun`] for the box tree. These are all descendants of
