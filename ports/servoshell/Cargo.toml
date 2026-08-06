@@ -138,7 +138,7 @@ glow = { workspace = true }
 headers = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo-allocator/use-jemalloc and servo-allocator/allocation-tracking
-servo-allocator = { workspace = true, default-features = false }
+servo-allocator = { workspace = true }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }
 

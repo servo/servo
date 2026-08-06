@@ -327,7 +327,7 @@ script_bindings = { package = "servo-script-bindings", version = "=0.5.0", path 
 script_webgpu = { package = "servo-script-webgpu", version = "=0.5.0", path = "components/script_webgpu" }
 script_traits = { package = "servo-script-traits", version = "=0.5.0", path = "components/shared/script" }
 servo = { version = "=0.5.0", path = "components/servo", default-features = false }
-servo-allocator = { version = "=0.5.0", path = "components/allocator", default-features = false }
+servo-allocator = { version = "=0.5.0", path = "components/allocator" }
 servo-background-hang-monitor = { version = "=0.5.0", path = "components/background_hang_monitor" }
 servo-background-hang-monitor-api = { version = "=0.5.0", path = "components/shared/background_hang_monitor" }
 servo-base = { version = "=0.5.0", path = "components/shared/base" }
