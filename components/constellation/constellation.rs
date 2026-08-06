@@ -4013,10 +4013,18 @@ where
         // tick messages for workers active on this refresh tick.
         for worker_id in animating_workers {
             let Some(provider) = self.worker_animation_frame_providers.get(&worker_id) else {
+                error!(
+                    "No animation frame provider found for active worker: worker={worker_id:?}, webviews={webview_ids:?}",
+                );
                 continue;
             };
             if webview_ids.contains(&provider.webview_id) {
                 self.deliver_rendering_opportunity_to_worker(worker_id);
+            } else {
+                error!(
+                    "Worker animation frame provider's WebView is not part of the current refresh tick: worker={worker_id:?}, provider_webview={:?}, webviews={webview_ids:?}",
+                    provider.webview_id,
+                );
             }
         }
     }
