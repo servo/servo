@@ -232,8 +232,7 @@ impl BlockLevelBox {
             self,
             layout.sequential_layout_state.as_deref_mut(),
             &mut layout.placement_state,
-            // Under discussion in <https://github.com/w3c/csswg-drafts/issues/13260>.
-            LogicalSides1D::new(false, false),
+            layout.ignore_block_margins_for_stretch,
             true, /* has_inline_parent */
         );
 
@@ -912,6 +911,10 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// by the boundary between two characters, the text-wrap-mode property of their nearest
     /// common ancestor is used.
     text_wrap_mode: TextWrapMode,
+
+    /// Whether block-level boxes inside this inline formatting context should ignore their
+    /// margins for the purpose of stretching in the block axis.
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 }
 
 impl InlineFormattingContextLayout<'_> {
@@ -2062,6 +2065,7 @@ impl InlineFormattingContext {
         containing_block: &ContainingBlock,
         sequential_layout_state: Option<&mut SequentialLayoutState>,
         collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
     ) -> IndependentFormattingContextLayoutResult {
         // Clear any cached inline fragments from previous layouts.
         for inline_box in self.inline_boxes.iter() {
@@ -2110,6 +2114,7 @@ impl InlineFormattingContext {
             depends_on_block_constraints: false,
             white_space_collapse: style_text.white_space_collapse,
             text_wrap_mode: style_text.text_wrap_mode,
+            ignore_block_margins_for_stretch,
         };
 
         for item in self.inline_items.iter() {
