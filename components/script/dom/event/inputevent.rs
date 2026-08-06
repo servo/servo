@@ -8,6 +8,7 @@ use euclid::Point2D;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use servo_base::text::Utf32CodeUnits;
 use style::Atom;
 use style_traits::CSSPixel;
 
@@ -125,6 +126,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 /// `PaintHitTestResult` against our current layout.
 pub(crate) struct HitTestResult {
     pub node: DomRoot<Node>,
+    pub dom_position_for_selection: Option<(DomRoot<Node>, Utf32CodeUnits)>,
     pub cursor: Cursor,
     pub point_in_node: Point2D<f32, CSSPixel>,
     pub point_in_frame: Point2D<f32, CSSPixel>,

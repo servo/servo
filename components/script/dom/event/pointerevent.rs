@@ -195,6 +195,7 @@ impl PointerEvent {
             buttons,
             related_target,
             point_in_target,
+            None,
         );
         ev.pointer_id.set(pointer_id);
         ev.width.set(width);

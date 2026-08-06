@@ -30,7 +30,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::inputevent::InputEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{ClipboardEvent, UIEvent};
 use crate::drag_data_store::Kind;
 
@@ -891,14 +890,14 @@ impl<T: ClipboardProvider> TextInput<T> {
         )
     }
 
-    fn edit_point_for_mouse_event(&self, node: &Node, event: &MouseEvent) -> RopeIndex {
-        node.owner_window()
-            .text_index_query_on_node_for_event(node, event)
-            .map(|grapheme_index| {
+    fn edit_point_for_mouse_event(&self, event: &MouseEvent) -> RopeIndex {
+        event
+            .dom_offset_for_selection()
+            .map(|character_offset| {
                 self.rope.move_by(
                     Default::default(),
                     RopeMovement::Character,
-                    grapheme_index as isize,
+                    character_offset.0 as isize,
                 )
             })
             .unwrap_or_else(|| self.rope.last_index())
@@ -906,7 +905,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Handle a mouse even that has happened in this [`TextInput`]. Returns `true` if the selection
     /// in the input may have changed and `false` otherwise.
-    pub(crate) fn handle_mouse_event(&mut self, node: &Node, mouse_event: &MouseEvent) -> bool {
+    pub(crate) fn handle_mouse_event(&mut self, mouse_event: &MouseEvent) -> bool {
         // Cancel any ongoing drags if we see a mouseup of any kind or notice
         // that a button other than the primary button is pressed.
         let event_type = mouse_event.upcast::<Event>().type_();
@@ -915,11 +914,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         if event_type == atom!("mousedown") {
-            return self.handle_mousedown(node, mouse_event);
+            return self.handle_mousedown(mouse_event);
         }
 
         if event_type == atom!("mousemove") && self.currently_dragging {
-            self.edit_point = self.edit_point_for_mouse_event(node, mouse_event);
+            self.edit_point = self.edit_point_for_mouse_event(mouse_event);
             self.update_selection_direction();
             return true;
         }
@@ -931,7 +930,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// given [`Node`].
     ///
     /// Returns `true` if the [`TextInput`] changed at all or `false` otherwise.
-    fn handle_mousedown(&mut self, node: &Node, mouse_event: &MouseEvent) -> bool {
+    fn handle_mousedown(&mut self, mouse_event: &MouseEvent) -> bool {
         assert_eq!(mouse_event.upcast::<Event>().type_(), atom!("mousedown"));
 
         // Only update the cursor in text fields when the primary buton is pressed.
@@ -962,7 +961,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
             1 => {
                 self.clear_selection();
-                self.edit_point = self.edit_point_for_mouse_event(node, mouse_event);
+                self.edit_point = self.edit_point_for_mouse_event(mouse_event);
                 self.selection_origin = Some(self.edit_point);
                 self.update_selection_direction();
                 true

@@ -12,9 +12,11 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::dom::MutNullableDom;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_traits::ConstellationInputEvent;
+use servo_base::text::Utf32CodeUnits;
 use style::Atom;
 use style_traits::CSSPixel;
 
@@ -80,6 +82,15 @@ pub(crate) struct MouseEvent {
 
     #[no_trace]
     point_in_target: Cell<Option<Point2D<f32, CSSPixel>>>,
+
+    /// Together with `dom_position_offset`, if both are present, a position in the DOM tree
+    /// near the cursor at time of this event.
+    dom_position_container: MutNullableDom<Node>,
+
+    /// Together with `dom_position_container`, if both are present, a position in the DOM tree
+    /// near the cursor at time of this event.
+    #[no_trace]
+    dom_position_offset: Cell<Option<Utf32CodeUnits>>,
 }
 
 impl MouseEvent {
@@ -93,6 +104,8 @@ impl MouseEvent {
             button: Cell::new(0),
             buttons: Cell::new(0),
             point_in_target: Cell::new(None),
+            dom_position_container: MutNullableDom::default(),
+            dom_position_offset: Cell::new(None),
         }
     }
 
@@ -125,6 +138,7 @@ impl MouseEvent {
         buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
+        dom_position_for_selection: Option<&(DomRoot<Node>, Utf32CodeUnits)>,
     ) -> DomRoot<MouseEvent> {
         Self::new_with_proto(
             cx,
@@ -143,6 +157,7 @@ impl MouseEvent {
             buttons,
             related_target,
             point_in_target,
+            dom_position_for_selection,
         )
     }
 
@@ -164,6 +179,7 @@ impl MouseEvent {
         buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
+        dom_position_for_selection: Option<&(DomRoot<Node>, Utf32CodeUnits)>,
     ) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized_with_proto(cx, window, proto);
         ev.initialize_mouse_event(
@@ -180,6 +196,7 @@ impl MouseEvent {
             buttons,
             related_target,
             point_in_target,
+            dom_position_for_selection,
         );
         ev
     }
@@ -201,6 +218,7 @@ impl MouseEvent {
         buttons: u16,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
+        dom_position_for_selection: Option<&(DomRoot<Node>, Utf32CodeUnits)>,
     ) {
         self.uievent.initialize_ui_event(
             event_type,
@@ -221,6 +239,10 @@ impl MouseEvent {
         // Legacy mapping per spec: left/middle/right => 1/2/3 (button + 1), else 0.
         let w = if button >= 0 { (button as u32) + 1 } else { 0 };
         self.uievent.set_which(w);
+        if let Some((node, offset)) = dom_position_for_selection {
+            self.dom_position_container.set(Some(node));
+            self.dom_position_offset.set(Some(*offset));
+        }
     }
 
     pub(crate) fn new_for_platform_motion_event(
@@ -261,6 +283,7 @@ impl MouseEvent {
             input_event.pressed_mouse_buttons,
             None,
             None,
+            hit_test_result.dom_position_for_selection.as_ref(),
         );
 
         let event = mouse_event.upcast::<Event>();
@@ -268,6 +291,10 @@ impl MouseEvent {
         event.set_trusted(true);
 
         mouse_event
+    }
+
+    pub(crate) fn dom_offset_for_selection(&self) -> Option<Utf32CodeUnits> {
+        self.dom_position_offset.get()
     }
 
     /// Create a [MouseEvent] triggered by the embedder.
@@ -305,16 +332,13 @@ impl MouseEvent {
             pressed_mouse_buttons,
             None,
             Some(hit_test_result.point_in_node),
+            hit_test_result.dom_position_for_selection.as_ref(),
         );
 
         mouse_event.upcast::<Event>().set_trusted(true);
         mouse_event.upcast::<Event>().set_composed(true);
 
         mouse_event
-    }
-
-    pub(crate) fn point_in_viewport(&self) -> Option<Point2D<f32, CSSPixel>> {
-        Some(self.client_point.get().to_f32())
     }
 
     /// Create a PointerEvent from this MouseEvent.
@@ -489,6 +513,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
             init.button,
             init.buttons,
             init.relatedTarget.as_deref(),
+            None,
             None,
         );
         event

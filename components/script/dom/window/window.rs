@@ -45,11 +45,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointResult,
-    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
-    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType, HitTestFlags,
+    Layout, LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
+    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -91,6 +91,7 @@ use servo_geometry::DeviceIndependentIntRect;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
+use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::properties::PropertyId;
 use style::properties::style_structs::Font;
@@ -183,7 +184,7 @@ use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
-use crate::dom::types::{FontFace, ImageBitmap, MouseEvent, SVGSVGElement, UIEvent};
+use crate::dom::types::{FontFace, ImageBitmap, SVGSVGElement, UIEvent};
 use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 #[cfg(feature = "webgpu")]
@@ -3209,28 +3210,13 @@ impl Window {
             .map(|(source, overflow)| ScrollingBox::new(source, overflow))
     }
 
-    pub(crate) fn text_index_query_on_node_for_event(
-        &self,
-        node: &Node,
-        mouse_event: &MouseEvent,
-    ) -> Option<usize> {
-        // dispatch_key_event (document.rs) triggers a click event when releasing
-        // the space key. There's no nice way to catch this so let's use this for
-        // now.
-        let point_in_viewport = mouse_event.point_in_viewport()?.map(Au::from_f32_px);
-
-        self.layout_reflow(QueryMsg::TextIndexQuery);
-        self.layout
-            .borrow()
-            .query_text_index(node.to_trusted_node_address(), point_in_viewport)
-    }
-
     pub(crate) fn elements_from_point_query(
         &self,
+        flags: HitTestFlags,
         point: LayoutPoint,
-    ) -> Vec<ElementsFromPointResult> {
+    ) -> layout_api::HitTestResult {
         self.layout_reflow(QueryMsg::ElementsFromPoint);
-        self.layout().query_elements_from_point(point)
+        self.layout().hit_test(flags, point)
     }
 
     pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
@@ -3249,9 +3235,11 @@ impl Window {
 
     pub(crate) fn hit_test_from_input_event(
         &self,
+        flags: HitTestFlags,
         input_event: &ConstellationInputEvent,
     ) -> Option<HitTestResult> {
         self.hit_test_from_point_in_viewport(
+            flags,
             input_event.hit_test_result.as_ref()?.point_in_viewport,
         )
     }
@@ -3259,23 +3247,28 @@ impl Window {
     #[expect(unsafe_code)]
     pub(crate) fn hit_test_from_point_in_viewport(
         &self,
+        flags: HitTestFlags,
         point_in_frame: Point2D<f32, CSSPixel>,
     ) -> Option<HitTestResult> {
-        let result = self
-            .elements_from_point_query(point_in_frame.cast_unit())
-            .into_iter()
-            .nth(0)?;
+        let result = self.elements_from_point_query(flags, point_in_frame.cast_unit());
+        let item = result.items.into_iter().next()?;
 
         let point_relative_to_initial_containing_block =
             point_in_frame + self.scroll_offset().cast_unit();
 
         // SAFETY: This is safe because `Window::query_elements_from_point` has ensured that
         // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
-        let address = UntrustedNodeAddress(result.node.0 as *const c_void);
+        let from_opaque_node = |node: OpaqueNode| {
+            let address = UntrustedNodeAddress(node.0 as *const c_void);
+            unsafe { from_untrusted_node_address(address) }
+        };
         Some(HitTestResult {
-            node: unsafe { from_untrusted_node_address(address) },
-            cursor: result.cursor,
-            point_in_node: result.point_in_target,
+            node: from_opaque_node(item.node),
+            dom_position_for_selection: result
+                .dom_position_for_selection
+                .map(|(node, offset)| (from_opaque_node(node), offset)),
+            cursor: item.cursor,
+            point_in_node: item.point_in_target,
             point_in_frame,
             point_relative_to_initial_containing_block,
         })
