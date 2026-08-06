@@ -569,11 +569,12 @@ impl HTMLImageElement {
         request: ImageRequestPhase,
         cx: &mut js::context::JSContext,
     ) {
-        let mut request = match request {
-            ImageRequestPhase::Current => self.current_request.borrow_mut(),
-            ImageRequestPhase::Pending => self.pending_request.borrow_mut(),
+        let request = match request {
+            ImageRequestPhase::Current => &self.current_request,
+            ImageRequestPhase::Pending => &self.pending_request,
         };
-        LoadBlocker::terminate(&request.blocker, cx);
+        LoadBlocker::terminate(&request.borrow().blocker, cx);
+        let mut request = request.safe_borrow_mut(cx);
         request.state = state;
         request.image = None;
         request.metadata = None;
