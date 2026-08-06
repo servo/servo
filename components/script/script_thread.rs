@@ -565,7 +565,7 @@ impl ScriptThread {
         metadata: Option<&Metadata>,
         origin: MutableOrigin,
         cx: &mut js::context::JSContext,
-    ) -> Option<DomRoot<ServoParser>> {
+    ) -> Option<DomRoot<Document>> {
         with_script_thread(|script_thread| {
             script_thread.handle_page_headers_available(
                 webview_id,
@@ -3131,7 +3131,7 @@ impl ScriptThread {
         metadata: Option<&Metadata>,
         origin: MutableOrigin,
         cx: &mut js::context::JSContext,
-    ) -> Option<DomRoot<ServoParser>> {
+    ) -> Option<DomRoot<Document>> {
         if self.closed_pipelines.borrow().contains(&pipeline_id) {
             // If the pipeline closed, do not process the headers.
             return None;
@@ -3406,7 +3406,7 @@ impl ScriptThread {
         incomplete: InProgressLoad,
         origin: MutableOrigin,
         cx: &mut js::context::JSContext,
-    ) -> DomRoot<ServoParser> {
+    ) -> DomRoot<Document> {
         let script_to_constellation_chan = ScriptToConstellationChan {
             sender: self.senders.pipeline_to_constellation_sender.clone(),
             webview_id: incomplete.webview_id,
@@ -3571,7 +3571,11 @@ impl ScriptThread {
             .as_ref()
             .map(|referrer| referrer.clone().into_string());
 
-        let is_initial_about_blank = final_url.as_str() == "about:blank";
+        let document_source = if incomplete.load_data.is_initial_about_blank {
+            DocumentSource::NotFromParser
+        } else {
+            DocumentSource::FromParser
+        };
 
         let document = Document::new(
             cx,
@@ -3584,12 +3588,12 @@ impl ScriptThread {
             content_type,
             last_modified,
             incomplete.activity,
-            DocumentSource::FromParser,
+            document_source,
             loader,
             referrer,
             Some(metadata.status.raw_code()),
             incomplete.canceller,
-            is_initial_about_blank,
+            incomplete.load_data.is_initial_about_blank,
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
             incomplete.load_data.has_trustworthy_ancestor_origin,
@@ -3686,23 +3690,25 @@ impl ScriptThread {
 
         document.set_navigation_start(incomplete.navigation_start);
 
-        if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(
-                cx,
-                &document,
-                None,
-                final_url,
-                encoding_hint_from_content_type,
-            );
-        } else {
-            ServoParser::parse_html_document(
-                cx,
-                &document,
-                None,
-                final_url,
-                encoding_hint_from_content_type,
-                incomplete.load_data.container_document_encoding,
-            );
+        if !incomplete.load_data.is_initial_about_blank {
+            if is_html_document == IsHTMLDocument::NonHTMLDocument {
+                ServoParser::parse_xml_document(
+                    cx,
+                    &document,
+                    None,
+                    final_url,
+                    encoding_hint_from_content_type,
+                );
+            } else {
+                ServoParser::parse_html_document(
+                    cx,
+                    &document,
+                    None,
+                    final_url,
+                    encoding_hint_from_content_type,
+                    incomplete.load_data.container_document_encoding,
+                );
+            }
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
@@ -3715,7 +3721,7 @@ impl ScriptThread {
             window.set_throttled(true);
         }
 
-        document.get_current_parser().unwrap()
+        document
     }
 
     fn notify_devtools(
