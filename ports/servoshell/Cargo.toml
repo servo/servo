@@ -43,10 +43,12 @@ ProductName = "ServoShell"
 [features]
 # Don't add new features to `default` directly. Add to `default_without_allocator` instead.
 default = ["default_without_allocator", "servo-allocator/use-jemalloc"]
-# default features, without a custom allocator.
-default_without_allocator = ["bundled", "default_web_features", "max_log_level"]
 # Feature groups:
-default_web_features = ["servo/default_web_features"]
+# default features, without a custom allocator.
+default_without_allocator = ["bundled", "default_web_features", "max_log_level", "js_jit"]
+# Default web features should be kept in sync with the list in servo/Cargo.toml.
+# We also need to enable our own features, since we also have `cfg` gated code here.
+default_web_features = ["servo/default_web_features", "gamepad", "webgpu", "webxr"]
 # A reasonable base performance.
 default_perf = ["js_jit", "servo-allocator/use-jemalloc"]
 # Bundle required resources in the binary.
