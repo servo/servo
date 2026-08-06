@@ -1013,8 +1013,18 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         image: ImageBitmapSource,
         options: &ImageBitmapOptions,
     ) -> RootedPromise {
-        ImageBitmap::create_image_bitmap(self.upcast(), image, 0, 0, None, None, options, realm)
-            .duplicate(realm)
+        ImageBitmap::create_image_bitmap(
+            self.globalscope.image_cache().get_factory(),
+            self.upcast(),
+            image,
+            0,
+            0,
+            None,
+            None,
+            options,
+            realm,
+        )
+        .duplicate(realm)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-createimagebitmap>
@@ -1029,6 +1039,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         options: &ImageBitmapOptions,
     ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
+            self.globalscope.image_cache().get_factory(),
             self.upcast(),
             image,
             sx,

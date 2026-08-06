@@ -8,6 +8,7 @@ use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::CrossProcessPaintApi;
+use pixels::image_encoder_decoder_factory::ImageEncoderDecoderFactory;
 use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use resvg::usvg::{Font, fontdb};
@@ -267,4 +268,7 @@ pub trait ImageCache: Sync + Send {
 
     /// Clear the image cache.
     fn clear(&self);
+
+    /// Get the Image Encoder Decoder factory
+    fn get_factory(&self) -> Arc<dyn ImageEncoderDecoderFactory>;
 }
