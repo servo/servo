@@ -6065,6 +6065,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohos-image-kit-sys"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd17403cafc1c28e512dc94597c5cf4522d978dc0747692994615c4df8e2d8c6"
+dependencies = [
+ "ohos-rawfile-sys",
+ "ohos-sys-opaque-types",
+]
+
+[[package]]
 name = "ohos-ime"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6088,6 +6098,15 @@ name = "ohos-media-sys"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ffb75eb3dc3eefa0e4c9d641369b609091d77e395f1f56c9eaddead6e9330b6"
+dependencies = [
+ "ohos-sys-opaque-types",
+]
+
+[[package]]
+name = "ohos-rawfile-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5096029eddb1dbf0f216ce61049d2456525eb0373c465a75d366fc05f5a521b5"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
@@ -8872,6 +8891,7 @@ dependencies = [
  "image",
  "log",
  "malloc_size_of_derive",
+ "ohos-image-kit-sys",
  "serde",
  "servo-base",
  "servo-malloc-size-of",
