@@ -45,8 +45,8 @@ use script_bindings::reflector::DomObject;
 pub(crate) use script_bindings::trace::*;
 
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::html::htmlimageelement::SourceSet;
 use crate::dom::html::htmlmediaelement::HTMLMediaElementFetchContext;
+use crate::dom::srcset::SourceSet;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::StreamConsumer;
 use crate::script_thread::IncompleteParserContexts;
