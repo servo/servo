@@ -395,6 +395,12 @@ pub struct Preferences {
     pub thread_pool_fallback_workers: u64,
     /// Maximum number of workers for the asynchronous networking runtime thread pool
     pub thread_pool_async_runtime_workers_max: u64,
+    /// Number of worker threads used to rasterize a canvas.
+    /// This preference currently only affects the vello_cpu backend.
+    /// Setting this pref to `0` uses the single-threaded backend and
+    /// avoids creating a threadpool.
+    /// For small canvas sizes this pref is ignored and no threadpool is created.
+    pub thread_pool_canvas_workers: u64,
     /// Maximum number of workers for WebRender
     pub thread_pool_webrender_workers_max: u64,
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
@@ -586,6 +592,9 @@ impl Preferences {
             thread_pool_workers_max: 4,
             thread_pool_async_runtime_workers_max: 6,
             thread_pool_fallback_workers: 3,
+            // <https://github.com/linebender/vello/blob/c95b228e1cf73bf96338e8c8ae0d145553f8f99c/sparse_strips/vello_cpu/examples/basic.rs#L51>
+            // According to this example 2-4 give the best results.
+            thread_pool_canvas_workers: 3,
             thread_pool_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
