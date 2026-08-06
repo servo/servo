@@ -67,7 +67,8 @@ pub struct AxesScrollSensitivity {
 /// A simplified representation of the CSS `touch-action` property, used by the
 /// compositor to decide how a touch gesture may scroll a given node.
 ///
-///  NOTE: Directional variants (`pan-left`/`pan-right`/...) are not supported in Stylo at all.
+/// NOTE: Directional variants (`pan-left`/`pan-right`/...) are not supported in Stylo at all.
+/// Firefox also fails the parsing.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum TouchAction {
     /// `touch-action: auto` (and `manipulation`, `pan-x pan-y`). The compositor
