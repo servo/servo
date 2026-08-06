@@ -10,10 +10,17 @@ use std::rc::Rc;
 
 use accesskit::{NodeId, Rect, Role, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
-use servo::{DiagnosticsLoggingOption, LoadStatus, Opts, Preferences, WebViewBuilder};
+use servo::{
+    DiagnosticsLoggingOption, LoadStatus, Opts, Preferences, Scroll, WebViewBuilder, WebViewPoint,
+    WebViewVector,
+};
 use url::Url;
+use webrender_api::units::{DevicePoint, DeviceVector2D};
 
-use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
+use crate::common::{
+    ServoTest, WebViewDelegateImpl, evaluate_javascript,
+    show_webview_and_wait_for_rendering_to_be_ready,
+};
 
 struct NoOpChangeHandler;
 
@@ -686,6 +693,57 @@ fn test_accessibility_bounds_updated_after_relayout() {
 }
 
 #[test]
+fn test_accessibility_bounds_updated_after_renderer_scroll() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <button style='position:absolute;left:10px;top:100px;\
+               width:100px;height:50px'>Target</button>\
+               <div style='width:2000px;height:2000px'></div>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let button = find_first_matching_node(root, |node| node.role() == Role::Button)
+        .expect("Document should contain a button");
+    let button_id = button.locate().0; // Maps to layout's NodeId
+    assert_rect_eq(
+        button.raw_bounds().expect("button should have bounds"),
+        Rect::new(10.0, 100.0, 110.0, 150.0),
+    );
+
+    // The renderer can only scroll a scene it has already received.
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    delegate.last_accesskit_tree_updates.borrow_mut().clear();
+
+    // A positive delta reveals more content at the bottom and right, so this is equivalent to the
+    // `window.scrollTo(20, 40)` of the test above.
+    webview.notify_scroll_event(
+        Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(20.0, 40.0))),
+        WebViewPoint::Device(DevicePoint::new(250.0, 250.0)),
+    );
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let expected = Rect::new(-10.0, 60.0, 90.0, 110.0);
+    let updated_bounds = updates
+        .iter()
+        .flat_map(|update| update.nodes.iter())
+        .filter(|(id, _)| *id == button_id)
+        .filter_map(|(_, node)| node.bounds())
+        .next_back()
+        .expect("The button should have been re-sent with new bounds");
+    assert_rect_eq(updated_bounds, expected);
+
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let button = find_first_matching_node(root, |node| node.role() == Role::Button)
+        .expect("Document should contain a button");
+    assert_rect_eq(
+        button.raw_bounds().expect("button should have bounds"),
+        expected,
+    );
+}
+
+#[test]
 fn test_accessibility_unchanged_bounds_are_not_resent() {
     // Absolutely positioned divs; resizing one doesn't affect the other
     let url = "data:text/html,<!DOCTYPE html>\
@@ -754,10 +812,10 @@ fn assert_rect_eq(actual: Rect, expected: Rect) {
     // Bounds are converted from `Au`, which has a resolution of 1/60th of a CSS pixel.
     const EPSILON: f64 = 0.05;
     assert!(
-        (actual.x0 - expected.x0).abs() < EPSILON &&
-            (actual.y0 - expected.y0).abs() < EPSILON &&
-            (actual.x1 - expected.x1).abs() < EPSILON &&
-            (actual.y1 - expected.y1).abs() < EPSILON,
+        (actual.x0 - expected.x0).abs() < EPSILON
+            && (actual.y0 - expected.y0).abs() < EPSILON
+            && (actual.x1 - expected.x1).abs() < EPSILON
+            && (actual.y1 - expected.y1).abs() < EPSILON,
         "expected bounds {expected:?} but got {actual:?}"
     );
 }
