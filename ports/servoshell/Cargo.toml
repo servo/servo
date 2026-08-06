@@ -41,10 +41,10 @@ OriginalFilename = "servoshell.exe"
 ProductName = "ServoShell"
 
 [features]
-# Prefer using feature groups here to bundle related features.
-default = ["bundled", "default_web_features", "default_perf", "max_log_level"]
-# This should match `default` but use the system allocator instead of any custom allocator.
-default_with_system_allocator = ["bundled", "default_web_features", "js_jit", "servo-allocator/use-system-allocator", "max_log_level"]
+# Don't add new features to `default` directly. Add to `default_without_allocator` instead.
+default = ["default_without_allocator", "servo-allocator/use-jemalloc"]
+# default features, without a custom allocator.
+default_without_allocator = ["bundled", "default_web_features", "max_log_level"]
 # Feature groups:
 default_web_features = ["servo/default_web_features"]
 # A reasonable base performance.
@@ -135,7 +135,7 @@ gilrs = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
 serde_json = { workspace = true }
-# For optional feature servo-allocator/use-system-allocator and servo-allocator/allocation-tracking
+# For optional feature servo-allocator/use-jemalloc and servo-allocator/allocation-tracking
 servo-allocator = { workspace = true, default-features = false }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }

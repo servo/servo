@@ -14,7 +14,6 @@ path = "lib.rs"
 
 [features]
 allocation-tracking = ["backtrace", "dep:rustc-hash", "log"]
-use-system-allocator = []
 use-jemalloc = ["dep:tikv-jemalloc-sys", "dep:tikv-jemallocator"]
 
 [dependencies]

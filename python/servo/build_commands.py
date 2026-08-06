@@ -301,9 +301,11 @@ class MachCommands(CommandBase):
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
 
+            # Servoshell enables a statically linked `jemalloc` by default, but we want to use libc malloc with ASAN,
+            # hence we use the default configuration without the custom allocator.
             if "--no-default-features" not in opts:
                 opts += ["--no-default-features"]
-                self.features.append("default_asan")
+                self.features.append("default_without_allocator")
             else:
                 print(
                     "Info: Explicit `--no-default-features` passed in an ASAN build. \

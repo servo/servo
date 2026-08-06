@@ -58,17 +58,6 @@ pub static enclosing_size: Option<EnclosingSizeFn> = Some(crate::enclosing_size_
 #[cfg(not(feature = "allocation-tracking"))]
 pub static enclosing_size: Option<EnclosingSizeFn> = None;
 
-#[cfg(all(
-    feature = "use-system-allocator",
-    feature = "use-jemalloc",
-    not(any(windows, target_env = "ohos"))
-))]
-compile_error!(
-    "The features `use-system-allocator` and `use-jemalloc` are mutually exclusive!\
- If you want to use the system allocator, you must use `--no-default-features` in combination\
- with `--features=use-system-allocator`."
-);
-
 #[cfg(all(feature = "use-jemalloc", not(any(windows, target_env = "ohos"))))]
 mod platform {
     use std::ffi::CStr;
@@ -158,14 +147,7 @@ mod platform {
     }
 }
 
-#[cfg(all(
-    not(windows),
-    any(
-        feature = "use-system-allocator",
-        target_env = "ohos",
-        not(feature = "use-jemalloc")
-    )
-))]
+#[cfg(all(not(windows), any(target_env = "ohos", not(feature = "use-jemalloc"))))]
 mod platform {
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;
