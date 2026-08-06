@@ -1726,6 +1726,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
     ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
+            self.image_cache().get_factory(),
             self.as_global_scope(),
             image,
             0,
@@ -1749,6 +1750,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         options: &ImageBitmapOptions,
     ) -> RootedPromise {
         ImageBitmap::create_image_bitmap(
+            self.image_cache().get_factory(),
             self.as_global_scope(),
             image,
             sx,
