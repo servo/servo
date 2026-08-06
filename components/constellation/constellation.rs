@@ -130,6 +130,7 @@ use paint_api::{
     PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageIdManager,
 };
+use pixels::image_encoder_decoder_factory::ImageEncoderDecoderFactory;
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
@@ -533,6 +534,9 @@ pub struct Constellation<STF, SWF> {
 
     /// Whether Servo is online or not. This is controlled by the embedder.
     online: bool,
+
+    /// The Image Encoder Decoder Factory that is used for the image cache.
+    pub(crate) image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
 /// State needed to construct a constellation.
@@ -598,6 +602,8 @@ pub struct InitialConstellationState {
 
     /// The wake lock provider for acquiring and releasing OS-level screen wake locks.
     pub wake_lock_provider: Box<dyn WakeLockDelegate>,
+
+    pub image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
 /// When we are exiting a pipeline, we can either force exiting or not. A normal exit
@@ -760,10 +766,12 @@ where
                     privileged_urls: state.privileged_urls,
                     image_cache_factory: Arc::new(ImageCacheFactoryImpl::new(
                         broken_image_icon_data,
+                        state.image_encoder_decoder_factory.clone(),
                     )),
                     user_contents_for_manager_id: Default::default(),
                     // Servo is online by default.
                     online: true,
+                    image_encoder_decoder_factory: state.image_encoder_decoder_factory,
                 };
 
                 constellation.run();
