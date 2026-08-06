@@ -136,6 +136,28 @@ jobs:
           sudo apt install -qy tshark shellcheck
           ./mach bootstrap --yes --skip-lints --skip-nextest
 
+      # Only enable `sccache` on forks. On the main repository we suffer from too much cache-trashing,
+      # and also don't need it for builds running on our self-hosted runners (cached cargo target directory).
+      # On forks expected activity is much lower, so the 10GB cache will be sufficient for the expected
+      # use-case of running `./mach try linux-wpt`.
+      # Sccache can be turned off by adding a repository level variable SCCACHE_GHA_ENABLED and
+      # setting the value to `false`. See <https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#creating-configuration-variables-for-a-repository>.
+      - name: Install sccache
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        uses: mozilla-actions/sccache-action@v0.0.11
+      - name: Enable sccache
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        run: |
+          {
+            # Set / Increment SCCACHE_GHA_VERSION as a repository level variable in your fork
+            # to purge the cache, if you believe you're encountering issues
+            echo "SCCACHE_GHA_VERSION=${{ vars.SCCACHE_GHA_VERSION || '1' }}"
+            echo "SCCACHE_GHA_ENABLED=true"
+            echo "RUSTC_WRAPPER=sccache"
+            # sccache cannot cache incremental compilation.
+            echo "CARGO_INCREMENTAL=0"
+          } >> $GITHUB_ENV
+
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
       # commit we are building uses a different rustc version.
