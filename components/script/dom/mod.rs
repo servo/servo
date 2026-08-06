@@ -319,6 +319,7 @@ pub(crate) use self::serviceworker::*;
 pub(crate) mod servointernals;
 pub(crate) mod servoparser;
 pub(crate) mod shadowroot;
+pub(crate) mod srcset;
 pub(crate) mod storage;
 pub(crate) use self::storage::*;
 pub(crate) mod stream;
