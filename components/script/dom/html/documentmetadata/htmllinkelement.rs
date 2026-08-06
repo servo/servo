@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
@@ -63,6 +63,7 @@ use crate::links::LinkRelations;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) struct RequestGenerationId(u32);
@@ -161,7 +162,7 @@ impl HTMLLinkElement {
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn remove_stylesheet(&self) {
+    fn remove_stylesheet(&self, no_gc: &NoGC) {
         if let Some(stylesheet) = self.stylesheet.borrow_mut().take() {
             let owner = self.stylesheet_list_owner();
             owner.remove_stylesheet(
@@ -169,7 +170,7 @@ impl HTMLLinkElement {
                 &stylesheet,
             );
             self.clean_stylesheet_ownership();
-            owner.invalidate_stylesheets();
+            owner.invalidate_stylesheets(no_gc);
         }
     }
 
@@ -252,7 +253,7 @@ impl VirtualMethods for HTMLLinkElement {
         let is_removal = mutation.is_removal();
         match *local_name {
             local_name!("disabled") => {
-                self.handle_disabled_attribute_change(is_removal);
+                self.handle_disabled_attribute_change(cx.no_gc(), is_removal);
                 return;
             },
             local_name!("rel") | local_name!("rev") => {
@@ -289,7 +290,7 @@ impl VirtualMethods for HTMLLinkElement {
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
                     self.handle_stylesheet_url(cx);
                 } else {
-                    self.remove_stylesheet();
+                    self.remove_stylesheet(cx.no_gc());
                 }
 
                 if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
@@ -301,7 +302,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // > If both the href and imagesrcset attributes are absent, then the element does not define a link.
                 if is_removal {
                     if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                        self.remove_stylesheet();
+                        self.remove_stylesheet(cx.no_gc());
                     }
                     return;
                 }
@@ -413,7 +414,7 @@ impl VirtualMethods for HTMLLinkElement {
                         },
                         AttributeMutation::Removed => *media = StyleMediaList::empty(),
                     };
-                    self.owner_document().invalidate_stylesheets();
+                    self.owner_document().invalidate_stylesheets(cx.no_gc());
                 }
 
                 let matches_media_environment =
@@ -481,7 +482,7 @@ impl VirtualMethods for HTMLLinkElement {
             s.unbind_from_tree(cx, context);
         }
 
-        self.remove_stylesheet();
+        self.remove_stylesheet(cx.no_gc());
     }
 }
 
@@ -716,7 +717,7 @@ impl HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-link-disabled>
-    fn handle_disabled_attribute_change(&self, is_removal: bool) {
+    fn handle_disabled_attribute_change(&self, no_gc: &NoGC, is_removal: bool) {
         // > Whenever the disabled attribute is removed, set the link element's explicitly enabled attribute to true.
         if is_removal {
             self.is_explicitly_enabled.set(true);
@@ -724,7 +725,7 @@ impl HTMLLinkElement {
         if let Some(stylesheet) = self.get_stylesheet() &&
             stylesheet.set_disabled(!is_removal)
         {
-            self.stylesheet_list_owner().invalidate_stylesheets();
+            self.stylesheet_list_owner().invalidate_stylesheets(no_gc);
         }
     }
 
@@ -983,6 +984,7 @@ impl HTMLLinkElement {
         let Ok(url) = document.encoding_parse_a_url(&href_attribute_value.str()) else {
             return;
         };
+        let url = ensure_blob_referenced_by_url_is_kept_alive(&global, url);
 
         // Step 6. Let settings object be el's node document's relevant settings object.
 
@@ -1000,7 +1002,7 @@ impl HTMLLinkElement {
             .unwrap_or_else(|| {
                 global
                     .import_map()
-                    .resolve_a_module_integrity_metadata(&url)
+                    .resolve_a_module_integrity_metadata(&url.url())
             });
 
         // Step 11. Let referrer policy be the current state of el's referrerpolicy attribute.

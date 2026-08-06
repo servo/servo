@@ -1,4 +1,2 @@
-features:
-- name: clip-path-boxes
-  files:
-  - clip-path-svg-geometry-box.html
+rules:
+- clip-path-svg-geometry-box.html: [clip-path-boxes]

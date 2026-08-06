@@ -1,18 +1,10 @@
 // META: script=/common/get-host-info.sub.js
+// META: script=/content-security-policy/webrtc/webrtc.js
 //
 // The following tests assume the policy `Connection-Allowlist:
 // (response-origin);webrtc=block` has been set.
 promise_test(async (t) => {
-  try {
-    // Copied from https://webrtc.org/getting-started/peer-connections.
-    const configuration = {
-      'iceServers': [{'urls': 'stun:stun.example.com:19302'}]
-    };
-    const peerConnection = new RTCPeerConnection(configuration);
-    assert_unreached('RTCPeerConnection construction should fail.')
-  } catch (err) {
-    assert_equals(err.name, 'NotAllowedError');
-  }
+  assert_equals(await tryConnect(), 'blocked');
 }, 'Test that webrtc=block Connection-Allowlist param is respected.');
 
 promise_test(async (t) => {

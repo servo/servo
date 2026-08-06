@@ -1,3 +1,2 @@
-features:
-- name: background-color
-  files: "**"
+rules:
+- "**": [background-color]

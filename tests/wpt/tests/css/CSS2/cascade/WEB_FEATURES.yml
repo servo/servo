@@ -1,9 +1,5 @@
-features:
-- name: inherit-value
-  files:
-  - inherit-*
-- name: import
-  files:
-  - at-import-*
-  - cascade-007.xht
-  - cascade-012.xht
+rules:
+- inherit-*: [inherit-value]
+- at-import-*: [import]
+- cascade-007.xht: [import]
+- cascade-012.xht: [import]

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>performance.getSpeculations() - navigations reflects actual browser
+       activation, not declared candidates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prefetch/resources/utils.sub.js"></script>
+<script src="support/speculation-measurement-utils.js"></script>
+<body>
+<script>
+// `performance.getSpeculations().navigations` reports the speculative
+// navigations that the browser has actually started, not the set of
+// candidates a site has proposed. These tests exercise that filtering per
+// eagerness level:
+//
+//   - a `moderate` eagerness rule declared but never activated by user
+//     interaction must NOT appear in the API surface;
+//   - a `conservative` eagerness rule declared but never activated by
+//     pointerdown must NOT appear in the API surface;
+//   - once the user interacts with a link that matches the rule, the
+//     corresponding entry SHOULD appear.
+//
+// Synchronization: all subtests use polling (waitForSpeculationMatching) or
+// barrier
+// synchronization (awaitBarrierAndSnapshot) — never fixed-duration
+// timeouts — so they are fast when the state flips quickly and robust on
+// slow bots.
+
+setup(() => {
+  assertSpeculationRulesIsSupported();
+  assert_true(isSpeculationMeasurementEnabled(),
+    "SpeculationMeasurement feature must be enabled");
+});
+
+promise_test(async t => {
+  // A single moderate-eagerness prefetch rule listing many URLs. Without
+  // any user interaction, the browser parks these on-standby and does NOT
+  // prefetch. Therefore `performance.getSpeculations().navigations` must NOT
+  // list them.
+  const moderateUrls = Array.from({length: 10},
+    (_, i) => uniqueNavigationUrl(`moderate-no-interaction-${i}`));
+
+  const { barrierUrl, ruleSet } = makeBarrierRuleSet([
+    { urls: moderateUrls, eagerness: 'moderate' },
+  ]);
+
+  insertSpeculationRules(ruleSet);
+
+  const navsAfterBarrier = await awaitBarrierAndSnapshot(t, barrierUrl);
+  const matches = navsAfterBarrier
+    .filter(n => moderateUrls.includes(n.url));
+  assert_equals(matches.length, 0,
+    "moderate-eagerness candidates must NOT appear in " +
+    "`performance.getSpeculations().navigations` before " +
+    "any user interaction triggers them (got: " +
+    matches.map(m => m.url).join(", ") + ")");
+}, "Moderate-eagerness prefetch rule alone does not populate " +
+   "`performance.getSpeculations().navigations`");
+
+promise_test(async t => {
+  // Same shape, but conservative eagerness. Conservative candidates only
+  // activate on pointerdown of a matching anchor. With no anchors and no
+  // interaction, nothing should appear.
+  const conservativeUrls = Array.from({length: 3},
+    (_, i) => uniqueNavigationUrl(`conservative-no-interaction-${i}`));
+
+  const { barrierUrl, ruleSet } = makeBarrierRuleSet([
+    { urls: conservativeUrls, eagerness: 'conservative' },
+  ]);
+
+  insertSpeculationRules(ruleSet);
+
+  const navsAfterBarrier = await awaitBarrierAndSnapshot(t, barrierUrl);
+  const matches = navsAfterBarrier
+    .filter(n => conservativeUrls.includes(n.url));
+  assert_equals(matches.length, 0,
+    "conservative-eagerness candidates must NOT appear in " +
+    "`performance.getSpeculations().navigations` " +
+    "before pointerdown triggers them");
+}, "Conservative-eagerness prefetch rule alone does not populate " +
+   "`performance.getSpeculations().navigations`");
+
+promise_test(async t => {
+  // A document-source rule with a `where` predicate that matches every
+  // internal anchor at moderate eagerness. No user interaction, so
+  // `performance.getSpeculations().navigations` must NOT include any of these.
+  const targetUrls = Array.from({length: 5},
+    (_, i) => uniqueNavigationUrl(`doc-rule-moderate-${i}`));
+
+  for (const url of targetUrls) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.textContent = url;
+    document.body.appendChild(a);
+    t.add_cleanup(() => a.remove());
+  }
+
+  // Barrier: a list-source immediate rule. Both rules live in one rule set;
+  // the browser processes them together. The document-source rule uses
+  // href_matches to select the target anchors above; the '?' character in
+  // the query string must be escaped as '\\?' since '?' has special meaning
+  // in URL Pattern syntax.
+  const barrierUrl = uniqueNavigationUrl('doc-rule-moderate-barrier');
+  insertSpeculationRules({
+    prefetch: [
+      {
+        where: {
+          href_matches: '*\\?spec-measurement-doc-rule-moderate-*'
+        },
+        eagerness: 'moderate'
+      },
+      { urls: [barrierUrl], eagerness: 'immediate' },
+    ]
+  });
+
+  const navsAfterBarrier = await awaitBarrierAndSnapshot(t, barrierUrl);
+  const matches = navsAfterBarrier
+    .filter(n => targetUrls.includes(n.url));
+  assert_equals(matches.length, 0,
+    "moderate document-source candidates must NOT appear in " +
+    "`performance.getSpeculations().navigations` " +
+    "before user interaction (got: " + matches.map(m => m.url).join(", ") +
+    ")");
+}, "Moderate document-source prefetch rule with anchors does not populate " +
+   "`performance.getSpeculations().navigations` without user interaction");
+
+promise_test(async t => {
+  // Mixed rule set: two URLs at eager eagerness (should appear) and two at
+  // moderate eagerness (should NOT appear). Asserts the API filters
+  // per-candidate, not per-ruleset.
+  //
+  // The immediate URLs themselves serve as the barrier: once both are in
+  // `performance.getSpeculations().navigations`, the browser has finished with
+  // this rule set.
+  const immediateUrls = [
+    uniqueNavigationUrl('mixed-immediate-0'),
+    uniqueNavigationUrl('mixed-immediate-1'),
+  ];
+  const moderateUrls = [
+    uniqueNavigationUrl('mixed-moderate-0'),
+    uniqueNavigationUrl('mixed-moderate-1'),
+  ];
+
+  insertSpeculationRules({
+    prefetch: [
+      { urls: immediateUrls, eagerness: 'immediate' },
+      { urls: moderateUrls, eagerness: 'moderate' },
+    ]
+  });
+
+  // Wait for both immediate URLs to land in
+  // `performance.getSpeculations().navigations`.
+  await Promise.all(immediateUrls.map(u => waitForSpeculationMatching(t, u)));
+
+  const data = performance.getSpeculations();
+  const moderateMatches = data.navigations
+    .filter(n => moderateUrls.includes(n.url));
+  assert_equals(moderateMatches.length, 0,
+    "moderate-eagerness URLs must NOT appear in " +
+    "`performance.getSpeculations().navigations` even after " +
+    "sibling immediate-eagerness URLs from the same rule set have been " +
+    "enacted (got: " + moderateMatches.map(m => m.url).join(", ") + ")");
+}, "Mixed eagerness rule: only immediate candidates appear, not moderate");
+
+// Note: the counterpart positive assertion — "conservative candidate does
+// appear after a pointerdown on a matching anchor" — lives in
+// performance-speculations-navigations-pointerdown.tentative.https.html
+// because it needs synthesized pointer input that headless_shell's WPT
+// driver does not currently support.
+
+promise_test(async t => {
+  // Only unique candidates count. If a rule declares the same URL twice, or
+  // two rules declare the same URL, the URL should appear at most once in
+  // `performance.getSpeculations().navigations` for a given action.
+  const url = uniqueNavigationUrl('dedup-test');
+
+  insertSpeculationRules({
+    prefetch: [
+      { urls: [url, url], eagerness: 'immediate' },
+      { urls: [url], eagerness: 'immediate' },
+    ]
+  });
+
+  // Wait for the URL to appear at least once.
+  await waitForSpeculationMatching(t, url);
+
+  // Then use a barrier via a fresh rule set to give any hypothetical
+  // extra-notification more time to arrive before we count.
+  const { barrierUrl, ruleSet } = makeBarrierRuleSet([]);
+  insertSpeculationRules(ruleSet);
+  const navsAfterBarrier = await awaitBarrierAndSnapshot(t, barrierUrl);
+
+  const matches = navsAfterBarrier.filter(n => n.url === url);
+  assert_less_than_equal(matches.length, 1,
+    "duplicate declarations of the same (url, action) collapse to one " +
+    "navigation entry (got " + matches.length + ")");
+}, "`performance.getSpeculations().navigations` deduplicates (url, action) " +
+   "across duplicate declarations");
+</script>
+</body>

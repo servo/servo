@@ -1,0 +1,10 @@
+<!doctype html>
+<title>A display:contents option renders in a listbox select</title>
+<link rel="match" href="listbox-option-display-contents-ref.html">
+<link rel="help" href="https://bugzil.la/2056610">
+<style>select { width: 60px; } option { padding-inline: 0; }</style>
+<select size="4">
+  <option>a</option>
+  <option style="display:contents">b</option>
+  <option>c</option>
+</select>

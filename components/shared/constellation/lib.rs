@@ -13,7 +13,6 @@ mod structured_data;
 
 use std::collections::VecDeque;
 use std::fmt;
-use std::time::Duration;
 
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
@@ -26,6 +25,7 @@ use embedder_traits::{
 pub use from_script_message::*;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::PinchZoomInfos;
+use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -83,8 +83,6 @@ pub enum EmbedderToConstellationMessage {
     /// recently hovered cursor position and resetting the cursor. This happens after a
     /// display list update is rendered.
     RefreshCursor(PipelineId),
-    /// Enable the sampling profiler, with a given sampling rate and max total sampling duration.
-    ToggleProfiler(Duration, Duration),
     /// Request to exit from fullscreen mode
     ExitFullScreen(WebViewId),
     /// Media session action.
@@ -131,7 +129,12 @@ pub enum UserContentManagerAction {
 pub enum PaintMetricEvent {
     FirstPaint(CrossProcessInstant, bool /* first_reflow */),
     FirstContentfulPaint(CrossProcessInstant, bool /* first_reflow */),
-    LargestContentfulPaint(CrossProcessInstant, usize /* area */, Option<ServoUrl>),
+    LargestContentfulPaint(
+        CrossProcessInstant,
+        usize, /* area */
+        Option<ServoUrl>,
+        LCPCandidateID,
+    ),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {

@@ -1,60 +1,25 @@
-features:
-- name: accent-color
-  files:
-  - accent-color-*
-  - transparent-accent-color-*
-- name: appearance
-  files:
-  - appearance-*
-- name: outlines
-  files:
-  - outline-width-*
-  - outline-style-*
-  - outline-color-*
-  - outline-offset-*
-  - outline-auto-width-*
-- name: box-sizing
-  files:
-  - box-sizing-*
-- name: interactivity
-  files:
-  - interactivity-*
-  - inert-attribute-overriding.html
-- name: outline
-  files:
-  - outline-*
-  - "!outline-width-*"
-  - "!outline-style-*"
-  - "!outline-color-*"
-  - "!outline-offset-*"
-  - "!outline-auto-width-*"
-- name: resize
-  files:
-  - resize-*
-- name: user-select
-  files:
-  - user-select-*
-- name: caret-color
-  files:
-  - caret-color-*
-- name: caret-shape
-  files:
-  - caret-shape-*
-  - caret-eol-*
-- name: cross-fade
-  files:
-  - cursor-image-016-manual.html
-- name: custom-ellipses
-  files:
-  - text-overflow-string-*
-- name: unset-value
-  files:
-  - native-appearance-disabled-for-value-unset.html
-- name: text-overflow
-  files:
-  - text-overflow-*
-- name: cursor
-  files:
-  - canvas-cursor-*
-  - cursor-*
-  - select-cursor-*
+rules:
+- accent-color-*: [accent-color]
+- transparent-accent-color-*: [accent-color]
+- appearance-*: [appearance]
+- outline-width-*: [outlines]
+- outline-style-*: [outlines]
+- outline-color-*: [outlines]
+- outline-offset-*: [outlines]
+- outline-auto-width-*: [outlines]
+- box-sizing-*: [box-sizing]
+- interactivity-*: [interactivity]
+- inert-attribute-overriding.html: [interactivity]
+- outline-*: [outline]
+- resize-*: [resize]
+- user-select-*: [user-select]
+- caret-color-*: [caret-color]
+- caret-shape-*: [caret-shape]
+- caret-eol-*: [caret-shape]
+- cursor-image-016-manual.html: [cross-fade, cursor]
+- text-overflow-string-*: [custom-ellipses, text-overflow]
+- native-appearance-disabled-for-value-unset.html: [unset-value]
+- text-overflow-*: [text-overflow]
+- canvas-cursor-*: [cursor]
+- cursor-*: [cursor]
+- select-cursor-*: [cursor]

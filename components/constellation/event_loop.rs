@@ -10,7 +10,7 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangMonitorAlert};
+use background_hang_monitor_api::{BackgroundHangMonitorControlMsg, HangAlert};
 use embedder_traits::ScriptToEmbedderChan;
 use ipc_channel::IpcError;
 use layout_api::ScriptThreadFactory;
@@ -215,7 +215,7 @@ impl EventLoop {
 pub struct NewScriptEventLoopProcessInfo {
     pub initial_script_state: InitialScriptState,
     pub constellation_to_bhm_receiver: GenericReceiver<BackgroundHangMonitorControlMsg>,
-    pub bhm_to_constellation_sender: GenericSender<HangMonitorAlert>,
+    pub bhm_to_constellation_sender: GenericSender<HangAlert>,
     pub lifeline_sender: GenericSender<()>,
     pub opts: Opts,
     pub prefs: Box<Preferences>,

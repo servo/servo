@@ -15,14 +15,12 @@ use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMeth
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use crate::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct TestWorklet {
@@ -73,8 +71,10 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
 
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
         let id = self.worklet.worklet_id();
-        let pool = ScriptThread::worklet_thread_pool(self.global().image_cache());
-        pool.test_worklet_lookup(id, String::from(key))
+
+        self.worklet
+            .get_worklet_thread_pool()
+            .test_worklet_lookup(id, String::from(key))
             .map(DOMString::from)
     }
 }

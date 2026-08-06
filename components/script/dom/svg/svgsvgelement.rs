@@ -7,7 +7,7 @@ use base64::Engine as _;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
 use servo_url::ServoUrl;
@@ -163,7 +163,7 @@ impl SVGSVGElement {
         let _ = root_node.AppendChild(cx, &cloned_node);
     }
 
-    fn invalidate_cached_serialized_subtree_and_rasterization_result(&self) {
+    fn invalidate_cached_serialized_subtree_and_rasterization_result(&self, no_gc: &NoGC) {
         let owner_window = self.owner_window();
         owner_window
             .image_cache()
@@ -178,7 +178,7 @@ impl SVGSVGElement {
         }
 
         *self.cached_serialized_data_url.borrow_mut() = None;
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
 }
 
@@ -218,7 +218,7 @@ impl VirtualMethods for SVGSVGElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
 
-        self.invalidate_cached_serialized_subtree_and_rasterization_result();
+        self.invalidate_cached_serialized_subtree_and_rasterization_result(cx.no_gc());
     }
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
@@ -269,7 +269,7 @@ impl VirtualMethods for SVGSVGElement {
             super_type.children_changed(cx, mutation);
         }
 
-        self.invalidate_cached_serialized_subtree_and_rasterization_result();
+        self.invalidate_cached_serialized_subtree_and_rasterization_result(cx.no_gc());
     }
 
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext<'_>) {
@@ -277,6 +277,6 @@ impl VirtualMethods for SVGSVGElement {
             s.unbind_from_tree(cx, context);
         }
 
-        self.invalidate_cached_serialized_subtree_and_rasterization_result();
+        self.invalidate_cached_serialized_subtree_and_rasterization_result(cx.no_gc());
     }
 }

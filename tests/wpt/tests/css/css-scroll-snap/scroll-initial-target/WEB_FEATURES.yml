@@ -1,3 +1,2 @@
-features:
-- name: scroll-initial-target
-  files: "**"
+rules:
+- "**": [scroll-initial-target]

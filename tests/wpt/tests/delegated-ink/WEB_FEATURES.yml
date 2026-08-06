@@ -1,3 +1,2 @@
-features:
-- name: ink
-  files: "**"
+rules:
+- "**": [ink]

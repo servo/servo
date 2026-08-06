@@ -1,20 +1,18 @@
-features:
-- name: column-breaks
-  files:
-  - bottom-padding-repeated-header-crash.html
-  - break-after-table-cell*
-  - break-avoidance-*
-  - break-before-expansion-*
-  - break-before-repeated-footer-instead-of-border-crash.html
-  - break-before-table-cell*
-  - inside-flex-001.html
-  - table-border-006.html
-  - table-cell-expansion-001.html
-  - table-cell-expansion-003.html
-  - table-cell-expansion-004.html
-  - table-cell-expansion-005.html
-  - table-cell-expansion-007.html
-  - table-cell-expansion-008.html
-  - table-cell-expansion-009.html
-  - table-cell-expansion-010.html
-  - zero-height-repeated-footer-crash.html
+rules:
+- bottom-padding-repeated-header-crash.html: [column-breaks]
+- break-after-table-cell*: [column-breaks]
+- break-avoidance-*: [column-breaks]
+- break-before-expansion-*: [column-breaks]
+- break-before-repeated-footer-instead-of-border-crash.html: [column-breaks]
+- break-before-table-cell*: [column-breaks]
+- inside-flex-001.html: [column-breaks]
+- table-border-006.html: [column-breaks]
+- table-cell-expansion-001.html: [column-breaks]
+- table-cell-expansion-003.html: [column-breaks]
+- table-cell-expansion-004.html: [column-breaks]
+- table-cell-expansion-005.html: [column-breaks]
+- table-cell-expansion-007.html: [column-breaks]
+- table-cell-expansion-008.html: [column-breaks]
+- table-cell-expansion-009.html: [column-breaks]
+- table-cell-expansion-010.html: [column-breaks]
+- zero-height-repeated-footer-crash.html: [column-breaks]

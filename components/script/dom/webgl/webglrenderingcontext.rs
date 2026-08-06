@@ -12,6 +12,7 @@ use bitflags::bitflags;
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
 use js::context::{JSContext, NoGC};
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, MutableHandleObject, MutableHandleValue};
@@ -21,7 +22,6 @@ use js::typedarray::{
 };
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{
     AssociatedMemory, Reflector, reflect_weak_referenceable_dom_object,
 };

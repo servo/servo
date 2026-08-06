@@ -1,3 +1,2 @@
-features:
-- name: text-tracks
-  files: "**"
+rules:
+- "**": [text-tracks]

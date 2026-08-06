@@ -1,3 +1,2 @@
-features:
-- name: isolation
-  files: "**"
+rules:
+- "**": [isolation]

@@ -23,6 +23,10 @@
     <div id="target"></div>
   </div>
 <script>
+test(() => {
+  assert_equals(getComputedStyle(document.documentElement).placeItems, "normal");
+}, "Initial value");
+
 test_computed_value("place-items", "normal");
 test_computed_value("place-items", "stretch stretch", "stretch");
 

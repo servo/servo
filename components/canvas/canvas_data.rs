@@ -3,8 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
+use malloc_size_of::MallocSizeOfOps;
 use paint_api::CrossProcessPaintApi;
 use pixels::Snapshot;
+use profile_traits::mem::Report;
 use servo_base::Epoch;
 use servo_canvas_traits::canvas::*;
 use webrender_api::ImageKey;
@@ -46,6 +48,31 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
         if let Some(old_image_key) = self.image_key.replace(image_key) {
             self.paint_api.delete_image(old_image_key);
         }
+    }
+
+    /// Returns memory-usage reports for a canvas.
+    ///
+    /// Called once for each canvas during memory reporting.
+    pub(crate) fn collect_memory_report(
+        &self,
+        canvas_id: CanvasId,
+        ops: &mut MallocSizeOfOps,
+    ) -> Vec<Report> {
+        let dimensions = self.draw_target.get_size();
+        let canvas_info_string = format!(
+            "canvas(id={}, {}x{})",
+            canvas_id.0, dimensions.width, dimensions.height
+        );
+        self.draw_target
+            .canvas_store_sizes(ops)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|canvas_store_type| Report {
+                path: profile_traits::path!["canvas", canvas_info_string, canvas_store_type.name],
+                kind: canvas_store_type.kind,
+                size: canvas_store_type.size,
+            })
+            .collect()
     }
 
     #[expect(clippy::too_many_arguments)]

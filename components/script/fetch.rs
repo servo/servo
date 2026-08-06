@@ -170,6 +170,8 @@ fn request_init_from_request(request: NetTraitsRequest, global: &GlobalScope) ->
     .client(global.request_client(None))
     .response_tainting(request.response_tainting);
     builder.id = request.id;
+    builder.reload_navigation = request.reload_navigation;
+    builder.history_navigation = request.history_navigation;
     builder
 }
 
@@ -770,6 +772,8 @@ impl RequestWithGlobalScope for RequestBuilder {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
+/// This function is temporary, since it does not ensure that blob URLs are claimed
+/// appropriately. All callers must migrate to create_a_potential_cors_request_with_claim.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn create_a_potential_cors_request(
     webview_id: Option<WebViewId>,
@@ -779,26 +783,42 @@ pub(crate) fn create_a_potential_cors_request(
     same_origin_fallback: Option<bool>,
     referrer: Referrer,
 ) -> RequestBuilder {
-    RequestBuilder::new(
+    create_a_potential_cors_request_with_claim(
         webview_id,
         UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+        destination,
+        cors_setting,
+        same_origin_fallback,
         referrer,
     )
-    // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
-    .mode(match cors_setting {
-        Some(_) => RequestMode::CorsMode,
-        // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
-        None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
-        None => RequestMode::NoCors,
-    })
-    .credentials_mode(match cors_setting {
-        // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
-        Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-        // Step 3. Let credentialsMode be "include".
-        _ => CredentialsMode::Include,
-    })
-    // Step 5. Return a new request whose URL is url, destination is destination,
-    // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
-    .destination(destination)
-    .use_url_credentials(true)
+}
+
+/// <https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request>
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn create_a_potential_cors_request_with_claim(
+    webview_id: Option<WebViewId>,
+    url: UrlWithBlobClaim,
+    destination: Destination,
+    cors_setting: Option<CorsSettings>,
+    same_origin_fallback: Option<bool>,
+    referrer: Referrer,
+) -> RequestBuilder {
+    RequestBuilder::new(webview_id, url, referrer)
+        // Step 1. Let mode be "no-cors" if corsAttributeState is No CORS, and "cors" otherwise.
+        .mode(match cors_setting {
+            Some(_) => RequestMode::CorsMode,
+            // Step 2. If same-origin fallback flag is set and mode is "no-cors", set mode to "same-origin".
+            None if same_origin_fallback == Some(true) => RequestMode::SameOrigin,
+            None => RequestMode::NoCors,
+        })
+        .credentials_mode(match cors_setting {
+            // Step 4. If corsAttributeState is Anonymous, set credentialsMode to "same-origin".
+            Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+            // Step 3. Let credentialsMode be "include".
+            _ => CredentialsMode::Include,
+        })
+        // Step 5. Return a new request whose URL is url, destination is destination,
+        // mode is mode, credentials mode is credentialsMode, and whose use-URL-credentials flag is set.
+        .destination(destination)
+        .use_url_credentials(true)
 }

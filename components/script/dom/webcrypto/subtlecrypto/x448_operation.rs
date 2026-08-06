@@ -102,7 +102,7 @@ pub(crate) fn derive_bits(
         None => Ok(secret_slice.to_vec()),
         Some(length) => {
             if secret_slice.len() * 8 < length as usize {
-                Err(Error::Operation(None))
+                Err(Error::Operation(Some("Derived secret is too short".into())))
             } else {
                 let mut secret = secret_slice[..length.div_ceil(8) as usize].to_vec();
                 if length % 8 != 0 {
@@ -702,7 +702,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 if let Handle::X448PrivateKey(private_key) = key.handle() {
                     jwk.encode_string_field(JwkStringField::D, private_key.as_bytes());
                 } else {
-                    return Err(Error::Operation(None));
+                    return Err(Error::Operation(Some(
+                        "[[handle]] internal slot of key is not an X448 private key".into(),
+                    )));
                 }
                 let Handle::X448PrivateKey(private_key) = key.handle() else {
                     return Err(Error::Operation(Some(

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/46024">
+
+<div id="shadowroot">
+    <span id="insideshadowroot"></span>
+</div>
+<script>
+  onload = _ => {
+    document.body.offsetTop;
+    insideshadowroot.innerText = "Changed";
+    shadowroot.attachShadow({mode: "open"});
+    document.body.appendChild(document.createElement("div"));
+  }
+</script>

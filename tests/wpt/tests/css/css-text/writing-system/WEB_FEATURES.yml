@@ -1,4 +1,2 @@
-features:
-- name: text-transform
-  files:
-  - writing-system-text-transform-001.html
+rules:
+- writing-system-text-transform-001.html: [text-transform]

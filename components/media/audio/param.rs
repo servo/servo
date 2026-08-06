@@ -4,8 +4,8 @@
 
 use malloc_size_of_derive::MallocSizeOf;
 
+use crate::audio_node::BlockInfo;
 use crate::block::{Block, FRAMES_PER_BLOCK_USIZE, Tick};
-use crate::node::BlockInfo;
 
 #[derive(Clone, Copy, Debug, Hash, Eq, PartialEq, Ord, PartialOrd, MallocSizeOf)]
 pub enum ParamType {

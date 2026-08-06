@@ -1,5 +1,3 @@
-features:
-- name: svg
-  files:
-  - currentColor-*
-  - svg-percent-stroke-width-viewbox-update.html
+rules:
+- currentColor-*: [svg]
+- svg-percent-stroke-width-viewbox-update.html: [svg]

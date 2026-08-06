@@ -1,3 +1,2 @@
-features:
-- name: web-bluetooth
-  files: "**"
+rules:
+- "**": [web-bluetooth]

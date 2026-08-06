@@ -1,3 +1,2 @@
-features:
-- name: payment-request
-  files: "**"
+rules:
+- "**": [payment-request]

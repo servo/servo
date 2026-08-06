@@ -13,10 +13,9 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use mime::{self, Mime};
-use net_traits::http_status::HttpStatus;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
     ImageResponse, PendingImageId,
@@ -274,24 +273,13 @@ impl FetchResponseListener for ImageContext {
             }
         }
 
-        let status = metadata
-            .as_ref()
-            .map(|m| m.status.clone())
-            .unwrap_or_else(HttpStatus::new_error);
-
-        self.status = {
-            if status.is_error() {
-                Err(NetworkError::ResourceLoadError(
-                    "No http status code received".to_owned(),
-                ))
-            } else if status.is_success() {
-                Ok(())
-            } else {
-                Err(NetworkError::ResourceLoadError(format!(
-                    "HTTP error code {}",
-                    status.code()
-                )))
-            }
+        // The HTTP status code is ignored here. Ok NetworkError is treated
+        // as real error
+        self.status = match metadata.as_ref().map(|m| m.status.clone()) {
+            None => Err(NetworkError::ResourceLoadError(
+                "No http status code received".to_owned(),
+            )),
+            Some(_) => Ok(()),
         };
     }
 
@@ -481,7 +469,7 @@ impl HTMLImageElement {
         self.current_request.borrow_mut().state = State::CompletelyAvailable;
         LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
         // Mark the node dirty
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         self.resolve_image_decode_promises();
     }
 
@@ -527,7 +515,7 @@ impl HTMLImageElement {
                 // Step 1. Abort the image request for image request.
                 self.abort_request(State::Broken, ImageRequestPhase::Current, cx);
 
-                self.load_broken_image_icon();
+                self.load_broken_image_icon(cx.no_gc());
 
                 // Step 2. If maybe omit events is not set or previousURL is not equal to urlString,
                 // then fire an event named error at the img element.
@@ -553,7 +541,7 @@ impl HTMLImageElement {
                 // Step 3. Set the current request's state to broken.
                 self.current_request.borrow_mut().state = State::Broken;
 
-                self.load_broken_image_icon();
+                self.load_broken_image_icon(cx.no_gc());
 
                 // Step 4. Fire an event named error at the img element.
                 (false, true)
@@ -1179,7 +1167,7 @@ impl HTMLImageElement {
 
                     // TODO Step 7.4.5. Prepare the current request for presentation given the img
                     // element.
-                    self.upcast::<Node>().dirty(NodeDamage::Other);
+                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
 
                     // Step 7.4.6. Set the current request's current pixel density to selected pixel
                     // density.
@@ -1483,7 +1471,7 @@ impl HTMLImageElement {
                 this.image_request.set(ImageRequestPhase::Current);
 
                 // TODO Step 16.6. Prepare image request for presentation given the img element.
-                this.upcast::<Node>().dirty(NodeDamage::Other);
+                this.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
 
                 // Step 16.7. Fire an event named load at the img element.
                 this.upcast::<EventTarget>().fire_event(cx, atom!("load"));
@@ -1607,7 +1595,7 @@ impl HTMLImageElement {
         self.generation.get()
     }
 
-    fn load_broken_image_icon(&self) {
+    fn load_broken_image_icon(&self, no_gc: &NoGC) {
         let window = self.owner_window();
         let Some(broken_image_icon) = window.image_cache().get_broken_image_icon() else {
             return;
@@ -1615,7 +1603,7 @@ impl HTMLImageElement {
 
         self.current_request.borrow_mut().metadata = Some(broken_image_icon.metadata);
         self.current_request.borrow_mut().image = Some(Image::Raster(broken_image_icon));
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
 
     /// Get the full URL of the current image of this `<img>` element, returning `None` if the URL

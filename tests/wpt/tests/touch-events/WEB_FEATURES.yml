@@ -1,3 +1,2 @@
-features:
-- name: touch-events
-  files: "**"
+rules:
+- "**": [touch-events]

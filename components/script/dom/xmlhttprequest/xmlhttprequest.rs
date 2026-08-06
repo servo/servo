@@ -21,6 +21,7 @@ use http::Method;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper_serde::Serde;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers2::{JS_ClearPendingException, JS_ParseJSON};
@@ -35,7 +36,6 @@ use net_traits::{
     trim_http_whitespace,
 };
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::RootedTraceableBox;
@@ -386,13 +386,17 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 // Step 8. If parsedURL’s host is non-null, then:
                 if parsed_url.host().is_some() {
                     // Step 8.1 If the username argument is not null, set the username given parsedURL and username.
-                    if let Some(user_str) = username {
-                        parsed_url.set_username(&user_str.0).unwrap();
+                    if let Some(user_str) = username &&
+                        let Err(error) = parsed_url.set_username(&user_str.0)
+                    {
+                        warn!("Could not set username on XMLHttpRequest: {error:?}");
                     }
 
                     // Step 8.2 If the password argument is not null, set the password given parsedURL and password.
-                    if let Some(pass_str) = password {
-                        parsed_url.set_password(Some(&pass_str.0)).unwrap();
+                    if let Some(pass_str) = password &&
+                        let Err(error) = parsed_url.set_password(Some(&pass_str.0))
+                    {
+                        warn!("Could not set password on XMLHttpRequest: {error:?}");
                     }
                 }
 
@@ -482,10 +486,15 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             None => value.into(),
         };
 
-        headers.insert(
-            HeaderName::from_str(name_str).unwrap(),
-            HeaderValue::from_bytes(&value).unwrap(),
-        );
+        if let (Ok(header_name), Ok(header_value)) = (
+            HeaderName::from_str(name_str),
+            HeaderValue::from_bytes(&value),
+        ) {
+            headers.insert(header_name, header_value);
+        } else {
+            warn!("Not setting header in XMLHttpRequest {name_str:?}: {value:?}");
+        }
+
         Ok(())
     }
 
@@ -557,8 +566,13 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         // Step 1. If this’s state is not opened, then throw an "InvalidStateError" DOMException.
         // Step 2. If this’s send() flag is set, then throw an "InvalidStateError" DOMException.
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "XMLHttpRequest not open or already sent".into(),
+            )));
         }
+        let Some(url) = self.request_url.borrow().clone() else {
+            return Err(Error::InvalidState(Some("XMLHttpRequest not open".into())));
+        };
 
         // Step 3. If this’s request method is `GET` or `HEAD`, then set body to null.
         let data = match *self.request_method.borrow() {
@@ -693,11 +707,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         } else {
             CredentialsMode::CredentialsSameOrigin
         };
-        let use_url_credentials = if let Some(ref url) = *self.request_url.borrow() {
-            !url.username().is_empty() || url.password().is_some()
-        } else {
-            unreachable!()
-        };
+        let use_url_credentials = !url.username().is_empty() || url.password().is_some();
 
         let content_type = match extracted_or_serialized.as_mut() {
             Some(body) => body.content_type.take(),
@@ -705,23 +715,19 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         };
 
         let global = self.global();
-        let mut request = RequestBuilder::new(
-            global.webview_id(),
-            self.request_url.borrow().clone().unwrap(),
-            self.referrer.clone(),
-        )
-        .method(self.request_method.borrow().clone())
-        .headers((*self.request_headers.borrow()).clone())
-        .unsafe_request(true)
-        // XXXManishearth figure out how to avoid this clone
-        .body(extracted_or_serialized.map(|e| e.into_net_request_body(cx).0))
-        .synchronous(self.sync.get())
-        .mode(RequestMode::CorsMode)
-        .use_cors_preflight(self.upload_listener.get())
-        .credentials_mode(credentials_mode)
-        .use_url_credentials(use_url_credentials)
-        .with_global_scope(&global)
-        .referrer_policy(self.referrer_policy);
+        let mut request = RequestBuilder::new(global.webview_id(), url, self.referrer.clone())
+            .method(self.request_method.borrow().clone())
+            .headers((*self.request_headers.borrow()).clone())
+            .unsafe_request(true)
+            // XXXManishearth figure out how to avoid this clone
+            .body(extracted_or_serialized.map(|e| e.into_net_request_body(cx).0))
+            .synchronous(self.sync.get())
+            .mode(RequestMode::CorsMode)
+            .use_cors_preflight(self.upload_listener.get())
+            .credentials_mode(credentials_mode)
+            .use_url_credentials(use_url_credentials)
+            .with_global_scope(&global)
+            .referrer_policy(self.referrer_policy);
 
         // step 4 (second half)
         if let Some(content_type) = content_type {
@@ -737,46 +743,46 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 _ => None,
             };
 
+            // We cannot use typed header insertion with `mime::Mime` parsing here,
+            // since it lowercases `charset=UTF-8`: https://github.com/hyperium/mime/issues/116
             let mut content_type_set = false;
-            if !request.headers.contains_key(header::CONTENT_TYPE) {
-                request.headers.insert(
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_str(&content_type.str()).unwrap(),
-                );
+            if !request.headers.contains_key(header::CONTENT_TYPE) &&
+                let Ok(content_type_value) = HeaderValue::from_str(&content_type.str())
+            {
+                request
+                    .headers
+                    .insert(header::CONTENT_TYPE, content_type_value);
                 content_type_set = true;
             }
 
             if !content_type_set {
-                let ct = request.headers.typed_get::<ContentType>();
-                if let Some(ct) = ct &&
-                    let Some(encoding) = encoding
+                let content_type = request.headers.typed_get::<ContentType>();
+                if let Some(content_type) = content_type &&
+                    let Some(encoding) = encoding &&
+                    let Ok(mime) = content_type.to_string().parse::<Mime>()
                 {
-                    let mime: Mime = ct.to_string().parse().unwrap();
                     for param in mime.parameters.iter() {
-                        if param.0 == CHARSET && !param.1.eq_ignore_ascii_case(encoding) {
-                            let params_iter = mime.parameters.iter();
-                            let new_params: Vec<(String, String)> = params_iter
-                                .filter(|p| p.0 != CHARSET)
-                                .map(|p| (p.0.clone(), p.1.clone()))
-                                .collect();
+                        if param.0 == CHARSET && !param.1.as_str().eq_ignore_ascii_case(encoding) {
+                            let new_params: Vec<_> =
+                                mime.parameters.iter().filter(|p| p.0 != CHARSET).collect();
 
                             let new_mime = format!(
-                                "{}/{};charset={}{}{}",
+                                "{}/{};charset={encoding}{}{}",
                                 mime.type_,
                                 mime.subtype,
-                                encoding,
                                 if new_params.is_empty() { "" } else { "; " },
                                 new_params
                                     .iter()
-                                    .map(|p| format!("{}={}", p.0, p.1))
+                                    .map(|param| format!("{}={}", param.0, param.1))
                                     .collect::<Vec<String>>()
                                     .join("; ")
                             );
 
-                            request.headers.insert(
-                                header::CONTENT_TYPE,
-                                HeaderValue::from_str(&new_mime).unwrap(),
-                            );
+                            if let Ok(content_type_header) = HeaderValue::from_str(&new_mime) {
+                                request
+                                    .headers
+                                    .insert(header::CONTENT_TYPE, content_type_header);
+                            }
                         }
                     }
                 }
@@ -1705,14 +1711,23 @@ impl XHRTimeoutCallback {
 
 fn serialize_document(doc: &Document) -> Fallible<DOMString> {
     let mut writer = vec![];
-    match serialize(
+    if serialize(
         &mut writer,
         &HtmlSerialize::new(doc.upcast::<Node>()),
         SerializeOpts::default(),
-    ) {
-        Ok(_) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
-        Err(_) => Err(Error::InvalidState(None)),
-    }
+    )
+    .is_err()
+    {
+        return Err(Error::InvalidState(Some(
+            "Could not serialize document".into(),
+        )));
+    };
+    let Ok(string) = String::from_utf8(writer) else {
+        return Err(Error::InvalidState(Some(
+            "Could not serialize document".into(),
+        )));
+    };
+    Ok(DOMString::from(string))
 }
 
 /// Returns whether `bs` is a `field-value`, as defined by

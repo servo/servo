@@ -1,3 +1,2 @@
-features:
-- name: reporting
-  files: "**"
+rules:
+- "**": [reporting]

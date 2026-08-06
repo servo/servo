@@ -9,8 +9,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use fonts::ShapedTextSlice;
 use itertools::Either;
-use layout_api::SharedSelection;
-use malloc_size_of_derive::MallocSizeOf;
+use servo_base::text::Utf32CodeUnits;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -21,9 +20,9 @@ use style::values::specified::box_::DisplayOutside;
 use unicode_bidi::{BidiInfo, Level};
 
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
-use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
+use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
-use crate::flow::inline::text_run::FontAndScriptInfo;
+use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize, ToLogical,
@@ -702,17 +701,13 @@ impl LineItemLayout<'_, '_> {
             .fragments_and_data
             .push(FragmentAndData::new(
                 Fragment::Text(Arc::new(TextFragment {
-                    base: BaseFragment::new(
-                        text_item.base_fragment_info,
-                        text_item.inline_styles.style.clone(),
-                        PhysicalRect::zero(),
-                    ),
-                    selected_style: text_item.inline_styles.selected.clone(),
+                    base: BaseFragment::new(text_item.base_fragment_info, PhysicalRect::zero()),
+                    run_data: text_item.text_fragment_run_data,
                     font_metrics: font_metrics.clone(),
                     font_key,
                     glyphs: text_item.text,
                     justification_adjustment: self.justification_adjustment,
-                    offsets: text_item.offsets,
+                    character_range_in_dom_node: text_item.character_range_in_dom_node,
                     is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
                 })),
                 content_rect,
@@ -964,24 +959,14 @@ impl LineItem {
     }
 }
 
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextRunOffsets {
-    /// The selection range of the containing inline formatting context.
-    #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
-    pub shared_selection: SharedSelection,
-    /// The range of characters this [`TextRun`] represents within the entire text of its
-    /// inline formatting context.
-    pub character_range: Range<usize>,
-}
-
 pub(super) struct TextRunLineItem {
+    pub text_fragment_run_data: Arc<SharedTextRunData>,
     pub info: FontAndScriptInfo,
     pub base_fragment_info: BaseFragmentInfo,
-    pub inline_styles: SharedInlineStyles,
     pub text: Vec<Arc<ShapedTextSlice>>,
-    /// When necessary, this field store the [`TextRunOffsets`] for a particular
-    /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
-    pub offsets: Option<Box<TextRunOffsets>>,
+    /// The range of characters this [`TextRunLineItem`] represents within the text of its
+    /// original DOM node (modified by text transformation).
+    pub character_range_in_dom_node: Range<Utf32CodeUnits>,
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
@@ -990,7 +975,8 @@ pub(super) struct TextRunLineItem {
 impl TextRunLineItem {
     fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
         if matches!(
-            self.inline_styles
+            self.text_fragment_run_data
+                .inline_styles
                 .style
                 .borrow()
                 .get_inherited_text()
@@ -1020,7 +1006,8 @@ impl TextRunLineItem {
 
     fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Au) -> bool {
         if matches!(
-            self.inline_styles
+            self.text_fragment_run_data
+                .inline_styles
                 .style
                 .borrow()
                 .get_inherited_text()
@@ -1044,29 +1031,6 @@ impl TextRunLineItem {
 
         // Only keep going if we only encountered whitespace.
         self.text.is_empty()
-    }
-
-    pub(crate) fn merge_if_possible(
-        &mut self,
-        new_info: &FontAndScriptInfo,
-        new_glyph_store: &Arc<ShapedTextSlice>,
-        new_offsets: &Option<TextRunOffsets>,
-        new_inline_styles: &SharedInlineStyles,
-    ) -> bool {
-        if !Arc::ptr_eq(&self.info.font_info.font, &new_info.font_info.font) ||
-            self.info.font_info.bidi_level != new_info.font_info.bidi_level ||
-            !self.inline_styles.ptr_eq(new_inline_styles)
-        {
-            return false;
-        }
-        self.text.push(new_glyph_store.clone());
-
-        assert_eq!(self.offsets.is_some(), new_offsets.is_some());
-        if let (Some(new_offsets), Some(existing_offsets)) = (new_offsets, self.offsets.as_mut()) {
-            existing_offsets.character_range.end = new_offsets.character_range.end;
-        }
-
-        true
     }
 }
 

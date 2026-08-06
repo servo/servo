@@ -1,48 +1,17 @@
-features:
-- name: dialog
-  files:
-  - "*"
-  # keep exclusions synced with mappings below
-  - "!dialog-cancel-events.html"
-  - "!dialog-canceling.html"
-  - "!dialog-closedby.html"
-  - "!dialog-closedby-*"
-  - "!dialog-popover-closedby-*"
-  - "!dialog-requestclose.html"
-  - "!dialog-requestclose-*"
-  - "!backdrop-*"
-  - "!dialogs-with-no-backdrop.html"
-  - "!modal-dialog-backdrop.html"
-  - "!modal-dialog-backdrop-opacity.html"
-  - "!modal-dialog-display-contents.html"
-  - "!modal-dialog-generated-content.html"
-  - "!dialog-open-pseudo-invalidation.html"
-  - "!dialog-toggle-source.html"
-# keep subsequent mappings synced with exclusions above
-- name: closewatcher
-  files:
-  - dialog-cancel-events.html
-  - dialog-canceling.html
-- name: dialog-closedby
-  files:
-  - dialog-closedby.html
-  - dialog-closedby-*
-  - dialog-popover-closedby-*
-- name: requestclose
-  files:
-  - dialog-requestclose.html
-  - dialog-requestclose-*
-- name: backdrop
-  files:
-  - backdrop-*
-  - dialogs-with-no-backdrop.html
-  - modal-dialog-backdrop.html
-  - modal-dialog-backdrop-opacity.html
-  - modal-dialog-display-contents.html
-  - modal-dialog-generated-content.html
-- name: open-pseudo
-  files:
-  - dialog-open-pseudo-invalidation.html
-- name: toggleevent-source
-  files:
-  - dialog-toggle-source.html
+rules:
+- dialog-cancel-events.html: [closewatcher]
+- dialog-canceling.html: [closewatcher]
+- dialog-closedby.html: [dialog-closedby]
+- dialog-closedby-*: [dialog-closedby]
+- dialog-popover-closedby-*: [dialog-closedby]
+- dialog-requestclose.html: [requestclose]
+- dialog-requestclose-*: [requestclose]
+- backdrop-*: [backdrop]
+- dialogs-with-no-backdrop.html: [backdrop]
+- modal-dialog-backdrop.html: [backdrop]
+- modal-dialog-backdrop-opacity.html: [backdrop]
+- modal-dialog-display-contents.html: [backdrop]
+- modal-dialog-generated-content.html: [backdrop]
+- dialog-open-pseudo-invalidation.html: [open-pseudo]
+- dialog-toggle-source.html: [toggleevent-source]
+- "*": [dialog]

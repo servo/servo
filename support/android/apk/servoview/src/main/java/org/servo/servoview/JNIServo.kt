@@ -6,6 +6,7 @@
 package org.servo.servoview
 
 import android.content.Context
+import android.util.Size
 import android.view.Surface
 
 /**
@@ -21,14 +22,20 @@ internal class JNIServo {
 
     external fun init(
         context: Context,
-        options: ServoOptions,
+        args: String?,
+        url: String?,
+        size: Size,
+        density: Float,
+        logStr: String?,
+        enableLogs: Boolean,
+        experimentalMode: Boolean,
         callbacks: Callbacks,
         surface: Surface,
     )
 
     external fun performUpdates()
 
-    external fun resize(coords: ServoCoordinates)
+    external fun resize(size: Size)
 
     external fun reload()
 
@@ -64,44 +71,13 @@ internal class JNIServo {
 
     external fun pausePainting()
 
-    external fun resumePainting(surface: Surface, coords: ServoCoordinates)
+    external fun resumePainting(surface: Surface, size: Size)
 
     external fun mediaSessionAction(action: Int)
 
     external fun setExperimentalMode(enable: Boolean)
 
     external fun doFrame()
-
-    class ServoOptions {
-        @JvmField
-        var args: String? = null
-
-        @JvmField
-        var url: String? = null
-
-        @JvmField
-        var coordinates: ServoCoordinates? = null
-
-        @JvmField
-        var density: Float = 1f
-
-        @JvmField
-        var logStr: String? = null
-
-        @JvmField
-        var enableLogs: Boolean = false
-
-        @JvmField
-        var experimentalMode: Boolean = false
-    }
-
-    class ServoCoordinates {
-        @JvmField
-        var width: Int = 0
-
-        @JvmField
-        var height: Int = 0
-    }
 
     interface Callbacks {
         fun wakeup()

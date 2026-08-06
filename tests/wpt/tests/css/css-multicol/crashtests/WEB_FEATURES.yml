@@ -1,46 +1,49 @@
-features:
-- name: column-fill
-  files:
-  - block-in-inline-*
-  - break-before-multicol-caption.html
-  - chrome-bug-1301281.html
-  - chrome-bug-1303256.html
-  - chrome-bug-1314866.html
-  - forced-break-in-oof-in-column-balancing-nested.html
-  - inline-float-parallel-flow.html
-  - monolithic-oof-in-clipped-container.html
-  - move-linebreak-to-different-column.html
-  - move-newline-pre-text.html
-  - multicol-dynamic-*
-  - multicol-floats-in-ifc.html
-  - multicol-with-oof-in-multicol-with-oof-in-multicol.html
-  - nested-as-balanced-legend.html
-  - nested-floated-multicol-with-tall-margin.html
-  - nested-multicol-*
-  - "!nested-multicol-in-svg-foreignobject.html"
-  - nested-oof-multicol-*
-  - nested-with-fragmented-oof-negative-top-offset.html
-  - nested-with-multicol-table-caption.html
-  - nested-with-oof-inside-fixed-width.html
-  - nested-with-tall-padding-and-oof.html
-  - oof-in-nested-line-float.html
-  - oof-in-oof-multicol-in-relpos-in-oof-in-multicol-in-multicol.html
-  - oof-nested-multicol-inside-oof.html
-  - outline-move-oof-with-inline.html
-  - relayout-fixedpos-in-abspos-in-relpos-in-nested-multicol.html
-  - relayout-nested-with-oof.html
-  - repeated-*
-  - sticky-in-abs-in-sticky.html
-  - table-caption-in-clipped-overflow.html
-  - table-caption-inline-block-remove-child.html
-  - text-box-trim-end-and-widows.html
-  - text-in-inline-interrupted-by-float.html
-  - vertical-rl-column-rules-wide-columns.html
-  - video-container-become-multicol.html
-  - zero-column-height.html
-  - "!*spanner*"
-- name: column-span
-  files:
-  - "*spanner*"
-  - "!body-becomes-spanner-html-becomes-vertical-rl.html"
-  - "!oof-becomes-spanner.html"
+rules:
+- block-in-inline-with-spanner-in-overflowed-parent.html: &id001 [column-span, column-span,
+    column-span]
+- block-in-inline-with-abspos-after-spanner.html: *id001
+- block-in-inline-with-spanner-in-overflowed-parent-nested-multicol.html: *id001
+- block-in-inline-with-spanner-in-overflowed-parent.html: [column-fill, column-span]
+- block-in-inline-with-abspos-after-spanner.html: [column-fill, column-span]
+- block-in-inline-with-spanner-in-overflowed-parent-nested-multicol.html: [column-fill,
+    column-span]
+- block-in-inline-*: [column-fill]
+- break-before-multicol-caption.html: [column-fill]
+- chrome-bug-1301281.html: [column-fill]
+- chrome-bug-1303256.html: [column-fill]
+- chrome-bug-1314866.html: [column-fill]
+- forced-break-in-oof-in-column-balancing-nested.html: [column-fill]
+- inline-float-parallel-flow.html: [column-fill]
+- monolithic-oof-in-clipped-container.html: [column-fill]
+- move-linebreak-to-different-column.html: [column-fill]
+- move-newline-pre-text.html: [column-fill]
+- multicol-dynamic-*: [column-fill]
+- multicol-floats-in-ifc.html: [column-fill]
+- multicol-with-oof-in-multicol-with-oof-in-multicol.html: [column-fill]
+- nested-as-balanced-legend.html: [column-fill]
+- nested-floated-multicol-with-tall-margin.html: [column-fill]
+- nested-multicol-in-svg-foreignobject.html: []
+- nested-multicol-*: [column-fill]
+- nested-oof-multicol-*: [column-fill]
+- nested-with-fragmented-oof-negative-top-offset.html: [column-fill]
+- nested-with-multicol-table-caption.html: [column-fill]
+- nested-with-oof-inside-fixed-width.html: [column-fill]
+- nested-with-tall-padding-and-oof.html: [column-fill]
+- oof-in-nested-line-float.html: [column-fill]
+- oof-in-oof-multicol-in-relpos-in-oof-in-multicol-in-multicol.html: [column-fill]
+- oof-nested-multicol-inside-oof.html: [column-fill]
+- outline-move-oof-with-inline.html: [column-fill]
+- relayout-fixedpos-in-abspos-in-relpos-in-nested-multicol.html: [column-fill]
+- relayout-nested-with-oof.html: [column-fill]
+- repeated-*: [column-fill]
+- sticky-in-abs-in-sticky.html: [column-fill]
+- table-caption-in-clipped-overflow.html: [column-fill]
+- table-caption-inline-block-remove-child.html: [column-fill]
+- text-box-trim-end-and-widows.html: [column-fill]
+- text-in-inline-interrupted-by-float.html: [column-fill]
+- vertical-rl-column-rules-wide-columns.html: [column-fill]
+- video-container-become-multicol.html: [column-fill]
+- zero-column-height.html: [column-fill]
+- body-becomes-spanner-html-becomes-vertical-rl.html: []
+- oof-becomes-spanner.html: []
+- "*spanner*": [column-span]

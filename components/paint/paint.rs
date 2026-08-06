@@ -19,7 +19,6 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
-use ipc_channel::ipc::{self};
 use log::{debug, warn};
 use paint_api::rendering_context::RenderingContext;
 use paint_api::{
@@ -31,7 +30,7 @@ use profile_traits::mem::{
 };
 use profile_traits::path;
 use profile_traits::time::{self as profile_time};
-use servo_base::generic_channel::{GenericSender, RoutedReceiver};
+use servo_base::generic_channel::{self, GenericSender, RoutedReceiver};
 use servo_base::id::{PainterId, PipelineId, WebViewId};
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use servo_config::pref;
@@ -356,7 +355,7 @@ impl Paint {
         }
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
-        if let Ok((sender, receiver)) = ipc::channel() {
+        if let Some((sender, receiver)) = generic_channel::channel() {
             self.time_profiler_chan
                 .send(profile_time::ProfilerMsg::Exit(sender));
             let _ = receiver.recv();

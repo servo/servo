@@ -149,6 +149,7 @@ impl HTMLDialogElement {
                 .focus_handler()
                 .focused_area()
                 .element(),
+            cx.no_gc(),
         );
 
         // TODO: Step 17. Let document be subject's node document.
@@ -223,11 +224,14 @@ impl HTMLDialogElement {
         // TODO: Step 11. Set subject's request close source element to null.
 
         // Step 12. If subject's previously focused element is not null, then:
-        if let Some(element) = self.upcast::<HTMLElement>().previously_focused_element() {
+        if let Some(element) = self
+            .upcast::<HTMLElement>()
+            .previously_focused_element(cx.no_gc())
+        {
             // Step 12.1. Let element be subject's previously focused element.
             // Step 12.2. Set subject's previously focused element to null.
             self.upcast::<HTMLElement>()
-                .set_previously_focused_element(None);
+                .set_previously_focused_element(None, cx.no_gc());
 
             // Step 12.3. If subject's node document's focused area of the document's DOM anchor is
             // a shadow-including inclusive descendant of subject, or wasModal is true, then run the
@@ -304,28 +308,28 @@ impl HTMLDialogElement {
         // TODO: Step 1. If the allow focus steps given subject's node document return false, then return.
 
         // Step 2. Let control be null.
-        let mut control = None;
+        rooted!(&in(cx) let mut control = None);
 
         // Step 3. If subject has the autofocus attribute, then set control to subject.
         if self.upcast::<HTMLElement>().Autofocus() {
-            control = self.upcast::<Node>().get_the_focusable_area(cx.no_gc());
+            control.set(self.upcast::<Node>().get_the_focusable_area(cx));
         }
 
         // Step 4. If control is null, then set control to the focus delegate of subject.
         if control.is_none() {
-            control = self.upcast::<Node>().focus_delegate(cx.no_gc());
+            control.set(self.upcast::<Node>().focus_delegate(cx));
         }
 
         // Step 5. If control is null, then set control to subject.
         if control.is_none() {
-            control = self.upcast::<Node>().get_the_focusable_area(cx.no_gc());
+            control.set(self.upcast::<Node>().get_the_focusable_area(cx));
         }
 
         // Step 6. Run the focusing steps for control.
         // FIXME: Use the focusing step once they support a focusable area as an argument
-        if let Some(control) = control {
+        if control.is_some() {
             let document = self.owner_document();
-            document.focus_handler().focus(cx, control);
+            document.focus_handler().focus(cx, &control.take().unwrap());
         }
 
         // TODO: Step 7. Let topDocument be control's node navigable's top-level traversable's active document.
@@ -404,6 +408,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
                 .focus_handler()
                 .focused_area()
                 .element(),
+            cx.no_gc(),
         );
 
         // TODO: Step 8. Let document be this's node document.

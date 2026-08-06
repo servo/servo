@@ -45,6 +45,7 @@ use net_traits::request::{
     InsecureRequestsPolicy, PreloadId, PreloadKey, PreloadedResources, RequestBuilder,
 };
 use net_traits::{ReferrerPolicy, ResourceFetchTiming};
+use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use percent_encoding::percent_decode;
 use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
@@ -85,6 +86,7 @@ use crate::dom::animationtimeline::AnimationTimeline;
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
 use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEvent_Binding::BeforeUnloadEventMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, DocumentVisibilityState, NamedPropertyValue,
@@ -101,9 +103,7 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::Permission
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
     SetHTMLOptions, SetHTMLUnsafeOptions,
 };
-use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    FrameRequestCallback, ScrollBehavior, WindowMethods,
-};
+use crate::dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use crate::dom::bindings::codegen::Bindings::XPathEvaluatorBinding::XPathEvaluatorMethods;
 use crate::dom::bindings::codegen::Bindings::XPathNSResolverBinding::XPathNSResolver;
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -344,24 +344,27 @@ bitflags! {
     }
 }
 
-/// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming>
+/// <https://html.spec.whatwg.org/multipage/#document-load-timing-info>
 #[derive(Clone, Debug, Default, MallocSizeOf)]
 pub(crate) struct NavigationTiming {
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventstart>
+    pub(crate) dom_loading: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#navigation-start-time>
+    pub(crate) navigation_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#unload-event-start-time>
     pub(crate) unload_event_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-unloadeventend>
+    /// <https://html.spec.whatwg.org/multipage/#unload-event-end-time>
     pub(crate) unload_event_end: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-dominteractive>
+    /// <https://html.spec.whatwg.org/multipage/#dom-interactive-time>
     pub(crate) dom_interactive: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventstart>
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-start-time>
     pub(crate) dom_content_loaded_event_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcontentloadedeventend>
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-end-time>
     pub(crate) dom_content_loaded_event_end: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-domcomplete>
+    /// <https://html.spec.whatwg.org/multipage/#dom-complete-time>
     pub(crate) dom_complete: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventstart>
+    /// <https://html.spec.whatwg.org/multipage/#load-event-start-time>
     pub(crate) load_event_start: Cell<Option<CrossProcessInstant>>,
-    /// <https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventend>
+    /// <https://html.spec.whatwg.org/multipage/#load-event-end-time>
     pub(crate) load_event_end: Cell<Option<CrossProcessInstant>>,
     /// Servo-only timing for when top-level content (not iframes) is complete
     pub(crate) top_level_dom_complete: Cell<Option<CrossProcessInstant>>,
@@ -526,8 +529,10 @@ pub(crate) struct Document {
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
 
     /// [`NavigationTiming`] information for this [`Document`].
+    /// <https://html.spec.whatwg.org/multipage/#load-timing-info>
     #[no_trace]
-    navigation_timing: NavigationTiming,
+    #[conditional_malloc_size_of]
+    navigation_timing: Rc<NavigationTiming>,
 
     /// A [`ResourceFetchTiming`] that holds timing information for this [`Document`].
     #[no_trace]
@@ -609,6 +614,8 @@ pub(crate) struct Document {
     intersection_observers: DomRefCell<Vec<Dom<IntersectionObserver>>>,
     /// The node that is currently highlighted by the devtools
     highlighted_dom_node: MutNullableDom<Node>,
+    /// Resolved LCP candidate elements, keyed by their [LCPCandidateID].
+    lcp_candidates: DomRefCell<HashMapTracedValues<LCPCandidateID, Dom<Element>>>,
     /// The constructed stylesheet that is adopted by this [Document].
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
@@ -772,119 +779,140 @@ impl Document {
         closed_any_websocket
     }
 
-    pub(crate) fn note_node_with_dirty_descendants(&self, node: &Node) {
+    fn document_element_changed(&self) {
+        if self.GetDocumentElement().is_some() {
+            // This ensures that if the document element is removed in the future, it
+            // will trigger a new empty display list.
+            self.root_removal_noted.set(false);
+        } else if !self.root_removal_noted.get() {
+            // If there is no document element, attempt to trigger a new root removal update,
+            // but do not do any updating of the dirty root or HAS_DIRTY_DESCENDANTS flags.
+            self.add_restyle_reason(RestyleReason::DOMChanged);
+            self.root_removal_noted.set(true);
+        }
+    }
+
+    /// This is a port of Gecko's restyle root architecture. The idea is that we track a
+    /// node which is the root of restyle damage. Below that root, certain nodes can be
+    /// marked with a HAS_DIRTY_DESCENDANTS flag which means they should be traversed
+    /// during styling and damage propagation. Above the dirty root nothing should be
+    /// marked with the HAS_DIRTY_DESCENDANTS flag.
+    ///
+    /// The overall algorithm is as follows:
+    /// * When the first dirty element is noted, we just set it as the restyle root.
+    /// * When additional dirty elements are noted, we propagate the given bit up
+    ///   the tree, until we either reach the dirty root or the document root.
+    /// * If we reach the document root, we then propagate the HAS_DIRTY_DESCENDANTS
+    ///   flags up the tree until we cross the path of the new root. Once
+    ///   we find this common ancestor, we record it as the restyle root, and then
+    ///   clear the bits between the new restyle root and the document root.
+    pub(crate) fn note_dirty_element(&self, element: &Element) {
+        let node = element.upcast::<Node>();
+
         debug_assert!(*node.owner_doc() == *self);
         if !node.is_connected() {
             return;
         }
 
-        let parent = match node.parent_in_flat_tree() {
-            FlatTreeParent::Parent(parent) => parent,
-            FlatTreeParent::NotInFlatTree => return,
-            FlatTreeParent::RootNode => {
-                // There is no parent so this is the Document node, so we
-                // behave as if we were called with the document element.
-                let Some(document_element) = self.GetDocumentElement() else {
-                    // Trigger update if the document element was removed.
-                    if !self.root_removal_noted.get() {
-                        self.add_restyle_reason(RestyleReason::DOMChanged);
-                        self.root_removal_noted.set(true);
-                    }
-                    return;
-                };
-                // This ensures that if the document element is removed in the future, it
-                // will trigger a new empty display list.
-                self.root_removal_noted.set(false);
-
-                if let Some(dirty_root) = self.dirty_root.get() &&
-                    dirty_root.is_connected()
-                {
-                    // There was an existing dirty root so we mark its
-                    // ancestors as dirty until the document element.
-                    for ancestor in dirty_root
-                        .upcast::<Node>()
-                        .inclusive_ancestors_in_flat_tree()
-                    {
-                        if ancestor.is::<Element>() {
-                            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
-                        }
-                    }
-                }
-                self.dirty_root.set(Some(&document_element));
-                return;
-            },
+        let parent_element = match node.parent_in_flat_tree() {
+            FlatTreeParent::Parent(parent) => DomRoot::downcast::<Element>(parent),
+            FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => return,
         };
 
-        if let Some(parent_element) = parent.downcast::<Element>() {
+        // The node may not have a parent element if it is a direct descendant of the
+        // `Document` node (i.e. it is the document element aka the `<html>` element in HTML
+        // documents).
+        if let Some(parent_element) = parent_element {
+            // If the parent isn't styled, then it either isn't part of the flat tree or will
+            // be styled later, ensuring the layout of the dirtied node as well.
             if !parent_element.is_styled() {
                 return;
             }
+            // If the parent has `display: none`, the change that caused the node to be dirty
+            // will not affect style or layout.
             if parent_element.is_display_none() {
                 return;
             }
         }
 
-        let element_parent: DomRoot<Element>;
-        let element = match node.downcast::<Element>() {
-            Some(element) => element,
-            None => {
-                // Current node is not an element, it's probably a text node,
-                // we try to get its element parent.
-                match DomRoot::downcast::<Element>(parent) {
-                    Some(parent) => {
-                        element_parent = parent;
-                        &element_parent
-                    },
-                    None => {
-                        // Parent is not an element so it must be a document,
-                        // and this is not an element either, so there is
-                        // nothing to do.
-                        return;
-                    },
-                }
-            },
+        let Some(old_dirty_root) = self.dirty_root.get() else {
+            node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            self.set_dirty_root(Some(element));
+            return;
         };
 
-        let dirty_root = match self.dirty_root.get() {
-            Some(root) if root.is_connected() => root,
-            _ => {
-                element
-                    .upcast::<Node>()
-                    .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
-                self.dirty_root.set(Some(element));
-                return;
-            },
-        };
-
+        let old_dirty_root_node = old_dirty_root.upcast::<Node>();
         for ancestor in element.upcast::<Node>().inclusive_ancestors_in_flat_tree() {
+            // Never mark the Document node as having dirty descendants. It's never the dirty root.
+            if !ancestor.is::<Element>() {
+                break;
+            }
+
             if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
                 return;
             }
 
-            if ancestor.is::<Element>() {
-                ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+
+            // If this node is already under the existing dirty root, there is nothing else to
+            // do apart from marking this node as having dirty descendants. We need to ensure
+            // we mark the root as having dirty descendants now because that has become true.
+            if old_dirty_root_node == &*ancestor {
+                return;
             }
         }
 
-        // Find the new dirty root. If `Node::common_ancestors_in_flat_tree` returns `None`, this
-        // means that the old dirty root is no longer part of the flat tree and `element` is the new
-        // dirty root.
-        let new_dirty_root = element
-            .upcast::<Node>()
-            .common_ancestor_in_flat_tree(dirty_root.upcast())
-            .unwrap_or_else(|| DomRoot::from_ref(element.upcast()));
+        let common_element_ancestor = old_dirty_root_node
+            .inclusive_ancestors_in_flat_tree()
+            .skip(1) // Skip the old root itself.
+            .find_map(|ancestor| {
+                // Never mark the Document node as having dirty descendants. It's never the dirty root.
+                let element = ancestor.downcast::<Element>().map(DomRoot::from_ref)?;
+                if ancestor.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) {
+                    return Some(element);
+                }
+                ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+                None
+            });
 
-        let mut has_dirty_descendants = true;
-        for ancestor in dirty_root
+        // In the case that there was no common ancestor dirty root, one or both of the nodes
+        // is not in the flat tree any longer. When this happens just move the dirty root to
+        // the document element.
+        let Some(new_dirty_root) = common_element_ancestor else {
+            let new_dirty_root = self.GetDocumentElement();
+            if let Some(new_dirty_root) = new_dirty_root.as_ref() {
+                new_dirty_root
+                    .upcast::<Node>()
+                    .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
+            }
+            self.set_dirty_root(new_dirty_root.as_deref());
+            return;
+        };
+
+        // Now mark all nodes *above* the new dirty root as not having dirty descendants
+        // to ensure our invariant that nothing above the dirty root is marked with this
+        // flag.
+        for ancestor in new_dirty_root
             .upcast::<Node>()
             .inclusive_ancestors_in_flat_tree()
+            .skip(1)
         {
-            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, has_dirty_descendants);
-            has_dirty_descendants &= *ancestor != *new_dirty_root;
+            ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
         }
 
-        self.dirty_root
-            .set(Some(new_dirty_root.downcast::<Element>().unwrap()));
+        self.set_dirty_root(Some(&*new_dirty_root));
+    }
+
+    fn set_dirty_root(&self, new_dirty_root: Option<&Element>) {
+        // Assertion: No nodes above the dirty root should be marked with the HAS_DIRTY_DESCENDANTS flag.
+        debug_assert!(new_dirty_root.as_ref().is_none_or(|new_dirty_root| {
+            new_dirty_root
+                .upcast::<Node>()
+                .inclusive_ancestors_in_flat_tree()
+                .skip(1)
+                .all(|node| !node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS))
+        }));
+        self.dirty_root.set(new_dirty_root);
     }
 
     pub(crate) fn take_dirty_root(&self) -> Option<DomRoot<Element>> {
@@ -1104,7 +1132,7 @@ impl Document {
         // not the document element. Needs some layout changes to make
         // that workable.
         if let Some(root) = self.get_document_element_unrooted(no_gc) &&
-            root.upcast::<Node>().has_dirty_descendants()
+            root.has_dirty_descendants()
         {
             condition.insert(RestyleReason::DOMChanged);
         }
@@ -1175,13 +1203,15 @@ impl Document {
     }
 
     pub(crate) fn content_and_heritage_changed(&self, no_gc: &NoGC, node: &Node) {
-        if node.is_connected() {
-            node.note_dirty_descendants(no_gc);
+        if node.is::<Document>() {
+            self.document_element_changed();
         }
 
-        // FIXME(emilio): This is very inefficient, ideally the flag above would
-        // be enough and incremental layout could figure out from there.
-        node.dirty(NodeDamage::ContentOrHeritage);
+        // TODO: A change to the children of a node only affects style when dealing with
+        // selectors like `:has()`, so the application of this restyle should be more
+        // targeted like in Gecko.
+        // See https://searchfox.org/firefox-main/rev/7d438b99e58d16388e4327f2460d14ad4c8be075/layout/style/RestyleManager.cpp#245.
+        node.dirty(no_gc, NodeDamage::ContentOrHeritage);
     }
 
     /// Remove any existing association between the provided id and any elements in this document.
@@ -1362,6 +1392,7 @@ impl Document {
                         LoadStatus::Started,
                     ));
                     self.send_to_embedder(EmbedderMsg::Status(self.webview_id(), None));
+                    update_with_current_instant(&self.navigation_timing.dom_loading);
                 }
             },
             DocumentReadyState::Complete => {
@@ -1468,7 +1499,7 @@ impl Document {
             .upcast::<Node>()
             .traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes)
         {
-            node.dirty(NodeDamage::Other)
+            node.dirty(no_gc, NodeDamage::Other)
         }
     }
 
@@ -1719,14 +1750,14 @@ impl Document {
         // TODO
     }
 
-    pub(crate) fn invalidate_stylesheets(&self) {
+    pub(crate) fn invalidate_stylesheets(&self, no_gc: &NoGC) {
         self.stylesheets.borrow_mut().force_dirty(OriginSet::all());
 
         // Mark the document element dirty so a reflow will be performed.
         //
         // FIXME(emilio): Use the DocumentStylesheetSet invalidation stuff.
         if let Some(element) = self.GetDocumentElement() {
-            element.upcast::<Node>().dirty(NodeDamage::Style);
+            element.upcast::<Node>().dirty(no_gc, NodeDamage::Style);
         }
     }
 
@@ -1789,7 +1820,7 @@ impl Document {
         if self.animation_frame_list.borrow().is_empty() {
             self.window().send_to_constellation(
                 ScriptToConstellationMessage::ChangeRunningAnimationsState(
-                    AnimationState::NoAnimationCallbacksPresent,
+                    AnimationState::AnimationCallbacksAbsent,
                 ),
             );
         }
@@ -2763,7 +2794,9 @@ impl Document {
 
         // Step 10. Remove document from the owner set of each WorkerGlobalScope
         // object whose set contains document.
-        // TODO
+        exited_window
+            .as_global_scope()
+            .disable_owned_worker_animation_frame_providers();
 
         // Step 11. For each workletGlobalScope in document's worklet global scopes,
         // terminate workletGlobalScope.
@@ -3395,6 +3428,12 @@ impl Document {
             }));
     }
 
+    pub(crate) fn store_lcp_candidate(&self, id: LCPCandidateID, element: &Element) {
+        self.lcp_candidates
+            .borrow_mut()
+            .insert(id, Dom::from_ref(element));
+    }
+
     pub(crate) fn handle_paint_metric(
         &self,
         cx: &mut JSContext,
@@ -3416,15 +3455,16 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance(cx).queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
+            ProgressiveWebMetricType::LargestContentfulPaint { area, url, id } => {
                 let binding = LargestContentfulPaint::new(
                     cx,
                     self.window.as_global_scope(),
                     metric_value,
                     area,
                     url,
+                    self.lcp_candidates.borrow_mut().remove(&id).as_deref(),
                 );
-                metrics.set_largest_contentful_paint(metric_value, area);
+                metrics.set_largest_contentful_paint(id, metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance(cx).queue_entry(entry);
             },
@@ -3833,6 +3873,7 @@ impl Document {
             intersection_observer_task_queued: Cell::new(false),
             intersection_observers: Default::default(),
             highlighted_dom_node: Default::default(),
+            lcp_candidates: DomRefCell::new(Default::default()),
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_events: Default::default(),
@@ -4098,8 +4139,8 @@ impl Document {
         self.resource_fetch_timing.borrow()
     }
 
-    pub(crate) fn navigation_timing(&self) -> &NavigationTiming {
-        &self.navigation_timing
+    pub(crate) fn navigation_timing(&self) -> Rc<NavigationTiming> {
+        self.navigation_timing.clone()
     }
 
     pub(crate) fn performance_timing_attribute(
@@ -4591,12 +4632,12 @@ impl Document {
         self.pending_restyles
             .borrow_mut()
             .drain()
-            .filter_map(|(elem, restyle)| {
-                let node = elem.upcast::<Node>();
+            .filter_map(|(element, restyle)| {
+                let node = element.upcast::<Node>();
                 if !node.get_flag(NodeFlags::IS_CONNECTED) {
                     return None;
                 }
-                node.note_dirty_descendants(no_gc);
+                element.note_dirty_descendants(no_gc);
                 Some((node.to_trusted_node_address(), restyle.0))
             })
             .collect()
@@ -4609,10 +4650,10 @@ impl Document {
             .update_for_new_timeline_value(&self.window, current_timeline_value);
     }
 
-    pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self) {
+    pub(crate) fn maybe_mark_animating_nodes_as_dirty(&self, no_gc: &NoGC) {
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .mark_animating_nodes_as_dirty(current_timeline_value);
+            .mark_animating_nodes_as_dirty(no_gc, current_timeline_value);
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
@@ -4641,6 +4682,37 @@ impl Document {
             .cancel_animations_for_node(node);
     }
 
+    /// Clear style and layout data on this [`Node`] and all descendants. This is used to clean
+    /// up the data when a [`Node`] becomes detached from the flat tree. Note that this
+    /// operates on shadow-including descendants.
+    pub(crate) fn remove_style_and_layout_data_from_subtree(
+        &self,
+        no_gc: &NoGC,
+        subtree_root: &Node,
+    ) {
+        for node in subtree_root.traverse_preorder_non_rooting(no_gc, ShadowIncluding::Yes) {
+            self.clean_up_style_and_layout_data_for_node(&node);
+        }
+    }
+
+    pub(crate) fn clean_up_style_and_layout_data_for_node(&self, node: &Node) {
+        node.clear_layout_data();
+        if let Some(element) = node.downcast::<Element>() {
+            element.clean_up_style_data();
+
+            // If this element no longer has any layout or style data, nothing underneath it
+            // can either, and it no longer needs to serve as a layout root. This method is
+            // generally called when a node is leaving the flat tree and no longer takes part
+            // in layout.
+            if self.dirty_root == Some(element) {
+                self.dirty_root.clear();
+            }
+        }
+
+        node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
+        node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false);
+    }
+
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
     pub(crate) fn update_animations_and_send_events(&self, cx: &mut CurrentRealm) {
         // Only update the time if it isn't being managed by a test.
@@ -4657,7 +4729,7 @@ impl Document {
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
             .update_for_new_timeline_value(&self.window, current_timeline_value);
-        self.maybe_mark_animating_nodes_as_dirty();
+        self.maybe_mark_animating_nodes_as_dirty(cx.no_gc());
 
         // > 3. Perform a microtask checkpoint.
         self.window().perform_a_microtask_checkpoint(cx);

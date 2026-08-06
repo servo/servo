@@ -6,7 +6,6 @@
 #![deny(missing_docs)]
 
 use std::fmt;
-use std::ops::Range;
 
 use atomic_refcell::AtomicRef;
 use layout_api::{
@@ -17,7 +16,7 @@ use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use servo_arc::Arc;
 use servo_base::id::{BrowsingContextId, PipelineId};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use servo_url::ServoUrl;
 use style;
 use style::context::SharedStyleContext;
@@ -248,7 +247,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.text_content()
     }
 
-    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnits>> {
+    fn document_selection_in_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
         // Pseudo-elements do not ever have document selection.
         if !self.pseudo_element_chain.is_empty() {
             return None;
@@ -257,8 +256,8 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.document_selection_in_text_node()
     }
 
-    fn selection(&self) -> Option<SharedSelection> {
-        self.node.selection()
+    fn form_control_selection_in_text_node(&self) -> Option<SharedSelection> {
+        self.node.form_control_selection_in_text_node()
     }
 
     fn image_url(&self) -> Option<ServoUrl> {

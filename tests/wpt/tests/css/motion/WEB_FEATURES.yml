@@ -1,3 +1,2 @@
-features:
-- name: motion-path
-  files: "**"
+rules:
+- "**": [motion-path]

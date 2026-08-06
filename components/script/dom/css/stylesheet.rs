@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::Reflector;
 
 use super::cssstylesheet::CSSStyleSheet;
@@ -70,9 +70,9 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-disabled>
-    fn SetDisabled(&self, disabled: bool) {
+    fn SetDisabled(&self, no_gc: &NoGC, disabled: bool) {
         self.downcast::<CSSStyleSheet>()
             .unwrap()
-            .set_disabled(disabled)
+            .set_disabled(no_gc, disabled)
     }
 }

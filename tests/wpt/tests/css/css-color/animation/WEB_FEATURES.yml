@@ -1,4 +1,2 @@
-features:
-- name: opacity
-  files:
-  - opacity-interpolation.html
+rules:
+- opacity-interpolation.html: [opacity]

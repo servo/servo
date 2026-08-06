@@ -599,6 +599,7 @@ impl HTMLIFrameElement {
             document.has_trustworthy_ancestor_or_current_origin(),
             self.sandboxing_flag_set(),
         );
+        load_data.is_initial_about_blank = true;
         load_data.destination = Destination::IFrame;
         load_data.policy_container = Some(window.as_global_scope().policy_container());
 
@@ -659,7 +660,7 @@ impl HTMLIFrameElement {
             LoadBlocker::terminate(blocker, cx);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         true
     }
 

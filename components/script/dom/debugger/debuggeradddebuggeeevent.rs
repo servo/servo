@@ -4,9 +4,9 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
 use script_bindings::str::DOMString;
 

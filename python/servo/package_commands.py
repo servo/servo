@@ -571,7 +571,7 @@ class PackageCommands(CommandBase):
 
         replacements = {
             "ports/servoshell/platform/windows/servoshell.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
-            "support/windows/ServoShell.wxs.mako": r'<Package(.|\n)*Version="(?P<version>.*?)".*>',
+            "support/windows/servoshell.wxs.mako": r'<Package(?:.|\n)*?\sVersion="(?P<version>[^"]*)"',
             "ports/servoshell/platform/macos/Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
             "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
             "support/openharmony/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*?)"',

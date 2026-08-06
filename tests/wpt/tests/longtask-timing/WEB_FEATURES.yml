@@ -1,3 +1,2 @@
-features:
-- name: longtasks
-  files: "**"
+rules:
+- "**": [longtasks]

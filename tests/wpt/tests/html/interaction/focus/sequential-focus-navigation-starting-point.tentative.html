@@ -188,6 +188,14 @@
   </div>
 </template>
 
+<template data-description="tabindex should be respected focus navigation starting point is inside focused element and after all other focusable content">
+  <div tabindex=1 data-prev>prev</div>
+  <div tabindex=2>tabindex=2 before</div>
+  <div tabindex=1>Start <span data-click>here</span>.</div>
+  <div tabindex=2>tabindex=2 after</div>
+  <div tabindex=1 data-next>next</div>
+</template>
+
 <script>
 "use strict";
 

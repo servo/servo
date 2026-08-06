@@ -41,7 +41,18 @@ OriginalFilename = "servoshell.exe"
 ProductName = "ServoShell"
 
 [features]
-default = ["baked-in-resources", "bundled_freetype", "gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+# Don't add new features to `default` directly. Add to `default_without_allocator` instead.
+default = ["default_without_allocator", "servo-allocator/use-jemalloc"]
+# Feature groups:
+# default features, without a custom allocator.
+default_without_allocator = ["bundled", "default_web_features", "max_log_level", "js_jit"]
+# Default web features should be kept in sync with the list in servo/Cargo.toml.
+# We also need to enable our own features, since we also have `cfg` gated code here.
+default_web_features = ["servo/default_web_features", "gamepad", "webgpu", "webxr"]
+# Bundle required resources in the binary.
+bundled = ["servo/bundled"]
+
+## Individual features below this line
 baked-in-resources = ["servo/baked-in-resources"]
 bundled_freetype = ["servo/bundled_freetype"]
 crown = ["servo/crown"]
@@ -105,6 +116,8 @@ ohos-deviceinfo = { workspace = true }
 ohos-ime = { workspace = true }
 ohos-ime-sys = { workspace = true }
 ohos-vsync = { workspace = true }
+ohos-window-sys = { workspace = true }
+ohos-sys-opaque-types = { workspace = true }
 ohos-window-manager-sys = { workspace = true, features = ["api-14"] }
 xcomponent-sys = { workspace = true, features = ["api-14", "keyboard-types"] }
 
@@ -124,7 +137,7 @@ gilrs = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
 serde_json = { workspace = true }
-# For optional feature servo-allocator/use-system-allocator and servo-allocator/allocation-tracking
+# For optional feature servo-allocator/use-jemalloc and servo-allocator/allocation-tracking
 servo-allocator = { workspace = true }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }

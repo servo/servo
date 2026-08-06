@@ -2754,7 +2754,10 @@ class CGPrototypeJSClass(CGThing):
     def define(self) -> str:
         name = str_to_cstr_ptr(f"{self.descriptor.interface.identifier.name}Prototype")
         slotCount = 0
-        if self.descriptor.hasLegacyUnforgeableMembers:
+        # Globals handle unforgeables directly in Wrap() instead of
+        # via a holder.
+        if (self.descriptor.hasLegacyUnforgeableMembers and
+            not self.descriptor.isGlobal()):
             slotCount += 1
         slotCountStr = f"{slotCount} & JSCLASS_RESERVED_SLOTS_MASK" if slotCount > 0 else "0"
         return f"""
@@ -3292,7 +3295,7 @@ D::GlobalScope::from_current_realm(&mut realm).is_secure_context()
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
 
-def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: PropertyArrays) -> CGThing:
+def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: PropertyArrays, unforgeable_holder: str = "unforgeable_holder", global_: str = "global") -> CGThing:
     """
     Define the unforgeable properties on the unforgeable holder for
     the interface represented by descriptor.
@@ -3301,8 +3304,8 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: 
     """
     unforgeables = []
 
-    defineLegacyUnforgeableAttrs = "define_guarded_properties::<D>(cx, unforgeable_holder.handle(), %s, global);"
-    defineLegacyUnforgeableMethods = "define_guarded_methods::<D>(cx, unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableAttrs = f"define_guarded_properties::<D>(cx, {unforgeable_holder}.handle(), %s, {global_});"
+    defineLegacyUnforgeableMethods = f"define_guarded_methods::<D>(cx, {unforgeable_holder}.handle(), %s, {global_});"
 
     unforgeableMembers = [
         (defineLegacyUnforgeableAttrs, properties.unforgeable_attrs),
@@ -3319,6 +3322,9 @@ def CopyLegacyUnforgeablePropertiesToInstance(descriptor: Descriptor) -> str:
     Copy the unforgeable properties from the unforgeable holder for
     this interface to the instance object we have.
     """
+
+    assert not descriptor.isGlobal()
+
     if not descriptor.hasLegacyUnforgeableMembers:
         return ""
     copyCode = ""
@@ -3334,19 +3340,12 @@ ensure_expando_object(cx, obj.handle(), expando.handle_mut());
     else:
         obj = "obj"
 
-    # We can't do the fast copy for globals, because we can't allocate the
-    # unforgeable holder for those with the right JSClass. Luckily, there
-    # aren't too many globals being created.
-    if descriptor.isGlobal():
-        copyFunc = "JS_CopyOwnPropertiesAndPrivateFields"
-    else:
-        copyFunc = "JS_InitializePropertiesFromCompatibleNativeObject"
     copyCode += f"""
 let mut slot = UndefinedValue();
 JS_GetReservedSlot(canonical_proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, &mut slot);
 rooted!(&in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(slot.to_object());
-assert!({copyFunc}(cx, {obj}.handle(), unforgeable_holder.handle()));
+assert!(js::rust::wrappers2::JS_InitializePropertiesFromCompatibleNativeObject(cx, {obj}.handle(), unforgeable_holder.handle()));
 """
 
     return copyCode
@@ -3399,7 +3398,6 @@ class CGWrapMethod(CGAbstractMethod):
                     prototype_id: {prototype_id},
                     class: {c},
                     proto_object_fn: {proto_object_fn},
-                    is_global: {python_bool_to_rust(self.descriptor.isGlobal())},
                     has_legacy_unforgeable_members: {python_bool_to_rust(self.descriptor.hasLegacyUnforgeableMembers)},
                 }};
 
@@ -3430,17 +3428,17 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}::<D>(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
+        members = [f"{function}::<D>(cx, obj.handle(), unsafe {{ {array.variableName()}.get() }}, obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
         name = self.descriptor.name
 
         return CGGeneric(f"""
-unsafe {{
-    let raw = Root::new(MaybeUnreflectedDom::from_box(object));
+    let raw = unsafe {{ Root::new(MaybeUnreflectedDom::from_box(object)) }};
 
     rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
-    create_global_object::<D>(
+    unsafe {{
+        create_global_object::<D>(
         cx,
         &Class.get().base,
         raw.as_ptr() as *const libc::c_void,
@@ -3448,9 +3446,10 @@ unsafe {{
         obj.handle_mut(),
         origin,
         {"true" if self.descriptor.useSystemCompartment else "false"});
+    }}
     assert!(!obj.is_null());
 
-    let root = raw.reflect_with(obj.get());
+    let root = unsafe {{ raw.reflect_with(obj.get()) }};
     root.reflector().set_proto_id(PrototypeList::ID::{name} as u16);
 
     let mut cx = AutoRealm::new_from_handle(cx, obj.handle());
@@ -3458,17 +3457,16 @@ unsafe {{
 
     rooted!(&in(cx) let mut canonical_proto = ptr::null_mut::<JSObject>());
     GetProtoObject::<D>(cx, obj.handle(), canonical_proto.handle_mut());
-    assert!(JS_SetPrototype(cx, obj.handle(), canonical_proto.handle()));
+    assert!(unsafe {{ JS_SetPrototype(cx, obj.handle(), canonical_proto.handle()) }});
     let mut immutable = false;
-    assert!(JS_SetImmutablePrototype(cx, obj.handle(), &mut immutable));
+    assert!(unsafe {{ JS_SetImmutablePrototype(cx, obj.handle(), &mut immutable) }});
     assert!(immutable);
 
     {membersStr}
 
-    {CopyLegacyUnforgeablePropertiesToInstance(self.descriptor)}
+    {InitLegacyUnforgeablePropertiesOnHolder(self.descriptor, self.properties, 'obj', 'obj.handle()').define()}
 
     DomRoot::from_ref(&*root)
-}}
 """)
 
 
@@ -4008,19 +4006,16 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
             code.append(CGWrapper(values, pre=f"{decl} = [\n", post="\n];"))
             code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
 
-        if self.descriptor.hasLegacyUnforgeableMembers:
+        # Globals handle unforgeables directly in Wrap() instead of
+        # via a holder.
+        if self.descriptor.hasLegacyUnforgeableMembers and not self.descriptor.isGlobal():
             # We want to use the same JSClass and prototype as the object we'll
             # end up defining the unforgeable properties on in the end, so that
             # we can use JS_InitializePropertiesFromCompatibleNativeObject to do
             # a fast copy.  In the case of proxies that's null, because the
             # expando object is a vanilla object, but in the case of other DOM
             # objects it's whatever our class is.
-            #
-            # Also, for a global we can't use the global's class; just use
-            # nullpr and when we do the copy off the holder we'll take a slower
-            # path.  This also means that we don't need to worry about matching
-            # the prototype.
-            if self.descriptor.proxy or self.descriptor.isGlobal():
+            if self.descriptor.proxy:
                 holderClass = "ptr::null()"
                 holderProto = "HandleObject::null()"
             else:
@@ -5431,10 +5426,6 @@ impl std::str::FromStr for super::{ident} {{
 }}
 
 impl ToJSValConvertible for super::{ident} {{
-    unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {{
-        pairs[*self as usize].0.to_jsval(cx, rval);
-    }}
-
     fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         pairs[*self as usize].0.safe_to_jsval(cx, rval);
     }}
@@ -5648,13 +5639,6 @@ pub enum {self.type}{self.generic} {{
 }}
 
 impl{self.generic} ToJSValConvertible for {self.type}{self.genericSuffix} {{
-    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {{
-        // TODO: https://github.com/servo/mozjs/issues/764
-        // This is needed until the `RawJSContext` version is removed from the trait.
-        let mut cx = crate::script_runtime::temp_cx();
-        self.safe_to_jsval(&mut cx, rval);
-    }}
-
     fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         match *self {{
 {joinedEnumConversions}
@@ -7836,13 +7820,6 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "}\n"
             "\n"
             f"impl{self.generic} ToJSValConvertible for {selfName}{self.genericSuffix} {{\n"
-            "    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {\n"
-            "       // TODO: https://github.com/servo/mozjs/issues/764\n"
-            "       // This is needed until the `RawJSContext` version is removed from the trait.\n"
-            "       let mut cx = crate::script_runtime::temp_cx();\n"
-            "        self.safe_to_jsval(&mut cx, rval);\n"
-            "    }\n"
-            "\n"
             "    fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {\n"
             "        rooted!(&in(cx) let mut obj = unsafe { JS_NewObject(cx, ptr::null()) });\n"
             "        self.to_jsobject(cx, obj.handle_mut());\n"
@@ -8658,10 +8635,6 @@ impl<D: DomTypes> CallbackContainer<D> for {type} {{
 }}
 
 impl<D: DomTypes> ToJSValConvertible for {type} {{
-    unsafe fn to_jsval(&self, cx: *mut RawJSContext, rval: MutableHandleValue) {{
-        self.callback().to_jsval(cx, rval);
-    }}
-
     fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         self.callback().safe_to_jsval(cx, rval);
     }}

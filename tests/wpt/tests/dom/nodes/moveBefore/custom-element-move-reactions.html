@@ -8,6 +8,9 @@
 
 <body>
   <section id="section"></section>
+  <x-custom id="customElement">
+    <template shadowrootmode="open"></template>
+  </x-custom>
   <script>
     let index = 0;
     function unique_element_name() {
@@ -133,5 +136,26 @@
         await Promise.resolve();
         assert_array_equals(reactions, ["connected"]);
     }, "When disconnectedCallback is not defined, no crash");
+
+    promise_test(async t => {
+        const ce = document.getElementById("ce");
+        let reactions = [];
+        const element_name = unique_element_name();
+        customElements.define(element_name,
+            class MockCustomElement extends HTMLElement {
+              connectedMoveCallback() { reactions.push("connectedMove"); }
+              connectedCallback() { reactions.push("connected"); }
+              disconnectedCallback() { reactions.push("disconnected"); }
+            }
+        );
+        const element = document.createElement(element_name);
+        t.add_cleanup(() => element.remove());
+        customElement.shadowRoot.appendChild(element)
+        await Promise.resolve();
+        reactions = [];
+        document.getElementById("section").moveBefore(customElement, null);
+        await Promise.resolve();
+        assert_array_equals(reactions, ["connectedMove"]);
+    }, "connectedMove runs when custom element is nested within a shadow root");
 </script>
 </body>

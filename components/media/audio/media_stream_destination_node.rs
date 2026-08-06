@@ -4,8 +4,8 @@
 
 use servo_media_streams::MediaSocket;
 
+use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::Chunk;
-use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::sink::AudioSink;
 
 #[derive(AudioNodeCommon)]

@@ -1,3 +1,2 @@
-features:
-- name: progress
-  files: "**"
+rules:
+- "**": [progress]

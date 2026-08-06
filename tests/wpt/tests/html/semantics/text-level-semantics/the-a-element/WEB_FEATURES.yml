@@ -1,4 +1,2 @@
-features:
-  - name: download
-    files:
-      - 'a-download-*'
+rules:
+- a-download-*: [download]

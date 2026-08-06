@@ -41,8 +41,7 @@ promise_setup(async () => {
       codec: 'vp09.02.10.10',
       hasEmbeddedColorSpace: true,
       hardwareAcceleration: 'prefer-software',
-      // TODO(https://github.com/w3c/webcodecs/issues/384):
-      // outputPixelFormat should be 'I420P10'
+      outputPixelFormat: 'I420P10',
     },
     '?vp9_444_p1': {
       codec: 'vp09.01.10.08.03',
@@ -54,8 +53,7 @@ promise_setup(async () => {
       codec: 'vp09.03.10.10.03',
       hasEmbeddedColorSpace: true,
       hardwareAcceleration: 'prefer-software',
-      // TODO(https://github.com/w3c/webcodecs/issues/384):
-      // outputPixelFormat should be 'I444P10'
+      outputPixelFormat: 'I444P10',
     },
     '?h264_avc': {
       codec: 'avc1.42001E',
@@ -126,9 +124,16 @@ async function runFullCycleTest(t, options) {
       assert_equals(
           frame.colorSpace.primaries, encoder_color_space.primaries,
           'colorSpace.primaries');
-      assert_equals(
-          frame.colorSpace.transfer, encoder_color_space.transfer,
-          'colorSpace.transfer');
+      // VP9 does not have the concept of IEC61966-2-1 (sRGB) transfer function,
+      // and maps it to BT.709 in the bitstream. Allow them interchangeably.
+      let actual_transfer = frame.colorSpace.transfer;
+      let expected_transfer = encoder_color_space.transfer;
+      if (options.stripDecoderConfigColorSpace &&
+          ENCODER_CONFIG.codec.startsWith('vp09') &&
+          expected_transfer === 'iec61966-2-1' && actual_transfer === 'bt709') {
+        expected_transfer = 'bt709';
+      }
+      assert_equals(actual_transfer, expected_transfer, 'colorSpace.transfer');
       assert_equals(
           frame.colorSpace.matrix, encoder_color_space.matrix,
           'colorSpace.matrix');

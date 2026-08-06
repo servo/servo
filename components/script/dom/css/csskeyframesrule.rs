@@ -6,7 +6,7 @@ use std::cell::RefCell;
 
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
@@ -120,7 +120,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule>
-    fn AppendRule(&self, rule: DOMString) {
+    fn AppendRule(&self, no_gc: &NoGC, rule: DOMString) {
         let style_stylesheet = self.css_rule.parent_stylesheet().style_stylesheet();
         let rule = rule.str();
         let rule = {
@@ -147,7 +147,9 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
                 rulelist.append_lazy_dom_rule();
             }
 
-            self.css_rule.parent_stylesheet().notify_invalidations();
+            self.css_rule
+                .parent_stylesheet()
+                .notify_invalidations(no_gc);
         }
     }
 
@@ -183,7 +185,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
-    fn SetName(&self, value: DOMString) -> ErrorResult {
+    fn SetName(&self, no_gc: &NoGC, value: DOMString) -> ErrorResult {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
@@ -191,7 +193,9 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         let name = KeyframesName::from_ident(&value.str());
         let mut guard = self.css_rule.shared_lock().write();
         self.keyframes_rule.borrow().write_with(&mut guard).name = name;
-        self.css_rule.parent_stylesheet().notify_invalidations();
+        self.css_rule
+            .parent_stylesheet()
+            .notify_invalidations(no_gc);
         Ok(())
     }
 }

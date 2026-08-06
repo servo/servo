@@ -1,3 +1,2 @@
-features:
-- name: declarative-webmcp
-  files: "**"
+rules:
+- "**": [declarative-webmcp]

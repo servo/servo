@@ -181,16 +181,16 @@ impl HTMLElement {
         // TODO
     }
 
-    pub(crate) fn previously_focused_element(&self) -> Option<DomRoot<Element>> {
+    pub(crate) fn previously_focused_element(&self, no_gc: &NoGC) -> Option<DomRoot<Element>> {
         self.upcast::<Element>()
-            .ensure_rare_data()
+            .ensure_rare_data(no_gc)
             .previously_focused_element
             .get()
     }
 
-    pub(crate) fn set_previously_focused_element(&self, element: Option<&Element>) {
+    pub(crate) fn set_previously_focused_element(&self, element: Option<&Element>, no_gc: &NoGC) {
         self.upcast::<Element>()
-            .ensure_rare_data()
+            .ensure_rare_data(no_gc)
             .previously_focused_element
             .set(element);
     }
@@ -518,7 +518,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
         self.owner_document()
             .focus_handler()
-            .focus(cx, FocusableArea::Viewport);
+            .focus(cx, &FocusableArea::Viewport);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
@@ -783,9 +783,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
+    fn SetNonce(&self, cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(String::from(value))
+            .update_nonce_internal_slot(String::from(value), cx.no_gc())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
@@ -1294,10 +1294,10 @@ impl VirtualMethods for HTMLElement {
             (&local_name!("nonce"), mutation) => match mutation {
                 AttributeMutation::Set(..) => {
                     let nonce = &**attr.value();
-                    element.update_nonce_internal_slot(nonce.to_owned());
+                    element.update_nonce_internal_slot(nonce.to_owned(), cx.no_gc());
                 },
                 AttributeMutation::Removed => {
-                    element.update_nonce_internal_slot("".to_owned());
+                    element.update_nonce_internal_slot("".to_owned(), cx.no_gc());
                 },
             },
             _ => {},

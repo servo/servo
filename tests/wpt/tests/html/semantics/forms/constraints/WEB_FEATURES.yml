@@ -1,3 +1,2 @@
-features:
-- name: constraint-validation
-  files: "**"
+rules:
+- "**": [constraint-validation]

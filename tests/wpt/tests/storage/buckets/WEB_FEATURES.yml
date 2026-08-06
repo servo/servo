@@ -1,3 +1,2 @@
-features:
-- name: storage-buckets
-  files: "**"
+rules:
+- "**": [storage-buckets]

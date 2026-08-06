@@ -1,10 +1,4 @@
-features:
-- name: canvas
-  files:
-  - "*"
-  - "!imagedata.html"
-  - "!2d-getcontext-options.html"
-- name: canvas-2d
-  files:
-  - "imagedata.html"
-  - "2d-getcontext-options.html"
+rules:
+- imagedata.html: [canvas-2d]
+- 2d-getcontext-options.html: [canvas-2d]
+- "*": [canvas]

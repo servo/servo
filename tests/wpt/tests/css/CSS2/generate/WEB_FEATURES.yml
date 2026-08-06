@@ -1,4 +1,2 @@
-features:
-- name: list-style
-  files:
-  - list-style-*
+rules:
+- list-style-*: [list-style]

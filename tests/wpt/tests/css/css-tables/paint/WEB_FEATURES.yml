@@ -1,3 +1,2 @@
-features:
-- name: display-table
-  files: "**"
+rules:
+- "**": [display-table]

@@ -761,7 +761,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         self.controller.borrow_mut().as_ref().unwrap().quit();
 
         // Step 6
-        for (_, val) in self.data_channels.borrow().iter() {
+        for val in self.data_channels.borrow().values() {
             val.on_state_change(cx, DataChannelState::Closed);
         }
 

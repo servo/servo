@@ -1,3 +1,2 @@
-features:
-- name: interest-invokers
-  files: "**"
+rules:
+- "**": [interest-invokers]

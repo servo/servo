@@ -78,6 +78,16 @@ pub(crate) enum TouchIdMoveTracking {
     Remove,
 }
 
+/// The axis of a pan gesture. Once panning begins, the gesture is locked to the
+/// dominant axis for the rest of the sequence, so that e.g. a vertical pan that
+/// passes over a horizontally scrollable element keeps scrolling the page instead
+/// of switching to horizontal scrolling.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PanAxis {
+    Horizontal,
+    Vertical,
+}
+
 /// A cached [`PaintHitTestResult`] to use during a touch sequence. This
 /// is kept so that the renderer doesn't have to constantly keep making hit tests
 /// while during panning and flinging actions.
@@ -179,6 +189,8 @@ pub(crate) enum TouchSequenceState {
     Touching,
     /// A single touch point is active and has started panning.
     Panning {
+        /// The dominant axis of the pan, locked for the rest of the sequence.
+        axis: PanAxis,
         velocity: Vector2D<f32, DevicePixel>,
     },
     /// A two-finger pinch zoom gesture is active.
@@ -465,16 +477,26 @@ impl TouchHandler {
 
         let action = match touch_sequence.touch_count() {
             1 => {
-                if let Panning { ref mut velocity } = touch_sequence.state {
+                if let Panning {
+                    axis,
+                    ref mut velocity,
+                } = touch_sequence.state
+                {
+                    // Only scroll along the axis that was dominant when panning started,
+                    // so the gesture cannot switch between horizontal and vertical.
+                    let pan_delta = match axis {
+                        PanAxis::Horizontal => Vector2D::new(delta.x, 0.0),
+                        PanAxis::Vertical => Vector2D::new(0.0, delta.y),
+                    };
                     // TODO: Probably we should track 1-3 more points and use a smarter algorithm
-                    *velocity += delta;
+                    *velocity += pan_delta;
                     *velocity /= 2.0;
                     // update the touch point every time when panning.
                     touch_sequence.active_touch_points[idx].point = point;
 
                     // Scroll offsets are opposite to the direction of finger motion.
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
-                        scroll: Scroll::Delta((-delta).into()),
+                        scroll: Scroll::Delta((-pan_delta).into()),
                         point,
                     }))
                 } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale ||
@@ -485,8 +507,21 @@ impl TouchHandler {
                         delta = ?delta,
                     )
                     .entered();
+                    // The pan is locked to its dominant axis for the rest of the sequence,
+                    // so that e.g. a vertical pan over a horizontally scrollable element
+                    // keeps scrolling the page instead of switching to horizontal.
+                    let axis = if delta.y.abs() > delta.x.abs() {
+                        PanAxis::Vertical
+                    } else {
+                        PanAxis::Horizontal
+                    };
+                    let pan_delta = match axis {
+                        PanAxis::Horizontal => Vector2D::new(delta.x, 0.0),
+                        PanAxis::Vertical => Vector2D::new(0.0, delta.y),
+                    };
                     touch_sequence.state = Panning {
-                        velocity: Vector2D::new(delta.x, delta.y),
+                        axis,
+                        velocity: pan_delta,
                     };
                     // No clicks should be issued after we transitioned to move.
                     touch_sequence.prevent_click = true;
@@ -495,7 +530,7 @@ impl TouchHandler {
 
                     // Scroll offsets are opposite to the direction of finger motion.
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
-                        scroll: Scroll::Delta((-delta).into()),
+                        scroll: Scroll::Delta((-pan_delta).into()),
                         point,
                     }))
                 } else {
@@ -564,7 +599,7 @@ impl TouchHandler {
                     touch_sequence.state = PendingClick(point);
                 }
             },
-            Panning { velocity } => {
+            Panning { velocity, .. } => {
                 if velocity.length().abs() >= FLING_MIN_SCREEN_PX {
                     let _span = profile_traits::info_span!(
                         "TouchHandler::FlingStart",

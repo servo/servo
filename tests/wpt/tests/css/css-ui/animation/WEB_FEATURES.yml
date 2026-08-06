@@ -1,15 +1,7 @@
-features:
-- name: accent-color
-  files:
-  - accent-color-*
-- name: caret-color
-  files:
-  - caret-color-*
-- name: outlines
-  files:
-  - outline-width-*
-  - outline-color-*
-  - outline-offset-*
-- name: cursor
-  files:
-  - cursor-*
+rules:
+- accent-color-*: [accent-color]
+- caret-color-*: [caret-color]
+- outline-width-*: [outlines]
+- outline-color-*: [outlines]
+- outline-offset-*: [outlines]
+- cursor-*: [cursor]

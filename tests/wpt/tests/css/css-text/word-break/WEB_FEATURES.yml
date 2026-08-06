@@ -1,13 +1,9 @@
-features:
-  - name: word-break-break-word
-    files:
-      - word-break-break-word-crash-001.html
-      - word-break-break-word-overflow-wrap-interactions.html
-      - word-break-min-content-*
-  - name: word-break
-    files:
-      - break-boundary-2-*
-      - word-break-break-all-*
-      - word-break-keep-all-*
-      - word-break-manual-*
-      - word-break-normal-*
+rules:
+- word-break-break-word-crash-001.html: [word-break-break-word]
+- word-break-break-word-overflow-wrap-interactions.html: [word-break-break-word]
+- word-break-min-content-*: [word-break-break-word]
+- break-boundary-2-*: [word-break]
+- word-break-break-all-*: [word-break]
+- word-break-keep-all-*: [word-break]
+- word-break-manual-*: [word-break]
+- word-break-normal-*: [word-break]

@@ -1,7 +1,4 @@
-features:
-- name: file-system-access
-  files: "**"
-- name: origin-private-file-system
-  files:
-  - getDirectory.https.any.js
-  - opaque-origin.https.window.js
+rules:
+- getDirectory.https.any.js: [origin-private-file-system, file-system-access]
+- opaque-origin.https.window.js: [origin-private-file-system, file-system-access]
+- "**": [file-system-access]

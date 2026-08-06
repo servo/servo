@@ -1,3 +1,2 @@
-features:
-- name: keyboard-map
-  files: "**"
+rules:
+- "**": [keyboard-map]

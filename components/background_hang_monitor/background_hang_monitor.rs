@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::VecDeque;
 use std::thread::{self, Builder, JoinHandle};
 use std::time::{Duration, Instant};
 
 use background_hang_monitor_api::{
     BackgroundHangMonitor, BackgroundHangMonitorClone, BackgroundHangMonitorControlMsg,
     BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister, HangAlert, HangAnnotation,
-    HangMonitorAlert, MonitoredComponentId,
+    MonitoredComponentId,
 };
 use crossbeam_channel::{Receiver, Sender, after, never, select, unbounded};
 use log::{error, warn};
@@ -17,7 +16,7 @@ use rustc_hash::FxHashMap;
 use servo_base::generic_channel::{GenericReceiver, GenericSender, RoutedReceiver};
 
 use crate::SamplerImpl;
-use crate::sampler::{NativeStack, Sampler};
+use crate::sampler::Sampler;
 
 #[derive(Clone)]
 pub struct HangMonitorRegister {
@@ -29,7 +28,7 @@ impl HangMonitorRegister {
     /// Start a new hang monitor worker, and return a handle to register components for monitoring,
     /// as well as a join handle on the worker thread.
     pub fn init(
-        constellation_chan: GenericSender<HangMonitorAlert>,
+        constellation_chan: GenericSender<HangAlert>,
         control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         monitoring_enabled: bool,
     ) -> (Box<dyn BackgroundHangMonitorRegister>, JoinHandle<()>) {
@@ -171,20 +170,12 @@ struct MonitoredComponent {
     exit_signal: Box<dyn BackgroundHangMonitorExitSignal>,
 }
 
-struct Sample(MonitoredComponentId, Instant, NativeStack);
-
 struct BackgroundHangMonitorWorker {
     component_names: FxHashMap<MonitoredComponentId, String>,
     monitored_components: FxHashMap<MonitoredComponentId, MonitoredComponent>,
-    constellation_chan: GenericSender<HangMonitorAlert>,
+    constellation_chan: GenericSender<HangAlert>,
     port: Receiver<(MonitoredComponentId, MonitoredComponentMsg)>,
     control_port: Option<RoutedReceiver<BackgroundHangMonitorControlMsg>>,
-    sampling_duration: Option<Duration>,
-    sampling_max_duration: Option<Duration>,
-    last_sample: Instant,
-    creation: Instant,
-    sampling_baseline: Instant,
-    samples: VecDeque<Sample>,
     monitoring_enabled: bool,
     shutting_down: bool,
 }
@@ -194,7 +185,7 @@ type MonitoredComponentReceiver = Receiver<(MonitoredComponentId, MonitoredCompo
 
 impl BackgroundHangMonitorWorker {
     fn new(
-        constellation_chan: GenericSender<HangMonitorAlert>,
+        constellation_chan: GenericSender<HangAlert>,
         control_port: GenericReceiver<BackgroundHangMonitorControlMsg>,
         port: MonitoredComponentReceiver,
         monitoring_enabled: bool,
@@ -206,63 +197,13 @@ impl BackgroundHangMonitorWorker {
             constellation_chan,
             port,
             control_port: Some(control_port),
-            sampling_duration: None,
-            sampling_max_duration: None,
-            last_sample: Instant::now(),
-            sampling_baseline: Instant::now(),
-            creation: Instant::now(),
-            samples: Default::default(),
             monitoring_enabled,
             shutting_down: Default::default(),
         }
     }
 
-    fn finish_sampled_profile(&mut self) {
-        let mut bytes = vec![];
-        bytes.extend(
-            format!(
-                "{{ \"rate\": {}, \"start\": {}, \"data\": [\n",
-                self.sampling_duration.unwrap().as_millis(),
-                (self.sampling_baseline - self.creation).as_millis(),
-            )
-            .as_bytes(),
-        );
-
-        let mut first = true;
-        let to_resolve = self.samples.len();
-        for (i, Sample(id, instant, stack)) in self.samples.drain(..).enumerate() {
-            println!("Resolving {}/{}", i + 1, to_resolve);
-            let profile = stack.to_hangprofile();
-            let name = match self.component_names.get(&id) {
-                Some(ref s) => format!("\"{}\"", s),
-                None => "null".to_string(),
-            };
-            let json = format!(
-                "{}{{ \"name\": {}, \"event loop id\": \"{:?}\", \
-                 \"time\": {}, \"frames\": {} }}",
-                if !first { ",\n" } else { "" },
-                name,
-                id,
-                (instant - self.sampling_baseline).as_millis(),
-                serde_json::to_string(&profile.backtrace).unwrap(),
-            );
-            bytes.extend(json.as_bytes());
-            first = false;
-        }
-
-        bytes.extend(b"\n] }");
-        let _ = self
-            .constellation_chan
-            .send(HangMonitorAlert::Profile(bytes));
-    }
-
     fn run(&mut self) -> bool {
-        let tick = if let Some(duration) = self.sampling_duration {
-            let duration = duration
-                .checked_sub(Instant::now() - self.last_sample)
-                .unwrap_or_else(|| Duration::from_millis(0));
-            after(duration)
-        } else if self.monitoring_enabled {
+        let tick = if self.monitoring_enabled {
             after(Duration::from_millis(100))
         } else {
             never()
@@ -272,7 +213,6 @@ impl BackgroundHangMonitorWorker {
         // on the BHM state.
         enum BhmMessage {
             ComponentMessage((MonitoredComponentId, MonitoredComponentMsg)),
-            ToggleSampler(Duration, Duration),
             Exit,
             ControlError(String),
             ControlDisconnected,
@@ -290,9 +230,6 @@ impl BackgroundHangMonitorWorker {
                 },
                 recv(control_port) -> event => {
                     match event {
-                        Ok(Ok(BackgroundHangMonitorControlMsg::ToggleSampler(rate, max_duration))) => {
-                            BhmMessage::ToggleSampler(rate, max_duration)
-                        },
                         Ok(Ok(BackgroundHangMonitorControlMsg::Exit)) => BhmMessage::Exit,
                         Ok(Err(e)) => BhmMessage::ControlError(format!("{e:?}")),
                         Err(_) => BhmMessage::ControlDisconnected,
@@ -319,18 +256,6 @@ impl BackgroundHangMonitorWorker {
                 // which means all monitored components have shut down,
                 // and so we can as well.
                 return false;
-            },
-            BhmMessage::ToggleSampler(rate, max_duration) => {
-                if self.sampling_duration.is_some() {
-                    println!("Enabling profiler.");
-                    self.finish_sampled_profile();
-                    self.sampling_duration = None;
-                } else {
-                    println!("Disabling profiler.");
-                    self.sampling_duration = Some(rate);
-                    self.sampling_max_duration = Some(max_duration);
-                    self.sampling_baseline = Instant::now();
-                }
             },
             BhmMessage::Exit => {
                 for component in self.monitored_components.values_mut() {
@@ -372,15 +297,8 @@ impl BackgroundHangMonitorWorker {
             },
         }
 
-        if let Some(duration) = self.sampling_duration {
-            let now = Instant::now();
-            if now - self.last_sample > duration {
-                self.sample();
-                self.last_sample = now;
-            }
-        } else {
-            self.perform_a_hang_monitor_checkpoint();
-        }
+        self.perform_a_hang_monitor_checkpoint();
+
         true
     }
 
@@ -468,13 +386,11 @@ impl BackgroundHangMonitorWorker {
                     Ok(native_stack) => Some(native_stack.to_hangprofile()),
                     Err(()) => None,
                 };
-                let _ = self
-                    .constellation_chan
-                    .send(HangMonitorAlert::Hang(HangAlert::Permanent(
-                        component_id.clone(),
-                        last_annotation,
-                        profile,
-                    )));
+                let _ = self.constellation_chan.send(HangAlert::Permanent(
+                    component_id.clone(),
+                    last_annotation,
+                    profile,
+                ));
                 monitored.sent_permanent_alert = true;
                 continue;
             }
@@ -484,28 +400,8 @@ impl BackgroundHangMonitorWorker {
                 }
                 let _ = self
                     .constellation_chan
-                    .send(HangMonitorAlert::Hang(HangAlert::Transient(
-                        component_id.clone(),
-                        last_annotation,
-                    )));
+                    .send(HangAlert::Transient(component_id.clone(), last_annotation));
                 monitored.sent_transient_alert = true;
-            }
-        }
-    }
-
-    fn sample(&mut self) {
-        for (component_id, monitored) in self.monitored_components.iter_mut() {
-            let instant = Instant::now();
-            if let Ok(stack) = monitored.sampler.suspend_and_sample_thread() {
-                if self.sampling_baseline.elapsed() >
-                    self.sampling_max_duration
-                        .expect("Max duration has been set")
-                {
-                    // Buffer is full, start discarding older samples.
-                    self.samples.pop_front();
-                }
-                self.samples
-                    .push_back(Sample(component_id.clone(), instant, stack));
             }
         }
     }

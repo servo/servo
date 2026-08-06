@@ -1,3 +1,2 @@
-features:
-- name: webtransport
-  files: "**"
+rules:
+- "**": [webtransport]

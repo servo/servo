@@ -1,3 +1,2 @@
-features:
-- name: request-video-frame-callback
-  files: "**"
+rules:
+- "**": [request-video-frame-callback]

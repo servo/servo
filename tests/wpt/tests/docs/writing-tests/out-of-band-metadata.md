@@ -19,26 +19,35 @@ store a mapping between the tests in the local directory and [the
 web-features](https://github.com/web-platform-dx/web-features) which those
 tests validate.
 
-They define one property, `features`, which is a list of rules that relate one
-web-feature to one or more tests in that directory. Each mapping rule includes
-two properties: `name` (whose value is the string identifier of a
-web-feature[^1]) and `files` (whose value is either the string value `**` or a
-list of file pattern strings).
+They define one property, `rules`, which is a list of rules that relate one or
+more tests in that directory to one or more web-feature. Each mapping rule
+includes one property. That property's name is a file-pattern string (matching
+one or more tests), and that property's value is a list of web-feature IDs.
 
 <details>
   <summary>Formal [CDDL](https://datatracker.ietf.org/doc/html/rfc8610) schema definition</summary>
 
 ```
 MappingRules = {
-  features: [*MappingRule],
+  rules: [*MappingRule],
 }
 
-MappingRule = {
-  name: text,
-  files: [*FilePattern],
+MappingRule = (
+  ConciseMappingRule //
+  ExtendedMappingRule
+)
+
+ConciseMappingRule = {
+  *FilePattern => [*text]
 }
 
-FilePattern = text .regexp "!?[A-Za-z0-9_*.-]+"
+ExtendedMappingRule = {
+  *FilePattern => {
+    ids: [*text]
+  }
+}
+
+FilePattern = text .regexp "[A-Za-z0-9_*.-]+"
 ```
 
 </details>
@@ -52,33 +61,28 @@ release](https://github.com/web-platform-tests/wpt/releases) under the name
 
 ### File patterns
 
-If the `files` property takes the string value `**`, this signifies that all
-tests in the current directory and all subdirectories (if present) belong to
-the corresponding web-feature.
+If the property name takes the string value `**`, this signifies that all tests
+in the current directory and all subdirectories (if present) belong to the
+corresponding web-features.
 
-If the `files` property is a list of string values, the strings are interpreted
-as file patterns. Each contributes to the definition of a set of files which
-should be associated with the corresponding web-feature. While these "patterns"
-may be literal file names, they also support the following operators which
-alter their meaning:
+Any other value of the property name is interpreted as a file pattern. The
+matching set of files will be associated with the corresponding web-feature.
+While these "patterns" may be literal file names, they also support the "star"
+(or "glob") operators. An asterisk appearing anywhere in the string (e.g.
+`foo-*.js`) is a placeholder for zero or more other characters. Patterns using
+a star can therefore describe multiple files in the same directory as the
+`WEB_FEATURES.yml` file.
 
-- An asterisk appearing anywhere in the string (e.g. `foo-*.js`) is a
-  placeholder for zero or more other characters. Patterns using a star can
-  therefore describe multiple files.
-- A leading exclamation point (e.g. `!foobar.html`) means, "*exclude* any file
-  which matches the pattern." This operator is intended to refine rules which
-  also include patterns with the asterisk operator.
+There is no mechanism for matching specific subdirectories (only for matching
+*all* subdirectories via `**`). To define mappings for files in a given
+subdirectory, write mapping rules in a `WEB_FEATURES.yml` file within that
+subdirectory.
 
-If the `*` pattern appears as a list item, it will match all tests in the
-current directory; it will not match any subdirectories. There is no mechanism
-for matching specific subdirectories (only for matching *all* subdirectories
-via `**`). To define mappings for files in a given subdirectory, write mapping
-rules in a `WEB_FEATURES.yml` file within that subdirectory.
-
-The elements of the `files` list are applied from top to bottom to produce the
-set of files which belongs to a given web-feature. (The behavior of this list
-of file patterns is similar to how [the Git version control system interprets
-`.gitignore` files](https://git-scm.com/docs/gitignore).)
+These rules are interpreted from top to bottom. When a test file matches a
+given rule, it is no longer considered when interpreting subsequent rules. For
+this reason, if an author intends for a test file (or set of test files) to be
+associated with multiple web-features, the author should write a single rule
+that associates that file (or set of files) with all the desired web-features.
 
 ### Caveat: Pattern Matching
 
@@ -122,9 +126,8 @@ then that directory might include a `WEB_FEATURES.yml` file whose content
 appears as follows:
 
 ```yaml
-features:
-- name: fetch
-  files: "**"
+rules:
+- "**": [fetch]
 ```
 
 ### Example 2: Mapping tests within a directory to many web-features
@@ -149,20 +152,79 @@ Given a directory with the following entries:
 The contents of the file named `WEB_FEATURES.yml` might appear as follows:
 
 ```yaml
-features:
-- name: aspect-ratio
-  files:
-  - "*"              # This line includes all test files in the directory
-  - "!box-sizing-*"  # This line excludes all test files whose name begins with "box-sizing"
-  - "!z-index.html"  # This line excludes the test file named "z-index.html"
-- name: box-sizing
-  files:
-  - box-sizing-*  # This line includes all test files whose name begins with "box-sizing"
-- name: z-index
-  files:
-  - z-index.html  # This line includes the test file named "z-index.html"
+rules:
+# The following rule includes all test files whose name begins with "box-sizing":
+- box-sizing-*: [box-sizing]
+
+# The following rule includes the test file named "z-index.html"
+- z-index.html: [z-index]
+
+# The following rule matches all test files which have not been matched above:
+- "*": [aspect-ratio]
 ```
 
-[^1]: The web-feature identifier is distinct from the web-feature name.
-      Although the property is "name", its value should actually be the
-      identifier.
+### Example 3: Mapping the same test file(s) to more than one web-feature
+
+The following `WEB_FEATURES.yml` file will associate the test files bearing the
+`foo-` prefix with the web-feature `grape`:
+
+```yaml
+rules:
+- foo-*: [grape]
+```
+
+The following `WEB_FEATURES.yml` file is equivalent because the test files
+prefixed with `foo-` are matched by the first rule and ignored by the
+subsequent rule-processing logic:
+
+```yaml
+rules:
+# the following rule matches all test files:
+- foo-*: [grape]
+
+# there are no unmatched files when this rule is encountered, so the following
+# rule matches zero test files:
+- foo-*: [orange]
+```
+
+To associate the `foo-`-prefixed test files with the web-features named `grape`
+*and* the `web-feature` named `orange`, one must declare both web-feature IDs
+in the same rule, as in the following `WEB_FEATURES.yml` file:
+
+```yaml
+rules:
+- foo-*: [grape, orange]
+```
+
+### Example 4: Excluding test files from all web-features
+
+If the list value reserved for web-feature IDs is an empty list, then the test
+files matched by the rule will not be associated with any web-feature. This is
+helpful when the majority of test files within a directory should be classified
+but a small number should not.
+
+For example, consider a directory where the test-file named `c.html` should not
+be associated with any web-feature, but all other web-features should be
+associated with the `background` web-feature. Authors may write rules "around"
+the excluded test file:
+
+```yaml
+rules:
+- a.html: [background]
+- b.html: [background]
+- d.html: [background]
+- e.html: [background]
+```
+
+...but the above file does not clearly reflect their intent (that is, "all
+files except `c.html`). Instead, authors may write explicit rules to exclude
+some test files and follow that with a smaller set of more expansive rules:
+
+```yaml
+rules:
+- c.html: []
+- "*": [background]
+```
+
+The `*` pattern will not match `c.html` in this context because that test file
+has already been matched by a preceding rule.

@@ -65,7 +65,6 @@ mod from_embedder {
                 Self::BlurWebView => target!("BlurWebView"),
                 Self::ForwardInputEvent(_webview_id, event, ..) => event.log_target(),
                 Self::RefreshCursor(..) => target!("RefreshCursor"),
-                Self::ToggleProfiler(..) => target!("EnableProfiler"),
                 Self::ExitFullScreen(_) => target!("ExitFullScreen"),
                 Self::MediaSessionAction(_) => target!("MediaSessionAction"),
                 Self::SetWebViewThrottled(_, _) => target!("SetWebViewThrottled"),
@@ -145,6 +144,15 @@ mod from_script {
                 Self::UnregisterInterest(..) => target!("UnregisterInterest"),
                 Self::BroadcastStorageEvent(..) => target!("BroadcastStorageEvent"),
                 Self::ChangeRunningAnimationsState(..) => target!("ChangeRunningAnimationsState"),
+                Self::RegisterWorkerAnimationFrameProvider(..) => {
+                    target!("RegisterWorkerAnimationFrameProvider")
+                },
+                Self::UnregisterWorkerAnimationFrameProvider(..) => {
+                    target!("UnregisterWorkerAnimationFrameProvider")
+                },
+                Self::ChangeWorkerAnimationFrameProviderState(..) => {
+                    target!("ChangeWorkerAnimationFrameProviderState")
+                },
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),
                 Self::FocusAncestorBrowsingContextsForFocusingSteps(..) => {
                     target!("FocusAncestorBrowsingContextsForFocusingSteps")

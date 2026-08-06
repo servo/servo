@@ -1,4 +1,2 @@
-features:
-- name: location
-  files:
-  - manual_*
+rules:
+- manual_*: [location]

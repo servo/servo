@@ -1,10 +1,6 @@
-features:
-- name: text-shadow
-  files:
-  - text-shadow-*
-- name: transitions
-  files:
-  - change-duration-during-transition.html
-  - move-after-transition.html
-  - transition-end-event-shorthands.html
-  - transition-timing-function.html
+rules:
+- text-shadow-*: [text-shadow]
+- change-duration-during-transition.html: [transitions]
+- move-after-transition.html: [transitions]
+- transition-end-event-shorthands.html: [transitions]
+- transition-timing-function.html: [transitions]

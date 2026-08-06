@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>img.complete shouldn't change on viewport changes that don't change the selected source</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-complete">
+<link rel=help href="https://html.spec.whatwg.org/multipage/images.html#reacting-to-environment-changes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // The <source> and the <img> point at the same URL, so no matter which one is
+  // selected reacting to environment changes never starts a new load.
+  const IFRAME_SRCDOC = `
+  <style>html, body { margin: 0 }</style>
+  <picture>
+    <source media='(max-width: 150px)' srcset='/images/green-2x2.png'>
+    <img src='/images/green-2x2.png'>
+  </picture>
+`;
+
+  promise_test(async t => {
+    const iframe = document.createElement("iframe");
+    iframe.style.width = "300px";
+    iframe.style.height = "100px";
+    iframe.srcdoc = IFRAME_SRCDOC;
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    await new Promise(resolve => {iframe.onload = resolve;});
+
+    const win = iframe.contentWindow;
+    const img = win.document.querySelector("img");
+    const mql = win.matchMedia("(max-width: 150px)");
+    assert_true(img.complete, "Image should be complete once loaded");
+    assert_false(mql.matches, "Media query shouldn't match initially");
+    const currentSrc = img.currentSrc;
+
+    img.addEventListener("load", t.unreached_func("Unexpected load event"));
+    img.addEventListener("error", t.unreached_func("Unexpected error event"));
+
+    for (const width of ["100px", "300px"]) {
+      const shouldMatch = width == "100px";
+      const completeOnChange = new Promise(resolve => {
+        mql.addEventListener("change", () => resolve(img.complete), {once: true});
+      });
+
+      iframe.style.width = width;
+      if (mql.matches == shouldMatch) {
+        assert_true(img.complete,
+          `complete right after the media feature values changed (${width})`);
+      }
+      assert_true(await completeOnChange,
+        `complete during the media query change event (${width})`);
+      assert_true(img.complete, `complete after the environment change (${width})`);
+      assert_equals(mql.matches, shouldMatch, `Media query state (${width})`);
+      assert_equals(img.currentSrc, currentSrc, `currentSrc unchanged (${width})`);
+      await new Promise(r => {
+        // Give a chance for any unexpected load / error event to fire.
+        win.requestAnimationFrame(() => win.requestAnimationFrame(r))
+      });
+    }
+  }, "Resizing the viewport with a <picture> element shouldn't change img.complete");
+</script>

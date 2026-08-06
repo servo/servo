@@ -1,7 +1,5 @@
-features:
-- name: wheel-events
-  files:
-  - non-passive-mousewheel-event-listener-*
-  - non-passive-wheel-event-listener-*
-  - passive-mousewheel-event-listener-*
-  - passive-wheel-event-listener-*
+rules:
+- non-passive-mousewheel-event-listener-*: [wheel-events]
+- non-passive-wheel-event-listener-*: [wheel-events]
+- passive-mousewheel-event-listener-*: [wheel-events]
+- passive-wheel-event-listener-*: [wheel-events]

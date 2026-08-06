@@ -1,8 +1,3 @@
-features:
-- name: canvas-2d
-  files:
-  - "*"
-  - "!2d.gradient.conic.*"
-- name: canvas-createconicgradient
-  files:
-  - 2d.gradient.conic.*
+rules:
+- 2d.gradient.conic.*: [canvas-createconicgradient]
+- "*": [canvas-2d]

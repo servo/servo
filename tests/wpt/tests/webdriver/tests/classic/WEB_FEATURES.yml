@@ -1,3 +1,2 @@
-features:
-- name: webdriver
-  files: '**'
+rules:
+- "**": [webdriver]

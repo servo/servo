@@ -1,3 +1,2 @@
-features:
-- name: geolocation
-  files: "**"
+rules:
+- "**": [geolocation]

@@ -7,6 +7,7 @@
 
 use std::borrow::Cow;
 use std::cell::{OnceCell, RefCell};
+use std::collections::hash_map::Entry;
 use std::ffi::CStr;
 use std::fmt::Debug;
 use std::ptr::NonNull;
@@ -17,9 +18,9 @@ use encoding_rs::UTF_8;
 use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper_serde::Serde;
 use indexmap::IndexMap;
-use indexmap::map::Entry;
+use indexmap::map::Entry as IndexMapEntry;
 use js::context::JSContext;
-use js::conversions::jsstr_to_string;
+use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::{HandleObject, MutableHandleValue};
 use js::jsapi::{
     CallArgs, ExceptionStackBehavior, GetFunctionNativeReserved, GetModuleResolveHook,
@@ -38,6 +39,7 @@ use js::rust::wrappers2::{
 };
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
@@ -56,12 +58,11 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
-use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -74,6 +75,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::{
     Console, DedicatedWorkerGlobalScope, SharedWorkerGlobalScope, WorkerGlobalScope,
+    WorkletGlobalScope,
 };
 use crate::dom::window::Window;
 use crate::module_loading::{
@@ -83,7 +85,6 @@ use crate::network_listener::{self, FetchResponseListener, ResourceTimingListene
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
 use crate::task::NonSendTaskBox;
-use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) fn gen_type_error(
     cx: &mut JSContext,
@@ -165,10 +166,11 @@ impl ModuleScript {
 
 pub(crate) type ModuleRequest = (ServoUrl, ModuleType);
 
-#[derive(Clone, JSTraceable)]
+#[derive(JSTraceable)]
 pub(crate) enum ModuleStatus {
-    Fetching(DomRefCell<Option<Rc<Promise>>>),
-    Loaded(Option<Rc<ModuleTree>>),
+    #[expect(clippy::type_complexity)]
+    Fetching(#[no_trace] Vec<Box<dyn FnOnce(&mut JSContext, Option<Rc<ModuleTree>>)>>),
+    Loaded(Rc<ModuleTree>),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -215,11 +217,7 @@ impl ModuleTree {
         self.loaded_modules
             .borrow()
             .get(specifier)
-            .and_then(|url| global.get_module_map_entry(&(url.clone(), module_type)))
-            .and_then(|status| match status {
-                ModuleStatus::Fetching(_) => None,
-                ModuleStatus::Loaded(module_tree) => module_tree,
-            })
+            .and_then(|url| global.module_tree_for_request_if_loaded(&(url.clone(), module_type)))
     }
 
     pub(crate) fn insert_module_dependency(
@@ -236,12 +234,12 @@ impl ModuleTree {
         {
             // a. If referrer.[[LoadedModules]] contains a LoadedModuleRequest Record record such that
             // ModuleRequestsEqual(record, moduleRequest) is true, then
-            Entry::Occupied(entry) => {
+            IndexMapEntry::Occupied(entry) => {
                 // i. Assert: record.[[Module]] and result.[[Value]] are the same Module Record.
                 assert_eq!(*entry.get(), url);
             },
             // b. Else,
-            Entry::Vacant(entry) => {
+            IndexMapEntry::Vacant(entry) => {
                 // i. Append the LoadedModuleRequest Record { [[Specifier]]: moduleRequest.[[Specifier]],
                 // [[Attributes]]: moduleRequest.[[Attributes]], [[Module]]: result.[[Value]] } to referrer.[[LoadedModules]].
                 entry.insert(url);
@@ -626,25 +624,6 @@ impl Callback for ModuleHandler {
     }
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
-struct QueueTaskHandler {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
-}
-
-impl Callback for QueueTaskHandler {
-    fn callback(&self, cx: &mut CurrentRealm, _: HandleValue) {
-        let global = GlobalScope::from_current_realm(cx);
-        let promise = TrustedPromise::new(self.promise.clone());
-
-        global.task_manager().networking_task_source().queue(
-            task!(continue_module_loading: move |cx| {
-                promise.root().resolve_native(cx, &());
-            }),
-        );
-    }
-}
-
 /// The context required for asynchronously loading an external module script source.
 struct ModuleContext {
     /// The owner of the module that initiated the request.
@@ -725,24 +704,31 @@ impl FetchResponseListener for ModuleContext {
         let global = self.owner.root();
         let (_url, module_type) = &self.module_request;
 
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        if !global.is::<WorkletGlobalScope>() {
+            network_listener::submit_timing(cx, &self, &response, &timing);
+        }
 
-        let Some(ModuleStatus::Fetching(pending)) =
-            global.get_module_map_entry(&self.module_request)
-        else {
-            return error!("Processing response for a non pending module request");
-        };
-        let promise = pending
-            .borrow_mut()
-            .take()
-            .expect("Need promise to process response");
+        let module_map = global.module_map();
 
-        // Step 1. If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
-        // then set moduleMap[(url, moduleType)] to null, run onComplete given null, and abort these steps.
+        // Step 1. If any of the following are true: bodyBytes is null or failure; or response's
+        // status is not an ok status, then:
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
-            global.set_module_map(self.module_request, ModuleStatus::Loaded(None));
-            return promise.resolve_native(cx, &());
+            // Step 1.1. Let callbacks be moduleMap[(url, moduleType)].
+            // Step 1.2. Remove moduleMap[(url, moduleType)].
+            let Some(ModuleStatus::Fetching(callbacks)) =
+                module_map.safe_borrow_mut(cx).remove(&self.module_request)
+            else {
+                return error!("Processing response for a non pending module request");
+            };
+
+            // Step 1.3. For each callback of callbacks: run callback given null.
+            for callback in callbacks {
+                (callback)(cx, None);
+            }
+
+            // Step 1.4. Return.
+            return;
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -819,9 +805,37 @@ impl FetchResponseListener for ModuleContext {
                 module_script = Some(module_tree);
             }
         }
-        // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
-        global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
-        promise.resolve_native(cx, &());
+
+        let callbacks = match module_map
+            .safe_borrow_mut(cx)
+            .entry(self.module_request.clone())
+        {
+            Entry::Occupied(mut entry) => {
+                // Step 9. If moduleScript is null, then remove moduleMap[(url, moduleType)];
+                // otherwise set moduleMap[(url, moduleType)] to moduleScript.
+                let old_value = match module_script.as_ref() {
+                    None => entry.remove(),
+                    Some(module_script) => {
+                        entry.insert(ModuleStatus::Loaded(module_script.clone()))
+                    },
+                };
+
+                match old_value {
+                    ModuleStatus::Loaded(_) => {
+                        return error!("Processing response for a non pending module request");
+                    },
+                    ModuleStatus::Fetching(callbacks) => callbacks,
+                }
+            },
+            Entry::Vacant(_) => {
+                return error!("Processing response for a non pending module request");
+            },
+        };
+
+        // Step 10. For each callback of callbacks: run callback given moduleScript.
+        for callback in callbacks {
+            (callback)(cx, module_script.clone());
+        }
     }
 
     fn process_csp_violations(
@@ -1020,18 +1034,11 @@ unsafe extern "C" fn HostResolveImportedModule(
     let parsed_url = url.unwrap();
 
     // Step 4 & 7.
-    let module = global_scope.get_module_map_entry(&(parsed_url, module_type));
+    let module_tree = global_scope.module_tree_for_request_if_loaded(&(parsed_url, module_type));
 
-    // Step 9.
-    assert!(module.as_ref().is_some_and(
-        |status| matches!(status, ModuleStatus::Loaded(module_tree) if module_tree.is_some())
-    ));
+    let module = module_tree.expect("Attempted to link a module not found inside module map");
 
-    let ModuleStatus::Loaded(Some(module_tree)) = module.unwrap() else {
-        unreachable!()
-    };
-
-    let fetched_module_object = module_tree.get_record();
+    let fetched_module_object = module.get_record();
 
     // Step 8.
     assert!(fetched_module_object.is_some());
@@ -1163,14 +1170,15 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
 #[expect(clippy::too_many_arguments)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
-pub(crate) fn fetch_a_module_worker_script_graph(
+pub(crate) fn fetch_a_module_script_graph(
     cx: &mut JSContext,
     global: &GlobalScope,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     fetch_client: RequestClient,
     destination: Destination,
     referrer: Referrer,
     credentials_mode: CredentialsMode,
+    introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
 ) {
     let global_scope = DomRoot::from_ref(global);
@@ -1200,7 +1208,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         referrer,
         None,
         true,
-        Some(IntroductionType::WORKER),
+        introduction_type,
         move |cx, module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
@@ -1224,7 +1232,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
 pub(crate) fn fetch_an_external_module_script(
     cx: &mut JSContext,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     global: &GlobalScope,
     options: ScriptFetchOptions,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
@@ -1268,7 +1276,7 @@ pub(crate) fn fetch_an_external_module_script(
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-modulepreload-module-script-graph>
 pub(crate) fn fetch_a_modulepreload_module(
     cx: &mut JSContext,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     destination: Destination,
     global: &GlobalScope,
     options: ScriptFetchOptions,
@@ -1460,7 +1468,7 @@ fn fetch_the_descendants_and_link_module_script(
 #[expect(clippy::too_many_arguments)]
 pub(crate) fn fetch_a_single_module_script(
     cx: &mut JSContext,
-    url: ServoUrl,
+    url: UrlWithBlobClaim,
     fetch_client: RequestClient,
     global: &GlobalScope,
     destination: Destination,
@@ -1480,103 +1488,57 @@ pub(crate) fn fetch_a_single_module_script(
     // Otherwise, we would not have reached this point because a failure would have been raised
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
-    // Step 4. Let moduleMap be settingsObject's module map.
-    let module_request = (url.clone(), module_type);
-    let entry = global.get_module_map_entry(&module_request);
+    let module_request = (url.url(), module_type);
 
-    let pending = match entry {
-        Some(ModuleStatus::Fetching(pending)) => pending,
-        // Step 6. If moduleMap[(url, moduleType)] exists, run onComplete given moduleMap[(url, moduleType)], and return.
-        Some(ModuleStatus::Loaded(module_tree)) => {
-            return on_complete(cx, module_tree);
+    // Step 4. Let moduleMap be settingsObject's module map.
+    let module_map = global.module_map();
+    let mut module_map_borrow = module_map.safe_borrow_mut(cx);
+
+    let entry = module_map_borrow.entry(module_request.clone());
+
+    match entry {
+        Entry::Occupied(mut entry) => match entry.get_mut() {
+            // Step 5. If moduleMap[(url, moduleType)] is a module script, run onComplete given
+            // moduleMap[(url, moduleType)], and return.
+            ModuleStatus::Loaded(module_tree) => {
+                let module = module_tree.clone();
+                drop(module_map_borrow);
+                return on_complete(cx, Some(module));
+            },
+            // Step 6. If moduleMap[(url, moduleType)] is a list, append onComplete to
+            // moduleMap[(url, moduleType)], and return.
+            ModuleStatus::Fetching(callbacks) => return callbacks.push(Box::new(on_complete)),
         },
-        None => DomRefCell::new(None),
+        // Step 7. Set moduleMap[(url, moduleType)] to « onComplete ».
+        Entry::Vacant(entry) => {
+            entry.insert(ModuleStatus::Fetching(vec![Box::new(on_complete)]));
+        },
+    }
+
+    // We only need a policy container when fetching the root of a module worker.
+    let policy_container = (is_top_level && global.is::<WorkerGlobalScope>())
+        .then(|| fetch_client.policy_container.clone());
+
+    // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
+
+    // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
+    // then set request's mode to "same-origin".
+    let mode = match destination {
+        Destination::Worker | Destination::SharedWorker if is_top_level => RequestMode::SameOrigin,
+        _ => RequestMode::CorsMode,
     };
 
-    let global_scope = DomRoot::from_ref(global);
-    let module_map_key = module_request.clone();
-    let handler = ModuleHandler::new_boxed(Box::new(
-        task!(fetch_completed: |cx, global_scope: DomRoot<GlobalScope>| {
-            let key = module_map_key;
-            let module = global_scope.get_module_map_entry(&key);
+    // Step 9. Set request's destination to the result of running the
+    // fetch destination from module type steps given destination and moduleType.
+    let destination = match module_type {
+        ModuleType::JSON => Destination::Json,
+        ModuleType::JavaScript | ModuleType::Unknown => destination,
+    };
 
-            if let Some(ModuleStatus::Loaded(module_tree)) = module {
-                on_complete(cx, module_tree);
-            }
-        }),
-    ));
+    // TODO Step 11. Set request's initiator type to "script".
 
-    let handler = PromiseNativeHandler::new(cx, global, Some(handler), None);
-
-    let mut realm = enter_auto_realm(cx, global);
-    let cx = &mut realm.current_realm();
-
-    run_a_callback::<DomTypeHolder, _>(global, || {
-        let has_pending_fetch = pending.borrow().is_some();
-
-        let promise = Promise::new_in_realm(cx);
-
-        // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
-        // then queue a task on the networking task source to proceed with running the following steps.
-        if has_pending_fetch {
-            promise.append_native_handler(cx, &handler);
-
-            // Append an handler to the existing pending fetch, once resolved it will queue a task
-            // to run onComplete.
-            let continue_loading_handler = PromiseNativeHandler::new(
-                cx,
-                global,
-                Some(Box::new(QueueTaskHandler { promise })),
-                None,
-            );
-
-            // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
-            let pending_promise = pending.borrow_mut().take();
-            if let Some(promise) = pending_promise {
-                promise.append_native_handler(cx, &continue_loading_handler);
-                let _ = pending.borrow_mut().insert(promise);
-            }
-            return;
-        }
-
-        promise.append_native_handler(cx, &handler);
-
-        let prev = pending.borrow_mut().replace(promise);
-        assert!(prev.is_none());
-
-        // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-        global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
-
-        // We only need a policy container when fetching the root of a module worker.
-        let policy_container = (is_top_level && global.is::<WorkerGlobalScope>())
-            .then(|| fetch_client.policy_container.clone());
-
-        // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
-
-        // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
-        // then set request's mode to "same-origin".
-        let mode = match destination {
-            Destination::Worker | Destination::SharedWorker if is_top_level => {
-                RequestMode::SameOrigin
-            },
-            _ => RequestMode::CorsMode,
-        };
-
-        // Step 9. Set request's destination to the result of running the
-        // fetch destination from module type steps given destination and moduleType.
-        let destination = match module_type {
-            ModuleType::JSON => Destination::Json,
-            ModuleType::JavaScript | ModuleType::Unknown => destination,
-        };
-
-        // TODO Step 11. Set request's initiator type to "script".
-
-        // Step 12. Set up the module script request given request and options.
-        let request = RequestBuilder::new(
-            global.webview_id(),
-            ensure_blob_referenced_by_url_is_kept_alive(global, url.clone()),
-            referrer,
-        )
+    // Step 12. Set up the module script request given request and options.
+    let request = RequestBuilder::new(global.webview_id(), url, referrer)
         .destination(destination)
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
@@ -1587,20 +1549,19 @@ pub(crate) fn fetch_a_single_module_script(
         .client(fetch_client)
         .pipeline_id(Some(global.pipeline_id()));
 
-        let context = ModuleContext {
-            owner: Trusted::new(global),
-            data: vec![],
-            metadata: None,
-            module_request,
-            options,
-            status: Ok(()),
-            introduction_type,
-            policy_container,
-        };
+    let context = ModuleContext {
+        owner: Trusted::new(global),
+        data: vec![],
+        metadata: None,
+        module_request,
+        options,
+        status: Ok(()),
+        introduction_type,
+        policy_container,
+    };
 
-        let task_source = global.task_manager().networking_task_source().to_sendable();
-        global.fetch(request, context, task_source);
-    })
+    let task_source = global.task_manager().networking_task_source().to_sendable();
+    global.fetch(request, context, task_source);
 }
 
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;

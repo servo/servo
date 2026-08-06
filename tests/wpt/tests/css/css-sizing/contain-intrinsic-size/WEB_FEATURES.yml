@@ -1,3 +1,2 @@
-features:
-- name: contain-intrinsic-size
-  files: "**"
+rules:
+- "**": [contain-intrinsic-size]

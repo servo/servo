@@ -1,3 +1,2 @@
-features:
-- name: network-information
-  files: "**"
+rules:
+- "**": [network-information]

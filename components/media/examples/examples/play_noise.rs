@@ -9,10 +9,10 @@ extern crate servo_media_auto;
 use std::sync::Arc;
 use std::{thread, time};
 
-use servo_media::audio::buffer_source_node::{AudioBuffer, AudioBufferSourceNodeMessage};
-use servo_media::audio::node::{
+use servo_media::audio::audio_node::{
     AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage, OnEndedCallback,
 };
+use servo_media::audio::buffer_source_node::{AudioBuffer, AudioBufferSourceNodeMessage};
 use servo_media::{ClientContextId, ServoMedia};
 
 fn run_example(servo_media: Arc<ServoMedia>) {

@@ -1,3 +1,2 @@
-features:
-- name: bdi
-  files: "**"
+rules:
+- "**": [bdi]

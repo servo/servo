@@ -1,24 +1,17 @@
-features:
-- name: page-breaks
-  files:
-  - page-container-003.xht
-  - page-selectors-001.xht
-- name: page-setup
-  files:
-  - 'at-page-rule*'
-  - 'first-page-selectors*'
-  - 'page-box-000.xht'
-  - 'page-container-000.xht'
-  - 'page-container-001.xht'
-  - 'page-container-008.xht'
-  - 'page-container-009.xht'
-  - 'page-grammar-*'
-  - 'page-margin-*'
-  - 'page-props-*'
-  - 'page-selectors-*'
-- name: width-height
-  files:
-  - page-container-000.xht
-  - page-container-002.xht
-  - page-container-004.xht
-  - page-container-010.xht
+rules:
+- page-container-003.xht: [page-breaks]
+- page-selectors-001.xht: [page-breaks, page-setup]
+- at-page-rule*: [page-setup]
+- first-page-selectors*: [page-setup]
+- page-box-000.xht: [page-setup]
+- page-container-000.xht: [page-setup, width-height]
+- page-container-001.xht: [page-setup]
+- page-container-008.xht: [page-setup]
+- page-container-009.xht: [page-setup]
+- page-grammar-*: [page-setup]
+- page-margin-*: [page-setup]
+- page-props-*: [page-setup]
+- page-selectors-*: [page-setup]
+- page-container-002.xht: [width-height]
+- page-container-004.xht: [width-height]
+- page-container-010.xht: [width-height]

@@ -1,3 +1,2 @@
-features:
-- name: background-fetch
-  files: "**"
+rules:
+- "**": [background-fetch]

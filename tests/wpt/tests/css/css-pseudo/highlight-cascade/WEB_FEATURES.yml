@@ -1,28 +1,22 @@
-features:
-- name: unset-value
-  files:
-  - highlight-cascade-001.html
-  - highlight-paired-cascade-005.html
-- name: selection
-  files:
-  - cascade-highlight-001.html
-  - cascade-highlight-002.html
-  - cascade-highlight-004.html
-  - cascade-highlight-005.html
-  - highlight-cascade-003.html
-  - highlight-cascade-004.html
-  - highlight-cascade-005.html
-  - highlight-cascade-006.xhtml
-  - highlight-cascade-007.html
-  - highlight-cascade-008.html
-  - highlight-cascade-009.html
-  - highlight-cascade-011.html
-  - highlight-paired-cascade-001.html
-  - highlight-paired-cascade-002.html
-  - highlight-paired-cascade-003.html
-  - highlight-paired-cascade-006.html
-  - highlight-currentcolor-root-implicit-default-001.html
-  - highlight-currentcolor-root-implicit-default-002.html
-- name: text-shadow
-  files:
-  - highlight-currentcolor-painting-text-shadow-*
+rules:
+- highlight-cascade-001.html: [unset-value]
+- highlight-paired-cascade-005.html: [unset-value]
+- cascade-highlight-001.html: [selection]
+- cascade-highlight-002.html: [selection]
+- cascade-highlight-004.html: [selection]
+- cascade-highlight-005.html: [selection]
+- highlight-cascade-003.html: [selection]
+- highlight-cascade-004.html: [selection]
+- highlight-cascade-005.html: [selection]
+- highlight-cascade-006.xhtml: [selection]
+- highlight-cascade-007.html: [selection]
+- highlight-cascade-008.html: [selection]
+- highlight-cascade-009.html: [selection]
+- highlight-cascade-011.html: [selection]
+- highlight-paired-cascade-001.html: [selection]
+- highlight-paired-cascade-002.html: [selection]
+- highlight-paired-cascade-003.html: [selection]
+- highlight-paired-cascade-006.html: [selection]
+- highlight-currentcolor-root-implicit-default-001.html: [selection]
+- highlight-currentcolor-root-implicit-default-002.html: [selection]
+- highlight-currentcolor-painting-text-shadow-*: [text-shadow]

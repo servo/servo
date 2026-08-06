@@ -4,11 +4,11 @@
 
 use malloc_size_of_derive::MallocSizeOf;
 
-use crate::block::{Block, Chunk, FRAMES_PER_BLOCK, Tick};
-use crate::node::{
+use crate::audio_node::{
     AudioNodeEngine, AudioNodeType, AudioScheduledSourceNodeMessage, BlockInfo, ChannelInfo,
     OnEndedCallback, ShouldPlay,
 };
+use crate::block::{Block, Chunk, FRAMES_PER_BLOCK, Tick};
 use crate::param::{Param, ParamType};
 
 /// Control messages directed to AudioBufferSourceNodes.

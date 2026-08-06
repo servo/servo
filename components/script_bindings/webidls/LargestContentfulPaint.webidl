@@ -13,5 +13,6 @@ interface LargestContentfulPaint : PerformanceEntry {
     readonly attribute unsigned long size;
     readonly attribute DOMString url;
     readonly attribute Element? element;
+    readonly attribute DOMString id;
     [Default] object toJSON();
 };

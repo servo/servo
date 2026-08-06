@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Motion Path: ray() 'sides' size with a fourth-quadrant angle</title>
+    <link rel="author" title="Chris Dumez" href="mailto:cdumez@apple.com">
+    <link rel="help" href="https://drafts.fxtf.org/motion-1/#ray-function">
+    <link rel="match" href="offset-path-ray-sides-fourth-quadrant-ref.html">
+    <meta name="assert" content="ray(315deg sides) from (200,160) in a 400x400 containing block resolves its length against the top edge (160 / cos(45deg)), translating the box by (-160,-160). Angles in the (270deg, 360deg) range must fold down to an acute angle from the vertical axis.">
+    <style>
+      #container {
+        width: 400px;
+        height: 400px;
+      }
+      #target {
+        position: relative;
+        left: 200px;
+        top: 160px;
+        width: 40px;
+        height: 40px;
+        background-color: green;
+        transform-origin: 0px 0px;
+        offset-path: ray(315deg sides);
+        offset-distance: 100%;
+        offset-rotate: 0deg;
+        offset-position: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container"><div id="target"></div></div>
+  </body>
+</html>

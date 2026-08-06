@@ -1,3 +1,2 @@
-features:
-- name: state
-  files: "**"
+rules:
+- "**": [state]

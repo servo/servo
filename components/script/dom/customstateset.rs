@@ -5,7 +5,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomStateSetMethods;
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
@@ -43,8 +43,10 @@ impl CustomStateSet {
         self.internal.borrow()
     }
 
-    fn states_did_change(&self) {
-        self.owner_element.upcast::<Node>().dirty(NodeDamage::Other);
+    fn states_did_change(&self, no_gc: &NoGC) {
+        self.owner_element
+            .upcast::<Node>()
+            .dirty(no_gc, NodeDamage::Other);
     }
 }
 
@@ -64,7 +66,7 @@ impl Setlike for CustomStateSet {
     #[inline(always)]
     fn add(&self, cx: &mut JSContext, key: Self::Key) {
         self.internal.add(cx, key);
-        self.states_did_change();
+        self.states_did_change(cx.no_gc());
     }
 
     #[inline(always)]
@@ -77,14 +79,14 @@ impl Setlike for CustomStateSet {
         let old_size = self.internal.size(cx);
         self.internal.clear(cx);
         if old_size != 0 {
-            self.states_did_change();
+            self.states_did_change(cx.no_gc());
         }
     }
 
     #[inline(always)]
     fn delete(&self, cx: &mut JSContext, key: Self::Key) -> bool {
         if self.internal.delete(cx, key) {
-            self.states_did_change();
+            self.states_did_change(cx.no_gc());
             true
         } else {
             false

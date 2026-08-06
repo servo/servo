@@ -1,3 +1,2 @@
-features:
-- name: background-position
-  files: "**"
+rules:
+- "**": [background-position]

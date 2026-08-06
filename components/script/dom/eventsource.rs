@@ -14,13 +14,13 @@ use headers::ContentType;
 use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
@@ -718,13 +718,14 @@ impl EventSourceTimeoutCallback {
         // Step 5.3: If the EventSource object's last event ID string is not the empty string, then:
         //  - Let lastEventIDValue be the EventSource object's last event ID string, encoded as UTF-8.
         //  - Set (`Last-Event-ID`, lastEventIDValue) in request's header list.
-        if !event_source.last_event_id.borrow().is_empty() {
-            // TODO(eijebong): Change this once typed header support custom values
-            request.headers.insert(
-                HeaderName::from_static("last-event-id"),
+        if !event_source.last_event_id.borrow().is_empty() &&
+            let Ok(header_value) =
                 HeaderValue::from_str(&String::from(event_source.last_event_id.borrow().clone()))
-                    .unwrap(),
-            );
+        {
+            // TODO(eijebong): Change this once typed header support custom values
+            request
+                .headers
+                .insert(HeaderName::from_static("last-event-id"), header_value);
         }
 
         // Step 5.4: Fetch request and process the response obtained in this fashion, if

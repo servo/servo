@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<title>Menu dialog mode keyboard focus routing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<button command="toggle-popover" commandfor="invalid-menu" id="menu-btn">Open Menu</button>
+
+<menulist id="invalid-menu">
+  <menuitem id="item1">Valid Item 1</menuitem>
+  <button id="bad-btn">Invalid Button</button>
+  <menuitem id="item2">Valid Item 2</menuitem>
+</menulist>
+
+<menubar id="invalid-outer">
+  <button id="bad-btn-outer">Invalid Button</button>
+  <submenu>
+    <menuitem id="outer-menuitem">Open Submenu</menuitem>
+    <menulist id="valid-inner">
+      <menuitem id="inner-item1">Inner Item 1</menuitem>
+      <menuitem id="inner-item2">Inner Item 2</menuitem>
+    </menulist>
+  </submenu>
+</menubar>
+
+<script>
+const Tab = '\uE004';
+const Space = ' ';
+
+promise_test(async (t) => {
+  const btn = document.getElementById('menu-btn');
+  const menu = document.getElementById('invalid-menu');
+  const item1 = document.getElementById('item1');
+  const badBtn = document.getElementById('bad-btn');
+  const item2 = document.getElementById('item2');
+
+  assert_false(menu.matches(':popover-open'), 'Menu should initially be closed.');
+
+  btn.focus();
+  assert_equals(document.activeElement, btn, 'Button should be focused.');
+
+  // Open the menu
+  await test_driver.send_keys(document.activeElement, Space);
+  assert_true(menu.matches(':popover-open'), 'Menu should be open after pressing Space on the button.');
+
+  // In dialog mode, the standard focus-forwarding should put focus on the first focusable child
+  assert_equals(document.activeElement, item1, 'Focus should move to the first menuitem.');
+
+  // In standard menu mode, Tab closes the menu. In dialog mode, Tab should route to the next focusable element.
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(document.activeElement, badBtn, 'Tab should focus the invalid button inside the dialog.');
+
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(document.activeElement, item2, 'Tab should focus the next menuitem inside the dialog.');
+
+  // Clean up
+  menu.hidePopover();
+}, 'In dialog mode, Tab navigates between interactive children and natively focusable menuitems instead of closing the menu.');
+
+promise_test(async (t) => {
+  const badBtnOuter = document.getElementById('bad-btn-outer');
+  const outerItem = document.getElementById('outer-menuitem');
+  const innerMenu = document.getElementById('valid-inner');
+  const innerItem1 = document.getElementById('inner-item1');
+  const innerItem2 = document.getElementById('inner-item2');
+
+  badBtnOuter.focus();
+  assert_equals(document.activeElement, badBtnOuter, 'Button inside outer menubar should be focused.');
+
+  // The outer menubar is in dialog mode due to the invalid button, so Tab should route focus to the next item
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_equals(document.activeElement, outerItem, 'Tab should focus the menuitem inside the outer dialog menubar.');
+
+  // Space should open the inner menulist and move focus to its first item
+  await test_driver.send_keys(document.activeElement, Space);
+  assert_true(innerMenu.matches(':popover-open'), 'Inner menu should be open.');
+  assert_equals(document.activeElement, innerItem1, 'Focus should move to the first item in the inner menu.');
+
+  // The inner menu is valid, so Tab should close it instead of moving focus to the next item
+  await test_driver.send_keys(document.activeElement, Tab);
+  assert_false(innerMenu.matches(':popover-open'), 'Tab should close the valid inner menu.');
+}, 'Dialog mode fallback only applies to the specific menu containing the violation; valid nested menus retain standard keyboard routing.');
+
+</script>

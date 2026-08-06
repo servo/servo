@@ -1449,11 +1449,13 @@ pub fn find_character_offset_in_fragment_descendants(
         }
     }
 
-    closest_relative_fragment.and_then(|closest_fragment| {
-        closest_fragment
-            .fragment
-            .character_offset(closest_fragment.point_in_fragment)
-    })
+    closest_relative_fragment
+        .and_then(|closest_fragment| {
+            closest_fragment
+                .fragment
+                .character_offset(closest_fragment.point_in_fragment)
+        })
+        .map(|offset| offset.0)
 }
 
 pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<UntrustedNodeAddress> {

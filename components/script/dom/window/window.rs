@@ -34,6 +34,7 @@ use fonts::{
     WebFontSetDifference,
 };
 use js::context::{JSContext, NoGC};
+use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
 use js::jsval::{NullValue, UndefinedValue};
@@ -59,6 +60,7 @@ use net_traits::image_cache::{
 use net_traits::request::{Origin, Referrer, RequestClient};
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
+use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -66,7 +68,6 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::like::Setlike;
@@ -103,6 +104,7 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
+use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
 };
@@ -117,8 +119,7 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{RequestInfo, RequestInit};
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{
-    self, DeferredRequestInit, FrameRequestCallback, ScrollBehavior, WindowMethods,
-    WindowPostMessageOptions,
+    self, DeferredRequestInit, ScrollBehavior, WindowMethods, WindowPostMessageOptions,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     RequestOrUSVString, TrustedScriptOrString, TrustedScriptOrStringOrFunction,
@@ -724,7 +725,7 @@ impl Window {
         })
     }
 
-    fn pending_layout_image_notification(&self, response: PendingImageResponse) {
+    fn pending_layout_image_notification(&self, no_gc: &NoGC, response: PendingImageResponse) {
         let mut images = self.pending_layout_images.borrow_mut();
         let nodes = images.entry(response.id);
         let nodes = match nodes {
@@ -738,7 +739,7 @@ impl Window {
             for ancillary_data in nodes.get() {
                 match ancillary_data.destination {
                     LayoutImageDestination::BoxTreeConstruction => {
-                        ancillary_data.node.dirty(NodeDamage::Other);
+                        ancillary_data.node.dirty(no_gc, NodeDamage::Other);
                     },
                     LayoutImageDestination::DisplayListBuilding => {
                         self.layout().set_needs_new_display_list();
@@ -757,6 +758,7 @@ impl Window {
 
     pub(crate) fn handle_image_rasterization_complete_notification(
         &self,
+        no_gc: &NoGC,
         response: RasterizationCompleteResponse,
     ) {
         let mut images = self.pending_images_for_rasterization.borrow_mut();
@@ -766,7 +768,7 @@ impl Window {
             Entry::Vacant(_) => return,
         };
         for node in nodes.get() {
-            node.dirty(NodeDamage::Other);
+            node.dirty(no_gc, NodeDamage::Other);
         }
         nodes.remove();
     }
@@ -1356,7 +1358,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         // TODO: Implement this.
 
         // Step 4. Run the focusing steps with current.
-        document.focus_handler().focus(cx, FocusableArea::Viewport);
+        document.focus_handler().focus(cx, &FocusableArea::Viewport);
 
         // Step 5. If current is a top-level traversable, user agents are encouraged to trigger some
         // sort of notification to indicate to the user that the page is attempting to gain focus.
@@ -1779,8 +1781,14 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
     fn Performance(&self, cx: &mut JSContext) -> DomRoot<Performance> {
-        self.performance
-            .or_init(|| Performance::new(cx, self.as_global_scope(), self.navigation_start.get()))
+        self.performance.or_init(|| {
+            Performance::new(
+                cx,
+                self.as_global_scope(),
+                self.navigation_start.get(),
+                self.Document().navigation_timing(),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
@@ -1817,15 +1825,17 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe>
-    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
-        self.Document()
-            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback })
+    fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> Fallible<u32> {
+        Ok(self
+            .Document()
+            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback }))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe>
-    fn CancelAnimationFrame(&self, ident: u32) {
+    fn CancelAnimationFrame(&self, ident: u32) -> ErrorResult {
         let doc = self.Document();
         doc.cancel_animation_frame(ident);
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage>
@@ -2607,10 +2617,10 @@ impl Window {
 
     /// Prepares to tick animations and then does a reflow which also advances the
     /// layout animation clock.
-    pub(crate) fn advance_animation_clock(&self, delta: TimeDuration) {
+    pub(crate) fn advance_animation_clock(&self, no_gc: &NoGC, delta: TimeDuration) {
         self.Document()
             .advance_animation_timeline_for_testing(delta);
-        ScriptThread::handle_tick_all_animations_for_testing(self.pipeline_id());
+        ScriptThread::handle_tick_all_animations_for_testing(no_gc, self.pipeline_id());
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This method will wait for
@@ -2663,6 +2673,10 @@ impl Window {
             None
         };
 
+        if let Some(selection) = document.selection() {
+            selection.set_flags_for_visible_selection(cx.no_gc());
+        }
+
         let restyle_reason = document.restyle_reason(cx.no_gc());
         document.clear_restyle_reasons();
         let restyle = if restyle_reason.needs_restyle() {
@@ -2698,10 +2712,6 @@ impl Window {
         } else {
             None
         };
-
-        if let Some(selection) = document.selection() {
-            selection.set_flags_for_visible_selection(cx.no_gc());
-        }
 
         // If there are any duplicate ids, their targets may need to be updated in the id map before
         // layout runs, so that the map can gather their elements in DOM order.
@@ -2751,6 +2761,12 @@ impl Window {
             reflow_result.pending_rasterization_images,
             reflow_result.pending_svg_elements_for_serialization,
         );
+
+        if let Some(candidate) = &reflow_result.lcp_candidate &&
+            let Some(node_address) = reflow_result.lcp_node_address
+        {
+            self.process_lcp_candidate_post_reflow(candidate, node_address, &document);
+        }
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
             document
@@ -3694,6 +3710,20 @@ impl Window {
         }
     }
 
+    /// Resolve the LCP candidate OpaqueNode to a DOM Element and store it on the document.
+    #[expect(unsafe_code)]
+    fn process_lcp_candidate_post_reflow(
+        &self,
+        candidate: &LCPCandidate,
+        node_address: UntrustedNodeAddress,
+        document: &Document,
+    ) {
+        let node = unsafe { from_untrusted_node_address(node_address) };
+        if let Some(element) = DomRoot::downcast::<Element>(node) {
+            document.store_lcp_candidate(candidate.id, &element);
+        }
+    }
+
     #[expect(unsafe_code)]
     fn handle_pending_images_post_reflow(
         &self,
@@ -3721,11 +3751,11 @@ impl Window {
             let mut images = self.pending_layout_images.borrow_mut();
             if !images.contains_key(&id) {
                 let trusted_node = Trusted::new(&*node);
-                let sender = self.register_image_cache_listener(id, move |response, _| {
+                let sender = self.register_image_cache_listener(id, move |response, cx| {
                     trusted_node
                         .root()
                         .owner_window()
-                        .pending_layout_image_notification(response);
+                        .pending_layout_image_notification(cx.no_gc(), response);
                 });
 
                 image_cache.add_listener(ImageLoadListener::new(sender, pipeline_id, id));
@@ -3766,7 +3796,7 @@ impl Window {
             let node = unsafe { from_untrusted_node_address(node) };
             let svg = node.downcast::<SVGSVGElement>().unwrap();
             svg.serialize_and_cache_subtree(cx);
-            node.dirty(NodeDamage::Other);
+            node.dirty(cx.no_gc(), NodeDamage::Other);
         }
     }
 

@@ -1,7 +1,8 @@
 <!doctype html>
 <meta name="author" title="Fernando Fiori" href="mailto:ffiori@microsoft.com">
 <meta name="assert" content="HighlightRegistry.highlightsFromPoint returns the Highlights and their corresponding Ranges and StaticRanges present at the coordinates provided as argument in the right order in multi-line text.">
-<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/highlight/HighlightsFromPointsExplainer.md">
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#interactions">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-range-getclientrects">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <style>
@@ -38,7 +39,7 @@ body {
         // Get x and y coordinates between characters '0' and '1' on the first line (not highlighted).
         x = rect.left + characterWidth;
         y = rect.top + characterHeight / 2;
-        highlights = CSS.highlights.highlightsFromPoint(x, y);
+        highlight_hit_results = CSS.highlights.highlightsFromPoint(x, y);
         assert_equals(highlight_hit_results.length, 0, 'CSS.highlights.highlightsFromPoint() returns an empty array when the coordinates provided are outside of the highlighted ranges');
 
         // Get x and y coordinates between characters '2' and '3' on the first line.

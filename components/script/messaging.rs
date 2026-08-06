@@ -34,6 +34,7 @@ use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
 use crate::dom::sharedworkerglobalscope::SharedWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
+use crate::dom::{WorkletControl, WorkletExecutor};
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::task::TaskBox;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -173,7 +174,8 @@ pub(crate) enum MainThreadScriptMsg {
     ForwardEmbedderControlResponseFromFileManager(EmbedderControlId, EmbedderControlResponse),
 }
 
-/// Common messages used to control the event loops in both the script and the worker
+/// Common messages used to control the event loops in both the script, the worker, and the
+/// worklet
 pub(crate) enum CommonScriptMsg {
     /// Requests that the script thread measure its memory usage. The results are sent back via the
     /// supplied channel.
@@ -212,6 +214,8 @@ pub(crate) enum ScriptEventLoopSender {
     SharedWorker(Sender<SharedWorkerScriptMsg>),
     /// A sender that sends to a `ServiceWorker` event loop.
     ServiceWorker(Sender<ServiceWorkerScriptMsg>),
+    /// A wrapper that sends to the event loops of all threads belonging to a `Worklet`
+    Worklet(WorkletExecutor),
     /// A sender that sends to a dedicated worker (such as a generic Web Worker) event loop.
     /// Note that this sender keeps the main thread Worker DOM object alive as long as it or
     /// or any message it sends is not dropped.
@@ -249,6 +253,9 @@ impl ScriptEventLoopSender {
                         common_message,
                     ))
                     .map_err(|_| SendError(()))
+            },
+            Self::Worklet(executor) => {
+                executor.send_control_message(WorkletControl::Common(message))
             },
         }
     }

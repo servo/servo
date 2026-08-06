@@ -116,6 +116,9 @@ impl BoxFragmentRareData {
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
 
+    /// The style for this [`BoxFragment`].
+    pub style: SharedStyle,
+
     pub children: Vec<Fragment>,
 
     /// This [`BoxFragment`]'s containing block rectangle in coordinates relative to
@@ -167,7 +170,8 @@ impl BoxFragment {
     ) -> Self {
         let rare_data = BoxFragmentRareData::new(specific_layout_info);
         Self {
-            base: BaseFragment::new(base_fragment_info, style.into(), content_rect),
+            base: BaseFragment::new(base_fragment_info, content_rect),
+            style: style.into(),
             children,
             cumulative_containing_block_rect: Default::default(),
             padding,
@@ -189,7 +193,7 @@ impl BoxFragment {
     }
 
     pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
-        self.base.style()
+        self.style.borrow()
     }
 
     pub(crate) fn with_style(self: &Arc<Self>) -> BoxFragmentWithStyle<'_> {

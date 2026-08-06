@@ -19,7 +19,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::CompressionFormat;
 use crate::dom::bindings::codegen::Bindings::DecompressionStreamBinding::DecompressionStreamMethods;
-use crate::dom::bindings::conversions::SafeToJSValConvertible;
+use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::stream::compressionstream::{BROTLI_BUFFER_SIZE, convert_chunk_to_vec};

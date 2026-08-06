@@ -1,7 +1,3 @@
-features:
-- name: contenteditable-plaintextonly
-  files:
-  - plaintext-only.html
-- name: contenteditable
-  files:
-  - synthetic-height.html
+rules:
+- plaintext-only.html: [contenteditable-plaintextonly]
+- synthetic-height.html: [contenteditable]

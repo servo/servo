@@ -397,7 +397,7 @@ impl VirtualMethods for HTMLStyleElement {
                 AttributeMutation::Set(..) => *media = self.create_media_list(&attr.value()),
                 AttributeMutation::Removed => *media = StyleMediaList::empty(),
             };
-            self.owner_document().invalidate_stylesheets();
+            self.owner_document().invalidate_stylesheets(cx.no_gc());
         }
     }
 }
@@ -467,7 +467,7 @@ impl HTMLStyleElementMethods<crate::DomTypeHolder> for HTMLStyleElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-style-disabled>
     fn SetDisabled(&self, cx: &mut js::context::JSContext, value: bool) {
         if let Some(sheet) = self.get_cssom_stylesheet(cx) {
-            sheet.set_disabled(value);
+            sheet.set_disabled(cx.no_gc(), value);
         }
     }
 

@@ -13,6 +13,7 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
+servo-base = { workspace = true }
 ipc-channel = { workspace = true }
 profile = { workspace = true }
 profile_traits = { workspace = true }

@@ -60,9 +60,6 @@
   //void print();
   //any showModalDialog(DOMString url, optional any argument);
 
-  unsigned long requestAnimationFrame(FrameRequestCallback callback);
-  undefined cancelAnimationFrame(unsigned long handle);
-
   [Throws, CrossOriginCallable]
   undefined postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
   [Throws, CrossOriginCallable]
@@ -159,9 +156,6 @@ interface mixin WindowLocalStorage {
   [Throws] readonly attribute Storage localStorage;
 };
 Window includes WindowLocalStorage;
-
-// http://w3c.github.io/animation-timing/#framerequestcallback
-callback FrameRequestCallback = undefined (DOMHighResTimeStamp time);
 
 partial interface Window {
    [Pref="css_animations_testing_enabled"]

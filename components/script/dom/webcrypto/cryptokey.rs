@@ -7,12 +7,12 @@ use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use js::context::NoGC;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
 use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHandle};

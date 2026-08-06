@@ -1,3 +1,2 @@
-features:
-- name: selection-api
-  files: "**"
+rules:
+- "**": [selection-api]

@@ -1,4 +1,2 @@
-features:
-- name: line-height
-  files:
-  - too-big-line-height-crash.html
+rules:
+- too-big-line-height-crash.html: [line-height]

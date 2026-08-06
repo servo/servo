@@ -1,3 +1,2 @@
-features:
-- name: alerts
-  files: "**"
+rules:
+- "**": [alerts]

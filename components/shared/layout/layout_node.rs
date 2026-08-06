@@ -6,14 +6,13 @@
 #![deny(missing_docs)]
 
 use std::fmt::Debug;
-use std::ops::Range;
 
 use atomic_refcell::AtomicRef;
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use servo_arc::Arc;
 use servo_base::id::{BrowsingContextId, PipelineId};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use servo_url::ServoUrl;
 use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, OpaqueNode, TNode};
@@ -174,10 +173,10 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// For a text node, returns which range of this text is part of the document selection
     ///
     /// Returned offsets are counted in `char`s in the `self.text_content()` string.
-    fn document_selection_in_text_node(&self) -> Option<Range<Utf32CodeUnits>>;
+    fn document_selection_in_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>>;
 
-    /// If this node manages a selection, this returns the shared selection for the node.
-    fn selection(&self) -> Option<SharedSelection>;
+    /// For a text node, returns which range of this text is part of a form control selection.
+    fn form_control_selection_in_text_node(&self) -> Option<SharedSelection>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;

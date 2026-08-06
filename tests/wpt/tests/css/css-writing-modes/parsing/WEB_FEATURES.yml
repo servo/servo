@@ -1,15 +1,6 @@
-features:
-- name: layout-direction-override
-  files:
-  - direction-*
-  - unicode-bidi-*
-- name: text-combine-upright
-  files:
-  - "text-combine-upright-*"
-- name: text-orientation
-  files:
-  - text-orientation-*
-  - text-combine-upright-*
-- name: writing-mode
-  files:
-  - writing-mode-*
+rules:
+- direction-*: [layout-direction-override]
+- unicode-bidi-*: [layout-direction-override]
+- text-combine-upright-*: [text-combine-upright, text-orientation]
+- text-orientation-*: [text-orientation]
+- writing-mode-*: [writing-mode]

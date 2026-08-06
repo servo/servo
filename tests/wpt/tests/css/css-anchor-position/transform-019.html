@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Anchor in transformed scroller, anchored element on the outside - hit-testing</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/534655508">
+<style>
+  body {
+    margin: 50px;
+  }
+  #scroller {
+    overflow: hidden;
+    width: 250px;
+    height: 250px;
+    transform-origin: top left;
+    transform: scale(2);
+  }
+
+  #anchor {
+    anchor-name: --foo;
+    width: 25px;
+    height: 50px;
+    background: green;
+  }
+
+  #positioned {
+    position: absolute;
+    position-anchor: --foo;
+    position-area: right;
+    width: 50px;
+    height: 100px;
+    background: green;
+  }
+</style>
+<div style="width:100px; height:100px; background:red;">
+  <div id="scroller">
+    <div style="height:150px;"></div>
+    <div id="anchor"></div>
+    <div style="height:1000px;"></div>
+  </div>
+  <div id="positioned"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  scroller.scrollTop = 150;
+
+  promise_test(async t => {
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => requestAnimationFrame(r));
+    await new Promise(r => requestAnimationFrame(r));
+    assert_not_equals(document.elementFromPoint(99, 50), positioned);
+    assert_equals(document.elementFromPoint(100, 50), positioned);
+    assert_equals(document.elementFromPoint(149, 149), positioned);
+    assert_not_equals(document.elementFromPoint(149, 150), positioned);
+  }, "Scrolled transformed scroller with anchor inside");
+</script>

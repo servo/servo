@@ -150,7 +150,7 @@ use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::enter_auto_realm;
 use crate::script_module::{
-    ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
+    ImportMap, ModuleRequest, ModuleStatus, ModuleTree, ResolvedModule, ScriptFetchOptions,
 };
 use crate::script_runtime::ThreadSafeJSContext;
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -167,11 +167,12 @@ pub(crate) struct AutoCloseWorker {
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing>
     #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
+    #[conditional_malloc_size_of]
+    animation_frame_provider_supported: Arc<AtomicBool>,
     /// A handle to join on the worker thread.
     #[ignore_malloc_size_of = "JoinHandle"]
     join_handle: Option<JoinHandle<()>>,
-    /// A sender of control messages,
-    /// currently only used to signal shutdown.
+    /// A sender of control messages.
     #[no_trace]
     control_sender: Sender<DedicatedWorkerControlMsg>,
     /// The context to request an interrupt on the worker thread.
@@ -2315,6 +2316,7 @@ impl GlobalScope {
     pub(crate) fn track_worker(
         &self,
         closing: Arc<AtomicBool>,
+        animation_frame_provider_supported: Arc<AtomicBool>,
         join_handle: JoinHandle<()>,
         control_sender: Sender<DedicatedWorkerControlMsg>,
         context: ThreadSafeJSContext,
@@ -2323,10 +2325,22 @@ impl GlobalScope {
             .borrow_mut()
             .push(AutoCloseWorker {
                 closing,
+                animation_frame_provider_supported,
                 join_handle: Some(join_handle),
                 control_sender,
                 context,
             });
+    }
+
+    pub(crate) fn disable_owned_worker_animation_frame_providers(&self) {
+        for worker in &*self.list_auto_close_worker.borrow() {
+            worker
+                .animation_frame_provider_supported
+                .store(false, Ordering::SeqCst);
+            let _ = worker
+                .control_sender
+                .send(DedicatedWorkerControlMsg::AnimationFrameProviderUnsupported);
+        }
     }
 
     pub(crate) fn track_event_source(&self, event_source: &EventSource) {
@@ -2421,12 +2435,25 @@ impl GlobalScope {
         &self.consumed_rejections
     }
 
-    pub(crate) fn set_module_map(&self, request: ModuleRequest, module: ModuleStatus) {
-        self.module_map.borrow_mut().insert(request, module);
+    pub(crate) fn module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
+        &self.module_map
     }
 
-    pub(crate) fn get_module_map_entry(&self, request: &ModuleRequest) -> Option<ModuleStatus> {
-        self.module_map.borrow().get(request).cloned()
+    /// Return the [`ModuleTree`] for a given [`ModuleRequest`] or `None` if there is no
+    /// tree for the request or if that tree is still being fetched.
+    pub(crate) fn module_tree_for_request_if_loaded(
+        &self,
+        request: &ModuleRequest,
+    ) -> Option<Rc<ModuleTree>> {
+        self.module_map
+            .borrow()
+            .get(request)
+            .and_then(|status| match status {
+                ModuleStatus::Fetching(_) => None,
+                ModuleStatus::Loaded(module_tree) => Some(module_tree.clone()),
+            })
     }
 
     pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
@@ -2915,6 +2942,8 @@ impl GlobalScope {
             worker.task_manager()
         } else if let Some(window) = self.downcast::<Window>() {
             window.task_manager()
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.task_manager()
         } else {
             unreachable!("Attempted to use task manager with unsupported global");
         }
@@ -3069,6 +3098,8 @@ impl GlobalScope {
             window.perform_a_microtask_checkpoint(cx);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             worker.perform_a_microtask_checkpoint(cx);
+        } else if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
+            worklet.perform_a_microtask_checkpoint(cx);
         }
     }
 

@@ -1,4 +1,2 @@
-features:
-- name: alt-text-generated-content
-  files:
-  - comp_name_*content*
+rules:
+- comp_name_*content*: [alt-text-generated-content]

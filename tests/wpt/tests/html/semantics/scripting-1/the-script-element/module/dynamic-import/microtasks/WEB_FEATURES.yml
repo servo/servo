@@ -1,4 +1,2 @@
-features:
-- name: js-modules
-  files:
-  - "*"
+rules:
+- "*": [js-modules]

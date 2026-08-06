@@ -1,8 +1,3 @@
-features:
-- name: pointer-events-api
-  files:
-  - "*"
-  - "!*touch-action*"
-- name: touch-action
-  files:
-  - "*touch-action*"
+rules:
+- "*touch-action*": [touch-action]
+- "*": [pointer-events-api]

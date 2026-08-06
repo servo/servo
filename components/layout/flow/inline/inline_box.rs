@@ -10,9 +10,13 @@ use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use style::Zero;
+use style::computed_values::alignment_baseline::T as AlignmentBaseline;
+use style::computed_values::baseline_source::T as BaselineSource;
 use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
+use style::values::computed::{BaselineShift, LengthPercentage};
 
 use super::{
     InlineContainerState, InlineContainerStateFlags, SharedInlineStyles,
@@ -24,7 +28,7 @@ use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::fragment_tree::BaseFragmentInfo;
 use crate::layout_box_base::LayoutBoxBase;
-use crate::style_ext::{LayoutStyle, PaddingBorderMargin};
+use crate::style_ext::{ComputedValuesExt, LayoutStyle, PaddingBorderMargin};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct InlineBox {
@@ -37,16 +41,24 @@ pub(crate) struct InlineBox {
     /// The index of the default font in the [`super::InlineFormattingContext`]'s font metrics store.
     /// This is initialized during IFC shaping.
     pub default_font: Option<FontRef>,
+    /// Whether or not this [`InlineBox`] breaks shaping at the start.
+    pub breaks_shaping_at_start: bool,
+    /// Whether or not this [`InlineBox`] breaks shaping at the end.
+    pub breaks_shaping_at_end: bool,
 }
 
 impl InlineBox {
     pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
+        let (breaks_shaping_at_start, breaks_shaping_at_end) =
+            inline_box_style_breaks_shaping(&info.style);
         Self {
             base: LayoutBoxBase::new(info.into(), info.style.clone()),
             shared_inline_styles: SharedInlineStyles::from_info_and_context(info, context),
             // This will be assigned later, when the box is actually added to the IFC.
             identifier: InlineBoxIdentifier::default(),
             default_font: None,
+            breaks_shaping_at_start,
+            breaks_shaping_at_end,
         }
     }
 
@@ -61,6 +73,9 @@ impl InlineBox {
         node: &ServoLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
+        (self.breaks_shaping_at_start, self.breaks_shaping_at_end) =
+            inline_box_style_breaks_shaping(new_style);
+
         self.base.repair_style(new_style);
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
         *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
@@ -255,4 +270,48 @@ impl InlineBoxContainerState {
     pub(super) fn should_clone_pbm(&self) -> bool {
         self.base.style.get_border().box_decoration_break == BoxDecorationBreak::Clone
     }
+}
+
+/// Whether or not an inline box style breaks shaping at the start and end.
+/// The return value is `(breaks_shaping_at_start, breaks_shaping_at_end)`.
+///
+/// From <https://drafts.csswg.org/css-text/#boundary-shaping>
+/// > Text shaping must be broken at inline box boundaries when any of the
+/// > following are true for any box whose boundary separates the two typographic
+/// > character units:
+/// > - Any of margin/border/padding separating the two typographic character units
+/// >   in the inline axis is non-zero.
+/// > - `vertical-align` is not `baseline`.
+/// > - The boundary is a bidi isolation boundary.
+fn inline_box_style_breaks_shaping(style: &ComputedValues) -> (bool, bool) {
+    // Note: These steps are reordered for performance reasons and bidi isolation is handled
+    // intrinsically by the fact that bidi isolation inserts bidi characters into the inline
+    // formatting context text content. This leads to non-contiguous character offsets between
+    // shaping queue entries.
+    if style.clone_baseline_shift() != BaselineShift::zero() ||
+        style.clone_baseline_source() != BaselineSource::Auto ||
+        style.clone_alignment_baseline() != AlignmentBaseline::Baseline
+    {
+        return (true, true);
+    }
+
+    let layout_style = LayoutStyle::Default(style);
+    let border_widths = layout_style.border_width(style.writing_mode);
+    let padding = layout_style.padding(style.writing_mode);
+    let margin = style.margin(style.writing_mode);
+
+    (
+        !border_widths.inline_start.is_zero() ||
+            !padding.inline_start.is_zero() ||
+            !margin
+                .inline_start
+                .non_auto()
+                .is_none_or(LengthPercentage::is_zero),
+        !border_widths.inline_end.is_zero() ||
+            !padding.inline_end.is_zero() ||
+            !margin
+                .inline_end
+                .non_auto()
+                .is_none_or(LengthPercentage::is_zero),
+    )
 }

@@ -1,5 +1,3 @@
-features:
-- name: text-tracks
-  files:
-  - addTextTrack.html
-  - textTracks.html
+rules:
+- addTextTrack.html: [text-tracks]
+- textTracks.html: [text-tracks]

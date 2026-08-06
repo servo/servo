@@ -1,4 +1,2 @@
-features:
-- name: bdi
-  files:
-  - bdi-element-*
+rules:
+- bdi-element-*: [bdi]

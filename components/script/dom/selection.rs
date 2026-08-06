@@ -102,7 +102,7 @@ impl Selection {
 
                         // Currently only `CharacterData` nodes show visible selection.
                         if node.is::<CharacterData>() {
-                            node.dirty(NodeDamage::ContentOrHeritage);
+                            node.dirty(no_gc, NodeDamage::ContentOrHeritage);
                         }
 
                         next = traversal.next();
@@ -140,10 +140,10 @@ impl Selection {
         // boundary node explicitly and not be unsetting and setting flags on the whole
         // range.
         if start_node.is::<CharacterData>() {
-            start_node.dirty(NodeDamage::ContentOrHeritage);
+            start_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
         }
         if end_node.is::<CharacterData>() {
-            end_node.dirty(NodeDamage::ContentOrHeritage);
+            end_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
         }
 
         let add_selection_flag = |node: &Node| {
@@ -152,7 +152,7 @@ impl Selection {
 
                 // Currently only `CharacterData` nodes show visible selection.
                 if node.is::<CharacterData>() {
-                    node.dirty(NodeDamage::ContentOrHeritage);
+                    node.dirty(no_gc, NodeDamage::ContentOrHeritage);
                 }
             }
         };

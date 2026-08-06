@@ -1,8 +1,3 @@
-features:
-- name: channel-messaging
-  files:
-  - 027.html
-- name: postmessage
-  files:
-  - '*'
-  - '!027.html'
+rules:
+- 027.html: [channel-messaging]
+- "*": [postmessage]

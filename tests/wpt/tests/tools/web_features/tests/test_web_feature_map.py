@@ -38,7 +38,7 @@ def test_process_recursive_feature():
     inherited_features = []
 
     feature_entry = Mock()
-    feature_entry.name = "grid"
+    feature_entry.feature_ids = ['grid']
     mapper._process_recursive_feature(inherited_features, feature_entry, result)
 
     assert result.to_dict() == {
@@ -62,7 +62,8 @@ def test_process_non_recursive_feature():
     mapper = WebFeatureToTestsDirMapper(TEST_FILES, None)
     result = WebFeaturesMap()
 
-    mapper._process_non_recursive_feature(feature_name, feature_files, result)
+    mapper._process_non_recursive_feature([feature_name], feature_files[0], result)
+    mapper._process_non_recursive_feature([feature_name], feature_files[1], result)
 
     assert result.to_dict() == {
         "feature1": [
@@ -71,30 +72,10 @@ def test_process_non_recursive_feature():
         ]
     }
 
-def test_process_non_recursive_feature_negation():
-    feature_name = "feature1"
-    feature_files = [
-        FeatureFile("*range*"),  # Matches all files with *range* in the file name
-        # Removes blob-range.any.js which removes blob-range.any.html and blob-range.any.worker.html
-        FeatureFile("!blob-range.any.*"),
-    ]
-
-    mapper = WebFeatureToTestsDirMapper(TEST_FILES, None)
-    result = WebFeaturesMap()
-
-    mapper._process_non_recursive_feature(feature_name, feature_files, result)
-
-    assert result.to_dict() == {
-        "feature1": [
-            "/root/foo-range.any.html",
-            "/root/foo-range.any.worker.html",
-        ]
-    }
-
 def test_process_inherited_features():
     mapper = WebFeatureToTestsDirMapper(TEST_FILES, None)
     result = WebFeaturesMap()
-    result.add("avif", [
+    result.add(["avif"], [
         Mock(spec=URLManifestItem, path="root/bar-range.any.html", url="/root/bar-range.any.html"),
         Mock(spec=URLManifestItem, path="root/bar-range.any.worker.html", url="/root/bar-range.any.worker.html"),
     ])
@@ -120,10 +101,10 @@ def test_process_inherited_features():
     }
     assert inherited_features == ["avif", "grid"]
 
-def create_feature_entry(name, recursive=False, files=None):
+def create_feature_entry(feature_ids, file, recursive=False):
     rv = Mock(does_feature_apply_recursively=Mock(return_value=recursive))
-    rv.name = name
-    rv.files = files
+    rv.feature_ids = feature_ids
+    rv.file = file
     return rv
 
 
@@ -134,10 +115,10 @@ def test_run_with_web_feature_file(
         _process_inherited_features,
         _process_non_recursive_feature,
         _process_recursive_feature):
-    feature_entry1 = create_feature_entry("feature1", True)
-    feature_entry2 = create_feature_entry("feature2", files=[FeatureFile("test_file1.py")])
+    feature_entry1 = create_feature_entry(["feature1"], None, True)
+    feature_entry2 = create_feature_entry(["feature2"], FeatureFile("test_file1.py"))
     mock_web_feature_file = Mock(
-        features=[
+        rules=[
             feature_entry1,
             feature_entry2,
         ])
@@ -151,7 +132,7 @@ def test_run_with_web_feature_file(
         [], feature_entry1, result
     )
     _process_non_recursive_feature.assert_called_once_with(
-        "feature2", [FeatureFile("test_file1.py")], result
+        feature_entry2.feature_ids, FeatureFile("test_file1.py"), result
     )
 
     assert not _process_inherited_features.called

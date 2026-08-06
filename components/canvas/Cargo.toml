@@ -25,6 +25,7 @@ fonts = { workspace = true }
 futures-intrusive = { workspace = true, optional = true }
 kurbo = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
 paint_api = { workspace = true }
 peniko = { workspace = true }
 pixels = { workspace = true }

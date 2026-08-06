@@ -1,3 +1,2 @@
-features:
-- name: alignment-baseline
-  files: "**"
+rules:
+- "**": [alignment-baseline]

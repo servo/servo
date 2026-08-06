@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: buffer attribute (targeted include)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <span>Before</span>
+  <div id="target" marker="dest-marker">
+    <?start name="dest-marker">Original Content<?end>
+  </div>
+  <template for="dest-marker" buffer>
+    <span id="target1">Inside 1</span>
+    <script>
+      window.target1PresentTargeted = !!document.getElementById('target1');
+      window.target2PresentTargeted = !!document.getElementById('target2');
+    </script>
+    <span id="target2">Inside 2</span>
+  </template>
+  <span>After</span>
+</div>
+<script>
+test(() => {
+  const container = document.getElementById('container');
+  const target = document.getElementById('target');
+
+  // Verify target content replacement
+  assert_equals(target.querySelector('#target1').textContent, 'Inside 1');
+  assert_equals(target.querySelector('#target2').textContent, 'Inside 2');
+
+  // Verify that the template is not in the DOM
+  assert_equals(container.querySelector('template'), null);
+
+  // Verify that the script executed after all children were parsed (atomic insert)
+  assert_true(window.target1PresentTargeted, "target1 should be present during script execution");
+  assert_true(window.target2PresentTargeted, "target2 should be present during script execution (atomic buffering check)");
+}, "Targeted template with buffer attribute buffers children and replaces target content atomically at finalization");
+</script>
+</body>

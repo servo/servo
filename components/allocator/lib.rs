@@ -58,7 +58,7 @@ pub static enclosing_size: Option<EnclosingSizeFn> = Some(crate::enclosing_size_
 #[cfg(not(feature = "allocation-tracking"))]
 pub static enclosing_size: Option<EnclosingSizeFn> = None;
 
-#[cfg(not(any(windows, feature = "use-system-allocator", target_env = "ohos")))]
+#[cfg(all(feature = "use-jemalloc", not(any(windows, target_env = "ohos"))))]
 mod platform {
     use std::ffi::CStr;
     use std::mem::size_of_val;
@@ -147,10 +147,7 @@ mod platform {
     }
 }
 
-#[cfg(all(
-    not(windows),
-    any(feature = "use-system-allocator", target_env = "ohos")
-))]
+#[cfg(all(not(windows), any(target_env = "ohos", not(feature = "use-jemalloc"))))]
 mod platform {
     pub use std::alloc::System as Allocator;
     use std::os::raw::c_void;

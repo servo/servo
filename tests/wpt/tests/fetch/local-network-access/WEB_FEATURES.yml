@@ -1,3 +1,2 @@
-features:
-- name: local-network-access
-  files: "**"
+rules:
+- "**": [local-network-access]

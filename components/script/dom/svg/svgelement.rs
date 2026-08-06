@@ -105,10 +105,10 @@ impl VirtualMethods for SVGElement {
             match mutation {
                 AttributeMutation::Set(..) => {
                     let nonce = &**attr.value();
-                    element.update_nonce_internal_slot(nonce.to_owned());
+                    element.update_nonce_internal_slot(nonce.to_owned(), cx.no_gc());
                 },
                 AttributeMutation::Removed => {
-                    element.update_nonce_internal_slot(String::new());
+                    element.update_nonce_internal_slot(String::new(), cx.no_gc());
                 },
             }
         }
@@ -172,9 +172,9 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
+    fn SetNonce(&self, cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(String::from(value))
+            .update_nonce_internal_slot(String::from(value), cx.no_gc())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
@@ -234,7 +234,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
         self.owner_document()
             .focus_handler()
-            .focus(cx, FocusableArea::Viewport);
+            .focus(cx, &FocusableArea::Viewport);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>

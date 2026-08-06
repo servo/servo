@@ -1,3 +1,2 @@
-features:
-- name: fetch-metadata
-  files: "**"
+rules:
+- "**": [fetch-metadata]

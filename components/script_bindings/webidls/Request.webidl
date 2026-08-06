@@ -23,10 +23,10 @@ interface Request {
   readonly attribute RequestRedirect redirect;
   readonly attribute DOMString integrity;
   readonly attribute boolean keepalive;
-  // readonly attribute boolean isReloadNavigation;
-  // readonly attribute boolean isHistoryNavigation;
+  readonly attribute boolean isReloadNavigation;
+  readonly attribute boolean isHistoryNavigation;
   readonly attribute AbortSignal signal;
-  // readonly attribute RequestDuplex duplex;
+  readonly attribute RequestDuplex duplex;
 
   [NewObject, Throws] Request clone();
 };
@@ -47,7 +47,7 @@ dictionary RequestInit {
   DOMString integrity;
   boolean keepalive;
   AbortSignal? signal;
-  // RequestDuplex duplex;
+  RequestDuplex duplex;
   // RequestPriority priority;
   any window; // can only be set to null
 };
@@ -105,6 +105,11 @@ enum RequestRedirect {
   "follow",
   "error",
   "manual"
+};
+
+// https://fetch.spec.whatwg.org/#request-duplex
+enum RequestDuplex {
+  "half"
 };
 
 // https://w3c.github.io/webappsec-referrer-policy/#enumdef-referrerpolicy

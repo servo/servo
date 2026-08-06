@@ -275,7 +275,7 @@ impl Fragment {
                 Cursor::Default,
             ),
             Fragment::Text(text) => hit_test_fragment_inner(
-                &text.base.style(),
+                &text.style(),
                 text.base.rect(),
                 BorderRadius::zero(),
                 FragmentFlags::empty(),

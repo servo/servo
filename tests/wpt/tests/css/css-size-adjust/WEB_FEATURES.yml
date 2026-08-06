@@ -1,3 +1,2 @@
-features:
-- name: text-size-adjust
-  files: "**"
+rules:
+- "**": [text-size-adjust]

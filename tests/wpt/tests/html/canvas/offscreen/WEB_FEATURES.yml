@@ -1,3 +1,2 @@
-features:
-- name: offscreen-canvas
-  files: "**"
+rules:
+- "**": [offscreen-canvas]

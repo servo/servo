@@ -1,3 +1,2 @@
-features:
-- name: ambient-light
-  files: "**"
+rules:
+- "**": [ambient-light]

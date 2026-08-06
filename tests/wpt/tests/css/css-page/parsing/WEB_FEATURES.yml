@@ -1,8 +1,3 @@
-features:
-- name: page-setup
-  files:
-  - "*"
-  - "!page-orientation-*"
-- name: page-orientation
-  files:
-  - page-orientation-*
+rules:
+- page-orientation-*: [page-orientation]
+- "*": [page-setup]

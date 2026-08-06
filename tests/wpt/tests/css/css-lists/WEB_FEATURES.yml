@@ -1,45 +1,27 @@
-features:
-- name: list-elements
-  files:
-  - li-insert-child.html
-  - li-value-reversed-001.html
-  - li-value-reversed-002.html
-  - li-value-reversed-011.html
-  - li-value-reversed-022.html
-  - li-with-height-001.html
-  - li-with-overflow-hidden-change-list-style-position-001.html
-- name: counter-set
-  files:
-  - counter-set-*
-- name: counter-reset-reversed
-  files:
-  - counter-reset-reversed-*
-  - foo-counter-reversed-*
-  - li-value-reversed-006b.html
-- name: counters
-  files:
-  - before-after-selectors-on-code-element-crash.html
-  - counter-*
-  - "!counter-set-*"
-  - "!counter-slot-*"
-  - "!counter-reset-reversed-*"
-  - counters-*
-  - "!counters-container-crash.html"
-  - deep-pseudo-element-remove-update.html
-  - inherit-overwrites.html
-  - li-counter-increment-computed-style.html
-  - li-list-item-counter-*
-  - li-value-reversed-*
-  - "!li-value-reversed-001.html"
-  - "!li-value-reversed-002.html"
-  - "!li-value-reversed-011.html"
-  - "!li-value-reversed-022.html"
-  - li-without-ul-counter-crash.html
-  - ol-change-display-type.html
-  - pseudo-element-remove-update.html
-- name: list-style
-  files:
-  - list-style-*
-- name: text-stroke-fill
-  files:
-  - marker-webkit-text-fill-color.html
+rules:
+- li-insert-child.html: [list-elements]
+- li-value-reversed-001.html: [list-elements]
+- li-value-reversed-002.html: [list-elements]
+- li-value-reversed-011.html: [list-elements]
+- li-value-reversed-022.html: [list-elements]
+- li-with-height-001.html: [list-elements]
+- li-with-overflow-hidden-change-list-style-position-001.html: [list-elements]
+- counter-set-*: [counter-set]
+- counter-reset-reversed-*: [counter-reset-reversed]
+- foo-counter-reversed-*: [counter-reset-reversed]
+- li-value-reversed-006b.html: [counter-reset-reversed, counters]
+- before-after-selectors-on-code-element-crash.html: [counters]
+- counter-slot-*: []
+- counter-*: [counters]
+- counters-container-crash.html: []
+- counters-*: [counters]
+- deep-pseudo-element-remove-update.html: [counters]
+- inherit-overwrites.html: [counters]
+- li-counter-increment-computed-style.html: [counters]
+- li-list-item-counter-*: [counters]
+- li-value-reversed-*: [counters]
+- li-without-ul-counter-crash.html: [counters]
+- ol-change-display-type.html: [counters]
+- pseudo-element-remove-update.html: [counters]
+- list-style-*: [list-style]
+- marker-webkit-text-fill-color.html: [text-stroke-fill]

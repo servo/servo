@@ -13,7 +13,7 @@ use std::sync::LazyLock;
 use std::{fmt, slice, str};
 
 use html5ever::{LocalName, Namespace};
-use js::context::{JSContext, RawJSContext};
+use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::{HandleValue, MutableHandleValue};
 use js::jsapi::{Heap, JS_GetLatin1StringCharsAndLength, JSString};
@@ -767,13 +767,6 @@ impl Extend<char> for DOMString {
 }
 
 impl ToJSValConvertible for DOMString {
-    unsafe fn to_jsval(&self, _cx: *mut RawJSContext, rval: MutableHandleValue) {
-        // TODO: https://github.com/servo/mozjs/issues/764
-        // This is needed until the `RawJSContext` version is removed from the trait.
-        let mut cx = unsafe { crate::script_runtime::temp_cx() };
-        ToJSValConvertible::safe_to_jsval(self, &mut cx, rval);
-    }
-
     fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         let val = self.0.borrow();
         match *val {

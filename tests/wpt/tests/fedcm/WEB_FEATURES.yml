@@ -1,3 +1,2 @@
-features:
-- name: fedcm
-  files: "**"
+rules:
+- "**": [fedcm]

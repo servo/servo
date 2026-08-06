@@ -1,4 +1,2 @@
-features:
-- name: list-style
-  files:
-  - list-marker-inside-whitespace-001.xml
+rules:
+- list-marker-inside-whitespace-001.xml: [list-style]

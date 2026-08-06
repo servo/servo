@@ -1,3 +1,2 @@
-features:
-- name: webxr-hand-input
-  files: '**'
+rules:
+- "**": [webxr-hand-input]

@@ -1,4 +1,2 @@
-features:
-- name: dedicated-workers
-  files:
-  - "*"
+rules:
+- "*": [dedicated-workers]

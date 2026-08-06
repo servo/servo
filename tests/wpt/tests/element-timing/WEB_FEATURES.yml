@@ -1,3 +1,2 @@
-features:
-- name: element-timing
-  files: "**"
+rules:
+- "**": [element-timing]

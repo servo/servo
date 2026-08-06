@@ -377,13 +377,6 @@ class MissingTestInWebFeaturesFile(Rule):
     """)
 
 
-class UnnecessaryExclusionInWebFeaturesFile(Rule):
-    name = "UNNECESSARY-EXCLUSION-IN-WEB-FEATURES-FILE"
-    description = collapse("""
-        The WEB_FEATURES.yml file contains a redundant or inoperable exclusion pattern: %s
-    """)
-
-
 class WebFeaturesFileInNonTestDirectory(Rule):
     name = "WEB-FEATURES-FILE-IN-NON-TEST-DIRECTORY"
     description = collapse("""
@@ -394,7 +387,7 @@ class WebFeaturesFileInNonTestDirectory(Rule):
 class NonTestFileInWebFeaturesFile(Rule):
     name = "NON-TEST-FILE-IN-WEB-FEATURES-FILE"
     description = collapse("""
-        The WEB_FEATURES.yml file references a non-test file: '%s' in feature '%s'
+        The WEB_FEATURES.yml file references a non-test file: '%s' in rule '%s'
     """)
 
 

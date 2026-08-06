@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>link rel=modulepreload fires its event when a script element consumes the same module</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#link-type-modulepreload">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/preload-module-helper.js"></script>
+<body>
+<script>
+// A <link rel=modulepreload> can be satisfied by a fetch of its URL that is
+// already in flight, and a <script type=module> for that URL added while the
+// fetch is still outstanding can then consume that same preload as its own load.
+// The link element must get its event either way: it is the element that asked
+// for the preload, and what the module ends up being used for afterwards is none
+// of its business.
+
+promise_test(async t => {
+  const uuid = token();
+  const url = moduleUrl({ block: 1, uuid });
+
+  // Puts the URL in the module map as fetching, and the server holds the
+  // response until the release below, so it stays that way.
+  const importPromise = import(url).catch(() => {});
+
+  // Satisfied by the fetch above rather than by a fetch of its own.
+  const link = makeModulePreload(url);
+  const linkEvent = eventFor(link);
+  document.head.appendChild(link);
+
+  // Consumes the preload while that fetch is still outstanding.
+  const script = document.createElement("script");
+  script.type = "module";
+  script.crossOrigin = "";
+  script.src = url;
+  const scriptEvent = eventFor(script);
+  document.body.appendChild(script);
+
+  await release(uuid);
+
+  assert_equals(await linkEvent, "load", "the modulepreload fired load");
+  assert_equals(await scriptEvent, "load", "the script element loaded as well");
+  await importPromise;
+}, "modulepreload satisfied by an in-flight fetch fires load when a script " +
+   "element consumes it");
+</script>
+</body>

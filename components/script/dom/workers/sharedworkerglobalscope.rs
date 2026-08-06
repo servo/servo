@@ -14,6 +14,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::ImageCache;
@@ -23,7 +24,6 @@ use net_traits::request::{
     RequestClient,
 };
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::HasOrigin;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, ScriptEventLoopId, WebViewId};
@@ -57,9 +57,9 @@ use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::script_module::fetch_a_module_worker_script_graph;
-use crate::script_runtime::Runtime;
+use crate::script_module::fetch_a_module_script_graph;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
+use crate::script_runtime::{IntroductionType, Runtime};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
 
@@ -536,14 +536,15 @@ impl SharedWorkerGlobalScope {
                     },
                     WorkerType::Module => {
                         let worker_scope = DomRoot::from_ref(scope);
-                        fetch_a_module_worker_script_graph(
+                        fetch_a_module_script_graph(
                             cx,
                             global_scope,
-                            worker_url.url(),
+                            worker_url,
                             request_client,
                             Destination::SharedWorker,
                             referrer,
                             credentials,
+                            Some(IntroductionType::WORKER),
                             move |cx, module_tree| {
                                 worker_scope.on_complete(cx, module_tree.map(Script::Module));
                             },

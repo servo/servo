@@ -1,3 +1,2 @@
-features:
-- name: push
-  files: "**"
+rules:
+- "**": [push]

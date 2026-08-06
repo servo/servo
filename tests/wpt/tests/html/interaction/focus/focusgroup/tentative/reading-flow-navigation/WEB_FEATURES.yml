@@ -1,3 +1,2 @@
-features:
-- name: reading-flow
-  files: '**'
+rules:
+- "**": [reading-flow]

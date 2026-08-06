@@ -1,8 +1,3 @@
-features:
-- name: form
-  files:
-  - '*'
-  - '!rel-base-target.html'
-- name: base
-  files:
-  - rel-base-target.html
+rules:
+- rel-base-target.html: [base]
+- "*": [form]

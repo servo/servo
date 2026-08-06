@@ -114,18 +114,15 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
         }
 
         // 4. Append (name, value) to headers’s header list.
-        match HeaderValue::from_bytes(&valid_value) {
-            Ok(value) => {
-                self.header_list
-                    .borrow_mut()
-                    .append(HeaderName::from_str(&valid_name).unwrap(), value);
+        match (
+            HeaderName::from_str(&valid_name),
+            HeaderValue::from_bytes(&valid_value),
+        ) {
+            (Ok(name), Ok(value)) => {
+                self.header_list.borrow_mut().append(name, value);
             },
-            Err(_) => {
-                // can't add the header, but we don't need to panic the browser over it
-                warn!(
-                    "Servo thinks \"{:?}\" is a valid HTTP header value but HeaderValue doesn't.",
-                    valid_value
-                );
+            _ => {
+                warn!("Could not set header \"{valid_name:?}: {valid_value:?}\"");
             },
         };
 
@@ -223,18 +220,15 @@ impl HeadersMethods<crate::DomTypeHolder> for Headers {
 
         // 4. Set (name, value) in this’s header list.
         // https://fetch.spec.whatwg.org/#concept-header-list-set
-        match HeaderValue::from_bytes(&valid_value) {
-            Ok(value) => {
-                self.header_list
-                    .borrow_mut()
-                    .insert(HeaderName::from_str(&valid_name).unwrap(), value);
+        match (
+            HeaderName::from_str(&valid_name),
+            HeaderValue::from_bytes(&valid_value),
+        ) {
+            (Ok(name), Ok(value)) => {
+                self.header_list.borrow_mut().insert(name, value);
             },
-            Err(_) => {
-                // can't add the header, but we don't need to panic the browser over it
-                warn!(
-                    "Servo thinks \"{:?}\" is a valid HTTP header value but HeaderValue doesn't.",
-                    valid_value
-                );
+            _ => {
+                warn!("Could not set header:  \"{valid_name:?}: {valid_value:?}\"");
             },
         };
 

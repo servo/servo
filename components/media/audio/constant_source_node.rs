@@ -4,11 +4,11 @@
 
 use malloc_size_of_derive::MallocSizeOf;
 
-use crate::block::{Chunk, Tick};
-use crate::node::{
+use crate::audio_node::{
     AudioNodeEngine, AudioNodeType, AudioScheduledSourceNodeMessage, BlockInfo, ChannelInfo,
     OnEndedCallback, ShouldPlay,
 };
+use crate::block::{Chunk, Tick};
 use crate::param::{Param, ParamType};
 
 #[derive(Copy, Clone, Debug, MallocSizeOf)]

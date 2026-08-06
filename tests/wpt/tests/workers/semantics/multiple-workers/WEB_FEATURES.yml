@@ -1,10 +1,4 @@
-features:
-- name: shared-workers
-  files:
-  - 004.html
-  - 008.html
-- name: dedicated-workers
-  files:
-  - "*"
-  - "!004.html"
-  - "!008.html"
+rules:
+- 004.html: [shared-workers]
+- 008.html: [shared-workers]
+- "*": [dedicated-workers]

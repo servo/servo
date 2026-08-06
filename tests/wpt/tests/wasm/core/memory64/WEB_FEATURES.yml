@@ -1,3 +1,2 @@
-features:
-  - name: wasm-memory64
-    files: "**"
+rules:
+- "**": [wasm-memory64]

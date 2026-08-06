@@ -4,11 +4,14 @@
 
 use std::borrow::Cow;
 use std::cell::LazyCell;
-use std::ops::{ControlFlow, Range};
+use std::ops::Range;
+use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
+use fonts::TextByteRange;
 use icu_properties::BidiClass;
-use layout_api::{LayoutNode, SharedSelection};
-use servo_base::text::Utf32CodeUnits;
+use layout_api::{LayoutNode, ScriptSelection};
+use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::computed_values::direction::T as Direction;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::dom::NodeInfo;
@@ -27,6 +30,7 @@ use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{BoxTreeString, NodeAndStyleInfo};
 use crate::flow::BlockLevelBox;
 use crate::flow::float::FloatBox;
+use crate::flow::inline::text_run::SharedTextRunData;
 use crate::flow::inline::text_transform::{OffsetMap, TextTransformationIterator};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -52,10 +56,6 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// used to properly set the text range of new [`InlineItem::TextRun`]s. Note that this is
     /// different from the UTF-8 code point offset.
     current_character_offset: usize,
-
-    /// If the [`InlineFormattingContext`] that we are building has a selection shared with its
-    /// originating node in the DOM, this will not be `None`.
-    pub shared_selection: Option<SharedSelection>,
 
     /// Whether the last processed node ended with whitespace. This is used to
     /// implement rule 4 of <https://www.w3.org/TR/css-text-3/#collapse>:
@@ -107,7 +107,7 @@ pub(crate) struct InlineFormattingContextBuilder {
 
     /// An [`OffsetMap`] used to map selections from their offset before inline formatting
     /// context text transformation to their offsets after transformation.
-    pub offset_map: OffsetMap,
+    pub offset_map: ArcRefCell<OffsetMap>,
 }
 
 impl InlineFormattingContextBuilder {
@@ -136,7 +136,6 @@ impl InlineFormattingContextBuilder {
             shared_inline_styles_stack: vec![SharedInlineStyles::from_info_and_context(
                 info, context,
             )],
-            shared_selection: info.node.selection(),
             has_right_to_left_content,
             ..Default::default()
         }
@@ -153,7 +152,8 @@ impl InlineFormattingContextBuilder {
         let new_characters = Utf32CodeUnits::length_of(string_to_push);
         self.current_character_offset += new_characters.0;
         self.offset_map
-            .push_range(Utf32CodeUnits(0), new_characters);
+            .borrow_mut()
+            .push_range(new_characters, new_characters);
     }
 
     fn shared_inline_styles(&self) -> SharedInlineStyles {
@@ -336,12 +336,6 @@ impl InlineFormattingContextBuilder {
             return false;
         }
 
-        let intersect_ranges = |a: Range<Utf32CodeUnits>, b: Range<Utf32CodeUnits>| {
-            let start = a.start.max(b.start);
-            let end = b.end.min(b.end);
-            if start < end { Some(start..end) } else { None }
-        };
-
         // Push any leading white space first.
         let first_letter_range_u32 = LazyCell::new(|| {
             Utf32CodeUnits::length_of(&text[..first_letter_range.start])..
@@ -350,10 +344,12 @@ impl InlineFormattingContextBuilder {
         if first_letter_range.start != 0 {
             let leading_whitespace_range = 0..first_letter_range.start;
             let leading_whitespace_selection_range =
-                document_selection.clone().and_then(|document_selection| {
-                    let leading_whitespace_range_u32 =
-                        Utf32CodeUnits::zero()..first_letter_range_u32.start;
-                    intersect_ranges(document_selection, leading_whitespace_range_u32)
+                document_selection.and_then(|document_selection| {
+                    let leading_whitespace_range_u32 = RangeAny {
+                        start: None,
+                        end: Some(first_letter_range_u32.start),
+                    };
+                    document_selection.intersect(leading_whitespace_range_u32)
                 });
 
             self.push_text(
@@ -372,15 +368,11 @@ impl InlineFormattingContextBuilder {
         box_slot.set(LayoutBox::InlineLevel(inline_item));
 
         let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
-        let first_letter_selection_range =
-            document_selection.clone().and_then(|document_selection| {
-                intersect_ranges(document_selection, (*first_letter_range_u32).clone()).map(
-                    |range| {
-                        range.start - first_letter_range_u32.start..
-                            range.end - first_letter_range_u32.start
-                    },
-                )
-            });
+        let first_letter_selection_range = document_selection.and_then(|document_selection| {
+            document_selection
+                .intersect((*first_letter_range_u32).clone().into())
+                .map(|range| range.map(|offset| offset - first_letter_range_u32.start))
+        });
         self.push_text(
             first_letter_text.into(),
             &first_letter_info,
@@ -391,10 +383,13 @@ impl InlineFormattingContextBuilder {
 
         // Now push the non-first-letter text.
         let remaining_selection_range = document_selection.and_then(|document_selection| {
-            let remaining_text_range_u32 = first_letter_range_u32.end..document_selection.end;
-            intersect_ranges(document_selection, remaining_text_range_u32).map(|range| {
-                range.start - first_letter_range_u32.end..range.end - first_letter_range_u32.end
-            })
+            let remaining_text_range_u32 = RangeAny {
+                start: Some(first_letter_range_u32.end),
+                end: document_selection.end,
+            };
+            document_selection
+                .intersect(remaining_text_range_u32)
+                .map(|range| range.map(|offset| offset - first_letter_range_u32.end))
         });
         self.push_text(
             Cow::Borrowed(&text[first_letter_range.end..]).into(),
@@ -409,11 +404,13 @@ impl InlineFormattingContextBuilder {
         &mut self,
         text: BoxTreeString<'dom>,
         info: &NodeAndStyleInfo<'dom>,
-        document_selection: Option<Range<Utf32CodeUnits>>,
+        document_selection: Option<RangeAny<Utf32CodeUnits>>,
     ) {
+        let mut offset_map = self.offset_map.borrow_mut();
+        let original_size_before = offset_map.total_original_size();
+
         let bidi_class_map = icu_properties::maps::bidi_class();
         let white_space_collapse = info.style.clone_white_space_collapse();
-        let original_size_before = self.offset_map.total_original_size();
         let mut character_count = 0;
         let mut new_text = String::with_capacity(text.len());
         for iteration in TextTransformationIterator::new(
@@ -422,7 +419,7 @@ impl InlineFormattingContextBuilder {
             self.last_inline_box_ended_with_collapsible_white_space,
             self.on_word_boundary,
         ) {
-            self.offset_map.push_iteration(&iteration);
+            offset_map.push_iteration(&iteration);
             for &character in iteration.characters() {
                 character_count += 1;
 
@@ -456,11 +453,23 @@ impl InlineFormattingContextBuilder {
             return;
         }
 
-        let document_selection = document_selection.map(|document_selection| {
-            self.offset_map
-                .map(original_size_before + document_selection.start)..
-                self.offset_map
-                    .map(original_size_before + document_selection.end)
+        let selection = info.node.form_control_selection_in_text_node().or_else(|| {
+            let document_selection = document_selection?;
+            // Range unbounded at the start: the concrete start is offset zero.
+            let start = document_selection.start.unwrap_or(Utf32CodeUnits(0));
+            // Range unbounded at the end: the concrete end is the full length.
+            let end = document_selection.end.unwrap_or(Utf32CodeUnits(text.len()));
+
+            if start == end {
+                return None;
+            }
+            debug_assert!(end > start);
+
+            Some(Arc::new(AtomicRefCell::new(ScriptSelection {
+                range: TextByteRange::default(),
+                character_range: start.0..end.0,
+                enabled: true,
+            })))
         });
 
         if let Some(last_character) = new_text.chars().next_back() {
@@ -478,26 +487,19 @@ impl InlineFormattingContextBuilder {
 
         self.text_segments.push(new_text);
 
-        if self
-            .try_to_push_text_range_to_previous_text_run(
-                info,
-                &document_selection,
-                &new_utf8_range,
-                &new_character_range,
-            )
-            .is_break()
-        {
-            return;
-        }
-
         let current_inline_styles = self.shared_inline_styles();
         let box_slot = info.node.is_text_node().then(|| info.node.box_slot());
         let text_run = ArcRefCell::new(TextRun::new(
             info.into(),
-            current_inline_styles,
+            SharedTextRunData {
+                inline_styles: current_inline_styles,
+                character_range_in_ifc_text: new_character_range,
+                original_offset: original_size_before,
+                selection,
+                offset_map: self.offset_map.clone(),
+            }
+            .into(),
             new_utf8_range,
-            new_character_range,
-            document_selection.unwrap_or_default(),
             box_slot
                 .as_ref()
                 .and_then(|box_slot| box_slot.take_layout_box_as_text_run()),
@@ -508,60 +510,6 @@ impl InlineFormattingContextBuilder {
         if let Some(box_slot) = box_slot {
             box_slot.set(LayoutBox::Text(text_run));
         }
-    }
-
-    fn try_to_push_text_range_to_previous_text_run(
-        &mut self,
-        info: &NodeAndStyleInfo,
-        new_text_selection: &Option<Range<Utf32CodeUnits>>,
-        new_range: &Range<usize>,
-        new_character_range: &Range<usize>,
-    ) -> ControlFlow<()> {
-        // First check to see if the last item was actually a text run.
-        let Some(InlineItem::TextRun(text_run_arc)) = self.inline_items.last() else {
-            return ControlFlow::Continue(());
-        };
-
-        // Currently to merge two text runs the styles need to be the same.
-        if !text_run_arc
-            .borrow()
-            .inline_styles
-            .ptr_eq(&self.shared_inline_styles())
-        {
-            return ControlFlow::Continue(());
-        }
-
-        let mut text_run = text_run_arc.borrow_mut();
-        if let Some(next_text_selection) = new_text_selection {
-            if !text_run.document_selection.is_empty() {
-                // If both the new and old text had selections, they are only compatible
-                // if the old selection extends to the start of the new selection
-                if text_run.document_selection.end.0 == next_text_selection.start.0 {
-                    text_run.document_selection.end = next_text_selection.end;
-                } else {
-                    return ControlFlow::Continue(());
-                }
-            } else {
-                // If only the new part of the text run has a selection, we can use it directly.
-                text_run.document_selection = next_text_selection.start..next_text_selection.end;
-            }
-        }
-
-        text_run.text_range.end = new_range.end;
-        text_run.character_range.end = new_character_range.end;
-
-        // If this text node does not have a `TextRun` in the box slot, this means that
-        // it is either new or dirty, which means that the entire `TextRun` just extended
-        // is dirty as well. In this case, never reuse existing shaping results. Clear
-        // all old items to ensure this.
-        let box_slot = info.node.box_slot();
-        let old_text_run = box_slot.take_layout_box_as_text_run();
-        if old_text_run.is_none() {
-            text_run.items.clear();
-        }
-
-        box_slot.set(LayoutBox::Text(text_run_arc.clone()));
-        ControlFlow::Break(())
     }
 
     pub(crate) fn enter_display_contents(&mut self, shared_inline_styles: SharedInlineStyles) {
@@ -585,8 +533,8 @@ impl InlineFormattingContextBuilder {
         }
 
         assert!(self.inline_box_stack.is_empty());
-        assert_eq!(
-            self.offset_map.total_final_size().0,
+        debug_assert_eq!(
+            self.offset_map.borrow().total_final_size().0,
             self.current_character_offset
         );
 

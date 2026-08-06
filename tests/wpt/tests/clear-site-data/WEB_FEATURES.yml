@@ -1,3 +1,2 @@
-features:
-- name: clear-site-data
-  files: "**"
+rules:
+- "**": [clear-site-data]

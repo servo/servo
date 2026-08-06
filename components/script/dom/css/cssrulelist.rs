@@ -196,7 +196,7 @@ impl CSSRuleList {
         self.dom_rules
             .safe_borrow_mut(cx.no_gc())
             .insert(index, MutNullableDom::new(Some(&*dom_rule)));
-        parent_stylesheet.notify_invalidations();
+        parent_stylesheet.notify_invalidations(cx.no_gc());
         Ok(idx)
     }
 
@@ -218,7 +218,7 @@ impl CSSRuleList {
                     r.detach()
                 }
                 dom_rules.remove(index);
-                self.parent_stylesheet.notify_invalidations();
+                self.parent_stylesheet.notify_invalidations(cx.no_gc());
                 Ok(())
             },
             RulesSource::Keyframes(ref kf) => {
@@ -229,7 +229,7 @@ impl CSSRuleList {
                 }
                 dom_rules.remove(index);
                 kf.write_with(&mut guard).keyframes.remove(index);
-                self.parent_stylesheet.notify_invalidations();
+                self.parent_stylesheet.notify_invalidations(cx.no_gc());
                 Ok(())
             },
         }

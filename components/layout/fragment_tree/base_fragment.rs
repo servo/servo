@@ -5,7 +5,6 @@
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use app_units::Au;
-use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
 use layout_api::{LayoutElement, LayoutNode, PseudoElementChain, combine_id_with_fragment_type};
 use malloc_size_of::malloc_size_of_is_0;
@@ -13,14 +12,11 @@ use malloc_size_of_derive::MallocSizeOf;
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use script::layout_dom::ServoLayoutNode;
-use servo_arc::Arc as ServoArc;
 use style::dom::OpaqueNode;
-use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use stylo_atoms::atom;
 use web_atoms::{local_name, ns};
 
-use crate::SharedStyle;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize, SyncPhysicalRectAu};
 
@@ -53,10 +49,6 @@ pub(crate) struct BaseFragment {
     /// layout.
     pub flags: FragmentFlags,
 
-    /// The style for this [`BaseFragment`]. Depending on the fragment type this is either
-    /// a shared or non-shared style.
-    pub style: SharedStyle,
-
     /// The content rect of this fragment in the parent fragment's content rectangle. This
     /// does not include padding, border, or margin -- it only includes content. This is
     /// relative to the parent containing block.
@@ -81,15 +73,10 @@ impl std::fmt::Debug for BaseFragment {
 }
 
 impl BaseFragment {
-    pub(crate) fn new(
-        base_fragment_info: BaseFragmentInfo,
-        style: SharedStyle,
-        rect: PhysicalRect<Au>,
-    ) -> Self {
+    pub(crate) fn new(base_fragment_info: BaseFragmentInfo, rect: PhysicalRect<Au>) -> Self {
         Self {
             tag: base_fragment_info.tag,
             flags: base_fragment_info.flags,
-            style,
             rect: SyncPhysicalRectAu::new(rect),
             status: AtomicU8::new(FragmentStatus::New as u8),
         }
@@ -126,15 +113,6 @@ impl BaseFragment {
 
     pub(crate) fn set_status(&self, new_status: FragmentStatus) {
         self.status.store(new_status as u8, Ordering::Relaxed)
-    }
-
-    pub(crate) fn repair_style(&self, style: &ServoArc<ComputedValues>) {
-        *self.style.borrow_mut() = style.clone();
-        self.set_status(FragmentStatus::StyleChanged);
-    }
-
-    pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
-        self.style.borrow()
     }
 }
 

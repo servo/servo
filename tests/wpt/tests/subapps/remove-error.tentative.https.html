@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <title>Sub Apps: Error cases for remove()</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/subapps-helpers.js"></script>
@@ -14,12 +16,12 @@ promise_test(async t => {
 
   const iframeDOMException = iframe.contentWindow.DOMException;
 
-  // Detach the frame.
+  const subApps = iframe.contentWindow.subApps;
   iframe.remove();
 
   // At this point the iframe is detached and unloaded, and its execution
   // context is gone.
-  await promise_rejects_dom(t, 'NotFoundError', iframeDOMException, iframe.contentWindow.subApps.remove(['/sub-app-id']));
+  await promise_rejects_dom(t, 'OperationError', iframeDOMException, subApps.remove(['/sub-app-id']));
 }, "The object is no longer associated to a document.");
 
 promise_test(async t => {
@@ -29,13 +31,19 @@ promise_test(async t => {
   const iframeDOMException = iframe.contentWindow.DOMException;
   t.add_cleanup(() => iframe.remove());
 
-  await promise_rejects_dom(t, 'InvalidStateError', iframeDOMException, iframe.contentWindow.subApps.remove(['/sub-app-id']));
+  await promise_rejects_dom(t, 'NotSupportedError', iframeDOMException, iframe.contentWindow.subApps.remove(['/sub-app-id']));
 }, "API is only supported in top-level browsing contexts.");
 
 promise_test(async t => {
+  t.add_cleanup(async () => {
+    await mockSubAppsService.reset();
+    mockSubAppsService = null;
+  });
+
   const cross_origin_url = 'https://example.com/sub-app-id';
 
-  await promise_rejects_dom(t, 'NotSupportedError', window.subApps.remove([cross_origin_url]));
+  await createMockSubAppsService(Status.SUCCESS, [], [], []);
+  await promise_rejects_js(t, TypeError, window.subApps.remove([cross_origin_url]));
 }, 'API supports only same-origin URLs.');
 
 promise_test(async t => {
@@ -45,21 +53,23 @@ promise_test(async t => {
 
   let remove_call_params = [url_1, url_2, url_3];
 
-  let mocked_response = [
-    { "manifestIdPath": url_1, "resultType": SubAppsServiceRemoveResultType.kOperationError },
-    { "manifestIdPath": url_2, "resultType": SubAppsServiceRemoveResultType.kOperationError },
-    { "manifestIdPath": url_3, "resultType": SubAppsServiceRemoveResultType.kOperationError }
+  let mocked_response = () => [
+    { "manifestId": url_1, "resultType": SubAppsServiceRemoveResultType.kGenericError },
+    { "manifestId": url_2, "resultType": SubAppsServiceRemoveResultType.kGenericError },
+    { "manifestId": url_3, "resultType": SubAppsServiceRemoveResultType.kGenericError }
   ];
 
-  let expected_results = {
+  let expected_results = () => ({
     failedApps: {
       [url_1]: "OperationError",
       [url_2]: "OperationError",
       [url_3]: "OperationError"
     }
-  };
+  });
 
-  await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);
+  await test_driver.bless("removing subapps", async function () {
+    await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);
+  });
 }, 'Remove call fails.');
 
 promise_test(async t => {
@@ -69,20 +79,22 @@ promise_test(async t => {
 
   let remove_call_params = [url_1, url_2, url_3];
 
-  let mocked_response = [
-    { "manifestIdPath": url_1, "resultType": SubAppsServiceRemoveResultType.kSuccess },
-    { "manifestIdPath": url_2, "resultType": SubAppsServiceRemoveResultType.kSuccess },
-    { "manifestIdPath": url_3, "resultType": SubAppsServiceRemoveResultType.kOperationError }
+  let mocked_response = () => [
+    { "manifestId": url_1, "resultType": SubAppsServiceRemoveResultType.kSuccess },
+    { "manifestId": url_2, "resultType": SubAppsServiceRemoveResultType.kSuccess },
+    { "manifestId": url_3, "resultType": SubAppsServiceRemoveResultType.kGenericError }
   ];
 
-  let expected_results = {
+  let expected_results = () => ({
     removedApps: [url_1, url_2],
     failedApps: {
       [url_3]: "OperationError"
     }
-  };
+  });
 
-  await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);
+  await test_driver.bless("removing subapps", async function () {
+    await subapps_remove_expect_success_with_result(t, remove_call_params, mocked_response, expected_results);
+  });
 }, 'Remove call fails with mixed results.');
 
 </script>

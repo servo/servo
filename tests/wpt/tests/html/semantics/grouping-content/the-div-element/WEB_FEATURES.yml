@@ -1,3 +1,2 @@
-features:
-- name: div
-  files: "**"
+rules:
+- "**": [div]

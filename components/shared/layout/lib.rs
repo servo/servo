@@ -42,6 +42,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
 use net_traits::request::InternalRequest;
 use paint_api::CrossProcessPaintApi;
+use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use parking_lot::RwLock;
 use pixels::{RasterImage, Repeat};
 use profile_traits::mem::Report;
@@ -223,7 +224,7 @@ pub struct PendingImage {
     pub is_internal_request: InternalRequest,
 }
 
-/// A data structure to tarck vector image that are fully loaded (i.e has a parsed SVG
+/// A data structure to track vector image that are fully loaded (i.e has a parsed SVG
 /// tree) but not yet rasterized to the size needed by layout. The rasterization is
 /// happening in the image cache.
 #[derive(Debug)]
@@ -248,6 +249,7 @@ pub struct MediaMetadata {
 pub struct HTMLMediaData {
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
+    pub poster_url: Option<ServoUrl>,
 }
 
 pub struct LayoutConfig {
@@ -630,6 +632,10 @@ pub struct ReflowResult {
     pub iframe_sizes: Option<IFrameSizes>,
     /// Enumerates web fonts that were added or removed as part of restyling.
     pub changed_web_fonts: WebFontSetDifference,
+    /// The LCP candidate during this layout pass, if any.
+    pub lcp_candidate: Option<LCPCandidate>,
+    /// The UntrustedNodeAddress for the LCP candidate if any.
+    pub lcp_node_address: Option<UntrustedNodeAddress>,
 }
 
 bitflags! {

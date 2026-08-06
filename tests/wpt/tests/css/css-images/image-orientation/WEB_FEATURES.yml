@@ -1,4 +1,2 @@
-features:
-- name: image-orientation
-  files:
-  - "*"
+rules:
+- "*": [image-orientation]

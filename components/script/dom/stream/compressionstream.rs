@@ -24,7 +24,7 @@ use crate::dom::bindings::codegen::Bindings::CompressionStreamBinding::{
     CompressionFormat, CompressionStreamMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
-use crate::dom::bindings::conversions::{FromJSValConvertible, SafeToJSValConvertible};
+use crate::dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;

@@ -1,3 +1,2 @@
-features:
-- name: html-media-capture
-  files: "**"
+rules:
+- "**": [html-media-capture]

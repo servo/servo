@@ -1,36 +1,60 @@
-features:
-- name: conic-gradients
-  files:
-  - "*conic*"
-- name: object-view-box
-  files:
-  - object-view-box-*
-- name: crisp-edges
-  files:
-  - object-fit-*-png*
-  - "!object-fit-containcontainintrinsicsize-png-*"
-  - "!object-fit-containsize-png-*"
-- name: object-fit
-  files:
-  - image-fit-*
-  - object-fit-*
-  - "!object-fit-*-png*"
-- name: object-position
-  files:
-  - object-position-*
-- name: cross-fade
-  files:
-  - cross-fade-*
-- name: gradients
-  files:
-  - "*gradient*"
-  - "normalization-*"
-  - "!*conic*"
-  - "multiple-position-color-stop-*"
-  - color-stop-currentcolor.html
-- name: image-function
-  files:
-  - css-image-fallbacks-and-annotations*
-- name: image-rendering
-  files:
-  - image-rendering-*
+rules:
+- tiled-conic-gradients-ref.html: [conic-gradients]
+- conic-gradient-angle.html: [conic-gradients]
+- repeating-conic-gradient-ref.html: [conic-gradients]
+- conic-gradient-center.html: [conic-gradients]
+- conic-gradient-line-height-relative-units-001.html: [conic-gradients]
+- conic-gradient-line-height-relative-units-003.html: [conic-gradients]
+- conic-gradient-calc-angle-percentage-ref.html: [conic-gradients]
+- conic-gradient-color-with-sibling-index.html: [conic-gradients]
+- tiled-conic-gradients.html: [conic-gradients]
+- repeating-conic-gradient.html: [conic-gradients]
+- conic-gradient-angle-negative.html: [conic-gradients]
+- conic-gradient-color-with-sibling-index-ref.html: [conic-gradients]
+- conic-gradient-line-height-relative-units-004.html: [conic-gradients]
+- conic-gradient-calc-angle-percentage.html: [conic-gradients]
+- conic-gradient-center-ref.html: [conic-gradients]
+- conic-gradient-line-height-relative-units-002.html: [conic-gradients]
+- normalization-conic-degenerate.html: [conic-gradients]
+- normalization-conic-2.html: [conic-gradients]
+- normalization-conic.html: [conic-gradients]
+- multiple-position-color-stop-conic-2-ref.html: [conic-gradients]
+- multiple-position-color-stop-conic.html: [conic-gradients]
+- multiple-position-color-stop-conic-2.html: [conic-gradients]
+- "*conic*": [conic-gradients]
+- object-view-box-*: [object-view-box]
+- object-fit-containcontainintrinsicsize-png-*: []
+- object-fit-containsize-png-*: []
+- object-fit-*-png*: [crisp-edges]
+- image-fit-*: [object-fit]
+- object-fit-*: [object-fit]
+- object-position-*: [object-position]
+- cross-fade-*: [cross-fade]
+- tiled-conic-gradients-ref.html: &id001 []
+- conic-gradient-angle.html: *id001
+- repeating-conic-gradient-ref.html: *id001
+- conic-gradient-center.html: *id001
+- conic-gradient-line-height-relative-units-001.html: *id001
+- conic-gradient-line-height-relative-units-003.html: *id001
+- conic-gradient-calc-angle-percentage-ref.html: *id001
+- conic-gradient-color-with-sibling-index.html: *id001
+- tiled-conic-gradients.html: *id001
+- repeating-conic-gradient.html: *id001
+- conic-gradient-angle-negative.html: *id001
+- conic-gradient-color-with-sibling-index-ref.html: *id001
+- conic-gradient-line-height-relative-units-004.html: *id001
+- conic-gradient-calc-angle-percentage.html: *id001
+- conic-gradient-center-ref.html: *id001
+- conic-gradient-line-height-relative-units-002.html: *id001
+- "*gradient*": [gradients]
+- normalization-conic-degenerate.html: &id002 []
+- normalization-conic-2.html: *id002
+- normalization-conic.html: *id002
+- normalization-*: [gradients]
+- multiple-position-color-stop-conic-2-ref.html: &id003 []
+- multiple-position-color-stop-conic.html: *id003
+- multiple-position-color-stop-conic-2.html: *id003
+- multiple-position-color-stop-*: [gradients]
+- color-stop-currentcolor.html: [gradients]
+- css-image-fallbacks-and-annotations*: [image-function]
+- image-rendering-*: [image-rendering]

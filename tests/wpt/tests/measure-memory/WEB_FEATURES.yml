@@ -1,3 +1,2 @@
-features:
-- name: measure-memory
-  files: "**"
+rules:
+- "**": [measure-memory]

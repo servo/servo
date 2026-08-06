@@ -12,7 +12,7 @@ use std::{mem, ptr};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, ns};
 use js::context::JSContext;
-use js::conversions::FromJSValConvertible;
+use js::conversions::{FromJSValConvertible, ToJSValConvertible};
 use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
@@ -21,7 +21,6 @@ use js::rust::wrappers2::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
@@ -760,7 +759,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
             // Step 4.2. If inclusiveDescendant's custom element registry is null:
             if element.custom_element_registry().is_none() {
                 // Step 4.2.1. Set inclusiveDescendant's custom element registry to this.
-                element.set_custom_element_registry(Some(self));
+                element.set_custom_element_registry(Some(self), cx.no_gc());
 
                 // Step 4.2.2. If this's is scoped is true, then append
                 // inclusiveDescendant's node document to this's scoped document set.
@@ -960,7 +959,7 @@ impl CustomElementDefinition {
         // Element's `is` is None by default
 
         // Step 5.1.3.11. Set result’s custom element registry to registry.
-        element.set_custom_element_registry(registry);
+        element.set_custom_element_registry(registry, cx.no_gc());
 
         Ok(element)
     }
@@ -983,10 +982,10 @@ pub(crate) fn upgrade_element(
     }
 
     // Step 2. Set element's custom element definition to definition.
-    element.set_custom_element_definition(Rc::clone(&definition));
+    element.set_custom_element_definition(Rc::clone(&definition), cx.no_gc());
 
     // Step 3. Set element's custom element state to "failed".
-    element.set_custom_element_state(CustomElementState::Failed);
+    element.set_custom_element_state(CustomElementState::Failed, cx.no_gc());
 
     // Step 4. For each attribute in element's attribute list, in order, enqueue a custom element callback reaction
     // with element, callback name "attributeChangedCallback", and « attribute's local name, null, attribute's value,
@@ -1029,7 +1028,7 @@ pub(crate) fn upgrade_element(
     // Step 8 exception handling
     if let Err(error) = result {
         // Step 8.exception.1
-        element.clear_custom_element_definition();
+        element.clear_custom_element_definition(cx.no_gc());
 
         // Step 8.exception.2
         element.clear_reaction_queue();
@@ -1057,7 +1056,7 @@ pub(crate) fn upgrade_element(
         if let Some(form) = html_element.form_owner() {
             // Even though the tree hasn't structurally mutated,
             // HTMLCollections need to be invalidated.
-            form.upcast::<Node>().rev_version();
+            form.upcast::<Node>().rev_version(cx.no_gc());
             // The spec tells us specifically to enqueue a formAssociated reaction
             // here, but it also says to do that for resetting form owner in general,
             // and we don't need two reactions.
@@ -1086,7 +1085,7 @@ pub(crate) fn upgrade_element(
     }
 
     // Step 10
-    element.set_custom_element_state(CustomElementState::Custom);
+    element.set_custom_element_state(CustomElementState::Custom, cx.no_gc());
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
@@ -1116,7 +1115,7 @@ fn run_upgrade_constructor(
 
         let args = HandleValueArray::empty();
         // Step 8.2. Set element's custom element state to "precustomized".
-        element.set_custom_element_state(CustomElementState::Precustomized);
+        element.set_custom_element_state(CustomElementState::Precustomized, cx.no_gc());
 
         // Step 9.3. Let constructResult be the result of constructing C, with no arguments.
         // https://webidl.spec.whatwg.org/#construct-a-callback-function
@@ -1443,12 +1442,20 @@ impl CustomElementReactionStack {
                     // Step 3.4.1. If disconnectedCallback is not null, then call
                     // disconnectedCallback with no arguments.
                     if let Some(disconnected_callback) = disconnected_callback {
-                        element.push_callback_reaction(disconnected_callback, Box::new([]));
+                        element.push_callback_reaction(
+                            disconnected_callback,
+                            Box::new([]),
+                            cx.no_gc(),
+                        );
                     }
                     // Step 3.4.2. If connectedCallback is not null, then call
                     // connectedCallback with no arguments.
                     if let Some(connected_callback) = connected_callback {
-                        element.push_callback_reaction(connected_callback, Box::new([]));
+                        element.push_callback_reaction(
+                            connected_callback,
+                            Box::new([]),
+                            cx.no_gc(),
+                        );
                     }
 
                     self.enqueue_element(cx, element);
@@ -1467,7 +1474,7 @@ impl CustomElementReactionStack {
 
         // Step 6. Add a new callback reaction to element's custom element reaction queue, with
         // callback function callback and arguments args.
-        element.push_callback_reaction(callback, args.into_boxed_slice());
+        element.push_callback_reaction(callback, args.into_boxed_slice(), cx.no_gc());
 
         // Step 7. Enqueue an element on the appropriate element queue given element.
         self.enqueue_element(cx, element);
@@ -1482,7 +1489,7 @@ impl CustomElementReactionStack {
     ) {
         // Step 1. Add a new upgrade reaction to element's custom element reaction queue,
         // with custom element definition definition.
-        element.push_upgrade_reaction(definition);
+        element.push_upgrade_reaction(definition, cx.no_gc());
 
         // Step 2. Enqueue an element on the appropriate element queue given element.
         self.enqueue_element(cx, element);

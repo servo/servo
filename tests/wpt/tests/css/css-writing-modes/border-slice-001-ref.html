@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>
+  CSS Reference
+</title>
+<meta charset="utf-8">
+<meta name="flags" content="ahem">
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  :root { font: 20px/2 Ahem; }
+  .wrapper {
+      border: 1px solid gray;
+      display: inline-block;
+  }
+  span {
+      border: 5px solid fuchsia;
+  }
+  .vlr > .wrapper {
+      writing-mode: vertical-lr;
+  }
+  .vrl > .wrapper {
+      writing-mode: vertical-rl;
+  }
+  .slr > .wrapper {
+      writing-mode: sideways-lr;
+  }
+  .srl > .wrapper {
+      writing-mode: sideways-rl;
+  }
+  .rtl {
+      direction: rtl;
+  }
+  .group { margin-bottom: 10px; }
+  .slice-top { border-top-style: none; }
+  .slice-right { border-right-style: none; }
+  .slice-bottom { border-bottom-style: none; }
+  .slice-left { border-left-style: none; }
+</style>
+<div class="group">
+  <div class="wrapper">
+    <span class="slice-right">A</span><br>
+    <span class="slice-left">B</span>
+  </div>
+  <div class="wrapper">
+    <span class="slice-left">A</span><br>
+    <span class="slice-right">B</span>
+  </div>
+</div>
+<div class="group vlr">
+  <div class="wrapper">
+    <span class="slice-bottom">A</span><br>
+    <span class="slice-top">B</span>
+  </div>
+  <div class="wrapper">
+    <span class="slice-top">A</span><br>
+    <span class="slice-bottom">B</span>
+  </div>
+</div>
+<div class="group vrl">
+  <div class="wrapper">
+    <span class="slice-bottom">A</span><br>
+    <span class="slice-top">B</span>
+  </div>
+  <div class="wrapper">
+    <span class="slice-top">A</span><br>
+    <span class="slice-bottom">B</span>
+  </div>
+</div>
+<div class="group slr">
+  <div class="wrapper">
+    <span class="slice-top">A</span><br>
+    <span class="slice-bottom">B</span>
+  </div>
+  <div class="wrapper">
+    <span class="slice-bottom">A</span><br>
+    <span class="slice-top">B</span>
+  </div>
+</div>
+<div class="group srl">
+  <div class="wrapper">
+    <span class="slice-bottom">A</span><br>
+    <span class="slice-top">B</span>
+  </div>
+  <div class="wrapper">
+    <span class="slice-top">A</span><br>
+    <span class="slice-bottom">B</span>
+  </div>
+</div>

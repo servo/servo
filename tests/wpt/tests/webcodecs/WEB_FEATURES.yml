@@ -1,3 +1,2 @@
-features:
-- name: webcodecs
-  files: "**"
+rules:
+- "**": [webcodecs]

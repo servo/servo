@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="help" href="https://issues.chromium.org/issues/539404705">
+<p>Test passes if there is a filled green square.</p>
+<div style="position: relative; width: 100px; height: 100px;">
+  <div id="target" style="position: absolute; inset: 0; background: green; margin-top: 50px;"></div>
+</div>
+<script>
+document.body.offsetTop;
+target.style.marginTop = '0px';
+</script>

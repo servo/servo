@@ -1,3 +1,2 @@
-features:
-- name: dom-geometry
-  files: "**"
+rules:
+- "**": [dom-geometry]

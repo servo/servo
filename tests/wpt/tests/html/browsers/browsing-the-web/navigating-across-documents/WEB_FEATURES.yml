@@ -1,13 +1,7 @@
-features:
-- name: data-urls
-  files:
-  - navigation-unload-data-url.window.js
-  - redirect-to-data.html
-- name: iframe-srcdoc
-  files:
-  - about-srcdoc-navigation-blocked.window.js
-  - grandparent_location_aboutsrcdoc.sub.window.js
-  - grandparent_session_aboutsrcdoc.sub.window.js
-- name: iframe
-  files:
-  - empty-iframe-load-event.html
+rules:
+- navigation-unload-data-url.window.js: [data-urls]
+- redirect-to-data.html: [data-urls]
+- about-srcdoc-navigation-blocked.window.js: [iframe-srcdoc]
+- grandparent_location_aboutsrcdoc.sub.window.js: [iframe-srcdoc]
+- grandparent_session_aboutsrcdoc.sub.window.js: [iframe-srcdoc]
+- empty-iframe-load-event.html: [iframe]

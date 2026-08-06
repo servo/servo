@@ -71,7 +71,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
 };
 use crate::dom::bindings::conversions::{
-    SafeToJSValConvertible, StringificationBehavior, get_property,
+    StringificationBehavior, ToJSValConvertible, get_property,
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -195,6 +195,7 @@ impl CryptoAlgorithm {
     }
 }
 
+/// <https://w3c.github.io/webcrypto/#subtlecrypto-interface>
 #[dom_struct]
 pub(crate) struct SubtleCrypto {
     reflector_: Reflector,
@@ -2899,7 +2900,7 @@ pub(crate) struct SubtleKeyAlgorithm {
     name: CryptoAlgorithm,
 }
 
-impl SafeToJSValConvertible for SubtleKeyAlgorithm {
+impl ToJSValConvertible for SubtleKeyAlgorithm {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let dictionary = KeyAlgorithm {
             name: self.name.as_str().into(),
@@ -2989,7 +2990,7 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
     hash: DigestAlgorithm,
 }
 
-impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
+impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
         let public_exponent =
@@ -3186,7 +3187,7 @@ pub(crate) struct SubtleEcKeyAlgorithm {
     named_curve: String,
 }
 
-impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
+impl ToJSValConvertible for SubtleEcKeyAlgorithm {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let parent = KeyAlgorithm {
             name: self.name.as_str().into(),
@@ -3320,7 +3321,7 @@ pub(crate) struct SubtleAesKeyAlgorithm {
     length: u16,
 }
 
-impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
+impl ToJSValConvertible for SubtleAesKeyAlgorithm {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let parent = KeyAlgorithm {
             name: self.name.as_str().into(),
@@ -3515,7 +3516,7 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
     length: u32,
 }
 
-impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
+impl ToJSValConvertible for SubtleHmacKeyAlgorithm {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let parent = KeyAlgorithm {
             name: self.name.as_str().into(),
@@ -3957,7 +3958,7 @@ pub(crate) struct SubtleKmacKeyAlgorithm {
     length: u32,
 }
 
-impl SafeToJSValConvertible for SubtleKmacKeyAlgorithm {
+impl ToJSValConvertible for SubtleKmacKeyAlgorithm {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let parent = KeyAlgorithm {
             name: self.name.as_str().into(),
@@ -4096,7 +4097,7 @@ struct SubtleEncapsulatedKey {
     ciphertext: Option<Vec<u8>>,
 }
 
-impl SafeToJSValConvertible for SubtleEncapsulatedKey {
+impl ToJSValConvertible for SubtleEncapsulatedKey {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let shared_key = self.shared_key.as_ref().map(|shared_key| shared_key.root());
         let ciphertext = self.ciphertext.as_ref().map(|data| {
@@ -4121,7 +4122,7 @@ struct SubtleEncapsulatedBits {
     ciphertext: Option<Vec<u8>>,
 }
 
-impl SafeToJSValConvertible for SubtleEncapsulatedBits {
+impl ToJSValConvertible for SubtleEncapsulatedBits {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         let shared_key = self.shared_key.as_ref().map(|data| {
             rooted!(&in(cx) let mut shared_key_ptr = ptr::null_mut::<JSObject>());
@@ -4260,7 +4261,7 @@ impl KeyAlgorithmAndDerivatives {
     }
 }
 
-impl SafeToJSValConvertible for KeyAlgorithmAndDerivatives {
+impl ToJSValConvertible for KeyAlgorithmAndDerivatives {
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
         match self {
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => algo.safe_to_jsval(cx, rval),
@@ -4774,6 +4775,7 @@ fn normalize_algorithm<Op: Operation>(
 // Ed25519:           <https://w3c.github.io/webcrypto/#ed25519-registration>
 // X25519:            <https://w3c.github.io/webcrypto/#x25519-registration>
 // Ed448:             <https://wicg.github.io/webcrypto-secure-curves/#ed448-registration>
+// X448:              <https://wicg.github.io/webcrypto-secure-curves/#x448-registration>
 // AES-CTR:           <https://w3c.github.io/webcrypto/#aes-ctr-registration>
 // AES-CBC:           <https://w3c.github.io/webcrypto/#aes-cbc-registration>
 // AES-GCM:           <https://w3c.github.io/webcrypto/#aes-gcm-registration>
@@ -4788,6 +4790,9 @@ fn normalize_algorithm<Op: Operation>(
 // ChaCha20-Poly1305: <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
 // SHA-3:             <https://wicg.github.io/webcrypto-modern-algos/#sha3-registration>
 // cSHAKE:            <https://wicg.github.io/webcrypto-modern-algos/#cshake-registration>
+// TurboSHAKE:        <https://wicg.github.io/webcrypto-modern-algos/#turboshake-registration>
+// KangarooTwelve:    <https://wicg.github.io/webcrypto-modern-algos/#kangarootwelve-registration>
+// KMAC:              <https://wicg.github.io/webcrypto-modern-algos/#kmac-registration>
 // Argon2:            <https://wicg.github.io/webcrypto-modern-algos/#argon2-registration>
 
 trait Operation {
@@ -6307,7 +6312,7 @@ impl EncapsulateAlgorithm {
     }
 }
 
-// The value of the key "decapsulate" in the internal object supportedAlgorithms
+/// The value of the key "decapsulate" in the internal object supportedAlgorithms
 struct DecapsulateOperation {}
 
 impl Operation for DecapsulateOperation {
@@ -6356,7 +6361,7 @@ impl DecapsulateAlgorithm {
     }
 }
 
-// The value of the key "getPublicKey" in the internal object supportedAlgorithms
+/// The value of the key "getPublicKey" in the internal object supportedAlgorithms
 struct GetPublicKeyOperation {}
 
 impl Operation for GetPublicKeyOperation {

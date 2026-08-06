@@ -50,8 +50,8 @@
               a1: 0,
               b1: 1,
               prefix: 'Sine',
-              threshold: 1.8045e-5,
-              snrThreshold: 112.5
+              threshold: 2.0e-5,
+              snrThreshold: 110.0
             });
             task.done();
           });
@@ -76,8 +76,8 @@
               a1: 0,
               b1: 1,
               prefix: 'Sine',
-              threshold: 1.8045e-5,
-              snrThreshold: 112.67
+              threshold: 2.0e-5,
+              snrThreshold: 110.0
             });
             task.done();
           });
@@ -102,8 +102,8 @@
               a1: 0,
               b1: 1,
               prefix: 'Sine',
-              threshold: 1.4516e-7,
-              snrThreshold: 119.93
+              threshold: 2.0e-7,
+              snrThreshold: 118.0
             });
             task.done();
           });
@@ -128,8 +128,8 @@
               a1: 0,
               b1: 1,
               prefix: 'Sine',
-              threshold: 1.4157e-7,
-              snrThreshold: 112.22
+              threshold: 2.0e-7,
+              snrThreshold: 110.0
             });
             task.done();
           });
@@ -158,8 +158,8 @@
               a1: 1,
               b1: 1,
               prefix: 'Custom',
-              threshold: 5.1e-5,
-              snrThreshold: 112.6
+              threshold: 5.5e-5,
+              snrThreshold: 110.0
             });
             task.done();
           });
@@ -188,8 +188,8 @@
               a1: 1,
               b1: 1,
               prefix: 'Custom',
-              threshold: 4.7684e-7,
-              snrThreshold: 133.0
+              threshold: 5.0e-7,
+              snrThreshold: 130.0
             });
             task.done();
           });
@@ -222,7 +222,8 @@
 
         let snr = 10 * Math.log10(computeSNR(actual, expected));
 
-        should(snr, `${prefix}: SNR (db)`).beGreaterThanOrEqualTo(snrThreshold);
+        should(snr, `${prefix}: ${freqHz} Hz: SNR (db)`)
+            .beGreaterThanOrEqualTo(snrThreshold);
       }
     </script>
   </body>

@@ -1,3 +1,2 @@
-features:
-- name: canvas-reset
-  files: "**"
+rules:
+- "**": [canvas-reset]

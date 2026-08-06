@@ -1,3 +1,2 @@
-features:
-- name: background-blend-mode
-  files: "**"
+rules:
+- "**": [background-blend-mode]

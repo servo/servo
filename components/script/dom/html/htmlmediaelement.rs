@@ -13,11 +13,11 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
-use headers::{ContentLength, ContentRange, HeaderMapExt};
+use headers::{ContentLength, ContentRange, HeaderMapExt, Range as RangeHeader};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use http::StatusCode;
-use http::header::{self, HeaderMap, HeaderValue};
-use js::context::JSContext;
+use http::header::HeaderMap;
+use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
@@ -1270,7 +1270,7 @@ impl HTMLMediaElement {
         }
 
         // Reset the media player before loading the next source child.
-        self.reset_media_player();
+        self.reset_media_player(cx.no_gc());
 
         self.current_source_child.set(Some(source));
 
@@ -1445,11 +1445,9 @@ impl HTMLMediaElement {
             HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
         };
         let mut headers = HeaderMap::new();
-        // FIXME(eijebong): Use typed headers once we have a constructor for the range header
-        headers.insert(
-            header::RANGE,
-            HeaderValue::from_str(&format!("bytes={}-", offset.unwrap_or(0))).unwrap(),
-        );
+        if let Ok(range_header_value) = RangeHeader::bytes(offset.unwrap_or(0)..) {
+            headers.typed_insert(range_header_value);
+        }
         let url = match self.resource_url.borrow().as_ref() {
             Some(url) => url.clone(),
             None => self.blob_url.borrow().as_ref().unwrap().clone(),
@@ -1740,7 +1738,7 @@ impl HTMLMediaElement {
         }
 
         // Reset the media player for any previously playing media resource (see Step 11).
-        self.reset_media_player();
+        self.reset_media_player(cx.no_gc());
 
         // Step 7. If the media element's networkState is not set to NETWORK_EMPTY, then:
         if network_state != NetworkState::Empty {
@@ -2100,14 +2098,14 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    pub(crate) fn set_poster_frame(&self, image: Option<Arc<RasterImage>>) {
+    pub(crate) fn set_poster_frame(&self, no_gc: &NoGC, image: Option<Arc<RasterImage>>) {
         if pref!(media_testing_enabled) && image.is_some() {
             self.queue_media_element_task_to_fire_event(atom!("postershown"));
         }
 
         self.video_renderer.lock().unwrap().set_poster_frame(image);
 
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
 
     fn player_id(&self) -> Option<usize> {
@@ -2221,7 +2219,7 @@ impl HTMLMediaElement {
         Ok(())
     }
 
-    fn reset_media_player(&self) {
+    fn reset_media_player(&self, no_gc: &NoGC) {
         if self.player.borrow().is_none() {
             return;
         }
@@ -2237,7 +2235,7 @@ impl HTMLMediaElement {
         *self.event_handler.borrow_mut() = None;
 
         if let Some(video_element) = self.downcast::<HTMLVideoElement>() {
-            video_element.set_natural_dimensions(None, None);
+            video_element.set_natural_dimensions(no_gc, None, None);
         }
     }
 
@@ -2577,7 +2575,11 @@ impl HTMLMediaElement {
         // media element task given the media element to fire an event named resize at the media
         // element.
         if let Some(video_element) = self.downcast::<HTMLVideoElement>() {
-            video_element.set_natural_dimensions(Some(metadata.width), Some(metadata.height));
+            video_element.set_natural_dimensions(
+                cx.no_gc(),
+                Some(metadata.width),
+                Some(metadata.height),
+            );
             self.queue_media_element_task_to_fire_event(atom!("resize"));
         }
 
@@ -2660,7 +2662,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_video_frame_updated(&self) {
+    fn playback_video_frame_updated(&self, no_gc: &NoGC) {
         let Some(video_element) = self.downcast::<HTMLVideoElement>() else {
             return;
         };
@@ -2678,14 +2680,16 @@ impl HTMLMediaElement {
         }
 
         if let Some(frame) = self.video_renderer.lock().unwrap().current_frame {
-            if video_element
-                .set_natural_dimensions(Some(frame.width as u32), Some(frame.height as u32))
-            {
+            if video_element.set_natural_dimensions(
+                no_gc,
+                Some(frame.width as u32),
+                Some(frame.height as u32),
+            ) {
                 self.queue_media_element_task_to_fire_event(atom!("resize"));
             } else {
                 // If the natural dimensions have not been changed, the node should be marked as
                 // damaged to force a repaint with the new frame contents.
-                self.upcast::<Node>().dirty(NodeDamage::Other);
+                self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
             }
         }
     }
@@ -2895,7 +2899,7 @@ impl HTMLMediaElement {
             warn!("Could not render media controls {:?}", e);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::Other);
+        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
     }
 
     fn remove_controls(&self) {
@@ -4167,7 +4171,7 @@ impl HTMLMediaElementEventHandler {
             },
             PlayerEvent::SeekDone(position) => element.playback_seek_done(cx, position),
             PlayerEvent::StateChanged(ref state) => element.playback_state_changed(cx, state),
-            PlayerEvent::VideoFrameUpdated => element.playback_video_frame_updated(),
+            PlayerEvent::VideoFrameUpdated => element.playback_video_frame_updated(cx.no_gc()),
         }
     }
 }

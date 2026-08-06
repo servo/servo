@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>HTML streaming and positional setting APIs block Custom Element constructors when sanitized</title>
+<link rel="help" href="https://github.com/WICG/sanitizer-api" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container"></div>
+<script>
+let constructor_called = false;
+let connected_called = false;
+
+class DisallowedElement extends HTMLElement {
+  constructor() {
+    super();
+    constructor_called = true;
+  }
+  connectedCallback() {
+    connected_called = true;
+  }
+}
+customElements.define("disallowed-element", DisallowedElement);
+
+const registry = new CustomElementRegistry();
+registry.define("disallowed-element-scoped", class extends HTMLElement {
+  constructor() {
+    super();
+    constructor_called = true;
+  }
+  connectedCallback() {
+    connected_called = true;
+  }
+});
+
+const asyncMethods = [
+  "streamHTML", "streamAppendHTML", "streamPrependHTML",
+  "streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"
+];
+
+const syncMethods = [
+  "appendHTML", "prependHTML",
+  "appendHTMLUnsafe", "prependHTMLUnsafe"
+];
+
+for (const method of asyncMethods) {
+  for (const config of [
+    { name: "removeElements", options: { sanitizer: { removeElements: ["disallowed-element"] } } },
+    { name: "allowElements", options: { sanitizer: { elements: ["div"] } } }
+  ]) {
+    promise_test(async (t) => {
+      constructor_called = false;
+      connected_called = false;
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const writer = container[method](config.options).getWriter();
+      await writer.write("<disallowed-element></disallowed-element>");
+      await writer.close();
+
+      assert_equals(container.innerHTML, "");
+      assert_false(constructor_called, "Constructor should not be called for stripped elements");
+      assert_false(connected_called, "ConnectedCallback should not be called for stripped elements");
+    }, `${method} blocks CE constructor when element is dropped by sanitizer (${config.name})`);
+
+    promise_test(async (t) => {
+      constructor_called = false;
+      connected_called = false;
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const shadow = container.attachShadow({ mode: "open", registry });
+      t.add_cleanup(() => {
+        const newContainer = document.createElement("div");
+        newContainer.id = "container";
+        container.replaceWith(newContainer);
+      });
+
+      // Need to use the shadow root for streaming to test scoped registry
+      const options = config.name === "removeElements"
+        ? { sanitizer: { removeElements: ["disallowed-element-scoped"] } }
+        : { sanitizer: { elements: ["div"] } };
+
+      const writer = shadow[method](options).getWriter();
+      await writer.write("<disallowed-element-scoped></disallowed-element-scoped>");
+      await writer.close();
+
+      assert_equals(shadow.innerHTML, "");
+      assert_false(constructor_called, "Constructor should not be called for stripped scoped elements");
+      assert_false(connected_called, "ConnectedCallback should not be called for stripped scoped elements");
+    }, `${method} blocks CE constructor in scoped registry when element is dropped by sanitizer (${config.name})`);
+  }
+}
+
+for (const method of syncMethods) {
+  for (const config of [
+    { name: "removeElements", options: { sanitizer: { removeElements: ["disallowed-element"] } } },
+    { name: "allowElements", options: { sanitizer: { elements: ["div"] } } }
+  ]) {
+    test((t) => {
+      constructor_called = false;
+      connected_called = false;
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      container[method]("<disallowed-element></disallowed-element>", config.options);
+
+      assert_equals(container.innerHTML, "");
+      assert_false(constructor_called, "Constructor should not be called for stripped elements");
+      assert_false(connected_called, "ConnectedCallback should not be called for stripped elements");
+    }, `${method} blocks CE constructor when element is dropped by sanitizer (${config.name})`);
+
+    test((t) => {
+      constructor_called = false;
+      connected_called = false;
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const shadow = container.attachShadow({ mode: "open", registry });
+      t.add_cleanup(() => {
+        const newContainer = document.createElement("div");
+        newContainer.id = "container";
+        container.replaceWith(newContainer);
+      });
+
+      const options = config.name === "removeElements"
+        ? { sanitizer: { removeElements: ["disallowed-element-scoped"] } }
+        : { sanitizer: { elements: ["div"] } };
+
+      shadow[method]("<disallowed-element-scoped></disallowed-element-scoped>", options);
+
+      assert_equals(shadow.innerHTML, "");
+      assert_false(constructor_called, "Constructor should not be called for stripped scoped elements");
+      assert_false(connected_called, "ConnectedCallback should not be called for stripped scoped elements");
+    }, `${method} blocks CE constructor in scoped registry when element is dropped by sanitizer (${config.name})`);
+  }
+}
+</script>
+</body>

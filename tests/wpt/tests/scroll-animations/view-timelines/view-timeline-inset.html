@@ -124,51 +124,6 @@
   }, 'view timeline with inset auto.');
 
 promise_test(async t => {
-  t.add_cleanup(() => {
-    target.classList.remove('big-font');
-  });
-  const anim = await runTimelineInsetTest(t, {
-    inset: [ CSS.em(1), CSS.em(2) ],
-    startOffset: 632,
-    endOffset: 884
-  });
-  verifyTimelineOffsets(anim, 632, 884);
-  target.classList.add('big-font');
-  await runTimelineBoundsTest(t, {
-    anim: anim,
-    startOffset: 640,
-    endOffset: 880,
-  }, 'Adjust for font size increase')
-      .then(anim => verifyTimelineOffsets(anim, 640, 880));
-}, 'view timeline with font relative inset.');
-
-promise_test(async t => {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const vmin = Math.min(vw, vh);
-
-  // Compute viewport-relative equivalent values from absolute inset sizes.
-  // This makes the test invariant to absolute viewport size.
-  const startInsetPx = 10;
-  const endInsetPx = 20;
-
-  const vwStart = 100 * startInsetPx / vw;
-  const vwEnd = 100 * endInsetPx / vw;
-  const vminStart = 100 * startInsetPx / vmin;
-  const vminEnd = 100 * endInsetPx / vmin;
-  await runTimelineInsetTest(t, {
-    inset: [ CSS.vw(vwStart), CSS.vw(vwEnd) ],
-    startOffset: 600 + endInsetPx,
-    endOffset: 900 - startInsetPx
-  });
-  await runTimelineInsetTest(t, {
-    inset: [ CSS.vmin(vminStart), CSS.vmin(vminEnd) ],
-    startOffset: 600 + endInsetPx,
-    endOffset: 900 - startInsetPx
-  });
-}, 'view timeline with viewport relative insets.');
-
-promise_test(async t => {
   await runTimelineInsetTest(t, {
     inset: "10px",
     startOffset: 610,
@@ -194,11 +149,22 @@ promise_test(async t => {
     startOffset: 600,
     endOffset: 900
   });
-  await runTimelineInsetTest(t, {
-    inset: "1em 2em",
-    startOffset: 632,
-    endOffset: 884
+
+  // Relative units are not allowed.
+  // https://github.com/w3c/csswg-drafts/issues/13852
+  assert_throws_js(TypeError, () => {
+    new ViewTimeline({
+      subject: target,
+      inset: "1em 2em"
+    });
   });
+  assert_throws_js(TypeError, () => {
+    new ViewTimeline({
+      subject: target,
+      inset: "1vw 2vh"
+    });
+  });
+
   assert_throws_js(TypeError, () => {
     new ViewTimeline({
       subject: target,
@@ -212,7 +178,6 @@ promise_test(async t => {
       inset: "1 2"
     });
   });
-
 }, 'view timeline inset as string');
 
 promise_test(async t => {
@@ -229,8 +194,6 @@ promise_test(async t => {
       inset: [ CSS.px(10), CSS.px(10), CSS.px(10) ]
     });
   });
-
-
 }, 'view timeline with invalid inset');
 
 </script>

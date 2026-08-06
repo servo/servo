@@ -1,3 +1,2 @@
-features:
-- name: webrtc-stats
-  files: "**"
+rules:
+- "**": [webrtc-stats]

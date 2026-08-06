@@ -1,3 +1,2 @@
-features:
-- name: contact-picker
-  files: "**"
+rules:
+- "**": [contact-picker]

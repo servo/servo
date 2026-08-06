@@ -1,3 +1,2 @@
-features:
-- name: z-index
-  files: '**'
+rules:
+- "**": [z-index]

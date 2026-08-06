@@ -10,13 +10,16 @@ use servo_url::ServoUrl;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::LargestContentfulPaintBinding::LargestContentfulPaintMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::node::Node;
 
 #[dom_struct]
 pub(crate) struct LargestContentfulPaint {
@@ -35,6 +38,7 @@ impl LargestContentfulPaint {
         render_time: CrossProcessInstant,
         size: usize,
         url: Option<ServoUrl>,
+        element: Option<&Element>,
     ) -> LargestContentfulPaint {
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
@@ -47,7 +51,9 @@ impl LargestContentfulPaint {
             render_time,
             size,
             url: url.map(|u| DOMString::from(u.as_str())).unwrap_or_default(),
-            element: None,
+            element: Some(Dom::from_ref(
+                element.expect("Element for LCP entry should be non-null"),
+            )),
         }
     }
 
@@ -57,12 +63,14 @@ impl LargestContentfulPaint {
         render_time: CrossProcessInstant,
         size: usize,
         url: Option<ServoUrl>,
+        element: Option<&Element>,
     ) -> DomRoot<LargestContentfulPaint> {
         reflect_dom_object_with_cx(
             Box::new(LargestContentfulPaint::new_inherited(
                 render_time,
                 size,
                 url,
+                element,
             )),
             global,
             cx,
@@ -95,8 +103,22 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
         self.url.clone()
     }
 
+    /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-id>
+    fn Id(&self) -> DOMString {
+        self.GetElement()
+            .map(|element| element.Id())
+            .unwrap_or_default()
+    }
+
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-element>
     fn GetElement(&self) -> Option<DomRoot<Element>> {
-        self.element.as_ref().map(|element| element.as_rooted())
+        self.element
+            .as_ref()
+            .filter(|element| {
+                element
+                    .upcast::<Node>()
+                    .is_connected_with_browsing_context()
+            })
+            .map(|element| element.as_rooted())
     }
 }

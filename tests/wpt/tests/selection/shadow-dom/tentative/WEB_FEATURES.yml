@@ -1,4 +1,2 @@
-features:
-- name: composed-ranges
-  files:
-  - Selection-getComposedRanges*
+rules:
+- Selection-getComposedRanges*: [composed-ranges]

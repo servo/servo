@@ -234,8 +234,8 @@ impl FontMetrics {
 
 #[derive(Debug, Default)]
 struct CachedShapeData {
-    glyph_advances: HashMap<GlyphId, FractionalPixel>,
-    glyph_indices: HashMap<char, Option<GlyphId>>,
+    glyph_advances: FxHashMap<GlyphId, FractionalPixel>,
+    glyph_indices: FxHashMap<char, Option<GlyphId>>,
     shaped_text: HashMap<ShapeCacheEntry, Arc<ShapedText>>,
 }
 

@@ -1,3 +1,2 @@
-features:
-- name: border-radius
-  files: "**"
+rules:
+- "**": [border-radius]

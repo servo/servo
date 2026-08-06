@@ -1,3 +1,2 @@
-features:
-- name: hanging-punctuation
-  files: "**"
+rules:
+- "**": [hanging-punctuation]

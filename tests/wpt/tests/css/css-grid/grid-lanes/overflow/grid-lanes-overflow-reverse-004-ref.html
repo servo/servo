@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+  .grid {
+    display: inline-grid;
+    vertical-align: top;
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+    margin: 0 20px 20px 0;
+    font-family: monospace;
+  }
+  .a { background: coral; }
+  .b { background: steelblue; }
+  .c { background: seagreen; }
+  .d { background: goldenrod; }
+  .e { background: mediumpurple; }
+  .f { background: tomato; }
+  .row { grid-template-rows: 40px 40px 40px; grid-template-columns: repeat(2, 60px); }
+  .col { grid-template-columns: 40px 40px 40px; grid-template-rows: 60px 60px; }
+  .row > div { width: 60px; height: 30px; }
+  .col > div { width: 30px; height: 60px; }
+  </style>
+</head>
+<body>
+<div id="row-grid-scroll" class="grid row" style="overflow-y: auto; overflow-x: clip;">
+  <div class="c" style="grid-row: 1; grid-column: 1;">C</div>
+  <div class="f" style="grid-row: 1; grid-column: 2;">F</div>
+  <div class="b" style="grid-row: 2; grid-column: 1;">B</div>
+  <div class="e" style="grid-row: 2; grid-column: 2;">E</div>
+  <div class="a" style="grid-row: 3; grid-column: 1;">A</div>
+  <div class="d" style="grid-row: 3; grid-column: 2;">D</div>
+</div>
+
+<div id="row-grid-clip" class="grid row" style="overflow-y: clip; overflow-x: auto; align-content: end;">
+  <div class="c" style="grid-row: 1; grid-column: 1;">C</div>
+  <div class="f" style="grid-row: 1; grid-column: 2;">F</div>
+  <div class="b" style="grid-row: 2; grid-column: 1;">B</div>
+  <div class="e" style="grid-row: 2; grid-column: 2;">E</div>
+  <div class="a" style="grid-row: 3; grid-column: 1;">A</div>
+  <div class="d" style="grid-row: 3; grid-column: 2;">D</div>
+</div>
+
+<div id="col-grid-scroll" class="grid col" style="overflow-x: auto; overflow-y: clip;">
+  <div class="c" style="grid-column: 1; grid-row: 1;">C</div>
+  <div class="b" style="grid-column: 2; grid-row: 1;">B</div>
+  <div class="a" style="grid-column: 3; grid-row: 1;">A</div>
+  <div class="f" style="grid-column: 1; grid-row: 2;">F</div>
+  <div class="e" style="grid-column: 2; grid-row: 2;">E</div>
+  <div class="d" style="grid-column: 3; grid-row: 2;">D</div>
+</div>
+
+<div id="col-grid-clip" class="grid col" style="overflow-x: clip; overflow-y: auto; justify-content: end;">
+  <div class="c" style="grid-column: 1; grid-row: 1;">C</div>
+  <div class="b" style="grid-column: 2; grid-row: 1;">B</div>
+  <div class="a" style="grid-column: 3; grid-row: 1;">A</div>
+  <div class="f" style="grid-column: 1; grid-row: 2;">F</div>
+  <div class="e" style="grid-column: 2; grid-row: 2;">E</div>
+  <div class="d" style="grid-column: 3; grid-row: 2;">D</div>
+</div>
+
+<script>
+  // Scroll the scrollable grid axes to their end so the plain grid's scroll
+  // position matches the track-reverse reversed end origin.
+  document.getElementById('row-grid-scroll').scrollTop = 1000000;
+  document.getElementById('col-grid-scroll').scrollLeft = 1000000;
+</script>
+
+</body>
+</html>

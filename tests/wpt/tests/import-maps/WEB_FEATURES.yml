@@ -1,3 +1,2 @@
-features:
-- name: import-maps
-  files: "**"
+rules:
+- "**": [import-maps]

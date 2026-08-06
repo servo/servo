@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::CString;
 use std::fs::File;
 
 use app_units::Au;
@@ -27,7 +26,7 @@ use super::library_handle::FreeTypeLibraryHandle;
 use crate::FontData;
 use crate::font::{FontMetrics, FontTableMethods, FractionalPixel, PlatformFontMethods};
 use crate::glyph::GlyphId;
-use crate::platform::freetype::freetype_face::FreeTypeFace;
+use crate::platform::freetype::freetype_face::{FontBackingStore, FreeTypeFace};
 
 const SEMI_BOLD_U16: u16 = Weight::SEMI_BOLD.value() as u16;
 
@@ -73,8 +72,8 @@ impl PlatformFontMethods for PlatformFont {
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
-        let data: &[u8] = font_data.as_ref();
-        let face = FreeTypeFace::new_from_memory(&library, data)?;
+        let data = FontBackingStore::Web(font_data.clone());
+        let face = FreeTypeFace::new_from_memory(&library, data, 0)?;
 
         let normalized_variations = face.set_variations_for_font(variations, &library)?;
 
@@ -104,14 +103,19 @@ impl PlatformFontMethods for PlatformFont {
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
-        let Ok(filename) = CString::new(&*font_identifier.path) else {
-            return Err("filename contains null byte!");
+
+        let Ok(memory_mapped_font_data) = File::open(&*font_identifier.path)
+            .and_then(|file| unsafe { Mmap::map(&file) })
+            .map(Arc::new)
+        else {
+            return Err("Could not memory map font");
         };
 
-        let face = FreeTypeFace::new_from_file(
+        let face_index = font_identifier.face_index_for_freetype();
+        let face = FreeTypeFace::new_from_memory(
             &library,
-            &filename,
-            font_identifier.face_index_for_freetype(),
+            FontBackingStore::Local(memory_mapped_font_data.clone()),
+            face_index,
         )?;
 
         let normalized_variations = face.set_variations_for_font(variations, &library)?;
@@ -121,16 +125,8 @@ impl PlatformFontMethods for PlatformFont {
             None => (Au::zero(), Au::zero()),
         };
 
-        let Ok(memory_mapped_font_data) =
-            File::open(&*font_identifier.path).and_then(|file| unsafe { Mmap::map(&file) })
-        else {
-            return Err("Could not memory map");
-        };
-
-        let table_provider_data = FreeTypeFaceTableProviderData::Local(
-            Arc::new(memory_mapped_font_data),
-            font_identifier.index(),
-        );
+        let table_provider_data =
+            FreeTypeFaceTableProviderData::Local(memory_mapped_font_data, font_identifier.index());
 
         let synthetic_bold = table_provider_data.should_apply_synthetic_bold(synthetic_bold);
 

@@ -1,4 +1,2 @@
-features:
-- name: resource-timing
-  files:
-  - "*"
+rules:
+- "*": [resource-timing]

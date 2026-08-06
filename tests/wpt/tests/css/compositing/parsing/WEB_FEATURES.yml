@@ -1,10 +1,4 @@
-features:
-- name: background-blend-mode
-  files:
-  - background-blend-mode-*
-- name: isolation
-  files:
-  - isolation-*
-- name: mix-blend-mode
-  files:
-  - mix-blend-mode-*
+rules:
+- background-blend-mode-*: [background-blend-mode]
+- isolation-*: [isolation]
+- mix-blend-mode-*: [mix-blend-mode]

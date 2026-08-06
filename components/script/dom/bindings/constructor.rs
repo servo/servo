@@ -6,12 +6,12 @@ use std::ptr;
 
 use html5ever::interface::QualName;
 use html5ever::{LocalName, local_name, ns};
+use js::conversions::ToJSValConvertible;
 use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, JSObject};
 use js::realm::AutoRealm;
 use js::rust::wrappers2::{JS_SetPrototype, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
-use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interface::get_desired_proto;
 use script_bindings::reflector::DomObject;
 
@@ -173,10 +173,10 @@ fn html_constructor(
             // Step 7.2-7.5 are performed in the generated caller code.
 
             // Step 7.6 Set element's custom element state to "custom".
-            element.set_custom_element_state(CustomElementState::Custom);
+            element.set_custom_element_state(CustomElementState::Custom, cx.no_gc());
 
             // Step 7.7 Set element's custom element definition to definition.
-            element.set_custom_element_definition(definition);
+            element.set_custom_element_definition(definition, cx.no_gc());
 
             // Step 7.8 Set element's is value to isValue.
             if let Some(is_value) = is_value {

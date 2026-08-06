@@ -1,0 +1,152 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const methods = [
+        { name: "streamHTML", type: "element" },
+        { name: "streamAppendHTML", type: "element" },
+        { name: "streamPrependHTML", type: "element" },
+        { name: "streamBeforeHTML", type: "child" },
+        { name: "streamAfterHTML", type: "child" },
+        { name: "streamHTMLUnsafe", type: "element" },
+        { name: "streamAppendHTMLUnsafe", type: "element" },
+        { name: "streamPrependHTMLUnsafe", type: "element" },
+        { name: "streamBeforeHTMLUnsafe", type: "child" },
+        { name: "streamAfterHTMLUnsafe", type: "child" }
+      ];
+
+      const configs = [
+        {
+          name: "default safe config",
+          options: (method) => method.includes("Unsafe") ? { sanitizer: "default" } : {},
+          input: (varName) => `<img src="invalid-src-xyz" onerror="window.${varName} = true;">`
+        },
+        {
+          name: "removeAttributes onerror",
+          options: (method) => ({ sanitizer: { removeAttributes: ["onerror"] } }),
+          input: (varName) => `<img src="invalid-src-xyz" onerror="window.${varName} = true;">`
+        },
+        {
+          name: "attributes src only",
+          options: (method) => ({ sanitizer: { attributes: ["src"] } }),
+          input: (varName) => `<img src="invalid-src-xyz" onerror="window.${varName} = true;">`
+        },
+        {
+          name: "removeElements img",
+          options: (method) => ({ sanitizer: { removeElements: ["img"] } }),
+          input: (varName) => `<img src="invalid-src-xyz" onerror="window.${varName} = true;">`
+        },
+        {
+          name: "removeElements div with nested img",
+          options: (method) => ({ sanitizer: { removeElements: ["div"] } }),
+          input: (varName) => `<div><img src="invalid-src-xyz" onerror="window.${varName} = true;"></div>`
+        },
+        {
+          name: "removeAttributes src",
+          options: (method) => ({ sanitizer: { removeAttributes: ["src"] } }),
+          input: (varName) => `<img src="invalid-src-xyz" onerror="window.${varName} = true;">`
+        }
+      ];
+
+      function setupTarget(parent, type) {
+        const child = document.createElement("div");
+        parent.appendChild(child);
+        if (type === "child") {
+          const target = document.createElement("div");
+          child.appendChild(target);
+          return target;
+        }
+        return child;
+      }
+
+      function awaitImageLoadFailure(t) {
+        return new Promise(resolve => {
+          const img = new Image();
+          img.onerror = resolve;
+          img.src = "invalid-src-helper-abc";
+          t.step_timeout(resolve, 500);
+        });
+      }
+
+      // 1. Run the test cases where event handlers should NOT fire
+      for (const m of methods) {
+        for (const tc of configs) {
+          const testName = `${m.name} with ${tc.name}`;
+          promise_test(async (t) => {
+            const container = document.getElementById("container");
+            const target = setupTarget(container, m.type);
+            t.add_cleanup(() => {
+              if (m.type === "child") {
+                target.parentNode.remove();
+              } else {
+                target.remove();
+              }
+            });
+
+            const var_name = `__xss_fired_${m.name}_${tc.name.replace(/[^a-zA-Z0-9]/g, "_")}_${Math.random().toString(36).slice(2)}`;
+            window[var_name] = false;
+            t.add_cleanup(() => { delete window[var_name]; });
+
+            const options = tc.options(m.name);
+            const stream = target[m.name](options);
+            const writer = stream.getWriter();
+
+            await writer.write(tc.input(var_name));
+            await writer.close();
+
+            await awaitImageLoadFailure(t);
+
+            assert_false(window[var_name], `Event handler should not fire for ${testName}`);
+          }, `Sanitizer bypass check for ${testName}`);
+        }
+      }
+
+      // 2. Control case: unsafe stream without sanitizer options should execute script/event handlers
+      const unsafeMethods = methods.filter(m => m.name.includes("Unsafe"));
+      for (const m of unsafeMethods) {
+        promise_test(async (t) => {
+          const container = document.getElementById("container");
+          const target = setupTarget(container, m.type);
+          t.add_cleanup(() => {
+            if (m.type === "child") {
+              target.parentNode.remove();
+            } else {
+              target.remove();
+            }
+          });
+
+          const var_name = `__control_fired_${m.name}_${Math.random().toString(36).slice(2)}`;
+          window[var_name] = false;
+          let resolve_fired;
+          const fired_promise = new Promise(r => { resolve_fired = r; });
+          window[var_name + "_fired"] = () => {
+            window[var_name] = true;
+            resolve_fired();
+          };
+          t.add_cleanup(() => {
+            delete window[var_name];
+            delete window[var_name + "_fired"];
+          });
+
+          const stream = target[m.name]({});
+          const writer = stream.getWriter();
+
+          await writer.write(`<img src="invalid-src-xyz" onerror="window.${var_name}_fired()">`);
+          await writer.close();
+
+          await Promise.race([
+            fired_promise,
+            new Promise(resolve => t.step_timeout(resolve, 500))
+          ]);
+
+          assert_true(window[var_name], `Event handler SHOULD fire for control case: ${m.name}`);
+        }, `Control check for ${m.name}`);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     width="800px" height="800px">
+  <title>SVG Geometry Properties: parsing the x presentation attribute with invalid values</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/geometry.html#X"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#presentation-attribute-css-value"/>
+    <h:link rel="help" href="https://github.com/web-platform-tests/wpt/issues/61017"/>
+    <h:meta name="assert" content="the x presentation attribute rejects values outside '&lt;length-percentage&gt; | &lt;number&gt;' and keeps the initial computed value."/>
+  </metadata>
+  <rect id="target"/>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <h:script src="support/attribute-testcommon.js"/>
+  <script><![CDATA[
+
+test_invalid_attribute_value("x", "auto", 0, "0px");
+test_invalid_attribute_value("x", "none", 0, "0px");
+test_invalid_attribute_value("x", "10px 20px", 0, "0px");
+test_invalid_attribute_value("x", "garbage", 0, "0px");
+
+  ]]></script>
+</svg>

@@ -1,3 +1,2 @@
-features:
-- name: data-urls
-  files: "**"
+rules:
+- "**": [data-urls]

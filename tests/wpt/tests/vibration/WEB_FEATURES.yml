@@ -1,3 +1,2 @@
-features:
-- name: vibration
-  files: "**"
+rules:
+- "**": [vibration]

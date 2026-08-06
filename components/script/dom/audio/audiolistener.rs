@@ -7,7 +7,7 @@ use std::f32;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use servo_media::audio::node::AudioNodeType;
+use servo_media::audio::audio_node::AudioNodeType;
 use servo_media::audio::param::{ParamDir, ParamType};
 
 use crate::dom::audio::audioparam::AudioParam;

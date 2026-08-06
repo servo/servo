@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+  <head>
+    <title>
+      Test Sub-Sample Accurate Start With a-rate Automation
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script>
+      // Power of two so there's no roundoff converting from integer frames to
+      // time.
+      const sampleRate = 32768;
+
+      const audit = Audit.createTaskRunner();
+
+      // An oscillator started at a sub-sample-accurate time must begin at the
+      // correct sub-sample phase. The sub-sample phase compensation applied at
+      // start scales the fractional start offset by the oscillator's phase
+      // increment. If an implementation derives that increment from the k-rate
+      // frequency value only, it can drop the compensation whenever a-rate
+      // frequency (or detune) automation is active, starting the oscillator out
+      // of phase.
+      //
+      // This renders two identical sine oscillators started at the same
+      // fractional frame:
+      //   channel 0 (reference): constant frequency, no automation.
+      //   channel 1 (a-rate):    the same constant frequency expressed via a
+      //                          linear ramp from f to f, forcing the a-rate
+      //                          path. The per-sample phase increments are
+      //                          identical to the constant-frequency increment,
+      //                          so the two outputs must match sample-for-sample.
+      audit.define(
+          'a-rate oscillator honors sub-sample start offset',
+          (task, should) => {
+            const frequency = 1000;
+
+            // Start half a sample past frame 5, so the start frame rounds up to
+            // 6 and the fractional start offset is non-zero.
+            const startSample = 5.5;
+            const firstOutputFrame = Math.ceil(startSample);
+            const startTime = startSample / sampleRate;
+
+            const context = new OfflineAudioContext(
+                {numberOfChannels: 2, length: 256, sampleRate: sampleRate});
+            const merger = new ChannelMergerNode(
+                context, {numberOfInputs: 2});
+            merger.connect(context.destination);
+
+            // Reference: constant frequency, no timeline events.
+            const oscRef = new OscillatorNode(context, {frequency});
+            oscRef.connect(merger, 0, 0);
+
+            // Test: a-rate automation that holds the same constant frequency.
+            const oscARate = new OscillatorNode(context, {frequency});
+            oscARate.frequency.setValueAtTime(frequency, 0);
+            oscARate.frequency.linearRampToValueAtTime(
+                frequency, context.length / sampleRate);
+            oscARate.connect(merger, 0, 1);
+
+            oscRef.start(startTime);
+            oscARate.start(startTime);
+
+            context.startRendering()
+                .then(buffer => {
+                  const reference = buffer.getChannelData(0);
+                  const aRate = buffer.getChannelData(1);
+
+                  // Both oscillators must be silent up to the rounded-up start
+                  // frame.
+                  should(
+                      reference.slice(0, firstOutputFrame),
+                      `reference[0:${firstOutputFrame - 1}]`)
+                      .beConstantValueOf(0);
+                  should(
+                      aRate.slice(0, firstOutputFrame),
+                      `a-rate[0:${firstOutputFrame - 1}]`)
+                      .beConstantValueOf(0);
+
+                  // Diagnostic: largest sample difference after the start frame.
+                  let maxDiff = 0;
+                  for (let k = firstOutputFrame; k < reference.length; ++k)
+                    maxDiff = Math.max(maxDiff, Math.abs(aRate[k] - reference[k]));
+                  should(maxDiff, 'Max |a-rate - reference| after start')
+                      .beLessThanOrEqualTo(1e-6);
+
+                  // The a-rate output must match the constant-frequency
+                  // reference (same frequency, same fractional start).
+                  should(
+                      aRate.slice(firstOutputFrame),
+                      `a-rate[${firstOutputFrame}:]`)
+                      .beCloseToArray(
+                          reference.slice(firstOutputFrame),
+                          {absoluteThreshold: 1e-6});
+                })
+                .then(() => task.done());
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

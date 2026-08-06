@@ -1,4 +1,2 @@
-features:
-- name: overflow-anchor
-  files:
-  - opt-out*
+rules:
+- opt-out*: [overflow-anchor]

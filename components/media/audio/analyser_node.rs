@@ -9,8 +9,10 @@ use std::sync::{Arc, OnceLock};
 use malloc_size_of_derive::MallocSizeOf;
 use servo_base::generic_channel::GenericCallback;
 
+use crate::audio_node::{
+    AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo, ChannelInterpretation,
+};
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK_USIZE};
-use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo, ChannelInterpretation};
 
 #[derive(AudioNodeCommon)]
 pub(crate) struct AnalyserNode {

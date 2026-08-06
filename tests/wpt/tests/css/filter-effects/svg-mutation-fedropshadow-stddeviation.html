@@ -1,0 +1,21 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Filter Effects: mutating feDropShadow stdDeviation updates both x and y components</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feDropShadowElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#element-attrdef-fedropshadow-stddeviation">
+<link rel="match" href="svg-mutation-fedropshadow-stddeviation-ref.html">
+<meta name="assert" content="Changing the stdDeviation attribute of an already-built feDropShadow must update both the x and y standard-deviation of the effect, not just x.">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<svg width="300" height="200">
+  <filter id="shadow" filterUnits="userSpaceOnUse" x="0" y="0" width="300" height="200">
+    <feDropShadow id="drop" dx="120" dy="0" stdDeviation="2 2" flood-color="black" flood-opacity="1"/>
+  </filter>
+  <rect x="20" y="80" width="40" height="40" fill="green" filter="url(#shadow)"/>
+</svg>
+<script>
+  waitForAtLeastOneFrame().then(() => {
+    document.getElementById("drop").setAttribute("stdDeviation", "20 20");
+    takeScreenshot();
+  });
+</script>

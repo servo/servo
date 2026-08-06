@@ -127,6 +127,36 @@ static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
 
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 
+/// set special mode for graphics operation, see [https://developer.huawei.com/consumer/en/doc/harmonyos-faqs/faqs-arkgraphics-2d-14]
+fn set_efficient_window_method(window: *mut c_void) {
+    unsafe {
+        let mut usage: u64 = 0;
+        let return_value = ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
+            window as *mut ohos_sys_opaque_types::NativeWindow,
+            ohos_window_sys::native_window::NativeWindowOperation::GET_USAGE as i32,
+            &mut usage,
+        );
+        if return_value != 0 {
+            log::warn!(
+                "Could not get NativeWindowHandleOpt. Will continue without efficient windowing mode."
+            );
+            return;
+        }
+
+        usage = usage & (!(ohos_window_sys::native_buffer::native_buffer::OH_NativeBuffer_Usage::NATIVEBUFFER_USAGE_CPU_READ.0 as u64));
+        let return_value = ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
+            window as *mut ohos_sys_opaque_types::NativeWindow,
+            ohos_window_sys::native_window::NativeWindowOperation::SET_USAGE as i32,
+            usage,
+        );
+        if return_value != 0 {
+            log::warn!(
+                "Could not set Native WindowHandleOpt. Will continue without efficient windowing mode."
+            );
+        }
+    }
+}
+
 pub(crate) fn get_raw_window_handle(
     xcomponent: *mut OH_NativeXComponent,
     window: *mut c_void,
@@ -136,6 +166,8 @@ pub(crate) fn get_raw_window_handle(
     let window_origin = unsafe { get_xcomponent_offset(xcomponent, window) }
         .expect("Could not get native window offset");
     let viewport_rect = Rect::new(window_origin, window_size);
+    set_efficient_window_method(window);
+
     let native_window = NonNull::new(window).expect("Could not get native window");
     let window_handle = RawWindowHandle::OhosNdk(OhosNdkWindowHandle::new(native_window));
     (window_handle, viewport_rect)

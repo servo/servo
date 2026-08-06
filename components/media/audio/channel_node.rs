@@ -4,10 +4,10 @@
 
 use malloc_size_of_derive::MallocSizeOf;
 
-use crate::block::{Block, Chunk, FRAMES_PER_BLOCK_USIZE};
-use crate::node::{
+use crate::audio_node::{
     AudioNodeEngine, AudioNodeType, BlockInfo, ChannelCountMode, ChannelInfo, ChannelInterpretation,
 };
+use crate::block::{Block, Chunk, FRAMES_PER_BLOCK_USIZE};
 
 #[derive(Copy, Clone, Debug, MallocSizeOf)]
 pub struct ChannelNodeOptions {

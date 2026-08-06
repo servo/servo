@@ -1,30 +1,10 @@
-features:
-- name: loading-lazy
-  files:
-  - iframe-loading-lazy*
-  - "!iframe-loading-lazy-base-url*"
-- name: base
-  files:
-  - iframe-loading-lazy-base-url*
-  - iframe-with-base.html
-- name: hashchange
-  files:
-  - srcdoc_change_hash.html
-- name: iframe-srcdoc
-  files:
-  - srcdoc*
-  - "!srcdoc_change_hash.html"
-- name: iframe-sandbox
-  files:
-  - iframe_sandbox_*
-  - sandbox-*
-  - sandbox_*
-- name: iframe
-  files:
-  - "*"
-  - "!iframe-loading-lazy*"
-  - "!iframe-with-base.html"
-  - "!srcdoc*"
-  - "!iframe_sandbox_*"
-  - "!sandbox-*"
-  - "!sandbox_*"
+rules:
+- iframe-loading-lazy-base-url*: [base]
+- iframe-loading-lazy*: [loading-lazy]
+- iframe-with-base.html: [base]
+- srcdoc_change_hash.html: [hashchange]
+- srcdoc*: [iframe-srcdoc]
+- iframe_sandbox_*: [iframe-sandbox]
+- sandbox-*: [iframe-sandbox]
+- sandbox_*: [iframe-sandbox]
+- "*": [iframe]

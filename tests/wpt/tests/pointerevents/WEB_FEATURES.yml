@@ -1,11 +1,4 @@
-features:
-- name: pointer-events-api
-  files:
-  - "*"
-  - "!*touch-action*"
-  - "!inheritance.html"
-- name: touch-action
-  files:
-  - "*touch-action*"
-  - inheritance.html
-
+rules:
+- "*touch-action*": [touch-action]
+- inheritance.html: [touch-action]
+- "*": [pointer-events-api]

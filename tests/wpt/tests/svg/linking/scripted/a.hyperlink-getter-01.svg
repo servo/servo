@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVGAElement HyperlinkElementUtils getters</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#InterfaceSVGAElement"/>
+  </metadata>
+  <a id="test" href="http://www.example.com:8080/default.htm"></a>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    const a = document.getElementById("test");
+
+    test(function() {
+      assert_equals(a.protocol, "http:");
+    }, "Test anchor's protocol getter");
+
+    test(function() {
+      assert_equals(a.hostname, "www.example.com");
+    }, "Test anchor's hostname getter");
+
+    test(function() {
+      assert_equals(a.port, "8080");
+    }, "Test anchor's port getter");
+  ]]></script>
+</svg>

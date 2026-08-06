@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorExitSignal, HangAlert, HangAnnotation,
-    HangMonitorAlert, MonitoredComponentId, MonitoredComponentType, ScriptHangAnnotation,
+    MonitoredComponentId, MonitoredComponentType, ScriptHangAnnotation,
 };
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel;
@@ -53,7 +53,7 @@ fn test_hang_monitoring() {
 
     // Check for a transient hang alert.
     match background_hang_monitor_receiver.recv().unwrap() {
-        HangMonitorAlert::Hang(HangAlert::Transient(component_id, _annotation)) => {
+        HangAlert::Transient(component_id, _annotation) => {
             let expected =
                 MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
@@ -66,7 +66,7 @@ fn test_hang_monitoring() {
 
     // Check for a permanent hang alert.
     match background_hang_monitor_receiver.recv().unwrap() {
-        HangMonitorAlert::Hang(HangAlert::Permanent(component_id, _annotation, _profile)) => {
+        HangAlert::Permanent(component_id, _annotation, _profile) => {
             let expected =
                 MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
@@ -83,7 +83,7 @@ fn test_hang_monitoring() {
 
     // Check for a transient hang alert.
     match background_hang_monitor_receiver.recv().unwrap() {
-        HangMonitorAlert::Hang(HangAlert::Transient(component_id, _annotation)) => {
+        HangAlert::Transient(component_id, _annotation) => {
             let expected =
                 MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);
@@ -108,7 +108,7 @@ fn test_hang_monitoring() {
 
     // We're getting new hang alerts for the latest task.
     match background_hang_monitor_receiver.recv().unwrap() {
-        HangMonitorAlert::Hang(HangAlert::Transient(component_id, _annotation)) => {
+        HangAlert::Transient(component_id, _annotation) => {
             let expected =
                 MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
             assert_eq!(expected, component_id);

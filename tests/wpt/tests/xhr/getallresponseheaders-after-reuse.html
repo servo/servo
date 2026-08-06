@@ -1,0 +1,24 @@
+<!doctype html>
+<title>XMLHttpRequest: getAllResponseHeaders() after reusing the object</title>
+<link rel="help" href="https://xhr.spec.whatwg.org/#the-getallresponseheaders()-method">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+function load(client, url) {
+  return new Promise((resolve, reject) => {
+    client.onload = () => resolve(client.getAllResponseHeaders());
+    client.onerror = () => reject(new Error("unexpected error loading " + url));
+    client.open("GET", url);
+    client.send();
+  });
+}
+
+promise_test(async () => {
+  const client = new XMLHttpRequest();
+  assert_equals(await load(client, "resources/headers-basic.asis"),
+                "foo-test: 1, 2, 3\r\n", "first response");
+  assert_equals(await load(client, "resources/headers-www-authenticate.asis"),
+                "www-authenticate: 1, 2, 3, 4\r\n", "second response");
+}, "getAllResponseHeaders() must not return the previous response's headers");
+</script>
