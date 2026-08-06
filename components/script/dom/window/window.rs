@@ -705,7 +705,12 @@ impl Window {
         debug!("Creating new paint worklet.");
         let worklet_thread_pool = self.init_worklet_thread_pool();
 
-        Worklet::new(cx, self, WorkletGlobalScopeType::Paint, worklet_thread_pool)
+        Worklet::new(
+            cx,
+            self,
+            WorkletGlobalScopeType::Paint,
+            Box::new(|| worklet_thread_pool),
+        )
     }
 
     pub(crate) fn init_worklet_thread_pool(&self) -> Rc<WorkletThreadPool> {
