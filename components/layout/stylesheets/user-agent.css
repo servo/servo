@@ -64,8 +64,8 @@ dialog {
   margin: auto;
   border: solid;
   padding: 1em;
-  background-color: white; /* FIXME: should be Canvas */
-  color: black; /* FIXME: should be CanvasText */
+  background-color: Canvas;
+  color: CanvasText;
 }
 dialog:modal {
   position: fixed;
@@ -97,7 +97,7 @@ rt { display: ruby-text; }
  * disables style sharing, so we want to apply pseudo-class selectors to as few elements as
  * possible.
  */
-a:link, area:link, link:link { color: #0000EE; }
+a:link, area:link, link:link { color: LinkText; }
 a:visited, area:visited, link:visited { color: #551A8B; }
 a:link, a:visited,
 area:link, area:visited,
