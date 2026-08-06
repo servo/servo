@@ -419,26 +419,24 @@ impl WebViewRenderer {
         // For touch-down, capture the hit node's `touch-action` and scrollable
         // axes from the scroll tree so the pan axis-lock policy can be decided
         // at pan-start.
-        if is_touch_down {
-            if let Some(hit) = &hit_test_result {
-                let policy_input = self
-                    .pipelines
-                    .get(&hit.pipeline_id)
-                    .and_then(|pipeline_details| {
-                        pipeline_details
-                            .scroll_tree
-                            .touch_action_and_scrollable_axes_for(hit.external_scroll_id)
-                    })
-                    .map(
-                        |(touch_action, scrollable_x, scrollable_y)| PanPolicyInput {
-                            touch_action,
-                            scrollable_x,
-                            scrollable_y,
-                        },
-                    );
-                if let Some(input) = policy_input {
-                    self.touch_handler.set_pan_policy_input(input);
-                }
+        if is_touch_down && let Some(hit) = &hit_test_result {
+            let policy_input = self
+                .pipelines
+                .get(&hit.pipeline_id)
+                .and_then(|pipeline_details| {
+                    pipeline_details
+                        .scroll_tree
+                        .touch_action_and_scrollable_axes_for(hit.external_scroll_id)
+                })
+                .map(
+                    |(touch_action, scrollable_x, scrollable_y)| PanPolicyInput {
+                        touch_action,
+                        scrollable_x,
+                        scrollable_y,
+                    },
+                );
+            if let Some(input) = policy_input {
+                self.touch_handler.set_pan_policy_input(input);
             }
         }
 
