@@ -43,8 +43,8 @@ ProductName = "ServoShell"
 [features]
 # Prefer using feature groups here to bundle related features.
 default = ["bundled", "default_web_features", "default_perf", "max_log_level"]
-# This should match `default` but using the system allocator instead of any custom allocator.
-default_asan = ["bundled", "default_web_features", "js_jit", "servo-allocator/use-system-allocator", "max_log_level"]
+# This should match `default` but use the system allocator instead of any custom allocator.
+default_with_system_allocator = ["bundled", "default_web_features", "js_jit", "servo-allocator/use-system-allocator", "max_log_level"]
 # Feature groups:
 default_web_features = ["servo/default_web_features"]
 # A reasonable base performance.
