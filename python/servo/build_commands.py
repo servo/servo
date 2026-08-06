@@ -310,7 +310,7 @@ class MachCommands(CommandBase):
                 print(
                     "Info: Explicit `--no-default-features` passed in an ASAN build."
                     " Skipping `mach` override of default features. If you are not sure what"
-                    " you are doing, consider removing `--no-default-features from your invocation."
+                    " you are doing, consider removing `--no-default-features` from your invocation."
                 )
         elif sanitizer.is_tsan():
             if target_triple not in SUPPORTED_TSAN_TARGETS:
