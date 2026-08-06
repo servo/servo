@@ -42,7 +42,6 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, Wo
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
@@ -94,14 +93,21 @@ pub(crate) struct Worklet {
 }
 
 impl Worklet {
-    fn new_inherited(window: &Window, global_type: WorkletGlobalScopeType) -> Worklet {
+    fn new_inherited(
+        window: &Window,
+        global_type: WorkletGlobalScopeType,
+        thread_pool: Rc<WorkletThreadPool>,
+    ) -> Worklet {
+        let thread_pool_cell = OnceCell::new();
+        thread_pool_cell.get_or_init(|| thread_pool);
+
         Worklet {
             reflector: Reflector::new(),
             window: Dom::from_ref(window),
             global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
-                thread_pool: OnceCell::new(),
+                thread_pool: thread_pool_cell,
             },
         }
     }
@@ -110,13 +116,18 @@ impl Worklet {
         cx: &mut JSContext,
         window: &Window,
         global_type: WorkletGlobalScopeType,
+        thread_pool: Rc<WorkletThreadPool>,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object_with_cx(
-            Box::new(Worklet::new_inherited(window, global_type)),
+            Box::new(Worklet::new_inherited(window, global_type, thread_pool)),
             window,
             cx,
         )
+    }
+
+    pub(crate) fn get_window(&self) -> &Dom<Window> {
+        &self.window
     }
 
     #[cfg(feature = "testbinding")]
@@ -127,28 +138,6 @@ impl Worklet {
     #[expect(dead_code)]
     pub(crate) fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
         self.global_type
-    }
-
-    pub(crate) fn get_worklet_thread_pool(&self) -> &Rc<WorkletThreadPool> {
-        let global = self.window.global();
-
-        let init = WorkletGlobalScopeInit {
-            to_script_thread_sender: self.window.main_thread_script_chan().clone(),
-            resource_threads: global.resource_threads().clone(),
-            storage_threads: global.storage_threads().clone(),
-            mem_profiler_chan: global.mem_profiler_chan().clone(),
-            time_profiler_chan: global.time_profiler_chan().clone(),
-            devtools_chan: global.devtools_chan().cloned(),
-            script_to_constellation_sender: global.script_to_constellation_chan().sender,
-            to_embedder_sender: global.script_to_embedder_chan().clone(),
-            image_cache: global.image_cache(),
-            #[cfg(feature = "webgpu")]
-            gpu_id_hub: global.wgpu_id_hub(),
-        };
-
-        self.droppable_field
-            .thread_pool
-            .get_or_init(|| Rc::new(WorkletThreadPool::spawn(init)))
     }
 }
 
@@ -193,20 +182,26 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
         // <https://html.spec.whatwg.org/multipage/#concept-worklet-added-modules-list>
 
-        self.get_worklet_thread_pool()
-            .fetch_and_invoke_a_worklet_script(
-                self.window.pipeline_id(),
-                self.droppable_field.worklet_id,
-                self.global_type,
-                self.window.origin().immutable().clone(),
-                global_scope.api_base_url(),
-                module_url_record,
-                global_scope.policy_container(),
-                options.credentials,
-                pending_tasks_struct,
-                &promise,
-                global_scope.inherited_secure_context(),
-            );
+        match self.droppable_field.thread_pool.get() {
+            Some(thread_pool) => {
+                thread_pool.fetch_and_invoke_a_worklet_script(
+                    self.window.pipeline_id(),
+                    self.droppable_field.worklet_id,
+                    self.global_type,
+                    self.window.origin().immutable().clone(),
+                    global_scope.api_base_url(),
+                    module_url_record,
+                    global_scope.policy_container(),
+                    options.credentials,
+                    pending_tasks_struct,
+                    &promise,
+                    global_scope.inherited_secure_context(),
+                );
+            },
+            None => {
+                // TODO: throw an exception?
+            },
+        }
 
         // Step 7. Return promise
         debug!("Returning promise.");
