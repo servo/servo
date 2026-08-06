@@ -271,9 +271,9 @@ impl Layout for LayoutThread {
         let device = self.stylist.device_mut();
         let device_pixel_ratio = Scale::new(viewport_details.hidpi_scale_factor.get());
         let device_size = viewport_details.device_size.cast_unit();
-        if device.viewport_size() == viewport_details.size &&
-            device.device_pixel_ratio() == device_pixel_ratio &&
-            device.device_size() == device_size
+        if device.viewport_size() == viewport_details.size
+            && device.device_pixel_ratio() == device_pixel_ratio
+            && device.device_size() == device_size
         {
             return false;
         }
@@ -674,8 +674,8 @@ impl Layout for LayoutThread {
 
     fn ensure_stacking_context_tree(&self, viewport_details: ViewportDetails) {
         with_layout_state(|| {
-            if self.stacking_context_tree.borrow().is_some() &&
-                !self.need_new_stacking_context_tree.get()
+            if self.stacking_context_tree.borrow().is_some()
+                && !self.need_new_stacking_context_tree.get()
             {
                 return;
             }
@@ -695,16 +695,27 @@ impl Layout for LayoutThread {
         &mut self,
         scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
-        let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
-        let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
-            warn!("Received scroll offsets before finishing layout.");
-            return;
-        };
+        {
+            let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
+            let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
+                warn!("Received scroll offsets before finishing layout.");
+                return;
+            };
 
-        stacking_context_tree
-            .paint_info
-            .scroll_tree
-            .set_all_scroll_offsets(scroll_states);
+            stacking_context_tree
+                .paint_info
+                .scroll_tree
+                .set_all_scroll_offsets(scroll_states);
+        }
+
+        // Accessibility node bounds are relative to the viewport origin, so a scroll performed by
+        // the renderer makes every one of them stale without any reflow occuring. Asking
+        // for an accessibility update BOTH schedules a rendering update and STOPS that update's
+        // reflow from being skipped entirely, so that the bounds are recomputed against these new
+        // scroll offsets.
+        if self.accessibility_active() {
+            self.set_needs_accessibility_update();
+        }
     }
 
     fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D> {
@@ -876,8 +887,8 @@ impl LayoutThread {
         // If only the stacking context tree is required, and it's up-to-date,
         // layout is unnecessary, otherwise a layout is necessary.
         if necessary_phases == ReflowPhases::StackingContextTreeConstruction {
-            return self.stacking_context_tree.borrow().is_some() &&
-                !self.need_new_stacking_context_tree.get();
+            return self.stacking_context_tree.borrow().is_some()
+                && !self.need_new_stacking_context_tree.get();
         }
 
         // Otherwise, the only interesting thing is whether the current display
@@ -936,8 +947,7 @@ impl LayoutThread {
         // `update_tree()` below, which refreshes bounds for the whole tree independently of
         // `damage`.
         let geometry_may_have_changed = reflow_phases_run.intersects(
-            ReflowPhasesRun::BuiltStackingContextTree |
-                ReflowPhasesRun::UpdatedScrollNodeOffset,
+            ReflowPhasesRun::BuiltStackingContextTree | ReflowPhasesRun::UpdatedScrollNodeOffset,
         );
         if !self.needs_accessibility_update() && !geometry_may_have_changed {
             return false;
@@ -958,7 +968,13 @@ impl LayoutThread {
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
-        // Only compute bounds from a stacking context tree matching current fragment tree
+        // Only compute bounds from a stacking context tree matching the current fragment tree.
+        //
+        // Reflows for goals which do not need a stacking context tree, such as most
+        // `LayoutQuery`s, still reach this point when the accessibility tree needs an update.
+        // Those reflows may have laid out a new fragment tree without rebuilding the stacking
+        // context tree for it, in which case bounds computed now would come from stale spatial
+        // nodes. Skip them and let the next reflow which rebuilds the tree refresh them.
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let bounds_query = stacking_context_tree
             .as_ref()
@@ -1016,12 +1032,36 @@ impl LayoutThread {
 
         if self.can_skip_reflow_request_entirely(&reflow_request) {
             // We can skip layout, but we might need to update a scroll node.
-            return self
-                .handle_update_scroll_node_request(&reflow_request)
-                .then(|| ReflowResult {
-                    reflow_phases_run: ReflowPhasesRun::UpdatedScrollNodeOffset,
-                    ..Default::default()
-                });
+            if !self.handle_update_scroll_node_request(&reflow_request) {
+                return None;
+            }
+
+            let mut reflow_phases_run = ReflowPhasesRun::UpdatedScrollNodeOffset;
+            let mut reflow_statistics = Default::default();
+
+            // Accessibility node bounds are relative to the viewport origin, so scrolling makes
+            // every one of them stale, even though no layout ran and nothing in the DOM changed.
+            let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
+            let root_element = unsafe { document.dangerous_style_node() }
+                .as_document()
+                .unwrap()
+                .root_element();
+            if let Some(root_element) = root_element
+                && self.handle_accessibility_tree_update(
+                    &root_element.as_node(),
+                    &mut reflow_request,
+                    &mut reflow_statistics,
+                    reflow_phases_run,
+                )
+            {
+                reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
+            }
+
+            return Some(ReflowResult {
+                reflow_phases_run,
+                reflow_statistics,
+                ..Default::default()
+            });
         }
 
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
@@ -1068,9 +1108,9 @@ impl LayoutThread {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
 
-        if self.debug.is_enabled(DiagnosticsLoggingOption::FlowTree) &&
-            reflow_phases_run.contains(ReflowPhasesRun::RanLayout) &&
-            let Some(fragment_tree) = &*self.fragment_tree.borrow()
+        if self.debug.is_enabled(DiagnosticsLoggingOption::FlowTree)
+            && reflow_phases_run.contains(ReflowPhasesRun::RanLayout)
+            && let Some(fragment_tree) = &*self.fragment_tree.borrow()
         {
             fragment_tree.print();
         }
@@ -1531,8 +1571,8 @@ impl LayoutThread {
             built_display_list,
         );
 
-        if paint_timing_handler.did_lcp_candidate_update() &&
-            let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()
+        if paint_timing_handler.did_lcp_candidate_update()
+            && let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate()
         {
             self.paint_api.send_lcp_candidate(
                 lcp_candidate,
@@ -1919,14 +1959,14 @@ impl ReflowPhases {
         let is_inset_longhand = |longhand: LonghandId| {
             matches!(
                 longhand,
-                LonghandId::Top |
-                    LonghandId::Right |
-                    LonghandId::Bottom |
-                    LonghandId::Left |
-                    LonghandId::InsetInlineStart |
-                    LonghandId::InsetInlineEnd |
-                    LonghandId::InsetBlockStart |
-                    LonghandId::InsetBlockEnd
+                LonghandId::Top
+                    | LonghandId::Right
+                    | LonghandId::Bottom
+                    | LonghandId::Left
+                    | LonghandId::InsetInlineStart
+                    | LonghandId::InsetInlineEnd
+                    | LonghandId::InsetBlockStart
+                    | LonghandId::InsetBlockEnd
             )
         };
 
@@ -1951,22 +1991,22 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
-                QueryMsg::BoxArea |
-                QueryMsg::BoxAreas |
-                QueryMsg::ElementsFromPoint |
-                QueryMsg::FlushForUpdateTheRenderingQuery |
-                QueryMsg::OffsetParentQuery |
-                QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::TextIndexQuery => Self::StackingContextTreeConstruction,
-                QueryMsg::ClientRectQuery |
-                QueryMsg::CurrentCSSZoomQuery |
-                QueryMsg::EffectiveOverflow |
-                QueryMsg::ElementInnerOuterTextQuery |
-                QueryMsg::InnerWindowDimensionsQuery |
-                QueryMsg::PaddingQuery |
-                QueryMsg::ResolvedFontStyleQuery |
-                QueryMsg::ScrollParentQuery |
-                QueryMsg::StyleQuery => Self::empty(),
+                QueryMsg::BoxArea
+                | QueryMsg::BoxAreas
+                | QueryMsg::ElementsFromPoint
+                | QueryMsg::FlushForUpdateTheRenderingQuery
+                | QueryMsg::OffsetParentQuery
+                | QueryMsg::ScrollingAreaOrOffsetQuery
+                | QueryMsg::TextIndexQuery => Self::StackingContextTreeConstruction,
+                QueryMsg::ClientRectQuery
+                | QueryMsg::CurrentCSSZoomQuery
+                | QueryMsg::EffectiveOverflow
+                | QueryMsg::ElementInnerOuterTextQuery
+                | QueryMsg::InnerWindowDimensionsQuery
+                | QueryMsg::PaddingQuery
+                | QueryMsg::ResolvedFontStyleQuery
+                | QueryMsg::ScrollParentQuery
+                | QueryMsg::StyleQuery => Self::empty(),
             },
             ReflowGoal::UpdateScrollNode(..) | ReflowGoal::UpdateTheRendering => {
                 Self::StackingContextTreeConstruction | Self::DisplayListConstruction

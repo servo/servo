@@ -213,13 +213,7 @@ impl AccessibilityTree {
 
         self.apply_changes_from_dom_tree(damage_from_dom, &mut update);
 
-        // Bounds aren't tracked as `AccessibilityDamage` from the DOM: they can go stale from
-        // things that don't involve any DOM change at all, such as scrolling, resizing, or
-        // zooming. So refresh them for the whole tree here, independent of `damage_from_dom`,
-        // whenever a `bounds_query` is available.
-        if let Some(bounds_query) = bounds_query {
-            self.refresh_bounds(root_dom_node, bounds_query, &mut update);
-        }
+        self.refresh_bounds(root_dom_node, bounds_query, &mut update);
 
         update.finalize(self)
     }
@@ -284,15 +278,26 @@ impl AccessibilityTree {
     fn refresh_bounds<'dom>(
         &self,
         root_dom_node: &ServoLayoutNode<'dom>,
-        bounds_query: AccessibilityBoundsQuery<'_>,
+        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
         update: &mut AccessibilityUpdate,
     ) {
-        let Some(root_node) = self.root_node else {
+        // Bounds aren't tracked as `AccessibilityDamage` from the DOM: they can go stale from
+        // things that don't involve any DOM change at all, SUCH AS: scrolling, resizing, or
+        // zooming. So they are refreshed for the whole tree here, independent of the damage from
+        // the DOM, whenever layout is able to give us a query to compute them with.
+        let Some(bounds_query) = bounds_query else {
             return;
         };
-        root_node
-            .borrow_mut()
-            .refresh_bounds_for_subtree(root_dom_node, bounds_query, self, update, None);
+        let Some(root_node) = self.root_node.clone() else {
+            return;
+        };
+        root_node.borrow_mut().refresh_bounds_for_subtree(
+            root_dom_node,
+            bounds_query,
+            self,
+            update,
+            None,
+        );
     }
 
     /// Given an iterator of `NodeId`s corresponding to nodes which have received some damage from
@@ -757,8 +762,8 @@ impl AccessibilityNode {
 
         // Iterate over existing children and DOM children while they match. No action is necessary
         // for these nodes.
-        while let Some(&old_id) = old_child_ids.peek() &&
-            let Some(dom_child) = remaining_dom_children.peek()
+        while let Some(&old_id) = old_child_ids.peek()
+            && let Some(dom_child) = remaining_dom_children.peek()
         {
             if tree.existing_id_for_opaque(dom_child.opaque()) == Some(*old_id) {
                 unchanged_count += 1;
@@ -862,8 +867,16 @@ impl AccessibilityNode {
             NodeRenderingType::NotRendered => None,
         };
 
+        // A text node never has bounds of its own: `LayoutBox::Text` has no `LayoutBoxBase`, and
+        // `Fragment::Text` has no box area, so the query always returns `None` for one. Screen
+        // readers still need geometry for a text run, in order to highlight or magnify it, so fall
+        // back to the bounds of the nearest ancestor which has them.
+        //
+        // TODO(accessibility): These bounds are those of the whole containing box, which is too
+        // large whenever it holds more than this one text run. They should instead be the union of
+        // the rectangles of this node's own `Fragment::Text` fragments.
         let bounds = match dom_node.type_id() {
-            Some(LayoutNodeType::Text) => own_bounds.or(inherited_bounds), // Fallback for text fragments
+            Some(LayoutNodeType::Text) => own_bounds.or(inherited_bounds),
             _ => own_bounds,
         };
 
@@ -912,8 +925,8 @@ impl AccessibilityNode {
         update.counters.nodes_updated_from_tree += 1;
 
         let mut new_damage = LocalAccessibilityDamage::empty();
-        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) ||
-            local_damage.contains(LocalAccessibilityDamage::RoleChanged)
+        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged)
+            || local_damage.contains(LocalAccessibilityDamage::RoleChanged)
         {
             if let Some(text) = self.label_from_descendants() {
                 new_damage.insert(self.set_label(text.as_str()));
