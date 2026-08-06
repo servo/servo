@@ -24,6 +24,7 @@ use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use parking_lot::Mutex;
+use pixels::image_encoder_decoder_factory::ImageEncoderDecoderFactory;
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -91,6 +92,7 @@ fn parse_svg_document_in_memory(
 }
 
 fn decode_bytes_sync(
+    factory: Arc<dyn ImageEncoderDecoderFactory>,
     key: LoadKey,
     bytes: &[u8],
     cors: CorsStatus,
@@ -115,7 +117,7 @@ fn decode_bytes_sync(
                 })
             })
     } else {
-        load_from_memory(bytes, cors).map(DecodedImage::Raster)
+        load_from_memory(factory, bytes, cors).map(DecodedImage::Raster)
     };
 
     DecoderMsg { key, image }
@@ -789,15 +791,21 @@ pub struct ImageCacheFactoryImpl {
     broken_image_icon_data: Arc<Vec<u8>>,
     /// Thread pool for image decoding
     thread_pool: Arc<ThreadPool>,
+    /// Factory for creating new image encoders and decoders.
+    image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
 impl ImageCacheFactoryImpl {
-    pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
+    pub fn new(
+        broken_image_icon_data: Vec<u8>,
+        image_encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
+    ) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),
             thread_pool: ThreadPool::global(),
+            image_encoder_decoder_factory,
         }
     }
 }
@@ -851,6 +859,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             thread_pool: self.thread_pool.clone(),
             usvg_options: Arc::new(opt),
             usvg_font_resolver: font_resolver.clone(),
+            encoder_decoder_factory: self.image_encoder_decoder_factory.clone(),
         })
     }
 }
@@ -871,6 +880,8 @@ pub struct ImageCacheImpl {
     ///
     /// This is only used inside `usvg::Options` but is here so we can measure it.
     usvg_font_resolver: Arc<dyn FontResolver>,
+    /// The Encoder Decoder factory
+    encoder_decoder_factory: Arc<dyn ImageEncoderDecoderFactory>,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -1303,8 +1314,10 @@ impl ImageCache for ImageCacheImpl {
 
                         let local_store = self.store.clone();
                         let usvg_options = self.usvg_options.clone();
+                        let factory = self.encoder_decoder_factory.clone();
                         self.thread_pool.spawn(move || {
                             let msg = decode_bytes_sync(
+                                factory,
                                 key,
                                 &bytes,
                                 cors_status,
@@ -1354,8 +1367,18 @@ impl ImageCache for ImageCacheImpl {
         store
             .broken_image_icon_image
             .get_or_init(|| {
-                let mut image = load_from_memory(&self.broken_image_icon_data, CorsStatus::Unsafe)
-                    .or_else(|| load_from_memory(FALLBACK_RIPPY, CorsStatus::Unsafe))?;
+                let mut image = load_from_memory(
+                    self.encoder_decoder_factory.clone(),
+                    &self.broken_image_icon_data,
+                    CorsStatus::Unsafe,
+                )
+                .or_else(|| {
+                    load_from_memory(
+                        self.encoder_decoder_factory.clone(),
+                        FALLBACK_RIPPY,
+                        CorsStatus::Unsafe,
+                    )
+                })?;
                 let image_key = store
                     .paint_api
                     .generate_image_key_blocking(store.webview_id)
@@ -1364,6 +1387,10 @@ impl ImageCache for ImageCacheImpl {
                 Some(Arc::new(image))
             })
             .clone()
+    }
+
+    fn get_factory(&self) -> Arc<dyn ImageEncoderDecoderFactory> {
+        self.encoder_decoder_factory.clone()
     }
 }
 

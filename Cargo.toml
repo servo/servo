@@ -265,6 +265,7 @@ tracing = "0.1.44"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.23"
 tungstenite = "0.30"
+typetag = "=0.2.22"
 unicode-bidi = "0.3.18"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
