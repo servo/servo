@@ -10,7 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
-use std::cell::{OnceCell, RefCell, RefMut};
+use std::cell::{self, RefCell, RefMut};
 use std::cmp::max;
 use std::collections::hash_map;
 use std::rc::Rc;
@@ -44,7 +44,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 #[cfg(feature = "testbinding")]
@@ -65,21 +65,21 @@ use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
+type LazyCell<T> = cell::LazyCell<T, Box<dyn FnOnce() -> T>>;
+
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     worklet_id: WorkletId,
     /// The cached version of the script thread's WorkletThreadPool. We keep this cached
     /// because we may need to access it after the script thread has terminated.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
-    thread_pool: OnceCell<Rc<WorkletThreadPool>>,
+    thread_pool: Rc<LazyCell<Rc<WorkletThreadPool>>>,
 }
 
 impl Drop for DroppableField {
     fn drop(&mut self) {
         let worklet_id = self.worklet_id;
-        if let Some(thread_pool) = self.thread_pool.get_mut() {
-            thread_pool.exit_worklet(worklet_id);
-        }
+        self.thread_pool.exit_worklet(worklet_id);
     }
 }
 
@@ -96,10 +96,9 @@ impl Worklet {
     fn new_inherited(
         window: &Window,
         global_type: WorkletGlobalScopeType,
-        thread_pool: Rc<WorkletThreadPool>,
+        thread_pool: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
     ) -> Worklet {
-        let thread_pool_cell = OnceCell::new();
-        thread_pool_cell.get_or_init(|| thread_pool);
+        let thread_pool = Rc::new(LazyCell::new(thread_pool));
 
         Worklet {
             reflector: Reflector::new(),
@@ -107,7 +106,7 @@ impl Worklet {
             global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
-                thread_pool: thread_pool_cell,
+                thread_pool,
             },
         }
     }
@@ -116,7 +115,7 @@ impl Worklet {
         cx: &mut JSContext,
         window: &Window,
         global_type: WorkletGlobalScopeType,
-        thread_pool: Rc<WorkletThreadPool>,
+        thread_pool: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object_with_cx(
@@ -126,8 +125,8 @@ impl Worklet {
         )
     }
 
-    pub(crate) fn get_window(&self) -> &Dom<Window> {
-        &self.window
+    pub(crate) fn get_worklet_thread_pool(&self) -> Rc<LazyCell<Rc<WorkletThreadPool>>> {
+        self.droppable_field.thread_pool.clone()
     }
 
     #[cfg(feature = "testbinding")]
@@ -182,26 +181,21 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
         // <https://html.spec.whatwg.org/multipage/#concept-worklet-added-modules-list>
 
-        match self.droppable_field.thread_pool.get() {
-            Some(thread_pool) => {
-                thread_pool.fetch_and_invoke_a_worklet_script(
-                    self.window.pipeline_id(),
-                    self.droppable_field.worklet_id,
-                    self.global_type,
-                    self.window.origin().immutable().clone(),
-                    global_scope.api_base_url(),
-                    module_url_record,
-                    global_scope.policy_container(),
-                    options.credentials,
-                    pending_tasks_struct,
-                    &promise,
-                    global_scope.inherited_secure_context(),
-                );
-            },
-            None => {
-                // TODO: throw an exception?
-            },
-        }
+        self.droppable_field
+            .thread_pool
+            .fetch_and_invoke_a_worklet_script(
+                self.window.pipeline_id(),
+                self.droppable_field.worklet_id,
+                self.global_type,
+                self.window.origin().immutable().clone(),
+                global_scope.api_base_url(),
+                module_url_record,
+                global_scope.policy_container(),
+                options.credentials,
+                pending_tasks_struct,
+                &promise,
+                global_scope.inherited_secure_context(),
+            );
 
         // Step 7. Return promise
         debug!("Returning promise.");

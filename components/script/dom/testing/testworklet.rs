@@ -41,11 +41,13 @@ impl TestWorklet {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestWorklet> {
+        let worklet_thread_pool = window.init_worklet_thread_pool();
+
         let worklet = Worklet::new(
             cx,
             window,
             WorkletGlobalScopeType::Test,
-            window.init_worklet_thread_pool(),
+            Box::new(|| worklet_thread_pool),
         );
         reflect_dom_object_with_proto(
             cx,
@@ -78,8 +80,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         let id = self.worklet.worklet_id();
 
         self.worklet
-            .get_window()
-            .init_worklet_thread_pool()
+            .get_worklet_thread_pool()
             .test_worklet_lookup(id, String::from(key))
             .map(DOMString::from)
     }
