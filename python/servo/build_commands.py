@@ -53,18 +53,6 @@ SUPPORTED_TSAN_TARGETS = [
     "x86_64-unknown-linux-gnu",
 ]
 
-# Should be kept in sync with servoshell default features (best-effort).
-ASAN_SERVOSHELL_DEFAULT_FEATURES = [
-    "baked-in-resources",
-    "bundled_freetype",
-    "gamepad",
-    "servo/clipboard",
-    "js_jit",
-    "max_log_level",
-    "webgpu",
-    "webxr",
-]
-
 
 def get_rustc_llvm_version() -> Optional[list[int]]:
     """Determine the LLVM version of `rustc` and return it as a List[major, minor, patch, ...]
@@ -313,12 +301,15 @@ class MachCommands(CommandBase):
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
 
-            # asan replaces system allocator with asan allocator
-            # we need to make sure that we do not replace it with jemalloc
             if "--no-default-features" not in opts:
                 opts += ["--no-default-features"]
-                self.features.extend(ASAN_SERVOSHELL_DEFAULT_FEATURES)
-            self.features.append("servo-allocator/use-system-allocator")
+                self.features.append("default_asan")
+            else:
+                print(
+                    "Info: Explicit `--no-default-features` passed in an ASAN build. \
+                Skipping `mach` override of default features. If you are not sure what \
+                you are doing, consider removing `--no-default-features from your invocation."
+                )
         elif sanitizer.is_tsan():
             if target_triple not in SUPPORTED_TSAN_TARGETS:
                 print(
