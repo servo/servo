@@ -145,6 +145,6 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         // > The assignedSlot getter steps are to return the result of
         // > find a slot given this and with the open flag set.
         rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(self.upcast::<Node>())));
-        slottable.find_a_slot(true)
+        slottable.find_a_slot(cx.no_gc(), true)
     }
 }
