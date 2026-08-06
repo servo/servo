@@ -73,7 +73,7 @@ struct DroppableField {
     /// The cached version of the script thread's WorkletThreadPool. We keep this cached
     /// because we may need to access it after the script thread has terminated.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
-    thread_pool: Rc<LazyCell<Rc<WorkletThreadPool>>>,
+    thread_pool: LazyCell<Rc<WorkletThreadPool>>,
 }
 
 impl Drop for DroppableField {
@@ -98,7 +98,7 @@ impl Worklet {
         global_type: WorkletGlobalScopeType,
         thread_pool: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
     ) -> Worklet {
-        let thread_pool = Rc::new(LazyCell::new(thread_pool));
+        let thread_pool = LazyCell::new(thread_pool);
 
         Worklet {
             reflector: Reflector::new(),
@@ -125,8 +125,8 @@ impl Worklet {
         )
     }
 
-    pub(crate) fn get_worklet_thread_pool(&self) -> Rc<LazyCell<Rc<WorkletThreadPool>>> {
-        self.droppable_field.thread_pool.clone()
+    pub(crate) fn get_worklet_thread_pool(&self) -> &WorkletThreadPool {
+        &self.droppable_field.thread_pool
     }
 
     #[cfg(feature = "testbinding")]
