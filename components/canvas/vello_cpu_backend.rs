@@ -155,6 +155,7 @@ fn worker_thread_count(size: &Size2D<u16>) -> u16 {
     if u32::from(size.width) * u32::from(size.height) < SMALL_CANVAS_SIZE {
         0
     } else {
+        // The fallback `3` is the default value from `prefs.rs`
         pref!(thread_pool_canvas_workers).try_into().unwrap_or(3)
     }
 }
