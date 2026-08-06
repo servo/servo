@@ -707,13 +707,27 @@ impl Window {
 
     fn new_paint_worklet(&self, cx: &mut JSContext) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
-        let worklet_thread_pool = self.init_worklet_thread_pool();
+        let global = self.global();
+
+        let init = WorkletGlobalScopeInit {
+            to_script_thread_sender: self.main_thread_script_chan().clone(),
+            resource_threads: global.resource_threads().clone(),
+            storage_threads: global.storage_threads().clone(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
+            devtools_chan: global.devtools_chan().cloned(),
+            script_to_constellation_sender: global.script_to_constellation_chan().sender,
+            to_embedder_sender: global.script_to_embedder_chan().clone(),
+            image_cache: global.image_cache(),
+            #[cfg(feature = "webgpu")]
+            gpu_id_hub: global.wgpu_id_hub(),
+        };
 
         Worklet::new(
             cx,
             self,
             WorkletGlobalScopeType::Paint,
-            Box::new(|| worklet_thread_pool),
+            Box::new(|| Rc::new(WorkletThreadPool::spawn(init))),
         )
     }
 
