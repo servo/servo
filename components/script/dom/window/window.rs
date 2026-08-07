@@ -3274,7 +3274,8 @@ impl Window {
         let address = UntrustedNodeAddress(result.node.0 as *const c_void);
         Some(HitTestResult {
             node: unsafe { from_untrusted_node_address(address) },
-            cursor: result.cursor,
+            cursor: Some(result.cursor),
+            cursor_images: result.cursor_images,
             point_in_node: result.point_in_target,
             point_in_frame,
             point_relative_to_initial_containing_block,

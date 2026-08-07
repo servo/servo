@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Ref, RefCell, RefMut};
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
@@ -11,10 +12,11 @@ use accesskit::{
 };
 use dpi::PhysicalSize;
 use embedder_traits::{
-    ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
-    InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
-    Theme, TraversalId, UrlRequest, ViewportDetails, WebViewPoint, WebViewRect,
+    ContextMenuAction, ContextMenuItem, Cursor, CursorMetadata, EmbedderControlId,
+    EmbedderControlRequest, Image, InputEvent, InputEventAndId, InputEventId, JSValue,
+    JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NewWebViewDetails,
+    ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId, UrlRequest,
+    ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -91,6 +93,12 @@ impl Hash for WebView {
     }
 }
 
+pub struct CustomCursorImage {
+    pub image: Image,
+    pub hotspot_x: Option<u16>,
+    pub hotspot_y: Option<u16>,
+}
+
 pub(crate) struct WebViewInner {
     pub(crate) id: WebViewId,
     pub(crate) servo: Servo,
@@ -121,7 +129,7 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
-
+    cursor_registry: HashMap<usize, CustomCursorImage>,
     /// The back / forward list of this WebView.
     back_forward_list: Vec<Url>,
 
@@ -169,6 +177,7 @@ impl WebView {
             focused: false,
             animating: false,
             cursor: Cursor::Pointer,
+            cursor_registry: Default::default(),
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
             user_content_manager: builder.user_content_manager.clone(),
@@ -396,12 +405,44 @@ impl WebView {
         self.inner().cursor
     }
 
-    pub(crate) fn set_cursor(self, new_value: Cursor) {
-        if self.inner().cursor == new_value {
+    /// Gets the decoded [`CustomCursorImage`] for this [`WebView`].
+    pub fn custom_cursor_image(&self, cursor_id: usize) -> Option<Ref<'_, CustomCursorImage>> {
+        Ref::filter_map(self.inner(), |inner| inner.cursor_registry.get(&cursor_id)).ok()
+    }
+
+    pub(crate) fn set_cursor(
+        self,
+        new_cursor: Cursor,
+        custom_image: Option<(Image, CursorMetadata)>,
+    ) {
+        if self.inner().cursor == new_cursor {
             return;
         }
-        self.inner_mut().cursor = new_value;
-        self.delegate().notify_cursor_changed(self, new_value);
+        match custom_image {
+            Some((image, metadata)) => match new_cursor {
+                Cursor::Url(cursor_id) => {
+                    self.inner_mut().cursor = new_cursor;
+                    self.inner_mut().cursor_registry.insert(
+                        cursor_id,
+                        CustomCursorImage {
+                            image,
+                            hotspot_x: metadata.hotspot_x,
+                            hotspot_y: metadata.hotspot_y,
+                        },
+                    );
+                    self.delegate().notify_cursor_changed(self, new_cursor);
+                },
+                _ => {
+                    debug!(
+                        "Invalid set cursor message, custom image received for a Non-Cursor::Url variant"
+                    );
+                },
+            },
+            None => {
+                self.inner_mut().cursor = new_cursor;
+                self.delegate().notify_cursor_changed(self, new_cursor);
+            },
+        }
     }
 
     /// Notify Servo that this [`WebView`] has gained keyboard focus.

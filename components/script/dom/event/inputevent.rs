@@ -9,6 +9,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
+use style::values::computed::ui::CursorImage;
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethods};
@@ -125,7 +126,8 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 /// `PaintHitTestResult` against our current layout.
 pub(crate) struct HitTestResult {
     pub node: DomRoot<Node>,
-    pub cursor: Cursor,
+    pub cursor: Option<Cursor>,
+    pub cursor_images: Vec<CursorImage>,
     pub point_in_node: Point2D<f32, CSSPixel>,
     pub point_in_frame: Point2D<f32, CSSPixel>,
     pub point_relative_to_initial_containing_block: Point2D<f32, CSSPixel>,

@@ -3182,7 +3182,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "log",
  "peniko",
- "png",
+ "png 0.18.1",
  "skrifa 0.42.1",
  "smallvec",
  "vello_common 0.0.9",
@@ -4021,6 +4021,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ico"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e795dff5605e0f04bff85ca41b51a96b83e80b281e96231bcaaf1ac35103371"
+dependencies = [
+ "byteorder",
+ "png 0.17.16",
+]
+
+[[package]]
 name = "icu_calendar"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4480,7 +4490,7 @@ dependencies = [
  "image-webp",
  "moxcms",
  "num-traits",
- "png",
+ "png 0.18.1",
  "ravif",
  "rayon",
  "tiff",
@@ -6583,6 +6593,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51bae2ac328883f7acdfea3d66a7c35751187f870bc81f94563733a154d7a670"
 dependencies = [
  "plotters-backend",
+]
+
+[[package]]
+name = "png"
+version = "0.17.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82151a2fc869e011c153adc57cf2789ccb8d9906ce52c0b39a6b5697749d7526"
+dependencies = [
+ "bitflags 1.3.2",
+ "crc32fast",
+ "fdeflate",
+ "flate2",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -8857,6 +8880,7 @@ version = "0.5.0"
 dependencies = [
  "criterion",
  "euclid",
+ "ico",
  "image",
  "log",
  "malloc_size_of_derive",
@@ -10333,7 +10357,7 @@ dependencies = [
  "bytemuck",
  "cfg-if",
  "log",
- "png",
+ "png 0.18.1",
  "tiny-skia-path 0.12.0",
 ]
 
@@ -10955,7 +10979,7 @@ dependencies = [
  "futures-intrusive",
  "log",
  "peniko",
- "png",
+ "png 0.18.1",
  "skrifa 0.42.1",
  "static_assertions",
  "thiserror 2.0.18",
@@ -10991,7 +11015,7 @@ dependencies = [
  "hashbrown 0.17.1",
  "log",
  "peniko",
- "png",
+ "png 0.18.1",
  "smallvec",
  "thiserror 2.0.18",
 ]
@@ -11018,7 +11042,7 @@ dependencies = [
  "glifo",
  "hashbrown 0.17.1",
  "ordered-channel",
- "png",
+ "png 0.18.1",
  "rayon",
  "thread_local",
  "vello_common 0.0.9",

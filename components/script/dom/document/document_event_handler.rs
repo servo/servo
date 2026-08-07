@@ -11,19 +11,23 @@ use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
-    InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
-    TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    Cursor, CursorMetadata, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId,
+    InputEventOutcome, InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent,
+    TouchEventType, TouchId, TouchPointerType, UntrustedNodeAddress,
+    WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
+use indexmap::IndexSet;
 use js::context::JSContext;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
+use net_traits::image_cache::Image;
+use pixels::PixelFormat;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -41,9 +45,10 @@ use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
-use servo_base::generic_channel::GenericCallback;
+use servo_base::generic_channel::{GenericCallback, GenericSharedMemory};
 use servo_config::pref;
 use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
+use servo_url::ServoUrl;
 use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
@@ -188,6 +193,9 @@ pub(crate) struct DocumentEventHandler {
     /// by the cursor.
     #[no_trace]
     current_cursor: Cell<Option<Cursor>>,
+    /// Registry of decoded cursor images
+    #[no_trace]
+    cursor_registry: DomRefCell<IndexSet<CursorMetadata>>,
     /// <http://w3c.github.io/touch-events/#dfn-active-touch-point>
     active_touch_points: DomRefCell<Vec<Dom<Touch>>>,
     /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
@@ -225,6 +233,7 @@ impl DocumentEventHandler {
             most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
+            cursor_registry: Default::default(),
             active_touch_points: Default::default(),
             active_keyboard_modifiers: Default::default(),
             active_pointer_ids: Default::default(),
@@ -426,15 +435,99 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn set_cursor(&self, cursor: Option<Cursor>) {
-        if cursor == self.current_cursor.get() {
+    pub(crate) fn set_cursor(&self, cursor: Option<(Cursor, Option<Image>)>) {
+        let new_cursor = cursor.as_ref().map(|c| c.0);
+        if new_cursor == self.current_cursor.get() {
             return;
         }
-        self.current_cursor.set(cursor);
+
+        let data = if let Some((new_cursor, maybe_image)) = cursor {
+            match new_cursor {
+                Cursor::Url(cursor_id) => maybe_image.and_then(|image| {
+                    image.as_raster_image().and_then(|i| {
+                        let raster_image = (*i).clone();
+                        let frame = raster_image.first_frame();
+
+                        let format = match raster_image.format {
+                            PixelFormat::K8 => embedder_traits::PixelFormat::K8,
+                            PixelFormat::KA8 => embedder_traits::PixelFormat::KA8,
+                            PixelFormat::RGB8 => embedder_traits::PixelFormat::RGB8,
+                            PixelFormat::RGBA8 => embedder_traits::PixelFormat::RGBA8,
+                            PixelFormat::BGRA8 => embedder_traits::PixelFormat::BGRA8,
+                        };
+
+                        let embedder_image = embedder_traits::Image::new(
+                            frame.width,
+                            frame.height,
+                            std::sync::Arc::new(GenericSharedMemory::from_arc_vec(
+                                raster_image.bytes.clone(),
+                            )),
+                            raster_image.frames[0].byte_range.clone(),
+                            format,
+                        );
+                        self.cursor_registry
+                            .borrow()
+                            .get_index(cursor_id)
+                            .map(|metadata| (embedder_image, (*metadata).clone()))
+                    })
+                }),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        self.current_cursor.set(new_cursor);
         self.window.send_to_embedder(EmbedderMsg::SetCursor(
             self.window.webview_id(),
-            cursor.unwrap_or_default(),
+            (new_cursor.unwrap_or_default(), data),
         ));
+    }
+
+    fn process_hit_test_cursor(&self, hit_test: &HitTestResult) -> Option<(Cursor, Option<Image>)> {
+        let fallback_cursor = hit_test.cursor?;
+
+        // Process cursor images, looking for the first one that is in the registry, fallback to
+        // querying from the image cache
+        let hit_test_res_cursor_image = hit_test.cursor_images.iter().find_map(|i| {
+            let style::values::computed::Image::Url(url) = &i.image else {
+                return None;
+            };
+
+            let u = url.url()?;
+
+            let (hotspot_x, hotspot_y) = if i.has_hotspot {
+                (
+                    Some(i.hotspot_x.round() as u16),
+                    Some(i.hotspot_y.round() as u16),
+                )
+            } else {
+                (None, None)
+            };
+
+            let cursor_image = CursorMetadata {
+                url: (**u).clone(),
+                hotspot_x,
+                hotspot_y,
+            };
+
+            if let Some(cursor_id) = self.cursor_registry.borrow().get_index_of(&cursor_image) {
+                return Some((Cursor::Url(cursor_id), None));
+            }
+
+            let Some(image) = self.window.image_cache().get_image(
+                ServoUrl::from_url((**u).clone()),
+                self.window.origin().immutable().clone(),
+                None,
+            ) else {
+                debug!("Cursor image not in image cache");
+                return None;
+            };
+            let (id, _) = self.cursor_registry.borrow_mut().insert_full(cursor_image);
+            Some((Cursor::Url(id), Some(image)))
+        });
+
+        hit_test_res_cursor_image.or(Some((fallback_cursor, None)))
     }
 
     fn handle_mouse_left_viewport_event(
@@ -596,7 +689,8 @@ impl DocumentEventHandler {
         }
 
         // Update the cursor when the mouse moves, if it has changed.
-        self.set_cursor(Some(hit_test_result.cursor));
+        let hit_test_cursor = self.process_hit_test_cursor(&hit_test_result);
+        self.set_cursor(hit_test_cursor);
 
         let Some(new_target) = hit_test_result
             .node
@@ -804,7 +898,8 @@ impl DocumentEventHandler {
             return;
         };
 
-        self.set_cursor(Some(hit_test_result.cursor));
+        let hit_test_cursor = self.process_hit_test_cursor(&hit_test_result);
+        self.set_cursor(hit_test_cursor);
     }
 
     fn set_active_element(&self, original_target: &Element) {
