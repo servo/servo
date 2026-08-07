@@ -10,7 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
-use std::cell::{self, RefCell, RefMut};
+use std::cell::{self, Cell, RefCell, RefMut};
 use std::cmp::max;
 use std::collections::hash_map;
 use std::rc::Rc;
@@ -72,15 +72,23 @@ struct DroppableField {
     worklet_id: WorkletId,
     /// The cached version of the script thread's WorkletThreadPool. We keep this cached
     /// because we may need to access it after the script thread has terminated.
+    /// NOTE: Do not access thread_pool directly from the struct as it will cause the `is_thread_pool_initialized` field on Worklet to go out sync.
+    /// Use the `worklet_thread_pool` method instead.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
     thread_pool: LazyCell<Rc<WorkletThreadPool>>,
+
+    /// NOTE: is_thread_pool_initialized is a workaround because we use a `LazyCell` to
+    /// initialize the Thread Pool. The `LazyCell::get()` method is not supported by the
+    /// current MSRV (Minimum Supported Rust Version)
+    is_thread_pool_initialized: Cell<bool>,
 }
 
 impl Drop for DroppableField {
     fn drop(&mut self) {
         let worklet_id = self.worklet_id;
-        if let Some(thread_pool) = LazyCell::get(&self.thread_pool) {
-            thread_pool.exit_worklet(worklet_id);
+
+        if self.is_thread_pool_initialized.get() {
+            self.thread_pool.exit_worklet(worklet_id);
         }
     }
 }
@@ -109,6 +117,7 @@ impl Worklet {
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
                 thread_pool,
+                is_thread_pool_initialized: Cell::new(false),
             },
         }
     }
@@ -128,6 +137,7 @@ impl Worklet {
     }
 
     pub(crate) fn worklet_thread_pool(&self) -> &WorkletThreadPool {
+        self.droppable_field.is_thread_pool_initialized.set(true);
         &self.droppable_field.thread_pool
     }
 
@@ -183,8 +193,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
         // <https://html.spec.whatwg.org/multipage/#concept-worklet-added-modules-list>
 
-        self.droppable_field
-            .thread_pool
+        self.worklet_thread_pool()
             .fetch_and_invoke_a_worklet_script(
                 self.window.pipeline_id(),
                 self.droppable_field.worklet_id,

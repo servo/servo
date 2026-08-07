@@ -105,6 +105,7 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
+use crate::dom::WorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -190,9 +191,8 @@ use crate::dom::window::screen::Screen;
 use crate::dom::window::scrolling_box::{ScrollingBox, ScrollingBoxSource};
 use crate::dom::window::useractivation::UserActivationTimestamp;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
-use crate::dom::WorkletThreadPool;
 use crate::dom::worklet::Worklet;
-use crate::dom::workletglobalscope::{WorkletGlobalScopeType};
+use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::UserMicrotask;
