@@ -12,7 +12,7 @@ use servo_base::generic_channel::GenericCallback;
 
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::promise::Promise;
-use crate::task_source::TaskSource;
+use crate::tasks::task_source::TaskSource;
 
 pub(crate) trait RoutedPromiseListener<R: Serialize + DeserializeOwned + Send> {
     fn handle_response(&self, cx: &mut JSContext, response: R, promise: &Rc<Promise>);

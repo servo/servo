@@ -36,9 +36,9 @@ use crate::dom::sharedworkerglobalscope::SharedWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::{WorkletControl, WorkletExecutor};
 use crate::script_runtime::ScriptThreadEventCategory;
-use crate::task::TaskBox;
-use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::TaskSourceName;
+use crate::tasks::task::TaskBox;
+use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::tasks::task_source::TaskSourceName;
 
 #[expect(clippy::large_enum_variant)]
 #[derive(Debug)]

@@ -20,7 +20,7 @@ use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performanceresourcetiming::{
     InitiatorType, PerformanceResourceTiming,
 };
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_source::SendableTaskSource;
 
 pub(crate) trait ResourceTimingListener {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl);

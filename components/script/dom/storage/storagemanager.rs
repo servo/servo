@@ -23,7 +23,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::request_permission_to_use;
 use crate::dom::promise::Promise;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_source::SendableTaskSource;
 
 #[dom_struct]
 pub(crate) struct StorageManager {

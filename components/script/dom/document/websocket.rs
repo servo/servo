@@ -50,8 +50,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
 use crate::fetch::RequestWithGlobalScope;
-use crate::task::TaskOnce;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task::TaskOnce;
+use crate::tasks::task_source::SendableTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 enum WebSocketRequestState {

@@ -11,8 +11,8 @@ use servo_base::id::PipelineId;
 use strum::VariantArray;
 
 use crate::messaging::ScriptEventLoopSender;
-use crate::task::TaskCanceller;
-use crate::task_source::{TaskSource, TaskSourceName};
+use crate::tasks::task::TaskCanceller;
+use crate::tasks::task_source::{TaskSource, TaskSourceName};
 
 #[derive(JSTraceable, MallocSizeOf)]
 enum TaskCancellers {

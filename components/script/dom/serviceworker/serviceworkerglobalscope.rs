@@ -63,8 +63,8 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{IntroductionType, Runtime, ThreadSafeJSContext};
-use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::TaskSourceName;
+use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::tasks::task_source::TaskSourceName;
 
 /// Messages used to control service worker event loop
 pub(crate) enum ServiceWorkerScriptMsg {

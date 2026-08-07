@@ -50,7 +50,7 @@ use crate::dom::srcset::SourceSet;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::script_runtime::StreamConsumer;
 use crate::script_thread::IncompleteParserContexts;
-use crate::task::TaskBox;
+use crate::tasks::task::TaskBox;
 
 /// Wrapper type for nop traceble
 ///

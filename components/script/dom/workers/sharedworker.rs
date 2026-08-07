@@ -44,7 +44,7 @@ use crate::dom::sharedworkerglobalscope::{
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 /// <https://html.spec.whatwg.org/multipage/#shared-workers-and-the-sharedworker-interface>

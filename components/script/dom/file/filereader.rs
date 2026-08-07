@@ -38,7 +38,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
 use crate::realms::enter_auto_realm;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 pub(crate) enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),

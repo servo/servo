@@ -35,7 +35,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_source::SendableTaskSource;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableCookieStore {

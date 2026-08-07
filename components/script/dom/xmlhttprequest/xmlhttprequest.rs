@@ -79,7 +79,7 @@ use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::task_source::{SendableTaskSource, TaskSourceName};
+use crate::tasks::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 

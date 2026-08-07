@@ -60,8 +60,8 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoop
 use crate::modules::script_module::fetch_a_module_script_graph;
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{IntroductionType, Runtime};
-use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::task_source::TaskSourceName;
+use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use crate::tasks::task_source::TaskSourceName;
 
 pub(crate) enum SharedWorkerScriptMsg {
     CommonWorker(WorkerScriptMsg),

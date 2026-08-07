@@ -46,7 +46,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::types::{KeyboardEvent, PointerEvent, UserActivation};
 use crate::dom::window::Window;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 /// <https://dom.spec.whatwg.org/#concept-event>
 #[dom_struct]

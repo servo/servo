@@ -108,7 +108,7 @@ use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::script_thread::ScriptThread;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_source::SendableTaskSource;
 
 /// A CSS file to style the media controls.
 static MEDIA_CONTROL_CSS: &str = include_str!("../../../resources/media-controls.css");

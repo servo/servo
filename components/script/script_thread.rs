@@ -159,7 +159,7 @@ use crate::script_runtime::{
 };
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::svg_font::SvgFontResolver;
-use crate::task_queue::TaskQueue;
+use crate::tasks::task_queue::TaskQueue;
 use crate::webdriver_handlers::jsval_to_webdriver;
 use crate::{devtools, webdriver_handlers};
 

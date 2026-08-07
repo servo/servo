@@ -38,7 +38,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::trace_reflector;
 use crate::dom::promise::Promise;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 mod dummy {
     // Attributes don’t apply through the macro.

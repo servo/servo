@@ -29,7 +29,7 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 pub(crate) type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 

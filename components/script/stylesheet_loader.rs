@@ -49,7 +49,7 @@ use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::ScriptThreadEventCategory;
-use crate::task_source::TaskSourceName;
+use crate::tasks::task_source::TaskSourceName;
 use crate::unminify::{
     BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
 };

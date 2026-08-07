@@ -94,8 +94,8 @@ use crate::modules::script_module::ScriptFetchOptions;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{IntroductionType, Runtime, get_reports};
-use crate::task::TaskCanceller;
-use crate::task_manager::TaskManager;
+use crate::tasks::task::TaskCanceller;
+use crate::tasks::task_manager::TaskManager;
 use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 
 /// <https://html.spec.whatwg.org/multipage/#animation-frames>

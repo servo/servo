@@ -98,7 +98,7 @@ use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, MicrotaskQueue};
 use crate::modules::script_module::EnsureModuleHooksInitialized;
 use crate::realms::enter_auto_realm;
-use crate::task_source::TaskSourceName;
+use crate::tasks::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {

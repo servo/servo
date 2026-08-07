@@ -35,7 +35,7 @@ use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::security::cspviolationreporttask::CSPViolationReportTask;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 pub(crate) trait CspReporting {
     fn is_js_evaluation_allowed(
