@@ -9085,6 +9085,7 @@ dependencies = [
  "stylo",
  "stylo_atoms",
  "tendril",
+ "thiserror 2.0.18",
  "tracing",
  "xml5ever",
  "zeroize",

@@ -221,6 +221,10 @@ pub(crate) fn create_dom_exception(
             return new_custom_exception(DOMErrorName::OperationError, custom_message);
         },
         Error::Operation(None) => DOMErrorName::OperationError,
+        Error::OperationNew(Some(custom_error)) => {
+            return new_custom_exception(DOMErrorName::OperationError, format!("{custom_error}"));
+        },
+        Error::OperationNew(None) => DOMErrorName::OperationError,
         Error::NotAllowed(Some(custom_message)) => {
             return new_custom_exception(DOMErrorName::NotAllowedError, custom_message);
         },

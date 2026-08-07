@@ -9,6 +9,7 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8, HeapArrayBufferView, TypedArray};
 use rand::TryRng;
 use rand::rngs::SysRng;
+use script_bindings::error::WebCryptoError;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::trace::RootedTraceableBox;
 use uuid::Uuid;
@@ -69,9 +70,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
             }
 
             if SysRng.try_fill_bytes(data).is_err() {
-                return Err(Error::Operation(Some(
-                    "Failed to generate random values".into(),
-                )));
+                return Err(WebCryptoError::FailedToGenerateRandomValues.into());
             }
 
             let underlying_object = unsafe { input.underlying_object() };
