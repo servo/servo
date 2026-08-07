@@ -8,7 +8,8 @@
 #![expect(dead_code)]
 
 use core::ffi::c_char;
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell, RefCell};
+use std::collections::HashSet;
 use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
@@ -1109,22 +1110,12 @@ fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
     }
 }
 
-thread_local!(static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
+thread_local!(pub(crate) static MALLOC_SIZE_OF_OPS: Cell<*mut MallocSizeOfOps> = const { Cell::new(ptr::null_mut()) });
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
-    match unsafe { get_dom_class(obj) } {
-        Ok(v) => {
-            let dom_object = unsafe { private_from_object(obj) as *const c_void };
-
-            if dom_object.is_null() {
-                return 0;
-            }
-            let ops = MALLOC_SIZE_OF_OPS.get();
-            unsafe { (v.malloc_size_of)(&mut *ops, dom_object) }
-        },
-        Err(_e) => 0,
-    }
+    let ops = MALLOC_SIZE_OF_OPS.get();
+    unsafe { compute_size(obj, &mut *ops) }
 }
 
 thread_local!(static GC_CYCLE_START: Cell<Option<Instant>> = const { Cell::new(None) });
@@ -1234,6 +1225,29 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[expect(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
+
+thread_local!(pub(crate) static SEEN_JSOBJECTS: LazyCell<RefCell<HashSet<*const JSObject>>> = const {
+    LazyCell::new(Default::default)
+});
+
+#[expect(unsafe_code)]
+pub(crate) fn compute_size(obj: *mut JSObject, ops: &mut MallocSizeOfOps) -> usize {
+    if SEEN_JSOBJECTS.with(|objects| !objects.borrow_mut().insert(obj)) {
+        return 0;
+    }
+
+    match unsafe { get_dom_class(obj) } {
+        Ok(v) => {
+            let dom_object = unsafe { private_from_object(obj) as *const c_void };
+
+            if dom_object.is_null() {
+                return 0;
+            }
+            unsafe { (v.malloc_size_of)(&mut *ops, dom_object) }
+        },
+        Err(_e) => 0,
+    }
+}
 
 #[expect(unsafe_code)]
 pub(crate) fn get_reports(

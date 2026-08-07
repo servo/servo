@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
 use std::ops::Deref;
+use std::ptr;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc as StdArc, LazyLock, Mutex};
@@ -35,6 +36,7 @@ use layout_api::{
     PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
     ScrollContainerQueryFlags, TrustedNodeAddress,
 };
+use malloc_size_of::MallocSizeOfOps;
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookieStringForUrl, SetCookiesForUrl};
@@ -47,10 +49,12 @@ use net_traits::request::{
 use net_traits::{ReferrerPolicy, ResourceFetchTiming};
 use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use percent_encoding::percent_decode;
-use profile_traits::generic_channel as profile_generic_channel;
+use profile_traits::mem::{Report, ReportKind};
 use profile_traits::time::TimerMetadataFrameType;
+use profile_traits::{generic_channel as profile_generic_channel, path};
 use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use script_bindings::callback::ThisReflector;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
@@ -211,6 +215,7 @@ use crate::image_animation::ImageAnimationManager;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
+use crate::script_runtime::{MALLOC_SIZE_OF_OPS, compute_size};
 use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -3597,6 +3602,56 @@ impl Document {
     ) -> Option<UnrootedDom<'a, Element>> {
         self.upcast::<Node>().child_elements_unrooted(no_gc).next()
     }
+
+    pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
+        let mut sizes = DocumentSizes::default();
+
+        for node in self.upcast::<Node>().children() {
+            let type_id = node.type_id();
+
+            MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
+            let size = compute_size(node.jsobject(), ops);
+            MALLOC_SIZE_OF_OPS.with(|ops| ops.set(ptr::null_mut()));
+
+            match type_id {
+                NodeTypeId::Attr => sizes.attribute_nodes_size += size,
+                NodeTypeId::Element(_) => sizes.element_nodes_size += size,
+                NodeTypeId::CharacterData(_) => sizes.text_nodes_size += size,
+                _ => sizes.other_nodes_size += size,
+            };
+        }
+
+        let prefix = format!("url({})", self.url());
+        reports.push(Report {
+            path: path![prefix, "js", "dom", "element-nodes"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: sizes.element_nodes_size,
+        });
+        reports.push(Report {
+            path: path![prefix, "js", "dom", "text-nodes"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: sizes.text_nodes_size,
+        });
+        reports.push(Report {
+            path: path![prefix, "js", "dom", "attribute-nodes"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: sizes.attribute_nodes_size,
+        });
+        reports.push(Report {
+            path: path![prefix, "js", "dom", "other-nodes"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: sizes.other_nodes_size,
+        });
+    }
+}
+
+/// Holds DOM object memory sizes for fine-grained memory reports.
+#[derive(Default)]
+struct DocumentSizes {
+    element_nodes_size: usize,
+    text_nodes_size: usize,
+    attribute_nodes_size: usize,
+    other_nodes_size: usize,
 }
 
 #[derive(MallocSizeOf, PartialEq)]
