@@ -97,6 +97,7 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
             global,
             statistics.nodes_updated_from_dom,
             statistics.nodes_updated_from_tree,
+            statistics.nodes_updated_bounds,
             statistics.nodes_in_tree_update,
         )
     }

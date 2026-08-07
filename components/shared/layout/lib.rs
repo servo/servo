@@ -675,6 +675,9 @@ pub struct ReflowStatistics {
     /// A count of the number of accessibility nodes which were checked for changes based on data
     /// already in the accessibility tree (whether the check resulted in changes or not).
     pub nodes_updated_from_tree: u32,
+    /// A count of the number of accessibility nodes which had their bounds recomputed from layout
+    /// geometry (whether the recomputation resulted in changes or not).
+    pub nodes_updated_bounds: u32,
     /// A count of the number of accessibility nodes actually serialized to the TreeUpdate.
     pub nodes_in_tree_update: u32,
 }

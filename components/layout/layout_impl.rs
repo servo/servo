@@ -1010,6 +1010,7 @@ impl LayoutThread {
 
         reflow_statistics.nodes_updated_from_dom = counters.nodes_updated_from_dom;
         reflow_statistics.nodes_updated_from_tree = counters.nodes_updated_from_tree;
+        reflow_statistics.nodes_updated_bounds = counters.nodes_updated_bounds;
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
         self.needs_accessibility_update.set(false);

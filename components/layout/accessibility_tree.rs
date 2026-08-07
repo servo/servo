@@ -82,6 +82,7 @@ struct AccessibilityUpdate {
 pub struct UpdateCounters {
     pub nodes_updated_from_dom: u32,
     pub nodes_updated_from_tree: u32,
+    pub nodes_updated_bounds: u32,
     pub nodes_in_tree_update: u32,
 }
 
@@ -890,6 +891,7 @@ impl AccessibilityNode {
         tree: &AccessibilityTree,
         update: &mut AccessibilityUpdate,
     ) {
+        update.counters.nodes_updated_bounds += 1;
         self.update_bounds_from_dom_node(dom_node, context);
 
         if self.dirty_state.updated() {
