@@ -119,6 +119,10 @@ pub(crate) struct ImageFragment {
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
+    /// The intrinsic (natural) width of the image, if known.
+    pub natural_width: Option<Au>,
+    /// The intrinsic (natural) height of the image, if known.
+    pub natural_height: Option<Au>,
 }
 
 #[derive(MallocSizeOf)]
