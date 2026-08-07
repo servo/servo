@@ -12,7 +12,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use euclid::Rect;
 use layout_api::{
-    AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType, NodeRenderingType,
+    AccessibilityDamage, BoxAreaType, LayoutElement, LayoutNode, LayoutNodeType, NodeRenderingType,
 };
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -27,7 +27,10 @@ use web_atoms::{LocalName, local_name};
 
 use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
+use crate::display_list::StackingContextTree;
 use crate::dom::NodeExt;
+use crate::layout_impl::LayoutThread;
+use crate::query::process_box_area_request;
 
 bitflags! {
     /// Damage which was caused by changes to the accessibility tree. These changes can cause other
@@ -46,13 +49,16 @@ bitflags! {
     }
 }
 
-/// Computes the bounds for a DOM node's accessibility node, or `None` if it has no geometry.
-/// Bounds must be in CSS pixels, relative to viewport origin (see [`accesskit`] composition model).
-pub(super) type AccessibilityBoundsQuery<'a> =
-    &'a dyn Fn(&ServoLayoutNode<'_>) -> Option<accesskit::Rect>;
+/// Everything the accessibility tree needs from layout in order to compute node bounds during an
+/// update. Bounds can only be computed when the stacking context tree is up-to-date with the
+/// current fragment tree, so this may be unavailable for some updates.
+pub(super) struct AccessibilityContext<'a> {
+    pub(super) layout_thread: &'a LayoutThread,
+    pub(super) stacking_context_tree: &'a StackingContextTree,
+}
 
 /// Convert a rectangle as layout reports it into the one [`accesskit`] wants.
-pub(super) fn au_rect_to_accesskit_rect(rect: Rect<Au, CSSPixel>) -> accesskit::Rect {
+fn au_rect_to_accesskit_rect(rect: Rect<Au, CSSPixel>) -> accesskit::Rect {
     accesskit::Rect::new(
         rect.min_x().to_f64_px(),
         rect.min_y().to_f64_px(),
@@ -204,7 +210,7 @@ impl AccessibilityTree {
         &mut self,
         root_dom_node: &ServoLayoutNode<'dom>,
         mut damage_from_dom: VecDeque<(ServoLayoutNode<'dom>, AccessibilityDamage)>,
-        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
+        context: Option<AccessibilityContext<'_>>,
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> (Option<accesskit::TreeUpdate>, UpdateCounters) {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
@@ -213,7 +219,7 @@ impl AccessibilityTree {
 
         self.apply_changes_from_dom_tree(damage_from_dom, &mut update);
 
-        self.refresh_bounds(root_dom_node, bounds_query, &mut update);
+        self.refresh_bounds(root_dom_node, context, &mut update);
 
         update.finalize(self)
     }
@@ -278,14 +284,14 @@ impl AccessibilityTree {
     fn refresh_bounds<'dom>(
         &self,
         root_dom_node: &ServoLayoutNode<'dom>,
-        bounds_query: Option<AccessibilityBoundsQuery<'_>>,
+        context: Option<AccessibilityContext<'_>>,
         update: &mut AccessibilityUpdate,
     ) {
         // Bounds aren't tracked as `AccessibilityDamage` from the DOM: they can go stale from
         // things that don't involve any DOM change at all, SUCH AS: scrolling, resizing, or
         // zooming. So they are refreshed for the whole tree here, independent of the damage from
-        // the DOM, whenever layout is able to give us a query to compute them with.
-        let Some(bounds_query) = bounds_query else {
+        // the DOM, whenever layout is able to give us the context to compute them with.
+        let Some(context) = context else {
             return;
         };
         let Some(root_node) = self.root_node.clone() else {
@@ -293,7 +299,7 @@ impl AccessibilityTree {
         };
         root_node.borrow_mut().refresh_bounds_for_subtree(
             root_dom_node,
-            bounds_query,
+            &context,
             self,
             update,
             None,
@@ -762,8 +768,8 @@ impl AccessibilityNode {
 
         // Iterate over existing children and DOM children while they match. No action is necessary
         // for these nodes.
-        while let Some(&old_id) = old_child_ids.peek()
-            && let Some(dom_child) = remaining_dom_children.peek()
+        while let Some(&old_id) = old_child_ids.peek() &&
+            let Some(dom_child) = remaining_dom_children.peek()
         {
             if tree.existing_id_for_opaque(dom_child.opaque()) == Some(*old_id) {
                 unchanged_count += 1;
@@ -847,16 +853,26 @@ impl AccessibilityNode {
         local_damage
     }
 
-    /// Update this node's bounds from layout, given a query function and the bounds inherited from
-    /// an ancestor (used as a fallback for nodes without their own box). Returns the damage caused by
-    /// the update, and the bounds descendants without their own box should inherit.
+    /// Update this node's bounds from layout, given the context necessary to compute them and the
+    /// bounds inherited from an ancestor (used as a fallback for nodes without their own box).
+    /// Returns the damage caused by the update, and the bounds descendants without their own box
+    /// should inherit.
     fn update_bounds_from_dom_node(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
-        bounds_query: AccessibilityBoundsQuery<'_>,
+        context: &AccessibilityContext<'_>,
         inherited_bounds: Option<accesskit::Rect>,
     ) -> (LocalAccessibilityDamage, Option<accesskit::Rect>) {
-        let own_bounds = bounds_query(dom_node);
+        // Border box with transforms, matching getBoundingClientRect(). Bounds are in CSS pixels,
+        // relative to the viewport origin (see the [`accesskit`] composition model).
+        let own_bounds = process_box_area_request(
+            context.layout_thread,
+            context.stacking_context_tree,
+            *dom_node,
+            BoxAreaType::Border,
+            false, /* exclude_transform_and_inline */
+        )
+        .map(au_rect_to_accesskit_rect);
 
         // TODO(accessibility): Other engines (Blink, WebKit, Gecko) compute bounds for `display: contents`
         // elements (and other box-less elements) by taking the union of the bounding boxes of their rendered
@@ -891,13 +907,12 @@ impl AccessibilityNode {
     fn refresh_bounds_for_subtree<'dom>(
         &mut self,
         dom_node: &ServoLayoutNode<'dom>,
-        bounds_query: AccessibilityBoundsQuery<'_>,
+        context: &AccessibilityContext<'_>,
         tree: &AccessibilityTree,
         update: &mut AccessibilityUpdate,
         inherited_bounds: Option<accesskit::Rect>,
     ) {
-        let (_, bounds) =
-            self.update_bounds_from_dom_node(dom_node, bounds_query, inherited_bounds);
+        let (_, bounds) = self.update_bounds_from_dom_node(dom_node, context, inherited_bounds);
 
         if self.dirty_state.updated() {
             update.add(self);
@@ -909,7 +924,7 @@ impl AccessibilityNode {
             };
             tree.assert_node_for_id(&child_id)
                 .borrow_mut()
-                .refresh_bounds_for_subtree(&dom_child, bounds_query, tree, update, bounds);
+                .refresh_bounds_for_subtree(&dom_child, context, tree, update, bounds);
         }
     }
 
@@ -925,8 +940,8 @@ impl AccessibilityNode {
         update.counters.nodes_updated_from_tree += 1;
 
         let mut new_damage = LocalAccessibilityDamage::empty();
-        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged)
-            || local_damage.contains(LocalAccessibilityDamage::RoleChanged)
+        if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) ||
+            local_damage.contains(LocalAccessibilityDamage::RoleChanged)
         {
             if let Some(text) = self.label_from_descendants() {
                 new_damage.insert(self.set_label(text.as_str()));
