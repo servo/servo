@@ -2311,15 +2311,22 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
     )
 }
 
+#[servo_tracing::instrument]
 fn glyphs(
     shaped_text_slices: &[Arc<ShapedTextSlice>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,
 ) -> (Vec<GlyphInstance>, Au) {
-    let mut glyphs = vec![];
-    let mut largest_advance = Au::zero();
+    // This is a realtively fast computation as shaped_text_slices are just vectors
+    let total_glyph_size = shaped_text_slices
+        .iter()
+        .filter(|shaped_text_slice| !shaped_text_slice.is_whitespace())
+        .flat_map(|shaped_text_slice| shaped_text_slice.glyphs())
+        .count();
 
+    let mut largest_advance = Au::zero();
+    let mut glyphs = Vec::with_capacity(total_glyph_size);
     for shaped_text_slice in shaped_text_slices {
         for glyph in shaped_text_slice.glyphs() {
             if !shaped_text_slice.is_whitespace() || include_whitespace {
