@@ -8,6 +8,7 @@ pub(crate) mod client;
 pub(crate) mod extendableevent;
 pub(crate) mod extendablemessageevent;
 pub(crate) mod navigationpreloadmanager;
+pub(crate) mod notification;
 #[allow(
     clippy::module_inception,
     reason = "The interface name is Serviceworker"

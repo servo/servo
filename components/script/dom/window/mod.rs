@@ -7,6 +7,9 @@ pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
 pub(crate) mod history;
 pub(crate) mod location;
+pub(crate) mod screen;
+pub(crate) mod scrolling_box;
+pub(crate) mod useractivation;
 #[allow(clippy::module_inception, reason = "The interface name is Window")]
 pub(crate) mod window;
 pub(crate) mod windowproxy;

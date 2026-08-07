@@ -69,9 +69,9 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
 };
-use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
+use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::script_thread::ScriptThread;
 
 #[dom_struct]
