@@ -297,7 +297,7 @@ pub(crate) struct CaretPlaceholder {
     /// The [`TextFragmentRunData`] of the [`TextRun`] that contains this caret placeholder.
     #[conditional_malloc_size_of]
     pub run_data: Arc<SharedTextRunData>,
-    /// The `BaseFragmentInfo` of the originating text node node that this caret placeholder is in.
+    /// The `BaseFragmentInfo` of the originating text node that this caret placeholder is in.
     pub base_fragment_info: BaseFragmentInfo,
     /// Character index of the preserved newline in the IFC's transformed text, relative
     /// to the start of the DOM node.
