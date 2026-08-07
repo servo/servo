@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
+use malloc_size_of::MallocSizeOf;
 use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
     FontResolver, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
@@ -28,6 +29,13 @@ use webrender_api::ImageKey;
 use crate::mock_origin;
 
 struct DummyFontResolver;
+
+impl MallocSizeOf for DummyFontResolver {
+    fn size_of(&self, _ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl FontResolver for DummyFontResolver {
     fn resolve(&self, _: &Font, _: &mut Arc<fontdb::Database>) -> Option<fontdb::ID> {
         None
