@@ -34,11 +34,11 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::realms::enter_auto_realm;
-use crate::script_module::{
+use crate::modules::script_module::{
     ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 

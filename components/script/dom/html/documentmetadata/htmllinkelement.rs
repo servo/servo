@@ -60,8 +60,8 @@ use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::links::LinkRelations;
+use crate::modules::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
