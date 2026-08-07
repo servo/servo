@@ -79,7 +79,9 @@ struct DroppableField {
 impl Drop for DroppableField {
     fn drop(&mut self) {
         let worklet_id = self.worklet_id;
-        self.thread_pool.exit_worklet(worklet_id);
+        if let Some(thread_pool) = LazyCell::get(&self.thread_pool) {
+            thread_pool.exit_worklet(worklet_id);
+        }
     }
 }
 
@@ -96,9 +98,9 @@ impl Worklet {
     fn new_inherited(
         window: &Window,
         global_type: WorkletGlobalScopeType,
-        thread_pool: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
+        thread_pool_constructor: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
     ) -> Worklet {
-        let thread_pool = LazyCell::new(thread_pool);
+        let thread_pool = LazyCell::new(thread_pool_constructor);
 
         Worklet {
             reflector: Reflector::new(),
@@ -125,7 +127,7 @@ impl Worklet {
         )
     }
 
-    pub(crate) fn get_worklet_thread_pool(&self) -> &WorkletThreadPool {
+    pub(crate) fn worklet_thread_pool(&self) -> &WorkletThreadPool {
         &self.droppable_field.thread_pool
     }
 
