@@ -709,7 +709,6 @@ impl Window {
         debug!("Creating new paint worklet.");
 
         let worklet_global_scope_init = self.into();
-
         Worklet::new(
             cx,
             self,
