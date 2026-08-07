@@ -1301,6 +1301,7 @@ static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLo
         (local_name!("article"), Role::Article),
         (local_name!("aside"), Role::Complementary),
         (local_name!("body"), Role::RootWebArea),
+        (local_name!("button"), Role::Button),
         (local_name!("footer"), Role::ContentInfo),
         (local_name!("h1"), Role::Heading),
         (local_name!("h2"), Role::Heading),
