@@ -598,7 +598,7 @@ impl Font {
         glyph_index
     }
 
-    pub(crate) fn has_glyph_for(&self, codepoint: char) -> bool {
+    pub fn has_glyph_for(&self, codepoint: char) -> bool {
         self.glyph_index(codepoint).is_some()
     }
 
