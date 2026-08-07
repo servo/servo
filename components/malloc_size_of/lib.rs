@@ -1076,8 +1076,14 @@ impl<'a> MallocSizeOf for usvg::Options<'a> {
         self.font_family.size_of(ops) +
             self.languages.size_of(ops) +
             self.style_sheet.size_of(ops) +
-            self.fontdb.conditional_shallow_size_of(ops) +
+            self.fontdb.conditional_size_of(ops) +
             self.resources_dir.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for usvg::Font {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.families().size_of(ops) + self.variations().size_of(ops)
     }
 }
 
