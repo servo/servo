@@ -503,6 +503,7 @@ impl ScriptThreadFactory for ScriptThread {
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(Rc::as_ptr(&script_thread)));
                 });
+                servo_base::threadboost::mark_thread_as_critical();
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
                 memory_profiler_sender.run_with_memory_reporting(

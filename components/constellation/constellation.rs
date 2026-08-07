@@ -628,6 +628,7 @@ where
         thread::Builder::new()
             .name("Constellation".to_owned())
             .spawn(move || {
+                servo_base::threadboost::mark_thread_as_critical();
                 let (script_ipc_sender, script_ipc_receiver) =
                     generic_channel::channel().expect("ipc channel failure");
                 let script_receiver = script_ipc_receiver.route_preserving_errors();
