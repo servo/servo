@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>box-decoration-break:slice should be able to slice a border radius in half.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<link rel="match" href="box-decoration-break-slice-border-radius-ref.html">
+<meta name="assert" content="box-decoration-break:slice should be able to slice a border radius in half.">
+<!--
+  Feel free to expand these fuzzyness values as needed, so long as the box fragments correctly.
+  This could be solved by getting rid of the gradient instead, but I very much like the gradient as a visual aid.
+-->
+<meta name=fuzzy content="maxDifference=0-2;totalPixels=0-2000">
+<style>
+  body {
+    margin-left: 100px;
+    line-height: 3em;
+  }
+  .breakable {
+    border: 2px solid black;
+    background: linear-gradient(to right, pink, lightblue);
+    border-radius: 50%;
+    padding: 6px;
+  }
+  .long, .short {
+    display: inline-block;
+    border: 1px solid black;
+    box-sizing: border-box;
+  }
+  .long {
+    width: 100px;
+  }
+  .short {
+    width: 50px;
+  }
+</style>
+Unbroken span for reference:<br>
+<span class="breakable">
+  <span class="long"></span><span class="short"></span>
+</span><br>
+The span, broken into two pieces that could conceivably be put back together in a seamless fashion:<br>
+<span class="breakable">
+  <span class="long"></span><br>
+  <span class="short"></span>
+</span>

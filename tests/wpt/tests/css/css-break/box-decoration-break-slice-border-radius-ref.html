@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<style>
+  body {
+    margin-left: 100px;
+    line-height: 3em;
+  }
+  .breakable {
+    border: 2px solid black;
+    background: linear-gradient(to right, pink, lightblue);
+    border-radius: 50%;
+    padding: 6px;
+  }
+  .long, .short {
+    display: inline-block;
+    border: 1px solid black;
+    box-sizing: border-box;
+  }
+  .long {
+    width: 100px;
+  }
+  .short {
+    width: 50px;
+  }
+  .cover {
+    position: absolute;
+    background-color: white;
+    width: 300px;
+    height: 1lh;
+  }
+</style>
+Unbroken span for reference:<br>
+<span class="breakable" id="reference">
+  <span class="long"></span><span class="short"></span>
+</span><br>
+The span, broken into two pieces that could conceivably be put back together in a seamless fashion:<br>
+<span class="breakable">
+  <span class="long"></span><span class="cover"></span><span class="short"></span>
+</span><br>
+
+<span class="breakable" style="margin-left:-108px">
+  <span class="long"></span><span class="cover" style="transform: translateX(-300px)"></span><span class="short"></span>
+</span>
+
