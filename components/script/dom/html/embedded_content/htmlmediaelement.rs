@@ -111,10 +111,10 @@ use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
 
 /// A CSS file to style the media controls.
-static MEDIA_CONTROL_CSS: &str = include_str!("../../resources/media-controls.css");
+static MEDIA_CONTROL_CSS: &str = include_str!("../../../resources/media-controls.css");
 
 /// A JS file to control the media controls.
-static MEDIA_CONTROL_JS: &str = include_str!("../../resources/media-controls.js");
+static MEDIA_CONTROL_JS: &str = include_str!("../../../resources/media-controls.js");
 
 /// The media engine may report a seek-done position that differs slightly from the
 /// requested position (e.g. snapping to the nearest keyframe), so we use a threshold
