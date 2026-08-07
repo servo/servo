@@ -6199,26 +6199,13 @@ where
                 metric_value,
                 false, // LCP doesn't care about first reflow
             ),
-            PaintMetricEvent::ContainerTiming(
-                identifier,
-                first_render_time,
-                paint_time,
-                size,
-                rect_x,
-                rect_y,
-                rect_width,
-                rect_height,
-            ) => (
+            PaintMetricEvent::ContainerTiming(identifier, first_render_time, paint_time, size) => (
                 ProgressiveWebMetricType::ContainerTiming {
                     identifier,
                     size,
-                    paint_time,
-                    rect_x,
-                    rect_y,
-                    rect_width,
-                    rect_height,
+                    first_render_time,
                 },
-                first_render_time,
+                paint_time,
                 false,
             ),
         };

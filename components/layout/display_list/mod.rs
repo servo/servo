@@ -679,6 +679,7 @@ impl DisplayListBuilder<'_> {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_for_container_timing_candidate(
         &mut self,
         state: &TraversalState,
@@ -686,6 +687,8 @@ impl DisplayListBuilder<'_> {
         bounds: LayoutRect,
         tag: Option<Tag>,
         flags: FragmentFlags,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
     ) {
         if !pref!(container_timing_enabled) {
             return;
@@ -704,8 +707,14 @@ impl DisplayListBuilder<'_> {
             .scroll_tree
             .cumulative_node_to_root_transform(state.spatial_id);
 
-        self.paint_timing_handler
-            .update_container_timing(tag.node, bounds, clip_rect, transform);
+        self.paint_timing_handler.update_container_timing(
+            tag.node,
+            bounds,
+            clip_rect,
+            transform,
+            natural_width,
+            natural_height,
+        );
     }
 
     fn visit_stacking_context_reference_frame_info(
@@ -1209,6 +1218,8 @@ impl Fragment {
             glyph_bounds,
             fragment.base.tag,
             fragment.base.flags,
+            None,
+            None,
         );
 
         for text_decoration in state.text_decorations.iter() {
@@ -1960,6 +1971,8 @@ impl<'a> BuilderForBoxFragment<'a> {
                             layer.bounds,
                             self.fragment.base.tag,
                             self.fragment.base.flags,
+                            natural_width,
+                            natural_height,
                         );
                     }
                 },

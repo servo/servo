@@ -5,11 +5,11 @@
 use std::collections::HashSet;
 
 use app_units::Au;
-use euclid::Rect;
+use euclid::{Box2D, Rect};
 use paint_api::container_timing_candidate::ContainerTimingRecord;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
-use rustc_hash::FxHashMap;
-use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
+use rustc_hash::{FxHashMap, FxHashSet};
+use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
 use webrender_api::units::{LayoutRect, LayoutSize};
@@ -54,6 +54,7 @@ impl PaintTimingHandler {
             viewport_rect: LayoutRect::from_size(viewport_size),
             reported_lcp_nodes: HashSet::new(),
             container_timing_records: FxHashMap::default(),
+            dirty_containers: FxHashSet::default(),
         }
     }
 
@@ -245,17 +246,32 @@ impl PaintTimingHandler {
         bounds: LayoutRect,
         clip_rect: LayoutRect,
         transform: FastLayoutTransform,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
     ) {
         let Some(container_root) = get_container_root(node) else {
             return;
         };
 
-        let intersection_rect = self.calculate_intersection_rect(bounds, clip_rect, transform);
+        let intersection_rect = transform_f32_rectangle(clip_rect.to_rect(), transform)
+            .unwrap_or_default()
+            .intersection(&self.viewport_rect.to_rect())
+            .map(|rect| rect.to_box2d())
+            .unwrap_or_default();
 
-        let size = (intersection_rect.size.width * intersection_rect.size.height).round() as usize;
-        if size == 0 {
+        let result = self.effective_visual_size(
+            bounds,
+            clip_rect,
+            intersection_rect,
+            transform,
+            natural_width,
+            natural_height,
+        );
+
+        // If result is null, continue.
+        let Some(size) = result else {
             return;
-        }
+        };
 
         let record = self.get_or_create_record(container_root);
         record.size += size;
@@ -278,7 +294,7 @@ impl PaintTimingHandler {
                     script::layout_dom::container_timing_identifier_for_root(container_root)
                         .map(|id| id.to_string())
                         .unwrap_or_default();
-                ContainerTimingRecord::new(container_root.id(), identifier, 0, Rect::zero())
+                ContainerTimingRecord::new(container_root.id(), identifier, 0.0, Box2D::default())
             })
     }
 

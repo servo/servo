@@ -6,10 +6,10 @@
 //!
 //! <https://wicg.github.io/container-timing/>
 
-use euclid::Rect;
+use euclid::Box2D;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
-use style_traits::CSSPixel;
+use webrender_api::units::LayoutPixel;
 
 /// A container timing candidate, sent from layout to the paint thread, and also used
 /// by the paint thread to track the current best entry for each container identifier.
@@ -31,22 +31,22 @@ pub struct ContainerTimingRecord {
     /// The value of the `containertiming` attribute on the container element.
     pub identifier: String,
     /// The viewport-clipped painted area in CSS pixels (as area = width * height).
-    pub size: usize,
+    pub size: f32,
     /// The time of the first paint for this container. Set once and never changed
     /// afterwards.
     pub first_render_time: Option<CrossProcessInstant>,
     /// The most recent paint time for this container.
     pub paint_time: Option<CrossProcessInstant>,
     /// The viewport-clipped, union'd painted rect in CSS pixels.
-    pub intersection_rect: Rect<f32, CSSPixel>,
+    pub intersection_rect: Box2D<f32, LayoutPixel>,
 }
 
 impl ContainerTimingRecord {
     pub fn new(
         container_id: usize,
         identifier: String,
-        size: usize,
-        intersection_rect: Rect<f32, CSSPixel>,
+        size: f32,
+        intersection_rect: Box2D<f32, LayoutPixel>,
     ) -> Self {
         Self {
             container_id,

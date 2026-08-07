@@ -32,10 +32,6 @@ impl ContainerTimingCalculator {
         self.disabled_webviews.remove(webview_id);
     }
 
-    pub(crate) fn disable_for_webview(&mut self, webview_id: WebViewId) {
-        self.disabled_webviews.insert(webview_id);
-    }
-
     pub(crate) fn append_candidate(
         &mut self,
         candidate: ContainerTimingRecord,
@@ -45,10 +41,6 @@ impl ContainerTimingCalculator {
             .entry(pipeline_id)
             .or_default()
             .record_candidate(candidate);
-    }
-
-    pub(crate) fn remove_candidates_for_pipeline(&mut self, pipeline_id: &PipelineId) {
-        self.containers.remove(pipeline_id);
     }
 
     /// Stamp `paint_time` on every container touched since the last call for

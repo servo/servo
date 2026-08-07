@@ -357,7 +357,7 @@ unsafe fn servo_layout_node_from_opaque(
 
     unsafe {
         let obj = opaque.0 as *mut js::jsapi::JSObject;
-        let raw = private_from_object(obj) as *const std::ffi::c_void;
+        let raw = private_from_object(obj);
         ServoLayoutNode::new(&TrustedNodeAddress(raw))
     }
 }
@@ -376,13 +376,12 @@ pub fn container_timing_root_for_node(
         match ancestor {
             None => break None,
             Some(current) => {
-                if let Some(element) = current.as_html_element() {
-                    if element
+                if let Some(element) = current.as_html_element()
+                    && element
                         .attribute(&ns!(), &LocalName::from("containertiming"))
                         .is_some()
-                    {
-                        break Some(current.opaque());
-                    }
+                {
+                    break Some(current.opaque());
                 }
                 ancestor = unsafe { current.dangerous_dom_parent() };
             },

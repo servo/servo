@@ -579,10 +579,6 @@ impl Painter {
                                             .expect("set by mark_painted in flush"),
                                         entry.paint_time.expect("set by mark_painted in flush"),
                                         entry.size,
-                                        entry.intersection_rect.origin.x,
-                                        entry.intersection_rect.origin.y,
-                                        entry.intersection_rect.size.width,
-                                        entry.intersection_rect.size.height,
                                     ),
                                 ),
                             );

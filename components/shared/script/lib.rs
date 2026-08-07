@@ -134,17 +134,9 @@ pub enum ProgressiveWebMetricType {
         /// The value of the `containertiming` attribute on the container element.
         identifier: String,
         /// Total accumulated painted area in CSS px squared
-        size: usize,
-        /// The time of the most recent paint that produced this update.
-        paint_time: servo_base::cross_process_instant::CrossProcessInstant,
-        /// The x coordinate of the viewport-clipped bounding rect in CSS pixels.
-        rect_x: f32,
-        /// The y coordinate of the viewport-clipped bounding rect in CSS pixels.
-        rect_y: f32,
-        /// The width of the viewport-clipped bounding rect in CSS pixels.
-        rect_width: f32,
-        /// The height of the viewport-clipped bounding rect in CSS pixels.
-        rect_height: f32,
+        size: f32,
+        /// The first time the container was painted.
+        first_render_time: servo_base::cross_process_instant::CrossProcessInstant,
     },
 }
 
