@@ -21,6 +21,12 @@ enum GenericSharedMemoryVariant {
     InProcess(Arc<Vec<u8>>),
 }
 
+impl AsRef<[u8]> for GenericSharedMemory {
+    fn as_ref(&self) -> &[u8] {
+        self
+    }
+}
+
 impl Deref for GenericSharedMemory {
     type Target = [u8];
 

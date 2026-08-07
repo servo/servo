@@ -15,6 +15,7 @@ pub mod id;
 pub mod print_tree;
 mod rope;
 pub mod text;
+pub mod threadboost;
 pub mod threadpool;
 mod unicode_block;
 

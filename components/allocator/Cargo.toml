@@ -23,7 +23,7 @@ rustc-hash = { workspace = true, optional = true }
 
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
 libc = { workspace = true }
-tikv-jemalloc-sys = { workspace = true, optional = true }
+tikv-jemalloc-sys = { workspace = true, optional = true, features = ["stats"] }
 tikv-jemallocator = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]

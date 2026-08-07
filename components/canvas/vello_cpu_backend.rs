@@ -18,6 +18,7 @@ use servo_canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
 };
+use servo_config::pref;
 use vello_cpu::{RenderSettings, kurbo, peniko};
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags};
 
@@ -156,9 +157,8 @@ fn worker_thread_count(size: &Size2D<u16>) -> u16 {
     if u32::from(size.width) * u32::from(size.height) < SMALL_CANVAS_SIZE {
         0
     } else {
-        // <https://github.com/linebender/vello/blob/c95b228e1cf73bf96338e8c8ae0d145553f8f99c/sparse_strips/vello_cpu/examples/basic.rs#L51>
-        // According to this example 2-4 give the best results.
-        3
+        // The fallback `3` is the default value from `prefs.rs`
+        pref!(thread_pool_canvas_workers).try_into().unwrap_or(3)
     }
 }
 

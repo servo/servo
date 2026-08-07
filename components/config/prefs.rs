@@ -380,6 +380,10 @@ pub struct Preferences {
     pub network_use_webpki_roots: bool,
     /// The maximum content size we will forward for preallocation, defaults to 5MB
     pub network_max_content_length: u64,
+    /// Experimental option. If enabled servo will attempt to optimize thread placement
+    /// and/or priority of critical servo threads to optimize performance.
+    #[doc(hidden)]
+    pub perf_thread_boost_enabled: bool,
     /// The length of the session history, in navigations, for each `WebView. Back-forward
     /// cache entries that are more than `session_history_max_length` steps in the future or
     /// `session_history_max_length` steps in the past will be discarded. Navigating forward
@@ -395,6 +399,12 @@ pub struct Preferences {
     pub thread_pool_fallback_workers: u64,
     /// Maximum number of workers for the asynchronous networking runtime thread pool
     pub thread_pool_async_runtime_workers_max: u64,
+    /// Number of worker threads used to rasterize a canvas.
+    /// This preference currently only affects the vello_cpu backend.
+    /// Setting this pref to `0` uses the single-threaded backend and
+    /// avoids creating a threadpool.
+    /// For small canvas sizes this pref is ignored and no threadpool is created.
+    pub thread_pool_canvas_workers: u64,
     /// Maximum number of workers for WebRender
     pub thread_pool_webrender_workers_max: u64,
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
@@ -580,12 +590,16 @@ impl Preferences {
             network_local_directory_listing_enabled: true,
             network_use_webpki_roots: false,
             network_max_content_length: 5 * 1024 * 1024,
+            perf_thread_boost_enabled: true,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
             log_filter: String::new(),
             thread_pool_workers_max: 4,
             thread_pool_async_runtime_workers_max: 6,
             thread_pool_fallback_workers: 3,
+            // <https://github.com/linebender/vello/blob/c95b228e1cf73bf96338e8c8ae0d145553f8f99c/sparse_strips/vello_cpu/examples/basic.rs#L51>
+            // According to this example 2-4 give the best results.
+            thread_pool_canvas_workers: 3,
             thread_pool_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),

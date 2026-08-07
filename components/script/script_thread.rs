@@ -503,6 +503,7 @@ impl ScriptThreadFactory for ScriptThread {
                 SCRIPT_THREAD_ROOT.with(|root| {
                     root.set(Some(Rc::as_ptr(&script_thread)));
                 });
+                servo_base::threadboost::mark_thread_as_critical();
                 let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
                 memory_profiler_sender.run_with_memory_reporting(
@@ -3427,9 +3428,7 @@ impl ScriptThread {
             self.resource_threads.clone(),
         ));
 
-        let font_resolver = Arc::new(SvgFontResolver {
-            context: font_context.clone(),
-        });
+        let font_resolver = Arc::new(SvgFontResolver::new(font_context.clone()));
 
         let image_cache = self.image_cache_factory.create(
             incomplete.webview_id,

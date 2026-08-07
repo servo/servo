@@ -648,13 +648,16 @@ impl DisplayListBuilder<'_> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_for_lcp_candidate(
         &mut self,
         state: &TraversalState,
-        clip_rect: LayoutRect,
         bounds: LayoutRect,
+        clip_rect: LayoutRect,
         tag: Option<Tag>,
         url: Option<ServoUrl>,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
     ) {
         if !pref!(largest_contentful_paint_enabled) {
             return;
@@ -665,8 +668,15 @@ impl DisplayListBuilder<'_> {
             .scroll_tree
             .cumulative_node_to_root_transform(state.spatial_id);
 
-        self.paint_timing_handler
-            .update_lcp_candidate(tag, bounds, clip_rect, transform, url);
+        self.paint_timing_handler.compute_new_lcp_candidate(
+            tag,
+            bounds,
+            clip_rect,
+            transform,
+            url,
+            natural_width,
+            natural_height,
+        );
     }
 
     fn visit_stacking_context_reference_frame_info(
@@ -842,10 +852,12 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
                 self.check_for_lcp_candidate(
                     state,
-                    common.clip_rect,
                     rect,
+                    common.clip_rect,
                     fragment.base.tag,
                     fragment.url.clone(),
+                    fragment.natural_width,
+                    fragment.natural_height,
                 );
             }
         }
@@ -1919,12 +1931,16 @@ impl<'a> BuilderForBoxFragment<'a> {
                         // > background-size has non-zero width and height values.
                         builder.mark_is_contentful();
 
+                        let natural_width = Some(Au::from_f32_px(size.width / dppx));
+                        let natural_height = Some(Au::from_f32_px(size.height / dppx));
                         builder.check_for_lcp_candidate(
                             state,
-                            layer.common.clip_rect,
                             layer.bounds,
+                            layer.common.clip_rect,
                             self.fragment.base.tag,
                             None,
+                            natural_width,
+                            natural_height,
                         );
                     }
                 },

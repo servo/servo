@@ -60,9 +60,7 @@ pub mod size_of {
 }
 
 pub mod srcset {
-    pub use crate::dom::html::htmlimageelement::{
-        Descriptor, ImageSource, parse_a_srcset_attribute,
-    };
+    pub use crate::dom::srcset::{Descriptor, ImageSource, parse_a_srcset_attribute};
 }
 
 pub mod timeranges {
