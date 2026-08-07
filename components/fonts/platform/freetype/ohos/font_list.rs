@@ -495,6 +495,10 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
                 families.push("Noto Sans CJK SC");
                 families.push("Noto Sans Mono CJK SC");
             },
+            UnicodeBlock::CJKSymbolsandPunctuation => {
+                families.push("HarmonyOS Sans SC");
+                families.push("HarmonyOS Sans TC");
+            },
             _ => {},
         }
     }
