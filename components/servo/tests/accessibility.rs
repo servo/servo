@@ -595,37 +595,58 @@ fn test_accessibility_text_run_bounds() {
         .next()
         .expect("Root web area should have at least one child.");
     assert_eq!(heading.role(), Role::Heading);
-    let expected = Rect::new(0.0, 0.0, 300.0, 40.0);
     assert_rect_eq(
         heading.raw_bounds().expect("heading should have bounds"),
-        expected,
+        Rect::new(0.0, 0.0, 300.0, 40.0),
     );
 
-    // Text nodes inherit container bounds (screen readers need geometry)
+    // TODO(accessibility): Text nodes have no layout box of their own, so no bounds are computed
+    // for them yet. They should eventually get the union of the rectangles of their own
+    // `Fragment::Text` fragments. This assertion demonstrates the current behaviour; flip it once
+    // text run bounds are implemented.
     let text_run = find_first_matching_node(heading, |node| node.role() == Role::TextRun)
         .expect("Heading should contain a TextRun");
-    assert_rect_eq(
-        text_run.raw_bounds().expect("TextRun should have bounds"),
-        expected,
+    assert!(
+        text_run.raw_bounds().is_none(),
+        "TextRun bounds are not implemented yet, but got {:?}",
+        text_run.raw_bounds()
     );
 }
 
 #[test]
-fn test_accessibility_bounds_through_display_contents() {
-    // display: contents has no box; text inherits parent bounds
+fn test_accessibility_bounds_omitted_for_display_contents() {
     let url = "data:text/html,<!DOCTYPE html>\
                <div style='position:absolute;left:0;top:0;width:200px;height:30px'>\
                <span style='display:contents'>hello</span></div>";
     let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
-    let text_run = find_first_matching_node(root, |node| node.role() == Role::TextRun)
-        .expect("Document should contain a TextRun");
+    let div = root
+        .children()
+        .next()
+        .expect("Root web area should have at least one child.");
     assert_rect_eq(
-        text_run
-            .raw_bounds()
-            .expect("Text inside a `display: contents` element should still have bounds"),
+        div.raw_bounds().expect("div should have bounds"),
         Rect::new(0.0, 0.0, 200.0, 30.0),
+    );
+
+    // TODO(accessibility): A `display: contents` element generates no box, so no bounds are
+    // computed for it yet. Other engines (Blink, WebKit, Gecko) compute its bounds as the union of
+    // the bounding boxes of its rendered descendants. This test demonstrates the current
+    // behaviour; flip these assertions once that is implemented.
+    let span = find_first_matching_node(root, |node| node.data().html_tag() == Some("span"))
+        .expect("Document should contain the `display: contents` span");
+    assert!(
+        span.raw_bounds().is_none(),
+        "`display: contents` bounds are not implemented yet, but got {:?}",
+        span.raw_bounds()
+    );
+    let text_run = find_first_matching_node(span, |node| node.role() == Role::TextRun)
+        .expect("The `display: contents` span should contain a TextRun");
+    assert!(
+        text_run.raw_bounds().is_none(),
+        "TextRun bounds are not implemented yet, but got {:?}",
+        text_run.raw_bounds()
     );
 }
 
@@ -812,10 +833,10 @@ fn assert_rect_eq(actual: Rect, expected: Rect) {
     // Bounds are converted from `Au`, which has a resolution of 1/60th of a CSS pixel.
     const EPSILON: f64 = 0.05;
     assert!(
-        (actual.x0 - expected.x0).abs() < EPSILON
-            && (actual.y0 - expected.y0).abs() < EPSILON
-            && (actual.x1 - expected.x1).abs() < EPSILON
-            && (actual.y1 - expected.y1).abs() < EPSILON,
+        (actual.x0 - expected.x0).abs() < EPSILON &&
+            (actual.y0 - expected.y0).abs() < EPSILON &&
+            (actual.x1 - expected.x1).abs() < EPSILON &&
+            (actual.y1 - expected.y1).abs() < EPSILON,
         "expected bounds {expected:?} but got {actual:?}"
     );
 }

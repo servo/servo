@@ -11,9 +11,7 @@ use accesskit::{NodeId, Role};
 use app_units::Au;
 use bitflags::bitflags;
 use euclid::Rect;
-use layout_api::{
-    AccessibilityDamage, BoxAreaType, LayoutElement, LayoutNode, LayoutNodeType, NodeRenderingType,
-};
+use layout_api::{AccessibilityDamage, BoxAreaType, LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::ServoLayoutNode;
@@ -28,7 +26,6 @@ use web_atoms::{LocalName, local_name};
 use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
 use crate::display_list::StackingContextTree;
-use crate::dom::NodeExt;
 use crate::layout_impl::LayoutThread;
 use crate::query::process_box_area_request;
 
@@ -297,13 +294,9 @@ impl AccessibilityTree {
         let Some(root_node) = self.root_node.clone() else {
             return;
         };
-        root_node.borrow_mut().refresh_bounds_for_subtree(
-            root_dom_node,
-            &context,
-            self,
-            update,
-            None,
-        );
+        root_node
+            .borrow_mut()
+            .refresh_bounds_for_subtree(root_dom_node, &context, self, update);
     }
 
     /// Given an iterator of `NodeId`s corresponding to nodes which have received some damage from
@@ -853,19 +846,16 @@ impl AccessibilityNode {
         local_damage
     }
 
-    /// Update this node's bounds from layout, given the context necessary to compute them and the
-    /// bounds inherited from an ancestor (used as a fallback for nodes without their own box).
-    /// Returns the damage caused by the update, and the bounds descendants without their own box
-    /// should inherit.
+    /// Update this node's bounds from the current layout geometry. Returns the damage caused by
+    /// the update.
     fn update_bounds_from_dom_node(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
         context: &AccessibilityContext<'_>,
-        inherited_bounds: Option<accesskit::Rect>,
-    ) -> (LocalAccessibilityDamage, Option<accesskit::Rect>) {
+    ) -> LocalAccessibilityDamage {
         // Border box with transforms, matching getBoundingClientRect(). Bounds are in CSS pixels,
         // relative to the viewport origin (see the [`accesskit`] composition model).
-        let own_bounds = process_box_area_request(
+        let bounds = process_box_area_request(
             context.layout_thread,
             context.stacking_context_tree,
             *dom_node,
@@ -874,33 +864,22 @@ impl AccessibilityNode {
         )
         .map(au_rect_to_accesskit_rect);
 
-        // TODO(accessibility): Other engines (Blink, WebKit, Gecko) compute bounds for `display: contents`
-        // elements (and other box-less elements) by taking the union of the bounding boxes of their rendered
-        // descendants, rather than inheriting ancestor bounds or leaving them empty.
-        let inheritable_bounds = match dom_node.rendering_type() {
-            NodeRenderingType::Rendered => own_bounds,
-            NodeRenderingType::DelegatesRendering => own_bounds.or(inherited_bounds), // display: contents
-            NodeRenderingType::NotRendered => None,
-        };
-
-        // A text node never has bounds of its own: `LayoutBox::Text` has no `LayoutBoxBase`, and
-        // `Fragment::Text` has no box area, so the query always returns `None` for one. Screen
-        // readers still need geometry for a text run, in order to highlight or magnify it, so fall
-        // back to the bounds of the nearest ancestor which has them.
+        // For now only nodes with a box of their own get bounds; anything else, including
+        // `display: none` content, gets its bounds cleared. That leaves two kinds of nodes
+        // without geometry which assistive technology would like to have some:
         //
-        // TODO(accessibility): These bounds are those of the whole containing box, which is too
-        // large whenever it holds more than this one text run. They should instead be the union of
-        // the rectangles of this node's own `Fragment::Text` fragments.
-        let bounds = match dom_node.type_id() {
-            Some(LayoutNodeType::Text) => own_bounds.or(inherited_bounds),
-            _ => own_bounds,
-        };
-
-        let damage = match bounds {
+        // TODO(accessibility): A text node never has bounds of its own: `LayoutBox::Text` has no
+        // `LayoutBoxBase`, and `Fragment::Text` has no box area, so the query above always returns
+        // `None` for one. Text nodes should get the union of the rectangles of their own
+        // `Fragment::Text` fragments, once `cumulative_box_area_rect()` can handle those.
+        //
+        // TODO(accessibility): A `display: contents` element generates no box either. Other
+        // engines (Blink, WebKit, Gecko) compute its bounds as the union of the bounding boxes of
+        // its rendered descendants.
+        match bounds {
             Some(bounds) => self.set_bounds(bounds),
-            None => self.clear_bounds(), // display: none case
-        };
-        (damage, inheritable_bounds)
+            None => self.clear_bounds(),
+        }
     }
 
     /// Recompute this node's bounds and its descendants', from current layout geometry.
@@ -910,9 +889,8 @@ impl AccessibilityNode {
         context: &AccessibilityContext<'_>,
         tree: &AccessibilityTree,
         update: &mut AccessibilityUpdate,
-        inherited_bounds: Option<accesskit::Rect>,
     ) {
-        let (_, bounds) = self.update_bounds_from_dom_node(dom_node, context, inherited_bounds);
+        self.update_bounds_from_dom_node(dom_node, context);
 
         if self.dirty_state.updated() {
             update.add(self);
@@ -924,7 +902,7 @@ impl AccessibilityNode {
             };
             tree.assert_node_for_id(&child_id)
                 .borrow_mut()
-                .refresh_bounds_for_subtree(&dom_child, context, tree, update, bounds);
+                .refresh_bounds_for_subtree(&dom_child, context, tree, update);
         }
     }
 
