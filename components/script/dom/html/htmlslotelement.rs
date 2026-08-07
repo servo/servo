@@ -6,7 +6,7 @@ use std::cell::{Cell, Ref, RefCell};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::gc::RootedVec;
 use js::rust::HandleObject;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
@@ -297,7 +297,7 @@ impl HTMLSlotElement {
                 if is_slottable {
                     rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(&*child)));
                     // Step 6.1 Let foundSlot be the result of finding a slot given slottable.
-                    let found_slot = slottable.find_a_slot(false);
+                    let found_slot = slottable.find_a_slot(cx.no_gc(), false);
 
                     // Step 6.2 If foundSlot is slot, then append slottable to result.
                     if found_slot.is_some_and(|found_slot| &*found_slot == self) {
@@ -415,15 +415,19 @@ impl HTMLSlotElement {
 
 impl Slottable {
     /// <https://dom.spec.whatwg.org/#find-a-slot>
-    pub(crate) fn find_a_slot(&self, open_flag: bool) -> Option<DomRoot<HTMLSlotElement>> {
+    pub(crate) fn find_a_slot(
+        &self,
+        no_gc: &NoGC,
+        open_flag: bool,
+    ) -> Option<DomRoot<HTMLSlotElement>> {
         // Step 1. If slottable’s parent is null, then return null.
-        let parent = self.node().GetParentNode()?;
+        let parent = self.node().get_parent_node_unrooted(no_gc)?;
 
         // Step 2. Let shadow be slottable’s parent’s shadow root.
         // Step 3. If shadow is null, then return null.
         let shadow_root = parent
             .downcast::<Element>()
-            .and_then(Element::shadow_root)?;
+            .and_then(|element| element.shadow_root_unrooted(no_gc))?;
 
         // Step 4. If the open flag is set and shadow’s mode is not "open", then return null.
         if open_flag && shadow_root.Mode() != ShadowRootMode::Open {
@@ -444,7 +448,7 @@ impl Slottable {
     /// <https://dom.spec.whatwg.org/#assign-a-slot>
     pub(crate) fn assign_a_slot(&self, cx: &JSContext) {
         // Step 1. Let slot be the result of finding a slot with slottable.
-        let slot = self.find_a_slot(false);
+        let slot = self.find_a_slot(cx.no_gc(), false);
 
         // Step 2. If slot is non-null, then run assign slottables for slot.
         if let Some(slot) = slot {
