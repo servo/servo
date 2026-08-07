@@ -65,7 +65,7 @@ use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
-type LazyCell<T> = cell::LazyCell<T, Box<dyn FnOnce() -> T>>;
+type LazyCellWithBoxedInitializer<T> = cell::LazyCell<T, Box<dyn FnOnce() -> T>>;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
@@ -75,7 +75,7 @@ struct DroppableField {
     /// NOTE: Do not access the `thread_pool` field directly, instead use the
     /// `Worklet::worklet_thread_pool` method to access the Thread Pool.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
-    thread_pool: LazyCell<Rc<WorkletThreadPool>>,
+    thread_pool: LazyCellWithBoxedInitializer<Rc<WorkletThreadPool>>,
 
     /// NOTE: The `is_thread_pool_initialized` field is a temporary workaround because
     /// using the `LazyCell::get()` method requires Rust version >1.94.0 and is not
@@ -113,7 +113,7 @@ impl Worklet {
             global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
-                thread_pool: LazyCell::new(thread_pool_constructor),
+                thread_pool: LazyCellWithBoxedInitializer::new(thread_pool_constructor),
                 is_thread_pool_initialized: Cell::new(false),
             },
         }
