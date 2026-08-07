@@ -3094,6 +3094,12 @@ impl Document {
         if self.window().has_pending_media_query_evaluation() {
             return true;
         }
+        if self
+            .selection()
+            .is_some_and(|selection| selection.visible_selection_dirty())
+        {
+            return true;
+        }
 
         false
     }

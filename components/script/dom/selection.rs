@@ -68,6 +68,10 @@ impl Selection {
         )
     }
 
+    pub(crate) fn visible_selection_dirty(&self) -> bool {
+        self.visible_selection_dirty.get()
+    }
+
     fn set_range(&self, new_range: Option<&Range>) {
         // If we are setting to literally the same Range object and not just the same
         // positions, then there's nothing changing and no task to queue.
@@ -110,7 +114,7 @@ impl Selection {
                         next = traversal.next_skipping_subtree();
                     }
                 },
-                PrePostIteration::Leave(_) => {},
+                PrePostIteration::Leave(_) => next = traversal.next(),
             }
         }
     }
