@@ -136,10 +136,7 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{
-    ErrorReporting, RethrowErrors,
-};
-use crate::script_module::ScriptFetchOptions;
+use crate::dom::globalscope::script_execution::{CompletionValue, ErrorReporting, RethrowErrors};
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
@@ -161,6 +158,7 @@ use crate::messaging::{
 };
 use crate::microtask::{MicrotaskQueue, MicrotaskRunnable};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
+use crate::modules::script_module::ScriptFetchOptions;
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{
@@ -3919,7 +3917,7 @@ impl ScriptThread {
             Some(IntroductionType::JAVASCRIPT_URL),
             1,
             false,
-            false,
+            CompletionValue::Needed,
         );
 
         rooted!(&in(cx) let mut jsval = UndefinedValue());
