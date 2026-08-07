@@ -7,3 +7,4 @@ pub(crate) mod htmllinkelement;
 pub(crate) mod htmlmetaelement;
 pub(crate) mod htmlstyleelement;
 pub(crate) mod htmltitleelement;
+pub(crate) mod processingoptions;

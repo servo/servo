@@ -109,7 +109,6 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, HashMapTracedValues, RootedTraceableBox};
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
-use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
@@ -119,6 +118,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
+use crate::dom::globalscope::broadcastchannel::BroadcastChannel;
 use crate::dom::globalscope::script_execution::{
     ErrorReporting, evaluate_script, fill_compile_options,
 };

@@ -44,6 +44,7 @@
 ./components/script/dom/datatransfer/datatransferitemlist.rs 1
 ./components/script/dom/document/document.rs 28
 ./components/script/dom/document/documentorshadowroot.rs 1
+./components/script/dom/document/websocket.rs 7
 ./components/script/dom/domimplementation.rs 1
 ./components/script/dom/domstringmap.rs 2
 ./components/script/dom/domtokenlist.rs 4
@@ -106,7 +107,6 @@
 ./components/script/dom/webgpu/gpuqueue.rs 6
 ./components/script/dom/webrtc/rtcdatachannel.rs 2
 ./components/script/dom/webrtc/rtcpeerconnection.rs 2
-./components/script/dom/websocket.rs 7
 ./components/script/dom/webvtt/texttrack.rs 1
 ./components/script/dom/webvtt/vttcue.rs 2
 ./components/script/dom/webvtt/vttregion.rs 5

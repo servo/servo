@@ -50,14 +50,14 @@ use crate::dom::element::{
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
     reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
+use crate::dom::html::documentmetadata::processingoptions::{
+    LinkFetchContext, LinkFetchContextType, LinkProcessingOptions,
+};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::processingoptions::{
-    LinkFetchContext, LinkFetchContextType, LinkProcessingOptions,
-};
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::links::LinkRelations;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
