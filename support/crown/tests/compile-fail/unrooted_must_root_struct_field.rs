@@ -6,6 +6,6 @@
 #[crown::unrooted_must_root_lint::must_root]
 struct Foo(i32);
 struct Bar(Foo);
-//~^ ERROR: Type must be rooted, use #[crown::unrooted_must_root_lint::must_root] on the struct definition to propagate
+//~^ ERROR: type must be rooted, use #[crown::unrooted_must_root_lint::must_root] on the struct/enum definition to propagate
 
 fn main() {}
