@@ -30,10 +30,10 @@ use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, report_pending_
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::realms::enter_auto_realm;
-use crate::script_module::{
+use crate::modules::script_module::{
     ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
 };
+use crate::realms::enter_auto_realm;
 use crate::unminify::unminify_js;
 
 /// <https://html.spec.whatwg.org/multipage/#classic-script>

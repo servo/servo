@@ -46,12 +46,11 @@ pub(crate) mod messaging;
 mod microtask;
 pub(crate) mod mime;
 mod mime_multipart;
-mod module_loading;
+pub(crate) mod modules;
 mod navigation;
 mod network_listener;
 mod realms;
 mod routed_promise;
-mod script_module;
 mod script_mutation_observers;
 pub(crate) mod script_runtime;
 #[expect(unsafe_code)]

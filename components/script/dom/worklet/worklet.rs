@@ -56,8 +56,8 @@ use crate::dom::workletglobalscope::{
 };
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg, ScriptEventLoopSender};
 use crate::microtask::MicrotaskQueue;
+use crate::modules::script_module::fetch_a_module_script_graph;
 use crate::realms::enter_auto_realm;
-use crate::script_module::fetch_a_module_script_graph;
 use crate::script_runtime::{IntroductionType, Runtime, ScriptThreadEventCategory};
 use crate::task_source::TaskSourceName;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;

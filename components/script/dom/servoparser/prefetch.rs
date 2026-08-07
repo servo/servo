@@ -28,7 +28,7 @@ use crate::dom::document::Document;
 use crate::dom::html::htmlscriptelement::script_fetch_request;
 use crate::dom::processingoptions::determine_cors_settings_for_token;
 use crate::fetch::create_a_potential_cors_request;
-use crate::script_module::ScriptFetchOptions;
+use crate::modules::script_module::ScriptFetchOptions;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
