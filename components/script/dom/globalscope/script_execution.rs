@@ -50,6 +50,35 @@ pub(crate) struct ClassicScript {
     url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#muted-errors>
     muted_errors: ErrorReporting,
+    /// see [`CompletionValue`].
+    completion_value: CompletionValue,
+}
+
+/// Indicates whether the script's completion value is needed at run time.
+///
+/// `Discarded` skips the rval in the execution stack frame (<script> tags, event handlers, setTimeout/setInterval timers, Web Workers)
+/// `Needed` fulfills the HTML spec where the URL returns a string that replaces current page content
+///
+/// Not a HTML classic-script field; but maps to SpiderMonkey's `noScriptRval` compile option
+/// <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>
+///
+/// Firefox
+/// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#182>
+/// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#201>
+/// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#405>
+///
+/// Blink
+/// <https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/bindings/core/v8/script_controller.cc#220>
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+pub(crate) enum CompletionValue {
+    Discarded,
+    Needed,
+}
+
+impl CompletionValue {
+    fn no_script_rval(self) -> bool {
+        matches!(self, CompletionValue::Discarded)
+    }
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -87,6 +116,7 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         line_number: u32,
         external: bool,
+        completion_value: CompletionValue,
     ) -> ClassicScript {
         let mut source = if self.unminified_js_dir().is_some() {
             let mut script_source = ModuleSource {
@@ -114,7 +144,7 @@ impl GlobalScope {
             url.as_str(),
             introduction_type,
             muted_errors,
-            true, // noScriptRval
+            completion_value.no_script_rval(),
             line_number,
         );
 
@@ -143,6 +173,7 @@ impl GlobalScope {
             url,
             fetch_options,
             muted_errors,
+            completion_value,
         }
     }
 
@@ -153,6 +184,7 @@ impl GlobalScope {
         cx: &mut JSContext,
         script: ClassicScript,
         rethrow_errors: RethrowErrors,
+        rval: Option<MutableHandleValue>,
     ) -> ErrorResult {
         // TODO Step 1. Let settings be the settings object of script.
 
@@ -183,16 +215,15 @@ impl GlobalScope {
                 },
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
-                    rooted!(&in(cx) let mut rval = UndefinedValue());
+                    if rval.is_some() {
+                        debug_assert!(matches!(script.completion_value, CompletionValue::Needed));
+                    }
+                    rooted!(&in(cx) let mut default_rval = UndefinedValue());
+                    let rval = rval.unwrap_or_else(|| default_rval.handle_mut());
                     let script_ptr = NonNull::new(compiled_script.get())
                         .expect("Compiled script must not be null");
-                    result = evaluate_script(
-                        cx,
-                        script_ptr,
-                        script.url,
-                        script.fetch_options,
-                        rval.handle_mut(),
-                    );
+                    result =
+                        evaluate_script(cx, script_ptr, script.url, script.fetch_options, rval);
                 },
             }
 

@@ -135,6 +135,7 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::globalscope::script_execution::{CompletionValue, ErrorReporting, RethrowErrors};
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
@@ -153,6 +154,7 @@ use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::enter_auto_realm;
+use crate::script_module::ScriptFetchOptions;
 use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
@@ -3837,18 +3839,28 @@ impl ScriptThread {
 
         // Step 4. Let settings be targetNavigable's active document's relevant settings object.
         // Step 5. Let baseURL be settings's API base URL.
+        let base_url = global_scope.api_base_url();
+        let fetch_options = ScriptFetchOptions::default_classic_script();
+
         // Step 6. Let script be the result of creating a classic script given scriptSource, settings, baseURL, and the default script fetch options.
-        // Note: these steps are handled by `evaluate_js_on_global`.
-        let mut realm = enter_auto_realm(cx, global_scope);
-        let cx = &mut realm.current_realm();
+        let script = global_scope.create_a_classic_script(
+            cx,
+            script_source,
+            base_url,
+            fetch_options,
+            ErrorReporting::Unmuted,
+            Some(IntroductionType::JAVASCRIPT_URL),
+            1,
+            false,
+            CompletionValue::Needed,
+        );
 
         rooted!(&in(cx) let mut jsval = UndefinedValue());
         // Step 7. Let evaluationStatus be the result of running the classic script script.
-        let evaluation_status = global_scope.evaluate_js_on_global(
+        let evaluation_status = global_scope.run_a_classic_script(
             cx,
-            script_source,
-            "",
-            Some(IntroductionType::JAVASCRIPT_URL),
+            script,
+            RethrowErrors::No,
             Some(jsval.handle_mut()),
         );
 
