@@ -22,7 +22,7 @@ malloc_size_of_derive = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 servo-base = { workspace = true }
 webrender_api = { workspace = true }
-
+ohos-image-kit-sys = {version = "0.3.6", features = ["api-20", "picture"]}
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }
 

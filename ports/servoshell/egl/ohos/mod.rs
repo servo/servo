@@ -786,7 +786,6 @@ static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
     let mut builder = hilog::Builder::new();
     builder.set_domain(hilog::LogDomain::new(0xE0C3));
     let filters = [
-        "fonts",
         "servo",
         "servoshell",
         "servoshell::egl:gl_glue",
