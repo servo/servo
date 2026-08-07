@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use embedder_traits::UntrustedNodeAddress;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Rect, Size2D};
 use itertools::Itertools;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
@@ -52,7 +52,7 @@ use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
 use crate::flow::inline::text_transform::TextTransformationIterator;
 use crate::fragment_tree::{
-    BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, TextFragment,
+    BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
 use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
@@ -1365,98 +1365,6 @@ fn rendered_text_collection_steps(
         },
     };
     items
-}
-
-struct ClosestFragment {
-    fragment: Arc<TextFragment>,
-    point_in_fragment: Point2D<Au, CSSPixel>,
-    distance: Au,
-    point_in_vertical_bounds: bool,
-}
-
-impl ClosestFragment {
-    fn should_replace(&self, new_distance: Au, point_in_vertical_bounds: bool) -> bool {
-        if point_in_vertical_bounds && !self.point_in_vertical_bounds {
-            return true;
-        }
-        if self.point_in_vertical_bounds && !point_in_vertical_bounds {
-            return false;
-        }
-        new_distance <= self.distance
-    }
-}
-
-pub fn find_character_offset_in_fragment_descendants(
-    node: &ServoLayoutNode,
-    stacking_context_tree: &StackingContextTree,
-    point_in_viewport: Point2D<Au, CSSPixel>,
-) -> Option<usize> {
-    fn maybe_update_closest(
-        fragment: &Fragment,
-        point_in_fragment: Point2D<Au, CSSPixel>,
-        closest_relative_fragment: &mut Option<ClosestFragment>,
-    ) {
-        let Fragment::Text(text_fragment) = fragment else {
-            return;
-        };
-
-        let (distance, point_in_vertical_bounds) = {
-            (
-                text_fragment.distance_to_point_for_glyph_offset(point_in_fragment),
-                text_fragment.point_is_within_vertical_boundaries(point_in_fragment),
-            )
-        };
-
-        if closest_relative_fragment
-            .as_ref()
-            .is_none_or(|closest_fragment| {
-                closest_fragment.should_replace(distance, point_in_vertical_bounds)
-            })
-        {
-            *closest_relative_fragment = Some(ClosestFragment {
-                fragment: text_fragment.clone(),
-                point_in_fragment,
-                distance,
-                point_in_vertical_bounds,
-            });
-        }
-    }
-
-    fn collect_relevant_children(
-        fragment: &Fragment,
-        point_in_viewport: Point2D<Au, CSSPixel>,
-        closest_relative_fragment: &mut Option<ClosestFragment>,
-    ) {
-        maybe_update_closest(fragment, point_in_viewport, closest_relative_fragment);
-
-        if let Some(children) = fragment.children() {
-            for child in children.iter() {
-                let offset = child
-                    .base()
-                    .map(|base| base.rect().origin)
-                    .unwrap_or_default();
-                let point = point_in_viewport - offset.to_vector();
-                collect_relevant_children(child, point, closest_relative_fragment);
-            }
-        }
-    }
-
-    let mut closest_relative_fragment = None;
-    for fragment in &node.fragments_for_pseudo(None) {
-        if let Some(point_in_fragment) =
-            stacking_context_tree.offset_in_fragment(fragment, point_in_viewport)
-        {
-            collect_relevant_children(fragment, point_in_fragment, &mut closest_relative_fragment);
-        }
-    }
-
-    closest_relative_fragment
-        .and_then(|closest_fragment| {
-            closest_fragment
-                .fragment
-                .character_offset(closest_fragment.point_in_fragment)
-        })
-        .map(|offset| offset.0)
 }
 
 pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<UntrustedNodeAddress> {

@@ -223,12 +223,7 @@ impl HTMLTextAreaElement {
         if self.textinput.borrow().is_empty() {
             return;
         }
-        let node = self.upcast();
-        if self
-            .textinput
-            .borrow_mut()
-            .handle_mouse_event(node, mouse_event)
-        {
+        if self.textinput.borrow_mut().handle_mouse_event(mouse_event) {
             self.maybe_update_shared_selection();
         }
     }

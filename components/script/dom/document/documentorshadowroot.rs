@@ -10,6 +10,7 @@ use embedder_traits::UntrustedNodeAddress;
 use js::context::JSContext;
 use js::conversions::FromJSValConvertible;
 use js::rust::HandleValue;
+use layout_api::HitTestFlags;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -188,10 +189,11 @@ impl DocumentOrShadowRoot {
             return None;
         }
 
-        let results = self
+        let flags = HitTestFlags::empty();
+        let result = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y));
-        let Some(result) = results.first() else {
+            .elements_from_point_query(flags, LayoutPoint::new(x, y));
+        let Some(result) = result.items.first() else {
             return document_element;
         };
 
@@ -231,11 +233,13 @@ impl DocumentOrShadowRoot {
         // box, that would be a target for hit testing at coordinates x,y even if nothing
         // would be overlapping it, when applying the transforms that apply to the
         // descendants of the viewport, append the associated element to sequence.
-        let nodes = self
+        let flags = HitTestFlags::empty();
+        let result = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y));
+            .elements_from_point_query(flags, LayoutPoint::new(x, y));
 
-        let mut elements: Vec<_> = nodes
+        let mut elements: Vec<_> = result
+            .items
             .iter()
             .flat_map(|result| {
                 // SAFETY: This is safe because `Self::query_elements_from_point` has ensured that

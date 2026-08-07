@@ -367,6 +367,15 @@ pub struct ConstellationInputEvent {
     pub event: InputEventAndId,
 }
 
+impl ConstellationInputEvent {
+    /// Returns whether `pressed_mouse_buttons` includes the primarry button
+    pub fn primary_button_is_pressed(&self) -> bool {
+        /// <https://w3c.github.io/pointerevents/#dom-mouseevent-buttons>
+        const PRIMARY_BUTTON_MASK: u16 = 1;
+        (self.pressed_mouse_buttons & PRIMARY_BUTTON_MASK) != 0
+    }
+}
+
 /// All of the information necessary to create a new [`ScriptThread`] for a new [`EventLoop`].
 ///
 /// NB: *DO NOT* add any Senders or Receivers here! pcwalton will have to rewrite your code if you

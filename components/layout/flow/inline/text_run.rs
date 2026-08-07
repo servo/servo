@@ -297,6 +297,8 @@ pub(crate) struct CaretPlaceholder {
     /// The [`TextFragmentRunData`] of the [`TextRun`] that contains this caret placeholder.
     #[conditional_malloc_size_of]
     pub run_data: Arc<SharedTextRunData>,
+    /// The `BaseFragmentInfo` of the originating text node that this caret placeholder is in.
+    pub base_fragment_info: BaseFragmentInfo,
     /// Character index of the preserved newline in the IFC's transformed text, relative
     /// to the start of the DOM node.
     pub character_index: usize,
@@ -528,6 +530,7 @@ impl TextRun {
                 results.push(TextRunItem::LineBreak(
                     self.run_data.selection.is_some().then(|| CaretPlaceholder {
                         run_data: self.run_data.clone(),
+                        base_fragment_info: self.base_fragment_info,
                         // The placeholder that is placed after a newline is for the index after that newline.
                         // The newline itself is at the end of the previous line.
                         character_index: relative_character_index + 1,

@@ -134,9 +134,7 @@ use crate::flow::{
     compute_inline_content_sizes_for_block_level_boxes, layout_block_level_child,
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
-use crate::fragment_tree::{
-    BaseFragmentInfo, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
-};
+use crate::fragment_tree::{CollapsedMargin, Fragment, FragmentFlags, PositioningFragment};
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -1725,7 +1723,7 @@ impl InlineFormattingContextLayout<'_> {
             TextRunLineItem {
                 text: Default::default(),
                 text_fragment_run_data: caret_placeholder.run_data,
-                base_fragment_info: BaseFragmentInfo::anonymous(),
+                base_fragment_info: caret_placeholder.base_fragment_info,
                 info: FontAndScriptInfo::simple_for_font(font),
                 character_range_in_dom_node: Utf32CodeUnits(caret_placeholder.character_index)..
                     Utf32CodeUnits(caret_placeholder.character_index + 1),

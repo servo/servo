@@ -16,15 +16,15 @@ use bitflags::bitflags;
 use embedder_traits::{
     EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
 };
-use euclid::{Point2D, Rect, Scale, Size2D};
+use euclid::{Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locid::subtags::Language;
 use layout_api::{
-    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, IFrameSizes, Layout,
-    LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
-    OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleNode, HitTestFlags, HitTestResult,
+    IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode,
+    NodeRenderingType, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
     ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, warn};
@@ -86,13 +86,12 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
 use crate::query::{
-    find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
-    process_box_areas_request, process_client_rect_request,
-    process_containing_block_descendant_query, process_containing_block_query,
-    process_current_css_zoom_query, process_effective_overflow_query,
-    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
-    process_resolved_font_style_query, process_resolved_style_request,
-    process_scroll_container_query,
+    get_the_text_steps, process_box_area_request, process_box_areas_request,
+    process_client_rect_request, process_containing_block_descendant_query,
+    process_containing_block_query, process_current_css_zoom_query,
+    process_effective_overflow_query, process_node_scroll_area_request,
+    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
+    process_resolved_style_request, process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
@@ -567,33 +566,16 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn query_text_index(
+    fn hit_test(
         &self,
-        node: TrustedNodeAddress,
-        point_in_node: Point2D<Au, CSSPixel>,
-    ) -> Option<usize> {
-        with_layout_state(|| {
-            let node = unsafe { ServoLayoutNode::new(&node) };
-            let stacking_context_tree = self.stacking_context_tree.borrow_mut();
-            let stacking_context_tree = stacking_context_tree.as_ref()?;
-            find_character_offset_in_fragment_descendants(
-                &node,
-                stacking_context_tree,
-                point_in_node,
-            )
-        })
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn query_elements_from_point(
-        &self,
+        flags: HitTestFlags,
         point: webrender_api::units::LayoutPoint,
-    ) -> Vec<layout_api::ElementsFromPointResult> {
+    ) -> HitTestResult {
         with_layout_state(|| {
             self.stacking_context_tree
                 .borrow_mut()
                 .as_mut()
-                .map(|tree| HitTest::run(tree, point))
+                .map(|tree| HitTest::run(flags, tree, point))
                 .unwrap_or_default()
         })
     }
