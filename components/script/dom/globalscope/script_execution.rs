@@ -58,16 +58,16 @@ pub(crate) struct ClassicScript {
 ///
 /// `Discarded` skips the rval in the execution stack frame (<script> tags, event handlers, setTimeout/setInterval timers, Web Workers)
 /// `Needed` fulfills the HTML spec where the URL returns a string that replaces current page content
-/// 
+///
 /// Not a HTML classic-script field; but maps to SpiderMonkey's `noScriptRval` compile option
 /// <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>
-/// 
-/// Firefox 
+///
+/// Firefox
 /// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#182>
 /// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#201>
 /// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#405>
-/// 
-/// Blink 
+///
+/// Blink
 /// <https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/bindings/core/v8/script_controller.cc#220>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub(crate) enum CompletionValue {
