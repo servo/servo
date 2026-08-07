@@ -227,21 +227,21 @@ impl WorkletGlobalScope {
 }
 
 impl From<&Window> for WorkletGlobalScopeInit {
-    fn from(dom: &Window) -> Self {
-        let global = dom.as_global_scope();
+    fn from(window: &Window) -> Self {
+        let global_scope = window.as_global_scope();
 
         WorkletGlobalScopeInit {
-            to_script_thread_sender: dom.main_thread_script_chan().clone(),
-            resource_threads: global.resource_threads().clone(),
-            storage_threads: global.storage_threads().clone(),
-            mem_profiler_chan: global.mem_profiler_chan().clone(),
-            time_profiler_chan: global.time_profiler_chan().clone(),
-            devtools_chan: global.devtools_chan().cloned(),
-            script_to_constellation_sender: global.script_to_constellation_chan().sender,
-            to_embedder_sender: global.script_to_embedder_chan().clone(),
-            image_cache: global.image_cache(),
+            to_script_thread_sender: window.main_thread_script_chan().clone(),
+            resource_threads: global_scope.resource_threads().clone(),
+            storage_threads: global_scope.storage_threads().clone(),
+            mem_profiler_chan: global_scope.mem_profiler_chan().clone(),
+            time_profiler_chan: global_scope.time_profiler_chan().clone(),
+            devtools_chan: global_scope.devtools_chan().cloned(),
+            script_to_constellation_sender: global_scope.script_to_constellation_chan().sender,
+            to_embedder_sender: global_scope.script_to_embedder_chan().clone(),
+            image_cache: global_scope.image_cache(),
             #[cfg(feature = "webgpu")]
-            gpu_id_hub: global.wgpu_id_hub(),
+            gpu_id_hub: global_scope.wgpu_id_hub(),
         }
     }
 }

@@ -72,21 +72,20 @@ struct DroppableField {
     worklet_id: WorkletId,
     /// The cached version of the script thread's WorkletThreadPool. We keep this cached
     /// because we may need to access it after the script thread has terminated.
-    /// NOTE: Do not access thread_pool directly from the struct as it will cause the `is_thread_pool_initialized` field on Worklet to go out sync.
-    /// Use the `worklet_thread_pool` method instead.
+    /// NOTE: Do not access the `thread_pool` field directly, instead use the
+    /// `Worklet::worklet_thread_pool` method to access the Thread Pool.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
     thread_pool: LazyCell<Rc<WorkletThreadPool>>,
 
-    /// NOTE: is_thread_pool_initialized is a workaround because we use a `LazyCell` to
-    /// initialize the Thread Pool. The `LazyCell::get()` method is not supported by the
-    /// current MSRV (Minimum Supported Rust Version)
+    /// NOTE: The `is_thread_pool_initialized` field is a temporary workaround because
+    /// using the `LazyCell::get()` method requires Rust version >1.94.0 and is not
+    /// supported by the current MSRV (Minimum Supported Rust Version).
     is_thread_pool_initialized: Cell<bool>,
 }
 
 impl Drop for DroppableField {
     fn drop(&mut self) {
         let worklet_id = self.worklet_id;
-
         if self.is_thread_pool_initialized.get() {
             self.thread_pool.exit_worklet(worklet_id);
         }
@@ -108,15 +107,13 @@ impl Worklet {
         global_type: WorkletGlobalScopeType,
         thread_pool_constructor: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
     ) -> Worklet {
-        let thread_pool = LazyCell::new(thread_pool_constructor);
-
         Worklet {
             reflector: Reflector::new(),
             window: Dom::from_ref(window),
             global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
-                thread_pool,
+                thread_pool: LazyCell::new(thread_pool_constructor),
                 is_thread_pool_initialized: Cell::new(false),
             },
         }
@@ -126,11 +123,15 @@ impl Worklet {
         cx: &mut JSContext,
         window: &Window,
         global_type: WorkletGlobalScopeType,
-        thread_pool: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
+        thread_pool_consturctor: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object_with_cx(
-            Box::new(Worklet::new_inherited(window, global_type, thread_pool)),
+            Box::new(Worklet::new_inherited(
+                window,
+                global_type,
+                thread_pool_consturctor,
+            )),
             window,
             cx,
         )
