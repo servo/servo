@@ -50,6 +50,22 @@ pub(crate) struct ClassicScript {
     url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#muted-errors>
     muted_errors: ErrorReporting,
+    /// Whether the script's completion value is needed at run time.
+    completion_value: CompletionValue,
+}
+
+/// Whether the script's completion value is needed.
+/// Maps to SpiderMonkey's `noScriptRval` compile option.
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+pub(crate) enum CompletionValue {
+    Discarded,
+    Needed,
+}
+
+impl CompletionValue {
+    fn no_script_rval(self) -> bool {
+        matches!(self, CompletionValue::Discarded)
+    }
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -87,7 +103,7 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         line_number: u32,
         external: bool,
-        no_script_rval: bool,
+        completion_value: CompletionValue,
     ) -> ClassicScript {
         let mut source = if self.unminified_js_dir().is_some() {
             let mut script_source = ModuleSource {
@@ -115,7 +131,7 @@ impl GlobalScope {
             url.as_str(),
             introduction_type,
             muted_errors,
-            no_script_rval,
+            completion_value.no_script_rval(),
             line_number,
         );
 
@@ -144,6 +160,7 @@ impl GlobalScope {
             url,
             fetch_options,
             muted_errors,
+            completion_value,
         }
     }
 
@@ -185,17 +202,15 @@ impl GlobalScope {
                 },
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
+                    if rval.is_some() {
+                        debug_assert!(matches!(script.completion_value, CompletionValue::Needed));
+                    }
                     rooted!(&in(cx) let mut default_rval = UndefinedValue());
                     let rval = rval.unwrap_or_else(|| default_rval.handle_mut());
                     let script_ptr = NonNull::new(compiled_script.get())
                         .expect("Compiled script must not be null");
-                    result = evaluate_script(
-                        cx,
-                        script_ptr,
-                        script.url,
-                        script.fetch_options,
-                        rval,
-                    );
+                    result =
+                        evaluate_script(cx, script_ptr, script.url, script.fetch_options, rval);
                 },
             }
 

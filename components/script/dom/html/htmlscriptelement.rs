@@ -52,7 +52,9 @@ use crate::dom::element::{
 };
 use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::{
+    ClassicScript, CompletionValue, ErrorReporting, RethrowErrors,
+};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
@@ -407,7 +409,7 @@ impl FetchResponseListener for ClassicContext {
             Some(IntroductionType::SRC_SCRIPT),
             1,
             true,
-            true,
+            CompletionValue::Discarded,
         );
 
         /*
@@ -874,7 +876,7 @@ impl HTMLScriptElement {
                         introduction_type,
                         self.line_number as u32,
                         false,
-                        true,
+                        CompletionValue::Discarded,
                     );
                     let result = Ok(Script::Classic(script));
 

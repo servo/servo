@@ -69,7 +69,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::{CompletionValue, ErrorReporting, RethrowErrors};
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -246,7 +246,7 @@ impl FetchResponseListener for ScriptFetchContext {
             Some(IntroductionType::WORKER),
             1,
             true,
-            true,
+            CompletionValue::Discarded,
         );
 
         // Step 6 Run onComplete given script.
@@ -830,12 +830,13 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 Some(IntroductionType::WORKER),
                 1,
                 true,
+                CompletionValue::Discarded,
             );
 
             // Run the classic script script, with rethrow errors set to true.
-            let result = self
-                .globalscope
-                .run_a_classic_script(cx, script, RethrowErrors::Yes, None);
+            let result =
+                self.globalscope
+                    .run_a_classic_script(cx, script, RethrowErrors::Yes, None);
 
             if let Err(error) = result {
                 if self.is_closing() {
