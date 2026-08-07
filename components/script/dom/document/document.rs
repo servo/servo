@@ -3577,10 +3577,6 @@ impl Document {
     pub(crate) fn rooted_nodes_for_accessibility_integrity_check(
         &self,
     ) -> Option<FxHashSet<OpaqueNode>> {
-        if !self.accessibility_active() {
-            return None;
-        }
-
         let mut accessibility_data = self.accessibility_data_mut();
 
         if pref!(expensive_accessibility_test_assertions_enabled) {

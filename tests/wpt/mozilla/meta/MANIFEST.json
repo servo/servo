@@ -11387,6 +11387,13 @@
   },
   "testharness": {
    "accessibility-tree": {
+    "accessibility-display-none-change.html": [
+     "e20191a787758f26d6405f60ec602251e0d91b76",
+     [
+      null,
+      {}
+     ]
+    ],
     "accessibility-update-basic-mutation.html": [
      "c5a01a3e528caa3d3925140ea8f575865c549c26",
      [
@@ -11409,14 +11416,14 @@
      ]
     ],
     "accessibility-update-mutation-move-nodes.html": [
-     "37da877ec1f10341d26cd9f6701c304af8ae5952",
+     "4f2abc1f33b3d3c9d78785ad83f6103f2259e15f",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-partial-subtree-move-and-delete.html": [
-     "b6655b8c1c29d2d1faa4db042ef791b61ae5f79c",
+     "ee82db7f1a8d2070a222f69a6c355bacf30c27ef",
      [
       null,
       {}

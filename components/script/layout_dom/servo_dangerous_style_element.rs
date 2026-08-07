@@ -13,7 +13,7 @@ use embedder_traits::UntrustedNodeAddress;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
-use layout_api::{DangerousStyleElement, LayoutDamage, LayoutNode};
+use layout_api::{AccessibilityDamage, DangerousStyleElement, LayoutDamage, LayoutNode};
 use script_bindings::root::DomRoot;
 use selectors::Element as _;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
@@ -509,7 +509,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
     }
 
     fn compute_layout_damage(old: &ComputedValues, new: &ComputedValues) -> RestyleDamage {
-        let box_tree_needs_rebuild = || {
+        let box_tree_needs_rebuild = |accessibility_damage: &mut AccessibilityDamage| {
             let old_box = old.get_box();
             let new_box = new.get_box();
 
@@ -517,6 +517,9 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
                 old_box.float != new_box.float ||
                 old_box.position != new_box.position
             {
+                if old_box.display.is_none() != new_box.display.is_none() {
+                    *accessibility_damage |= AccessibilityDamage::Style;
+                }
                 return true;
             }
 
@@ -633,8 +636,11 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
             false
         };
 
-        if box_tree_needs_rebuild() {
-            RestyleDamage::from_bits_retain(LayoutDamage::BoxDamage.bits())
+        let mut accessibility_damage = AccessibilityDamage::empty();
+        if box_tree_needs_rebuild(&mut accessibility_damage) {
+            RestyleDamage::from_bits_retain(
+                accessibility_damage.bits() << 4 | LayoutDamage::BoxDamage.bits(),
+            )
         } else if text_shaping_needs_recollect() {
             RestyleDamage::from_bits_retain(LayoutDamage::DescendantHasBoxDamage.bits())
         } else {

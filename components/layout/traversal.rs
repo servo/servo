@@ -4,12 +4,16 @@
 
 use std::sync::Arc;
 
+use bitflags::Flags;
 use layout_api::{
-    DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement, LayoutNode,
+    AccessibilityDamage, DangerousStyleElement, DangerousStyleNode, LayoutDamage, LayoutElement,
+    LayoutNode,
 };
+use parking_lot::Mutex;
+use rustc_hash::FxHashMap;
 use script::layout_dom::ServoLayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
-use style::dom::{NodeInfo, TElement, TNode};
+use style::dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
@@ -20,11 +24,18 @@ use crate::layout_root::LayoutRoot;
 
 pub struct RecalcStyle<'a> {
     context: &'a LayoutContext<'a>,
+    accessibility_damage: Option<Mutex<&'a mut FxHashMap<OpaqueNode, AccessibilityDamage>>>,
 }
 
 impl<'a> RecalcStyle<'a> {
-    pub(crate) fn new(context: &'a LayoutContext<'a>) -> Self {
-        RecalcStyle { context }
+    pub(crate) fn new(
+        context: &'a LayoutContext<'a>,
+        accessibility_damage: Option<&'a mut FxHashMap<OpaqueNode, AccessibilityDamage>>,
+    ) -> Self {
+        RecalcStyle {
+            context,
+            accessibility_damage: accessibility_damage.map(Mutex::new),
+        }
     }
 
     pub(crate) fn context(&self) -> &LayoutContext<'a> {
@@ -67,6 +78,20 @@ where
             &mut element_data,
             note_child,
         );
+
+        if had_style_data && let Some(accessibility_damage_map) = &self.accessibility_damage {
+            let mut accessibility_damage =
+                AccessibilityDamage::from_bits_retain(element_data.damage.bits() >> 4);
+            accessibility_damage.truncate();
+
+            if !accessibility_damage.is_empty() {
+                accessibility_damage_map
+                    .lock()
+                    .entry(node.opaque())
+                    .or_insert(AccessibilityDamage::empty())
+                    .insert(accessibility_damage);
+            }
+        }
     }
 
     #[inline]

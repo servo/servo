@@ -100,6 +100,19 @@ impl AccessibilityData {
         pending_damage.0 |= damage;
     }
 
+    #[expect(unsafe_code)]
+    pub(crate) fn add_pending_accessibility_damage_from_layout(
+        &self,
+        damage_from_layout: Vec<(OpaqueNode, AccessibilityDamage)>,
+    ) {
+        for (opaque, damage) in damage_from_layout {
+            // Safety: these OpaqueNodes are collected during layout's traversal of the DOM tree,
+            // and used immediately after reflow.
+            let node = unsafe { Node::from_untrusted_node_address(opaque.into()) };
+            self.add_pending_accessibility_damage_for_node(node, damage);
+        }
+    }
+
     /// Drain all pending accessibility damage so that it can be passed to the accessibility tree.
     pub(crate) fn drain_pending_accessibility_damage(
         &mut self,

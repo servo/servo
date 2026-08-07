@@ -423,6 +423,14 @@ pub trait Layout {
 
     /// See [Self::needs_accessibility_update()].
     fn set_needs_accessibility_update(&self);
+
+    fn update_accessibility_tree(
+        &self,
+        root_element: TrustedNodeAddress,
+        rooted_nodes: Option<FxHashSet<OpaqueNode>>,
+        accessibility_damage: Vec<(TrustedNodeAddress, AccessibilityDamage)>,
+        reflow_statistics: &mut ReflowStatistics,
+    );
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -585,6 +593,7 @@ pub struct IFrameSize {
 }
 
 pub type IFrameSizes = FxHashMap<BrowsingContextId, IFrameSize>;
+pub type LayoutAccessibilityDamage = Vec<(OpaqueNode, AccessibilityDamage)>;
 
 bitflags! {
     /// Conditions which cause a [`Document`] to need to be restyled during reflow, which
@@ -635,6 +644,8 @@ pub struct ReflowResult {
     pub lcp_candidate: Option<LCPCandidate>,
     /// The UntrustedNodeAddress for the LCP candidate if any.
     pub lcp_node_address: Option<UntrustedNodeAddress>,
+    /// Damage to the accessibility tree from Layout.
+    pub accessibility_damage: Option<LayoutAccessibilityDamage>,
 }
 
 bitflags! {
@@ -649,7 +660,6 @@ bitflags! {
         /// updating style or layout. This is used when updating canvas contents and
         /// progressing to a new animated image frame.
         const UpdatedImageData = 1 << 5;
-        const UpdatedAccessibilityTree = 1 << 6;
     }
 }
 
@@ -719,12 +729,6 @@ pub struct ReflowRequest {
     pub highlighted_dom_node: Option<OpaqueNode>,
     /// The current font context.
     pub document_context: WebFontDocumentContext,
-    /// Damage to the accessibility tree from DOM mutations.
-    pub accessibility_damage: Option<Vec<(TrustedNodeAddress, AccessibilityDamage)>>,
-    /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
-    /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
-    /// is set.
-    pub rooted_nodes_for_accessibility_integrity_check: Option<FxHashSet<OpaqueNode>>,
 }
 
 impl ReflowRequest {

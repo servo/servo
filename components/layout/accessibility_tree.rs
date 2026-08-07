@@ -35,6 +35,8 @@ bitflags! {
         const RoleChanged = 0b0010;
         /// This node's computed label or text value (for a text node) changed.
         const TextChanged = 0b0100;
+        /// This node's visibility changed.
+        const VisibilityChanged = 0b1000;
     }
 }
 
@@ -203,6 +205,8 @@ impl AccessibilityTree {
     ) {
         let (root_id, root_node) = self.get_or_create_node(root_dom_node, update);
         if update.is_new(&root_id) {
+            // We're going to rebuild the whole tree, so ignore any incoming damage.
+            damage_from_dom.clear();
             damage_from_dom.push_front((*root_dom_node, AccessibilityDamage::Rebuild));
         }
         self.root_node = Some(root_node);
@@ -597,7 +601,9 @@ impl AccessibilityNode {
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
 
-        if let Some((dom_node, dom_damage)) = dom_damage_map.get(&self.id) {
+        if self.dirty_state.has_damage() &&
+            let Some((dom_node, dom_damage)) = dom_damage_map.get(&self.id)
+        {
             local_damage.insert(self.update_node_and_populate_new_descendants_from_dom_node(
                 ref_self,
                 dom_node,
@@ -605,8 +611,6 @@ impl AccessibilityNode {
                 tree,
                 update,
             ));
-
-            self.dirty_state -= DirtyState::HasDamage;
         }
 
         if self.dirty_state.descendant_has_damage() {
@@ -677,6 +681,8 @@ impl AccessibilityNode {
                 ref_self, dom_node, dom_damage, tree, update,
             ),
         );
+
+        self.dirty_state -= DirtyState::HasDamage;
 
         local_damage
     }
@@ -772,15 +778,31 @@ impl AccessibilityNode {
         dom_damage: AccessibilityDamage,
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
-        if !dom_damage.contains(AccessibilityDamage::Text) {
-            return local_damage;
+
+        if dom_damage.contains(AccessibilityDamage::Node) {
+            // TODO: We may need to track role from DOM node and role from ARIA separately since
+            // the role from ARIA may change.
+            local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
+
+            if dom_node.type_id() == Some(LayoutNodeType::Text) {
+                let text_content = dom_node.text_content();
+                trace!("node text content = {text_content:?}");
+                // FIXME: this should take into account editing selection units (grapheme clusters?)
+                local_damage.insert(self.set_value(&text_content));
+            }
         }
-        local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
-        if dom_node.type_id() == Some(LayoutNodeType::Text) {
-            let text_content = dom_node.text_content();
-            trace!("node text content = {text_content:?}");
-            // FIXME: this should take into account editing selection units (grapheme clusters?)
-            local_damage.insert(self.set_value(&text_content));
+
+        if dom_damage.contains(AccessibilityDamage::Style) &&
+            let Some(dom_element) = dom_node.as_element() &&
+            dom_element.style_data().is_some()
+        {
+            let data = dom_element.element_data();
+            let style = data.styles.primary();
+            if style.clone_display().is_none() {
+                local_damage.insert(self.set_hidden());
+            } else {
+                local_damage.insert(self.clear_hidden());
+            }
         }
 
         local_damage
@@ -819,6 +841,9 @@ impl AccessibilityNode {
         let mut text = String::new();
         while let Some(child) = children.pop_front() {
             let child = child.borrow();
+            if child.is_hidden() {
+                continue;
+            }
             match child.role() {
                 Role::TextRun => {
                     if let Some(child_text) = child.value() {
@@ -853,8 +878,6 @@ impl AccessibilityNode {
         self.parent_node.as_ref().and_then(|weak| weak.upgrade())
     }
 
-    // TODO: use macros to generate getter/setter methods.
-
     fn children(&self) -> impl DoubleEndedIterator<Item = &ArcRefCell<AccessibilityNode>> {
         self.child_nodes.iter()
     }
@@ -866,6 +889,8 @@ impl AccessibilityNode {
     fn child_ids(&self) -> &[NodeId] {
         self.accesskit_node.children()
     }
+
+    // TODO: use macros to generate getter/setter methods.
 
     fn role(&self) -> Role {
         self.accesskit_node.role()
@@ -925,6 +950,29 @@ impl AccessibilityNode {
         self.accesskit_node.set_value(value);
         self.dirty_state |= DirtyState::Updated;
         LocalAccessibilityDamage::TextChanged
+    }
+
+    fn is_hidden(&self) -> bool {
+        self.accesskit_node.is_hidden()
+    }
+
+    fn set_hidden(&mut self) -> LocalAccessibilityDamage {
+        if self.is_hidden() {
+            return LocalAccessibilityDamage::empty();
+        }
+        self.accesskit_node.set_hidden();
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::VisibilityChanged
+    }
+
+    fn clear_hidden(&mut self) -> LocalAccessibilityDamage {
+        if !self.is_hidden() {
+            return LocalAccessibilityDamage::empty();
+        }
+
+        self.accesskit_node.clear_hidden();
+        self.dirty_state |= DirtyState::Updated;
+        LocalAccessibilityDamage::VisibilityChanged
     }
 
     fn assert_integrity(&self, expected_parent: Option<WeakRefCell<AccessibilityNode>>) {
@@ -1061,6 +1109,10 @@ impl AccessibilityUpdate {
 impl DirtyState {
     fn updated(&self) -> bool {
         self.contains(DirtyState::Updated)
+    }
+
+    fn has_damage(&self) -> bool {
+        self.contains(DirtyState::HasDamage)
     }
 
     fn descendant_has_damage(&self) -> bool {

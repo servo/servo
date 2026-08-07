@@ -45,11 +45,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointResult,
-    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
-    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectVec, ElementsFromPointResult, FragmentType, Layout,
+    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
+    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2719,14 +2719,6 @@ impl Window {
 
         let document_context = self.web_font_context(cx.no_gc());
 
-        let rooted_nodes_for_accessibility_integrity_check =
-            document.rooted_nodes_for_accessibility_integrity_check();
-        let mut accessibility_damage: Option<Vec<(TrustedNodeAddress, AccessibilityDamage)>> = None;
-        if self.layout().accessibility_active() {
-            let mut accessibility_data = document.accessibility_data_mut();
-            accessibility_damage = Some(accessibility_data.drain_pending_accessibility_damage());
-        }
-
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
@@ -2740,13 +2732,30 @@ impl Window {
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             document_context,
-            accessibility_damage,
-            rooted_nodes_for_accessibility_integrity_check,
         };
 
-        let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {
+        let mut layout = self.layout.borrow_mut();
+        let Some(mut reflow_result) = layout.reflow(reflow) else {
             return Default::default();
         };
+
+        if layout.accessibility_active() {
+            let rooted_nodes = document.rooted_nodes_for_accessibility_integrity_check();
+
+            let mut accessibility_data = document.accessibility_data_mut();
+            if let Some(accessibility_damage_from_layout) = reflow_result.accessibility_damage {
+                accessibility_data
+                    .add_pending_accessibility_damage_from_layout(accessibility_damage_from_layout);
+            }
+            let accessibility_damage = accessibility_data.drain_pending_accessibility_damage();
+
+            layout.update_accessibility_tree(
+                document.upcast::<Node>().to_trusted_node_address(),
+                rooted_nodes,
+                accessibility_damage,
+                &mut reflow_result.reflow_statistics,
+            );
+        }
 
         debug!("script: layout complete");
         if let Some(marker) = marker {
