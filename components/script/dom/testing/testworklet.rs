@@ -42,13 +42,13 @@ impl TestWorklet {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestWorklet> {
-        let worklet_thread_pool = Rc::new(WorkletThreadPool::spawn(window.into()));
+        let worklet_thread_pool = window.into();
 
         let worklet = Worklet::new(
             cx,
             window,
             WorkletGlobalScopeType::Test,
-            Box::new(|| worklet_thread_pool),
+            Box::new(|| Rc::new(WorkletThreadPool::spawn(worklet_thread_pool))),
         );
         reflect_dom_object_with_proto(
             cx,
