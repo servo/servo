@@ -552,7 +552,7 @@ impl HTMLScriptElement {
         // Step 1. If script’s script text value is not equal to its child text content,
         // set script’s script text to the result of executing
         // Get Trusted Type compliant string, with the following arguments:
-        if self.script_text.borrow().clone() != self.text() {
+        if *self.script_text.borrow() != self.text() {
             *self.script_text.borrow_mut() = TrustedScript::get_trusted_type_compliant_string(
                 cx,
                 &self.owner_global(),
