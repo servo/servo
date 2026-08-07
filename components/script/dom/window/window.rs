@@ -192,7 +192,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::windowproxy::{WindowProxy, WindowProxyHandler};
 use crate::dom::WorkletThreadPool;
 use crate::dom::worklet::Worklet;
-use crate::dom::workletglobalscope::{WorkletGlobalScopeInit, WorkletGlobalScopeType};
+use crate::dom::workletglobalscope::{WorkletGlobalScopeType};
 use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::UserMicrotask;
@@ -707,48 +707,15 @@ impl Window {
 
     fn new_paint_worklet(&self, cx: &mut JSContext) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
-        let global = self.global();
 
-        let init = WorkletGlobalScopeInit {
-            to_script_thread_sender: self.main_thread_script_chan().clone(),
-            resource_threads: global.resource_threads().clone(),
-            storage_threads: global.storage_threads().clone(),
-            mem_profiler_chan: global.mem_profiler_chan().clone(),
-            time_profiler_chan: global.time_profiler_chan().clone(),
-            devtools_chan: global.devtools_chan().cloned(),
-            script_to_constellation_sender: global.script_to_constellation_chan().sender,
-            to_embedder_sender: global.script_to_embedder_chan().clone(),
-            image_cache: global.image_cache(),
-            #[cfg(feature = "webgpu")]
-            gpu_id_hub: global.wgpu_id_hub(),
-        };
+        let worklet_global_scope_init = self.into();
 
         Worklet::new(
             cx,
             self,
             WorkletGlobalScopeType::Paint,
-            Box::new(|| Rc::new(WorkletThreadPool::spawn(init))),
+            Box::new(|| Rc::new(WorkletThreadPool::spawn(worklet_global_scope_init))),
         )
-    }
-
-    pub(crate) fn init_worklet_thread_pool(&self) -> Rc<WorkletThreadPool> {
-        let global = self.global();
-
-        let init = WorkletGlobalScopeInit {
-            to_script_thread_sender: self.main_thread_script_chan().clone(),
-            resource_threads: global.resource_threads().clone(),
-            storage_threads: global.storage_threads().clone(),
-            mem_profiler_chan: global.mem_profiler_chan().clone(),
-            time_profiler_chan: global.time_profiler_chan().clone(),
-            devtools_chan: global.devtools_chan().cloned(),
-            script_to_constellation_sender: global.script_to_constellation_chan().sender,
-            to_embedder_sender: global.script_to_embedder_chan().clone(),
-            image_cache: global.image_cache(),
-            #[cfg(feature = "webgpu")]
-            gpu_id_hub: global.wgpu_id_hub(),
-        };
-
-        Rc::new(WorkletThreadPool::spawn(init))
     }
 
     pub(crate) fn register_image_cache_listener(

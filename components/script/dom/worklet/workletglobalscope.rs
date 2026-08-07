@@ -22,6 +22,7 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
 
+use crate::dom::Window;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -221,6 +222,26 @@ impl WorkletGlobalScope {
         if !self.closing.load(Ordering::SeqCst) {
             self.microtask_queue
                 .checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
+        }
+    }
+}
+
+impl From<&Window> for WorkletGlobalScopeInit {
+    fn from(dom: &Window) -> Self {
+        let global = dom.as_global_scope();
+
+        WorkletGlobalScopeInit {
+            to_script_thread_sender: dom.main_thread_script_chan().clone(),
+            resource_threads: global.resource_threads().clone(),
+            storage_threads: global.storage_threads().clone(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
+            devtools_chan: global.devtools_chan().cloned(),
+            script_to_constellation_sender: global.script_to_constellation_chan().sender,
+            to_embedder_sender: global.script_to_embedder_chan().clone(),
+            image_cache: global.image_cache(),
+            #[cfg(feature = "webgpu")]
+            gpu_id_hub: global.wgpu_id_hub(),
         }
     }
 }
