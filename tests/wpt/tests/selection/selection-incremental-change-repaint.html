@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Active selection after incremental selection update</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="match" href="selection-incremental-change-repaint-ref.html">
+<meta name="assert" content="The rendering of a selection should update properly after it changes incrementally.">
+
+<div>
+    <span id="span1">1234<span id="span2">1234</span></span>
+</div>
+
+<script>
+  let span1Text = span1.firstChild;
+  let span2Text = span2.firstChild;
+  getSelection().setBaseAndExtent(span1Text, 0, span2Text, 3);
+  document.body.offsetWidth;
+  getSelection().setBaseAndExtent(span1Text, 0, span1Text, 4);
+</script>
