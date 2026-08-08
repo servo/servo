@@ -7,29 +7,26 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
-use script_bindings::cformat;
+use jstraceable_derive::JSTraceable;
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUAdapterMethods, GPUAdapterWrap, GPUDeviceDescriptor,
+};
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::like::Setlike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use webgpu_traits::{
-    RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
-};
-use wgpu_types::{self, AdapterInfo, ExperimentalFeatures, MemoryHints};
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::{DomTypes, cformat};
+use webgpu_traits::{WebGPU, WebGPUAdapter, WebGPURequest};
+use wgpu_types::{AdapterInfo, ExperimentalFeatures, MemoryHints};
 
-use super::gpusupportedfeatures::GPUSupportedFeatures;
-use super::gpusupportedlimits::set_limit;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUAdapterMethods, GPUDeviceDescriptor, GPUDeviceLostReason,
-};
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
-use crate::dom::types::{GPUAdapterInfo, GPUSupportedLimits};
-use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::dom::webgpu::gpusupportedfeatures::gpu_to_wgt_feature;
-use crate::routed_promise::{RoutedPromiseListener, callback_promise};
+use crate::gpuadapterinfo::GPUAdapterInfo;
+use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
+use crate::gpusupportedlimits::{GPUSupportedLimits, set_limit};
+use crate::promise::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
@@ -55,24 +52,32 @@ impl Drop for DroppableGPUAdapter {
 }
 
 #[dom_struct]
-pub(crate) struct GPUAdapter {
+pub struct GPUAdapter<D: DomTypes> {
     reflector_: Reflector,
     name: DOMString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
-    features: Dom<GPUSupportedFeatures>,
-    limits: Dom<GPUSupportedLimits>,
-    info: Dom<GPUAdapterInfo>,
+    features: Dom<GPUSupportedFeatures<D>>,
+    limits: Dom<GPUSupportedLimits<D>>,
+    info: Dom<GPUAdapterInfo<D>>,
     droppable: DroppableGPUAdapter,
 }
 
-impl GPUAdapter {
+impl<D> GPUAdapter<D>
+where
+    D: DomTypes<
+            GPUAdapter = GPUAdapter<D>,
+            GPUAdapterInfo = GPUAdapterInfo<D>,
+            GPUSupportedFeatures = GPUSupportedFeatures<D>,
+            GPUSupportedLimits = GPUSupportedLimits<D>,
+        >,
+{
     fn new_inherited(
         channel: WebGPU,
         name: DOMString,
-        features: &GPUSupportedFeatures,
-        limits: &GPUSupportedLimits,
-        info: &GPUAdapterInfo,
+        features: &GPUSupportedFeatures<D>,
+        limits: &GPUSupportedLimits<D>,
+        info: &GPUAdapterInfo<D>,
         adapter: WebGPUAdapter,
     ) -> Self {
         Self {
@@ -87,9 +92,9 @@ impl GPUAdapter {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub fn new(
         cx: &mut js::context::JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         channel: WebGPU,
         name: DOMString,
         extensions: HandleObject,
@@ -101,12 +106,13 @@ impl GPUAdapter {
         let features = GPUSupportedFeatures::Constructor(cx, global, None, features).unwrap();
         let limits = GPUSupportedLimits::new(cx, global, limits);
         let info = GPUAdapter::create_adapter_info(cx, global, info, &features);
-        let dom_root = reflect_dom_object_with_cx(
+        let dom_root = reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUAdapter::new_inherited(
                 channel, name, &features, &limits, &info, adapter,
             )),
             global,
             cx,
+            GPUAdapterWrap::<D>,
         );
         dom_root.extensions.set(*extensions);
         dom_root
@@ -115,10 +121,10 @@ impl GPUAdapter {
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-new-adapter-info>
     fn create_adapter_info(
         cx: &mut js::context::JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         info: AdapterInfo,
-        features: &GPUSupportedFeatures,
-    ) -> DomRoot<GPUAdapterInfo> {
+        features: &GPUSupportedFeatures<D>,
+    ) -> DomRoot<GPUAdapterInfo<D>> {
         // Step 2. If the vendor is known, set adapterInfo.vendor to the name of adapter’s vendor as
         // a normalized identifier string. To preserve privacy, the user agent may instead set
         // adapterInfo.vendor to the empty string or a reasonable approximation of the vendor as a
@@ -180,22 +186,37 @@ impl GPUAdapter {
             is_fallback_adapter,
         )
     }
+
+    pub fn channel(&self) -> WebGPU {
+        self.droppable.channel.clone()
+    }
+
+    fn global(&self) -> DomRoot<D::GlobalScope> {
+        <Self as DomGlobalGeneric<D>>::global_from_reflector(self)
+    }
 }
 
-impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
+impl<D> GPUAdapterMethods<D> for GPUAdapter<D>
+where
+    D: DomTypes<
+            GPUAdapter = GPUAdapter<D>,
+            GPUAdapterInfo = GPUAdapterInfo<D>,
+            GPUSupportedFeatures = GPUSupportedFeatures<D>,
+            GPUSupportedLimits = GPUSupportedLimits<D>,
+        >,
+    D::Promise: WebGPUPromiseTrait<D> + PromiseHelpers<D>,
+    D::GlobalScope: WebGPUGlobalTrait + GlobalScopeHelpers<D>,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice>
     fn RequestDevice(
         &self,
         cx: &mut CurrentRealm<'_>,
         descriptor: &GPUDeviceDescriptor,
-    ) -> Rc<Promise> {
+    ) -> Rc<D::Promise> {
         // Step 2
-        let promise = Promise::new_in_realm(cx);
-        let callback = callback_promise(
-            &promise,
-            self,
-            self.global().task_manager().dom_manipulation_task_source(),
-        );
+        let promise = D::Promise::new_in_realm(cx);
+
+        let callback = WebGPUPromiseTrait::<D>::callback_promise(&promise, self);
         let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {
@@ -214,7 +235,10 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             for (limit, value) in (*limits).iter() {
                 if !set_limit(&mut required_limits, &limit.str(), *value) {
                     warn!("Unknown GPUDevice limit: {limit}");
-                    promise.reject_error(cx, Error::Operation(None));
+                    promise.reject_error(
+                        cx,
+                        Error::Operation(Some(format!("Unknown GPUDevice limit: {limit}"))),
+                    );
                     return promise;
                 }
             }
@@ -228,8 +252,8 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             trace: wgpu_types::Trace::Off,
             experimental_features: ExperimentalFeatures::disabled(),
         };
-        let device_id = self.global().wgpu_id_hub().create_device_id();
-        let queue_id = self.global().wgpu_id_hub().create_queue_id();
+        let device_id = self.global().global_wgpu_id_hub().create_device_id();
+        let queue_id = self.global().global_wgpu_id_hub().create_queue_id();
         let pipeline_id = self.global().pipeline_id();
         if self
             .droppable
@@ -245,92 +269,27 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
             })
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not Request GPU Device".to_string())),
+            );
         }
         // Step 5
         promise
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-features>
-    fn Features(&self) -> DomRoot<GPUSupportedFeatures> {
+    fn Features(&self) -> DomRoot<GPUSupportedFeatures<D>> {
         DomRoot::from_ref(&self.features)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-limits>
-    fn Limits(&self) -> DomRoot<GPUSupportedLimits> {
+    fn Limits(&self) -> DomRoot<GPUSupportedLimits<D>> {
         DomRoot::from_ref(&self.limits)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapter-info>
-    fn Info(&self) -> DomRoot<GPUAdapterInfo> {
+    fn Info(&self) -> DomRoot<GPUAdapterInfo<D>> {
         DomRoot::from_ref(&self.info)
-    }
-}
-
-impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
-    /// <https://www.w3.org/TR/webgpu/#dom-gpuadapter-requestdevice>
-    fn handle_response(
-        &self,
-        cx: &mut js::context::JSContext,
-        response: WebGPUDeviceResponse,
-        promise: &Rc<Promise>,
-    ) {
-        match response {
-            // 3.1 Let device be a new device with the capabilities described by descriptor.
-            (device_id, queue_id, Ok(descriptor)) => {
-                let device = GPUDevice::new(
-                    cx,
-                    &self.global(),
-                    self.droppable.channel.clone(),
-                    self,
-                    HandleObject::null(),
-                    descriptor.required_features,
-                    descriptor.required_limits,
-                    device_id,
-                    queue_id,
-                    descriptor.label.unwrap_or_default(),
-                );
-                self.global().add_gpu_device(&device);
-                promise.resolve_native(cx, &device);
-            },
-            // 1. If features are not supported reject promise with a TypeError.
-            (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
-                cx,
-                Error::Type(cformat!(
-                    "{}",
-                    wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f)
-                )),
-            ),
-            // 2. If limits are not supported reject promise with an OperationError.
-            (_, _, Err(RequestDeviceError::LimitsExceeded(l))) => {
-                warn!(
-                    "{}",
-                    wgpu_core::instance::RequestDeviceError::LimitsExceeded(l)
-                );
-                promise.reject_error(cx, Error::Operation(None))
-            },
-            // 3. user agent otherwise cannot fulfill the request
-            (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {
-                // TODO(sagudev): firefox always says operation error,
-                // meanwhile we create "invalid" device that is not invalid in wgpu
-                // causing crashes when one tries to use it
-                // 1. Let device be a new device.
-                let device = GPUDevice::new(
-                    cx,
-                    &self.global(),
-                    self.droppable.channel.clone(),
-                    self,
-                    HandleObject::null(),
-                    wgpu_types::Features::default(),
-                    wgpu_types::Limits::default(),
-                    device_id,
-                    queue_id,
-                    String::new(),
-                );
-                // 2. Lose the device(device, "unknown").
-                device.lose(GPUDeviceLostReason::Unknown, e);
-                promise.resolve_native(cx, &device);
-            },
-        }
     }
 }

@@ -618,3 +618,15 @@ pub(crate) fn wait_for_all_promise(
     // Return promise.
     promise
 }
+
+impl script_bindings::interfaces::PromiseHelpers<crate::DomTypeHolder> for Promise {
+    fn new_in_realm(
+        cx: &mut CurrentRealm,
+    ) -> Rc<<crate::DomTypeHolder as script_bindings::DomTypes>::Promise> {
+        Promise::new_in_realm(cx)
+    }
+
+    fn reject_error(&self, cx: &mut js::context::JSContext, error: script_bindings::error::Error) {
+        Promise::reject_error(self, cx, error);
+    }
+}

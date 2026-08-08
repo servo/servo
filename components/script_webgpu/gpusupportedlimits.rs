@@ -2,41 +2,57 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use GPUSupportedLimits_Binding::GPUSupportedLimitsMethods;
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use malloc_size_of_derive::MallocSizeOf;
 use num_traits::bounds::UpperBounded;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUSupportedLimitsMethods, GPUSupportedLimitsWrap,
+};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use wgpu_types::Limits;
 
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUSupportedLimits_Binding;
+use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
 
 /// <https://gpuweb.github.io/gpuweb/#gpusupportedlimits>
 #[dom_struct]
-pub(crate) struct GPUSupportedLimits {
+pub struct GPUSupportedLimits<D: DomTypes> {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in wgpu-types"]
     #[no_trace]
     limits: Limits,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPUSupportedLimits {
+impl<D> GPUSupportedLimits<D>
+where
+    D: DomTypes<GPUSupportedLimits = GPUSupportedLimits<D>>,
+{
     fn new_inherited(limits: Limits) -> Self {
         Self {
             reflector_: Reflector::new(),
             limits,
+            phantom: PhantomData,
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope, limits: Limits) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(limits)), global, cx)
+    pub fn new(cx: &mut JSContext, global: &D::GlobalScope, limits: Limits) -> DomRoot<Self> {
+        reflect_dom_object_with_wrap::<D, _, _>(
+            Box::new(Self::new_inherited(limits)),
+            global,
+            cx,
+            GPUSupportedLimitsWrap::<D>,
+        )
     }
 }
 
 // Limits are ordered by their declaration in the spec.
-impl GPUSupportedLimitsMethods<crate::DomTypeHolder> for GPUSupportedLimits {
+impl<D: DomTypes> GPUSupportedLimitsMethods<D> for GPUSupportedLimits<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxtexturedimension1d>
     fn MaxTextureDimension1D(&self) -> u32 {
         self.limits.max_texture_dimension_1d

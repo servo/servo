@@ -6,6 +6,7 @@
 // Register the linter `crown`, which is the Servo-specific linter for the script crate.
 #![cfg_attr(crown, register_tool(crown))]
 
+pub mod gpuadapter;
 pub mod gpuadapterinfo;
 pub mod gpubufferusage;
 pub mod gpucommandbuffer;
@@ -15,12 +16,17 @@ pub mod gpudevicelostinfo;
 pub mod gpumapmode;
 pub mod gpurenderbundle;
 pub mod gpushaderstage;
+pub mod gpusupportedfeatures;
+pub mod gpusupportedlimits;
 pub mod gputextureusage;
 pub mod identityhub;
+pub mod promise;
+pub mod wgsllanguagefeatures;
 
 pub(crate) use js::gc::Traceable as JSTraceable;
 pub(crate) use jstraceable_derive::JSTraceable;
 pub(crate) use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
+pub(crate) use script_bindings::trace::CustomTraceable;
 
 pub(crate) use crate::dom::bindings::inheritance::HasParent;
 
@@ -48,6 +54,7 @@ pub(crate) mod codegen {
         use script_bindings::root::{Dom, DomRoot, Root};
         use script_bindings::utils::DOMClass;
 
+        use crate::gpuadapter::GPUAdapter;
         use crate::gpuadapterinfo::GPUAdapterInfo;
         use crate::gpubufferusage::GPUBufferUsage;
         use crate::gpucommandbuffer::GPUCommandBuffer;
@@ -57,7 +64,10 @@ pub(crate) mod codegen {
         use crate::gpumapmode::GPUMapMode;
         use crate::gpurenderbundle::GPURenderBundle;
         use crate::gpushaderstage::GPUShaderStage;
+        use crate::gpusupportedfeatures::GPUSupportedFeatures;
+        use crate::gpusupportedlimits::GPUSupportedLimits;
         use crate::gputextureusage::GPUTextureUsage;
+        use crate::wgsllanguagefeatures::WGSLLanguageFeatures;
         include!(concat!(
             env!("OUT_DIR"),
             "/ConcreteBindings/WebGPUBinding.rs"

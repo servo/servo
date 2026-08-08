@@ -12,6 +12,7 @@ use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUAdapterMethods;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
@@ -30,7 +31,7 @@ use super::gpusupportedlimits::GPUSupportedLimits;
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUAdapterMethods, GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
+    GPUBindGroupDescriptor, GPUBindGroupLayoutDescriptor, GPUBufferDescriptor,
     GPUCommandEncoderDescriptor, GPUComputePipelineDescriptor, GPUDeviceLostReason,
     GPUDeviceMethods, GPUErrorFilter, GPUExternalTextureDescriptor, GPUPipelineErrorReason,
     GPUPipelineLayoutDescriptor, GPUQuerySetDescriptor, GPURenderBundleEncoderDescriptor,
