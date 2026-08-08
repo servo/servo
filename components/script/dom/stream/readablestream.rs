@@ -29,7 +29,6 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableWritablePair, StreamPipeOptions,
 };
 use script_bindings::str::DOMString;
-
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
