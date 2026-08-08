@@ -509,6 +509,7 @@ impl WindowProxy {
             return Ok(None);
         }
         // Step 2. Let sourceDocument be the entry global object's associated Document.
+        //
         // It's possible to end up in a situation where JS code is executing but
         // we have not had a chance to push an entry global (e.g. via WASM instantiation).
         // If that happens, fall back to the active document of this browsing context.
@@ -516,7 +517,6 @@ impl WindowProxy {
             .map(|global| global.as_window().Document())
             .or_else(|| self.document())
             .expect("Must have an entry global or active document");
-        // Step 3. Let urlRecord be null.
         // Step 4. If url is not the empty string:
         let url_record = if !url.is_empty() {
             // Step 4.1. Set urlRecord to the result of encoding-parsing a URL given url, relative to sourceDocument.
@@ -529,6 +529,7 @@ impl WindowProxy {
             };
             Some(url)
         } else {
+            // Step 3. Let urlRecord be null.
             None
         };
         // Step 5. If target is the empty string, then set target to "_blank".
@@ -579,6 +580,7 @@ impl WindowProxy {
         // Step 15.3. If urlRecord is null, then set urlRecord to a URL record representing about:blank.
         let url_record = url_record.unwrap_or(ServoUrl::parse("about:blank").unwrap());
         // Step 15.4. If urlRecord matches about:blank, then perform the URL and history update steps given targetNavigable's active document and urlRecord.
+        //
         // This happened in the constellation as part of creating the auxiliary browsing context.
         if !url_record.matches_about_blank() {
             let referrer = if noreferrer {
