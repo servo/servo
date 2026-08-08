@@ -458,7 +458,9 @@ impl InlineFormattingContextBuilder {
             // Range unbounded at the start: the concrete start is offset zero.
             let start = document_selection.start.unwrap_or(Utf32CodeUnits(0));
             // Range unbounded at the end: the concrete end is the full length.
-            let end = document_selection.end.unwrap_or(Utf32CodeUnits(text.len()));
+            let end = document_selection
+                .end
+                .unwrap_or(offset_map.total_original_size() - original_size_before);
 
             if start == end {
                 return None;
