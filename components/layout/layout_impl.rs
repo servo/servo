@@ -81,7 +81,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
-use crate::accessibility_tree::AccessibilityTree;
+use crate::accessibility_tree::{AccessibilityContext, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
@@ -677,16 +677,27 @@ impl Layout for LayoutThread {
         &mut self,
         scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
-        let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
-        let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
-            warn!("Received scroll offsets before finishing layout.");
-            return;
-        };
+        {
+            let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
+            let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
+                warn!("Received scroll offsets before finishing layout.");
+                return;
+            };
 
-        stacking_context_tree
-            .paint_info
-            .scroll_tree
-            .set_all_scroll_offsets(scroll_states);
+            stacking_context_tree
+                .paint_info
+                .scroll_tree
+                .set_all_scroll_offsets(scroll_states);
+        }
+
+        // Accessibility node bounds are relative to the viewport origin, so a scroll performed by
+        // the renderer makes every one of them stale without any reflow occuring. Asking
+        // for an accessibility update BOTH schedules a rendering update and STOPS that update's
+        // reflow from being skipped entirely, so that the bounds are recomputed against these new
+        // scroll offsets.
+        if self.accessibility_active() {
+            self.set_needs_accessibility_update();
+        }
     }
 
     fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D> {
@@ -907,15 +918,24 @@ impl LayoutThread {
         root_element: &ServoLayoutNode,
         reflow_request: &mut ReflowRequest,
         reflow_statistics: &mut ReflowStatistics,
+        reflow_phases_run: ReflowPhasesRun,
     ) -> bool {
-        if !self.needs_accessibility_update() {
+        if !self.accessibility_active() {
+            return false;
+        }
+
+        // Bounds go stale when geometry changes (stacking context tree rebuild or scroll offset),
+        // even without any `AccessibilityDamage` from the DOM, so those cases must still reach
+        // `update_tree()` below, which refreshes bounds for the whole tree independently of
+        // `damage`.
+        let geometry_may_have_changed = reflow_phases_run.intersects(
+            ReflowPhasesRun::BuiltStackingContextTree | ReflowPhasesRun::UpdatedScrollNodeOffset,
+        );
+        if !self.needs_accessibility_update() && !geometry_may_have_changed {
             return false;
         }
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
-            return false;
-        };
-        let Some(damage) = &reflow_request.accessibility_damage else {
             return false;
         };
 
@@ -923,13 +943,40 @@ impl LayoutThread {
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        let damage: VecDeque<_> = damage
+        let damage: VecDeque<_> = reflow_request
+            .accessibility_damage
             .iter()
+            .flatten()
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
-        let (tree_update, counters) =
-            accessibility_tree.update_tree(root_element, damage, rooted_nodes);
+        // Only compute bounds from a stacking context tree matching the current fragment tree.
+        //
+        // Reflows for visual updates (`UpdateTheRendering`, and scroll updates, which need an
+        // up-to-date stacking context tree to run at all) guarantee that. Query reflows still
+        // reach this point when the accessibility tree needs an update, but may have laid out a
+        // new fragment tree without rebuilding the stacking context tree for it, in which case
+        // bounds computed now would come from stale spatial nodes. Skip bounds for those and let
+        // the next reflow for a visual update refresh them.
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let accessibility_context = match reflow_request.reflow_goal {
+            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => {
+                stacking_context_tree
+                    .as_ref()
+                    .map(|stacking_context_tree| AccessibilityContext {
+                        layout_thread: self,
+                        stacking_context_tree,
+                    })
+            },
+            ReflowGoal::LayoutQuery(..) => None,
+        };
+
+        let (tree_update, counters) = accessibility_tree.update_tree(
+            root_element,
+            damage,
+            accessibility_context,
+            rooted_nodes,
+        );
         if let Some(tree_update) = tree_update {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
@@ -945,6 +992,7 @@ impl LayoutThread {
 
         reflow_statistics.nodes_updated_from_dom = counters.nodes_updated_from_dom;
         reflow_statistics.nodes_updated_from_tree = counters.nodes_updated_from_tree;
+        reflow_statistics.nodes_updated_bounds = counters.nodes_updated_bounds;
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
         self.needs_accessibility_update.set(false);
@@ -961,12 +1009,36 @@ impl LayoutThread {
 
         if self.can_skip_reflow_request_entirely(&reflow_request) {
             // We can skip layout, but we might need to update a scroll node.
-            return self
-                .handle_update_scroll_node_request(&reflow_request)
-                .then(|| ReflowResult {
-                    reflow_phases_run: ReflowPhasesRun::UpdatedScrollNodeOffset,
-                    ..Default::default()
-                });
+            if !self.handle_update_scroll_node_request(&reflow_request) {
+                return None;
+            }
+
+            let mut reflow_phases_run = ReflowPhasesRun::UpdatedScrollNodeOffset;
+            let mut reflow_statistics = Default::default();
+
+            // Accessibility node bounds are relative to the viewport origin, so scrolling makes
+            // every one of them stale, even though no layout ran and nothing in the DOM changed.
+            let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
+            let root_element = unsafe { document.dangerous_style_node() }
+                .as_document()
+                .unwrap()
+                .root_element();
+            if let Some(root_element) = root_element &&
+                self.handle_accessibility_tree_update(
+                    &root_element.as_node(),
+                    &mut reflow_request,
+                    &mut reflow_statistics,
+                    reflow_phases_run,
+                )
+            {
+                reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
+            }
+
+            return Some(ReflowResult {
+                reflow_phases_run,
+                reflow_statistics,
+                ..Default::default()
+            });
         }
 
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
@@ -1008,6 +1080,7 @@ impl LayoutThread {
             &root_element.as_node(),
             &mut reflow_request,
             &mut reflow_statistics,
+            reflow_phases_run,
         ) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
