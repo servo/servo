@@ -567,7 +567,7 @@ impl Preferences {
             layout_css_attr_enabled: false,
             layout_css_ellipse_corners_enabled: false,
             layout_css_progress_function_enabled: false,
-            layout_grid_enabled: false,
+            layout_grid_enabled: true,
             layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
