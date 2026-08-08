@@ -26,6 +26,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{ByteString, USVString};
+use crate::dom::cookiestoremanager::CookieStoreManager;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::navigationpreloadmanager::NavigationPreloadManager;
@@ -41,6 +42,9 @@ pub(crate) struct ServiceWorkerRegistration {
     installing: DomRefCell<Option<Dom<ServiceWorker>>>,
     waiting: DomRefCell<Option<Dom<ServiceWorker>>>,
     navigation_preload: MutNullableDom<NavigationPreloadManager>,
+    // Each ServiceWorkerRegistration has an associated CookieStoreManager object.
+    // https://cookiestore.spec.whatwg.org/#dom-serviceworkerregistration-cookies
+    cookie_manager: MutNullableDom<CookieStoreManager>,
     #[no_trace]
     scope: ServoUrl,
     navigation_preload_enabled: Cell<bool>,
@@ -62,6 +66,7 @@ impl ServiceWorkerRegistration {
             installing: DomRefCell::new(None),
             waiting: DomRefCell::new(None),
             navigation_preload: MutNullableDom::new(None),
+            cookie_manager: MutNullableDom::new(None),
             scope,
             navigation_preload_enabled: Cell::new(false),
             navigation_preload_header_value: DomRefCell::new(None),
@@ -85,6 +90,12 @@ impl ServiceWorkerRegistration {
             global,
             cx,
         )
+    }
+
+    /// <https://cookiestore.spec.whatwg.org/#subscribe>
+    pub(crate) fn scope_url(&self) -> &ServoUrl {
+        // Let url be registration's scope URL.
+        &self.scope
     }
 
     /// Does this registration have an active worker?
@@ -268,5 +279,13 @@ impl ServiceWorkerRegistrationMethods<crate::DomTypeHolder> for ServiceWorkerReg
     fn NavigationPreload(&self, cx: &mut JSContext) -> DomRoot<NavigationPreloadManager> {
         self.navigation_preload
             .or_init(|| NavigationPreloadManager::new(cx, &self.global(), self))
+    }
+
+    /// <https://cookiestore.spec.whatwg.org/#dom-serviceworkerregistration-cookies>
+    fn Cookies(&self, cx: &mut JSContext) -> DomRoot<CookieStoreManager> {
+        // The cookies getter steps are to return this's associated
+        // CookieStoreManager object.
+        self.cookie_manager
+            .or_init(|| CookieStoreManager::new(cx, &self.global(), self))
     }
 }
