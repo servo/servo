@@ -8418,7 +8418,7 @@ dependencies = [
  "url",
  "urlpattern",
  "uuid",
- "vello_cpu 0.0.9",
+ "vello_cpu 0.2.0",
  "webrender",
  "webrender_api",
  "wr_malloc_size_of",
