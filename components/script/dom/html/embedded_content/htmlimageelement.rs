@@ -678,7 +678,11 @@ impl HTMLImageElement {
     fn update_the_image_data_sync_steps(&self, cx: &mut js::context::JSContext) {
         // Step 10. Let selected source and selected pixel density be the URL and pixel density that
         // results from selecting an image source, respectively.
-        let Some((selected_source, selected_pixel_density)) = self.source_set.borrow_mut().select_image_source(self.upcast::<Element>()) else {
+        let Some((selected_source, selected_pixel_density)) = self
+            .source_set
+            .borrow_mut()
+            .select_image_source(self.upcast::<Element>())
+        else {
             // Step 11. If selected source is null, then:
 
             // Step 11.1. Set the current request's state to broken, abort the image request for the
@@ -925,7 +929,11 @@ impl HTMLImageElement {
 
         // Step 3. Let selected source and selected pixel density be the URL and pixel density that
         // results from selecting an image source, respectively.
-        let Some((selected_source, selected_pixel_density)) = self.source_set.borrow_mut().select_image_source(self.upcast::<Element>()) else {
+        let Some((selected_source, selected_pixel_density)) = self
+            .source_set
+            .borrow_mut()
+            .select_image_source(self.upcast::<Element>())
+        else {
             // Step 4. If selected source is null, then return.
             return;
         };
