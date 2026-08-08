@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32, Float32Array, HeapFloat32Array};
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 
@@ -109,7 +109,7 @@ impl AudioBuffer {
         initial_data: Option<&[Vec<f32>]>,
     ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
-        let buffer = reflect_dom_object_with_proto_and_cx(Box::new(buffer), global, proto, cx);
+        let buffer = reflect_dom_object_with_proto(cx, Box::new(buffer), global, proto);
         buffer.set_initial_data(initial_data);
         buffer
     }

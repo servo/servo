@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::root::DomRoot;
 
 use crate::dom::animationeffect::AnimationEffect;
@@ -45,7 +45,7 @@ impl Animation {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_inherited()), global, proto, cx)
+        reflect_dom_object_with_proto(cx, Box::new(Self::new_inherited()), global, proto)
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {

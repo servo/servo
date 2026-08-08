@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -76,7 +76,7 @@ impl ToggleEvent {
         source: Option<&Element>,
     ) -> DomRoot<ToggleEvent> {
         let event = Box::new(ToggleEvent::new_inherited(old_state, new_state, source));
-        let event = reflect_dom_object_with_proto_and_cx(event, window, proto, cx);
+        let event = reflect_dom_object_with_proto(cx, event, window, proto);
         {
             let event = event.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

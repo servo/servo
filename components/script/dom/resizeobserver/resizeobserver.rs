@@ -14,7 +14,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::BoxAreaType;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -77,7 +77,7 @@ impl ResizeObserver {
         callback: Rc<ResizeObserverCallback>,
     ) -> DomRoot<ResizeObserver> {
         let observer = Box::new(ResizeObserver::new_inherited(callback));
-        reflect_dom_object_with_proto_and_cx(observer, window, proto, cx)
+        reflect_dom_object_with_proto(cx, observer, window, proto)
     }
 
     /// Step 2 of <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>

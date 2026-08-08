@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_webvtt::{
     WebVttCue, WebVttCueSize, WebVttLineAlignment, WebVttLineAndPositionSetting,
     WebVttPositionAlignment, WebVttSnapToLines, WebVttTextAlignment, WebVttWritingDirection,
@@ -97,7 +97,8 @@ impl VTTCue {
         align: AlignSetting,
         track: Option<&TextTrack>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_proto(
+            cx,
             Box::new(Self::new_inherited(
                 start_time,
                 end_time,
@@ -115,7 +116,6 @@ impl VTTCue {
             )),
             window,
             proto,
-            cx,
         )
     }
 
