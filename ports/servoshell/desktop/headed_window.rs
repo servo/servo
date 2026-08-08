@@ -69,6 +69,7 @@ pub struct HeadedWindow {
     /// It equals viewport size + (0, toolbar height).
     inner_size: Cell<PhysicalSize<u32>>,
     fullscreen: Cell<bool>,
+    fullscreen_from_document: Cell<bool>,
     device_pixel_ratio_override: Option<f32>,
     xr_window_poses: RefCell<Vec<Rc<XRWindowPose>>>,
     modifiers_state: Cell<ModifiersState>,
@@ -197,6 +198,7 @@ impl HeadedWindow {
             winit_window,
             webview_relative_mouse_point: Cell::new(Point2D::zero()),
             fullscreen: Cell::new(false),
+            fullscreen_from_document: Cell::new(false),
             inner_size: Cell::new(inner_size),
             screen_size,
             device_pixel_ratio_override: servoshell_preferences.device_pixel_ratio_override,
@@ -789,6 +791,10 @@ impl HeadedWindow {
             }
         }
     }
+
+    pub(crate) fn is_fullscreen_from_document(&self) -> bool {
+        self.fullscreen_from_document.get()
+    }
 }
 
 impl PlatformWindow for HeadedWindow {
@@ -928,6 +934,7 @@ impl PlatformWindow for HeadedWindow {
             });
         }
         self.fullscreen.set(state);
+        self.fullscreen_from_document.set(state);
     }
 
     fn get_fullscreen(&self) -> bool {
