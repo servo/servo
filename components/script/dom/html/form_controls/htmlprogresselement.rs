@@ -9,8 +9,8 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use style::selector_parser::PseudoElement;
 
-use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLProgressElementBinding::HTMLProgressElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -83,11 +83,13 @@ impl HTMLProgressElement {
             None,
         );
 
-        // FIXME: This should use ::-moz-progress-bar
-        progress_bar.SetId(cx, "-servo-progress-bar".into());
         root.upcast::<Node>()
             .AppendChild(cx, progress_bar.upcast::<Node>())
             .unwrap();
+
+        progress_bar
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::MozProgressBar);
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
             progress_bar: progress_bar.as_traced(),

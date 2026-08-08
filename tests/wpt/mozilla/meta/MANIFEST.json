@@ -371,6 +371,35 @@
       {}
      ]
     ],
+    "progress-determinate.html": [
+     "0e98f4da0e53feedc972b3a75596fb2c60fd14c5",
+     [
+      "appearance/progress-determinate.html",
+      [
+       [
+        "/_mozilla/appearance/progress-determinate-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "fuzzy": [
+        [
+         null,
+         [
+          [
+           0,
+           6
+          ],
+          [
+           0,
+           20
+          ]
+         ]
+        ]
+       ]
+      }
+     ]
+    ],
     "text-advance-less-than-ink-clipping.html": [
      "a726bd2881ff7cb29a9e68f8e7f1fae728b9382e",
      [
@@ -8455,6 +8484,10 @@
     ],
     "marquee-ref.html": [
      "3bbe99f30eba1dfeda637b2e44e21d366c7fda6f",
+     []
+    ],
+    "progress-determinate-ref.html": [
+     "4017287a942e3d82e631c32eda8716944b173751",
      []
     ],
     "supports": {
