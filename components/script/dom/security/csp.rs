@@ -217,6 +217,7 @@ impl CspReporting for Option<CspList> {
                 let Some(parent_origin) = parent_proxy.document_origin() else {
                     break;
                 };
+                let parent_origin = parent_origin.immutable().ascii_serialization();
                 let parent_origin = Url::parse(&parent_origin)
                     .expect("Must always be able to parse document origin");
                 parent_navigable_origins.push(parent_origin);

@@ -12,9 +12,11 @@ use servo_url::ServoUrl;
 use crate::dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::document::Document;
+use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
@@ -545,5 +547,27 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
 
             Ok(Some(copy_url))
         })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-location-ancestororigins>
+    fn GetAncestorOrigins(&self, cx: &mut JSContext) -> Fallible<DomRoot<DOMStringList>> {
+        // Step 1. If this's relevant Document is null, then return this's empty DOMStringList.
+        if !self.has_document() {
+            return Ok(DOMStringList::new(cx, self.window.upcast(), vec![]));
+        }
+        // Step 2. If this's relevant Document's origin is not same origin-domain
+        // with the entry settings object's origin, then throw a "SecurityError" DOMException.
+        let document = self.window.Document();
+        if !document
+            .origin()
+            .same_origin_domain(&self.entry_settings_object().origin())
+        {
+            return Err(Error::Security("Location's relevant Document is not same origin-domain with the entry settings object's origin".to_string().into()));
+        }
+        // Step 3. Assert: this's relevant Document's ancestor origins list is not null.
+        // Step 4. Otherwise, return this's relevant Document's ancestor origins list.
+        Ok(document
+            .ancestor_origins_list()
+            .expect("Must always have ancestor origins initialized"))
     }
 }
