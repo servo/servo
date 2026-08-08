@@ -215,10 +215,6 @@ skip = [
     "wgpu-hal",
     "wgpu-naga-bridge",
     "wgpu-types",
-
-    # Duplicated by arboard
-    "petgraph",
-    "fixedbitset",
 ]
 
 # github.com organizations to allow git sources for
