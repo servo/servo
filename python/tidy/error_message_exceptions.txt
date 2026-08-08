@@ -122,7 +122,7 @@
 ./components/script/dom/window/dissimilaroriginwindow.rs 1
 ./components/script/dom/window/history.rs 9
 ./components/script/dom/window/window.rs 5
-./components/script/dom/window/windowproxy.rs 2
+./components/script/dom/window/windowproxy.rs 1
 ./components/script/dom/workers/sharedworker.rs 1
 ./components/script/dom/workers/worker.rs 1
 ./components/script/dom/workers/workerglobalscope.rs 4

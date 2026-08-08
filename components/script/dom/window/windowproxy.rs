@@ -34,6 +34,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
 use net_traits::request::Referrer;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::proxyhandler::set_property_descriptor;
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_traits::NewPipelineInfo;
@@ -54,6 +55,7 @@ use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::settings_stack::maybe_entry_global;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::get_array_index_from_id;
@@ -506,6 +508,30 @@ impl WindowProxy {
         if self.discarded.get() {
             return Ok(None);
         }
+        // Step 2. Let sourceDocument be the entry global object's associated Document.
+        //
+        // It's possible to end up in a situation where JS code is executing but
+        // we have not had a chance to push an entry global (e.g. via WASM instantiation).
+        // If that happens, fall back to the active document of this browsing context.
+        let source_document = maybe_entry_global()
+            .map(|global| global.as_window().Document())
+            .or_else(|| self.document())
+            .expect("Must have an entry global or active document");
+        // Step 4. If url is not the empty string:
+        let url_record = if !url.is_empty() {
+            // Step 4.1. Set urlRecord to the result of encoding-parsing a URL given url, relative to sourceDocument.
+            let Ok(url) = source_document.encoding_parse_a_url(&url) else {
+                // Step 4.2. If urlRecord is failure, then throw a "SyntaxError" DOMException.
+                return Err(Error::Syntax(Some(format!(
+                    "Error parsing URL '{url}' relative to '{}'",
+                    source_document.url()
+                ))));
+            };
+            Some(url)
+        } else {
+            // Step 3. Let urlRecord be null.
+            None
+        };
         // Step 5. If target is the empty string, then set target to "_blank".
         let non_empty_target = if target.is_empty() {
             DOMString::from("_blank")
@@ -551,33 +577,27 @@ impl WindowProxy {
             false
         };
         let target_window = target_document.window();
-        // Step 15.3 and 15.4 will have happened elsewhere,
-        // since we've created a new browsing context and loaded it with about:blank.
-        if !url.is_empty() {
-            let existing_document = self
-                .currently_active
-                .get()
-                .and_then(ScriptThread::find_document)
-                .unwrap();
-            let url = match existing_document.url().join(&url) {
-                Ok(url) => url,
-                Err(_) => return Err(Error::Syntax(None)),
-            };
+        // Step 15.3. If urlRecord is null, then set urlRecord to a URL record representing about:blank.
+        let url_record = url_record.unwrap_or(ServoUrl::parse("about:blank").unwrap());
+        // Step 15.4. If urlRecord matches about:blank, then perform the URL and history update steps given targetNavigable's active document and urlRecord.
+        //
+        // This happened in the constellation as part of creating the auxiliary browsing context.
+        if !url_record.matches_about_blank() {
             let referrer = if noreferrer {
                 Referrer::NoReferrer
             } else {
                 target_window.as_global_scope().get_referrer()
             };
             // Propagate CSP list and about-base-url from opener to new document
-            let csp_list = existing_document.get_csp_list().clone();
+            let csp_list = source_document.get_csp_list().clone();
             target_document.set_csp_list(csp_list);
 
             // Step 15.5 Otherwise, navigate targetNavigable to urlRecord using sourceDocument,
             // with referrerPolicy set to referrerPolicy and exceptionsEnabled set to true.
             // FIXME: referrerPolicy may not be used properly here. exceptionsEnabled not used.
             let mut load_data = LoadData::new(
-                LoadOrigin::Script(existing_document.origin().snapshot()),
-                url,
+                LoadOrigin::Script(source_document.origin().snapshot()),
+                url_record,
                 target_document.about_base_url(),
                 Some(target_window.pipeline_id()),
                 referrer,
@@ -591,7 +611,7 @@ impl WindowProxy {
             // Handle javascript: URLs specially to report CSP violations to the source window
             // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
             if load_data.url.scheme() == "javascript" {
-                let existing_global = existing_document.global();
+                let existing_global = source_document.global();
 
                 // Check CSP and report violations to the source (existing) window
                 if !ScriptThread::can_navigate_to_javascript_url(
