@@ -271,7 +271,7 @@ url = "2.5"
 urlpattern = "0.3"
 uuid = { version = "1.23.3", features = ["v4", "v5"] }
 vello = "0.9"
-vello_cpu = { git = "https://github.com/linebender/vello", rev = "2a3e7dd6e7f9307a013681026e75d508ebd0d368", features = ["multithreading"] }
+vello_cpu = { version = "0.2.0", features = ["multithreading"] }
 warp = "0.4.2"
 web_atoms = "0.2.4"
 webdriver = { version = "0.53.0", default-features = false }
