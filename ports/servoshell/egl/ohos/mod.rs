@@ -527,7 +527,12 @@ impl ServoAction {
                 let display_handle = unsafe { DisplayHandle::borrow_raw(display_handle) };
                 let window_handle = unsafe { WindowHandle::borrow_raw(window_handle) };
 
-                let hidpi_factor = Scale::new(get_display_density());
+                let hidpi_factor = Scale::new(
+                    servo
+                        .servoshell_preferences()
+                        .device_pixel_ratio_override
+                        .unwrap_or_else(get_display_density),
+                );
                 servo.add_platform_window(
                     display_handle,
                     window_handle,
