@@ -55,6 +55,7 @@ use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::settings_stack::maybe_entry_global;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::get_array_index_from_id;
@@ -508,7 +509,13 @@ impl WindowProxy {
             return Ok(None);
         }
         // Step 2. Let sourceDocument be the entry global object's associated Document.
-        let source_document = GlobalScope::entry().as_window().Document();
+        // It's possible to end up in a situation where JS code is executing but
+        // we have not had a chance to push an entry global (e.g. via WASM instantiation).
+        // If that happens, fall back to the active document of this browsing context.
+        let source_document = maybe_entry_global()
+            .map(|global| global.as_window().Document())
+            .or_else(|| self.document())
+            .expect("Must have an entry global or active document");
         // Step 3. Let urlRecord be null.
         // Step 4. If url is not the empty string:
         let url_record = if !url.is_empty() {
