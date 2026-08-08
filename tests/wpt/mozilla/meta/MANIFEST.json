@@ -372,7 +372,7 @@
      ]
     ],
     "progress-determinate.html": [
-     "47901c095b143fa159f3e4b4127fa6e2aafb236d",
+     "0e98f4da0e53feedc972b3a75596fb2c60fd14c5",
      [
       "appearance/progress-determinate.html",
       [
@@ -8484,6 +8484,10 @@
     ],
     "marquee-ref.html": [
      "3bbe99f30eba1dfeda637b2e44e21d366c7fda6f",
+     []
+    ],
+    "progress-determinate-ref.html": [
+     "4017287a942e3d82e631c32eda8716944b173751",
      []
     ],
     "supports": {
