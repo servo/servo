@@ -20,7 +20,7 @@
 use servo_config::pref;
 
 #[cfg(target_env = "ohos")]
-mod ohos {
+mod platform {
     //! On `ohos` targets we only have the `OH_QoS_SetThreadQoS` API from qos/qos.h,
     //! which influences scheduling priority, but empirically does not help with ensuring
     //! important servo threads like script get scheduled on larger cores, presumably because
@@ -36,7 +36,9 @@ mod ohos {
     use std::fs;
     use std::sync::LazyLock;
 
-    /// Highest QoS level from OHOS `qos/qos.h` (API 12+).
+    // Constants copied from `qos/qos.h`. Avoids depending on ohos-libqos-sys just for this one function.
+    // See also <https://docs.rs/ohos-libqos-sys/0.1.0/src/ohos_libqos_sys/qos_ffi.rs.html#21>
+    const QOS_USER_INITIATED: i32 = 3;
     const QOS_USER_INTERACTIVE: i32 = 5;
 
     #[link(name = "qos")]
@@ -144,12 +146,18 @@ mod ohos {
         Ok(())
     }
 
-    pub fn mark_thread_as_critical() {
-        let qos_rc = OH_QoS_SetThreadQoS(QOS_USER_INTERACTIVE);
+    pub fn boost_thread(priority: ThreadPriority, boost_affinity: BoostAffinity) {
+        let qos_rc = match priority {
+            ThreadPriority::Elevated => OH_QoS_SetThreadQoS(QOS_USER_INITIATED),
+            ThreadPriority::Critical => OH_QoS_SetThreadQoS(QOS_USER_INTERACTIVE),
+            ThreadPriority::Default => 0,
+        };
         if qos_rc != 0 {
-            log::warn!("Failed to set QOS_USER_INTERACTIVE");
+            log::warn!("Failed to boost thread priority. `OH_QoS_SetThreadQoS` returned {qos_rc}");
         }
-        if let Err(error) = pin_thread_to_medium_or_large_cpus() {
+        if matches!(boost_affinity, BoostAffinity::Boost) &&
+            let Err(error) = pin_thread_to_medium_or_large_cpus()
+        {
             log::warn!(
                 "Failed to pin {} to medium or large cpus: {error:?}",
                 std::thread::current().name().unwrap_or("<unnamed>"),
@@ -158,7 +166,32 @@ mod ohos {
     }
 }
 
+#[cfg(not(target_env = "ohos"))]
+mod platform {
+    pub fn boost_thread(_: super::ThreadPriority, _: super::BoostAffinity) {}
+}
+
+pub enum ThreadPriority {
+    /// Priority will remain unchanged.
+    Default,
+    /// Increase the thread priority.
+    Elevated,
+    /// Higher priority than `Elevated`, should be used sparingly.
+    Critical,
+}
+
+/// On heterougenous systems (e.g. big.LITTLE architecture), select
+/// whether we should attempt to boost this thread to a larger core.
+/// The exact effect is platform specific, a hint and may be ignored.
+pub enum BoostAffinity {
+    No,
+    /// Prioritize Medium or Large cores and avoid small cores.
+    Boost,
+}
+
 /// Hint to the scheduler that this thread should be prioritised.
+///
+/// No effect if `pref!(perf_thread_boost_enabled)` is `false`.
 ///
 /// TODO: The exact API and inner-workings are subject to change:
 /// - This is a hint to servo / the embedder and can be a no-op.
@@ -168,9 +201,8 @@ mod ohos {
 /// - Some optimizations like thread affinity selection also affect children threads,
 ///   if spawned after this call, so placement can be important.
 #[allow(unsafe_code)]
-pub fn mark_thread_as_critical() {
+pub fn boost_thread(priority: ThreadPriority, boost_affinity: BoostAffinity) {
     if pref!(perf_thread_boost_enabled) {
-        #[cfg(target_env = "ohos")]
-        ohos::mark_thread_as_critical()
+        platform::boost_thread(priority, boost_affinity)
     }
 }

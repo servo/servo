@@ -33,13 +33,15 @@ use servo_base::Epoch;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericReceiver, GenericSharedMemory};
 use servo_base::id::{PainterId, PipelineId, WebViewId};
+use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{EmbedderToConstellationMessage, PaintMetricEvent};
 use servo_geometry::DeviceIndependentPixel;
 use smallvec::SmallVec;
 use style_traits::CSSPixel;
 use webrender::{
-    MemoryReport, ONE_TIME_USAGE_HINT, RenderApi, ShaderPrecacheFlags, Transaction, UploadMethod,
+    MemoryReport, ONE_TIME_USAGE_HINT, RenderApi, RenderBackendHooks, SceneBuilderHooks,
+    ShaderPrecacheFlags, Transaction, UploadMethod,
 };
 use webrender_api::units::{
     DevicePixel, DevicePoint, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D,
@@ -214,6 +216,12 @@ impl Painter {
             rayon::ThreadPoolBuilder::new()
                 .num_threads(worker_threads)
                 .thread_name(|idx| format!("WRWorker#{}", idx))
+                .start_handler(|_| {
+                    servo_base::threadboost::boost_thread(
+                        ThreadPriority::Elevated,
+                        BoostAffinity::Boost,
+                    )
+                })
                 .build()
                 .expect("Unable to initialize WebRender worker pool."),
         ));
@@ -246,6 +254,8 @@ impl Painter {
                 // This ensures that we can use the `PainterId` as the `IdNamespace`, which allows mapping
                 // from `FontKey`, `FontInstanceKey`, and `ImageKey` back to `PainterId`.
                 namespace_alloc_by_client: true,
+                render_backend_hooks: Some(Box::new(BoostWebRenderThread)),
+                scene_builder_hooks: Some(Box::new(BoostWebRenderThread)),
                 shared_font_namespace: Some(painter_id.into()),
                 ..Default::default()
             },
@@ -1597,4 +1607,39 @@ pub(crate) enum PaintMetricState {
     Seen(WebRenderEpoch, bool /* first_reflow */),
     /// The metric has been sent to the constellation and no more work needs to be done.
     Sent,
+}
+
+/// Hook implementation to boost webrender thread priority.
+struct BoostWebRenderThread;
+
+impl RenderBackendHooks for BoostWebRenderThread {
+    fn init_thread(&self) {
+        servo_base::threadboost::boost_thread(ThreadPriority::Elevated, BoostAffinity::Boost);
+    }
+}
+
+impl SceneBuilderHooks for BoostWebRenderThread {
+    fn register(&self) {
+        servo_base::threadboost::boost_thread(ThreadPriority::Elevated, BoostAffinity::Boost);
+    }
+
+    fn pre_scene_build(&self) {}
+
+    fn pre_scene_swap(&self) {}
+
+    fn post_scene_swap(
+        &self,
+        _document_id: &Vec<DocumentId>,
+        _info: webrender::PipelineInfo,
+        _schedule_frame: bool,
+    ) {
+    }
+
+    fn post_resource_update(&self, _document_ids: &Vec<DocumentId>) {}
+
+    fn post_empty_scene_build(&self) {}
+
+    fn poke(&self) {}
+
+    fn deregister(&self) {}
 }
