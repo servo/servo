@@ -501,13 +501,24 @@ impl TextFragment {
         &self,
         point_in_fragment: Point2D<Au, CSSPixel>,
     ) -> Option<Utf32CodeUnits> {
+        self.unmapped_character_offset(point_in_fragment)
+            .map(|character_offset| {
+                self.run_data
+                    .map_transformed_offset_to_dom_offset(character_offset)
+            })
+    }
+
+    /// Like [`Self::character_offset`], but returning the character offset in layout text (after
+    /// applying white space collapse and the `text-transform` property), instead of the original DOM
+    /// text.
+    fn unmapped_character_offset(
+        &self,
+        point_in_fragment: Point2D<Au, CSSPixel>,
+    ) -> Option<Utf32CodeUnits> {
         // If the click was far enough above the top of the fragment, then pick the first index.
         let max_vertical_offset = self.base.rect().height().scale_by(0.25);
         if point_in_fragment.y < -max_vertical_offset {
-            return Some(
-                self.run_data
-                    .map_transformed_offset_to_dom_offset(self.character_range_in_dom_node.start),
-            );
+            return Some(self.character_range_in_dom_node.start);
         }
 
         // If the click was below the fragment, return `None`, which will cause the
@@ -535,10 +546,7 @@ impl TextFragment {
             }
         }
 
-        Some(
-            self.run_data
-                .map_transformed_offset_to_dom_offset(current_character),
-        )
+        Some(current_character)
     }
 }
 
