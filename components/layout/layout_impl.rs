@@ -976,26 +976,18 @@ impl LayoutThread {
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
-        // Only compute bounds from a stacking context tree matching the current fragment tree.
-        //
-        // Reflows for visual updates (`UpdateTheRendering`, and scroll updates, which need an
-        // up-to-date stacking context tree to run at all) guarantee that. Query reflows still
-        // reach this point when the accessibility tree needs an update, but may have laid out a
-        // new fragment tree without rebuilding the stacking context tree for it, in which case
-        // bounds computed now would come from stale spatial nodes. Skip bounds for those and let
-        // the next reflow for a visual update refresh them.
+        // Skip bounds while `need_new_stacking_context_tree` is set: the tree predates the
+        // current fragment tree, so bounds resolved against it would be stale. Keyed off that
+        // flag rather than `reflow_goal` because damage drains on every reflow regardless of
+        // goal, and query reflows reaching this point have already rebuilt the tree.
         let stacking_context_tree = self.stacking_context_tree.borrow();
-        let accessibility_context = match reflow_request.reflow_goal {
-            ReflowGoal::UpdateTheRendering | ReflowGoal::UpdateScrollNode(..) => {
-                stacking_context_tree
-                    .as_ref()
-                    .map(|stacking_context_tree| AccessibilityContext {
-                        layout_thread: self,
-                        stacking_context_tree,
-                    })
-            },
-            ReflowGoal::LayoutQuery(..) => None,
-        };
+        let accessibility_context = stacking_context_tree
+            .as_ref()
+            .filter(|_| !self.need_new_stacking_context_tree.get())
+            .map(|stacking_context_tree| AccessibilityContext {
+                layout_thread: self,
+                stacking_context_tree,
+            });
 
         let (tree_update, counters) = accessibility_tree.update_tree(
             root_element,

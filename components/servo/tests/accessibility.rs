@@ -5,6 +5,7 @@
 //! WebView API unit tests.
 mod common;
 
+use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
@@ -814,8 +815,8 @@ fn test_accessibility_bounds_updated_after_renderer_scroll() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
     delegate.last_accesskit_tree_updates.borrow_mut().clear();
 
-    // A positive delta reveals more content at the bottom and right, so this is equivalent to the
-    // `window.scrollTo(20, 40)` of the test above.
+    // A positive delta reveals more content at the bottom and right, so this is equivalent to
+    // `window.scrollTo(20, 40)`.
     webview.notify_scroll_event(
         Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(20.0, 40.0))),
         WebViewPoint::Device(DevicePoint::new(250.0, 250.0)),
