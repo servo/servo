@@ -30,13 +30,15 @@ declare_tool_lint! {
 
 #[derive(Diagnostic)]
 #[diag(
-    "must_not_have_traceable marked wrapper is not needed for types that implements empty Traceable (like primitive types). Consider removing the wrapper"
+    "must_not_have_traceable marked wrapper is not needed for types that implements \
+empty Traceable (like primitive types). Consider removing the wrapper"
 )]
 struct EmptyTraceInNoTraceDiagnostic;
 
 #[derive(Diagnostic)]
 #[diag(
-    "must_not_have_traceable marked wrapper must not have jsmanaged inside on {$pos}-th position. Consider removing the wrapper"
+    "must_not_have_traceable marked wrapper must not have jsmanaged inside \
+on {$pos}-th position. Consider removing the wrapper"
 )]
 struct TraceInNoTraceDiagnostic {
     pos: usize,

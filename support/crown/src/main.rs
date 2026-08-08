@@ -58,8 +58,10 @@ impl Callbacks for MyCallbacks {
     }
 }
 
-/// For manual running use:
-/// `RUST_BACKTRACE=1 cargo run -- "-Zcrate-attr=feature(register_tool)" "-Zcrate-attr=register_tool(crown)" tests/...`
+/// The `crown` main function.
+///
+/// To run `crown` manually  use:
+/// 
 fn main() {
     let handler =
         rustc_session::EarlyDiagCtxt::new(rustc_session::config::ErrorOutputType::default());

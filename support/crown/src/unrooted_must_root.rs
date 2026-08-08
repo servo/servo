@@ -244,7 +244,7 @@ impl LintPass for UnrootedPass {
     }
 }
 
-// TODO: better error with spanned suggestion
+// TODO: Produce better error messages with spanned suggestions.
 #[derive(Diagnostic)]
 #[diag(
     "type must be rooted, use #[crown::unrooted_must_root_lint::must_root] on the struct/enum definition to propagate"
