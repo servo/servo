@@ -130,3 +130,27 @@ def test_surrogates(session, inline):
     assert_success(response)
 
     assert element.property("value") == text
+
+def test_shift_y(session, inline):
+    session.url = inline("<input>")
+    element = session.find.css("input", all=False)
+
+    # Send Shift + Y
+    text = "\uE008y"
+    response = element_send_keys(session, element, text)
+    assert_success(response)
+
+    # Verify that the input value is "Y" (uppercase Y)
+    assert element.property("value") == "Y"
+
+def test_shift_Y(session, inline):
+    session.url = inline("<input>")
+    element = session.find.css("input", all=False)
+
+    # Send Shift + Y
+    text = "\uE008Y"
+    response = element_send_keys(session, element, text)
+    assert_success(response)
+
+    # Verify that the input value is "y" (lowercase Y)
+    assert element.property("value") == "y"
