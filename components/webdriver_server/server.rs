@@ -318,7 +318,7 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
 fn is_host_allowed(server_address: &SocketAddr, allow_hosts: &[Host], host_header: &str) -> bool {
     // Validate that the Host header value has a hostname in allow_hosts and
     // the port matches the server configuration
-    let header_host_url = match Url::parse(&format!("http://{}", &host_header)) {
+    let header_host_url = match Url::parse(&format!("http://{}", host_header)) {
         Ok(x) => x,
         Err(_) => {
             return false;

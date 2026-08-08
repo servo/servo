@@ -8,6 +8,7 @@ use rustc_error_messages::MultiSpan;
 use rustc_hir::def_id::{DefId, LOCAL_CRATE};
 use rustc_hir::{self as hir};
 use rustc_lint::{LateContext, LateLintPass, Lint, LintContext, LintPass, LintStore};
+use rustc_macros::Diagnostic;
 use rustc_middle::ty;
 use rustc_session::declare_tool_lint;
 use rustc_span::symbol::Symbol;
@@ -27,9 +28,21 @@ declare_tool_lint! {
     "Warn about usage of empty Traceable objects in must_not_have_traceable marked wrappers"
 }
 
-const EMPTY_TRACE_IN_NO_TRACE_MSG: &str =
+#[derive(Diagnostic)]
+#[diag(
     "must_not_have_traceable marked wrapper is not needed for types that implements \
-empty Traceable (like primitive types). Consider removing the wrapper.";
+empty Traceable (like primitive types). Consider removing the wrapper"
+)]
+struct EmptyTraceInNoTraceDiagnostic;
+
+#[derive(Diagnostic)]
+#[diag(
+    "must_not_have_traceable marked wrapper must not have jsmanaged inside \
+on {$pos}-th position. Consider removing the wrapper"
+)]
+struct TraceInNoTraceDiagnostic {
+    pos: usize,
+}
 
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
@@ -137,18 +150,17 @@ fn incorrect_no_trace<'tcx, I: Into<MultiSpan> + Copy>(
                 {
                     let inner = substs.type_at(pos);
                     if inner.is_primitive_ty() {
-                        cx.lint(EMPTY_TRACE_IN_NO_TRACE, |lint| {
-                            lint.primary_message(EMPTY_TRACE_IN_NO_TRACE_MSG);
-                            lint.span(span);
-                        })
+                        cx.emit_span_lint(
+                            EMPTY_TRACE_IN_NO_TRACE,
+                            span,
+                            EmptyTraceInNoTraceDiagnostic,
+                        )
                     } else if is_jstraceable(cx, inner) {
-                        cx.lint(TRACE_IN_NO_TRACE, |lint| {
-                            lint.primary_message(format!(
-                                "must_not_have_traceable marked wrapper must not have \
-jsmanaged inside on {pos}-th position. Consider removing the wrapper."
-                            ));
-                            lint.span(span);
-                        })
+                        cx.emit_span_lint(
+                            TRACE_IN_NO_TRACE,
+                            span,
+                            TraceInNoTraceDiagnostic { pos },
+                        );
                     }
                     false
                 } else {

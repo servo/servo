@@ -956,11 +956,7 @@ fn compute_the_intersection(
                         containing_document.window().viewport_details().size,
                     ));
 
-                    if let Some(rect) = intersect_rectangle(&intersection_rect, &viewport_rect) {
-                        intersection_rect = rect;
-                    } else {
-                        return None;
-                    }
+                    intersection_rect = intersect_rectangle(&intersection_rect, &viewport_rect)?;
 
                     let current_offset = frame_container
                         .upcast::<Node>()
@@ -1009,11 +1005,7 @@ fn compute_the_intersection(
                     container_padding_box
                 };
 
-            if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box) {
-                intersection_rect = rect;
-            } else {
-                return None;
-            }
+            intersection_rect = intersect_rectangle(&intersection_rect, &container_padding_box)?;
         }
 
         // > 3.5. If container is the root element of a browsing context, update container to be the

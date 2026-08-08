@@ -199,8 +199,7 @@ impl TrustedTypePolicyFactory {
         global: &GlobalScope,
     ) -> Fallible<DOMString> {
         // Step 1. If attributeNs is the empty string, set attributeNs to null.
-        let attribute_namespace =
-            attribute_namespace.and_then(|a| if *a == ns!() { None } else { Some(a) });
+        let attribute_namespace = attribute_namespace.filter(|a| **a != ns!());
         // Step 2. Set attributeData to the result of Get Trusted Type data for attribute algorithm,
         // with the following arguments:
         let Some(attribute_data) = Self::get_trusted_type_data_for_attribute(
@@ -274,6 +273,7 @@ impl TrustedTypePolicyFactory {
             arguments,
             false,
         );
+        #[expect(clippy::question_mark, reason = "better match the spec")]
         let data_string = match policy_value {
             // Step 3: If the algorithm threw an error, rethrow the error and abort the following steps.
             Err(error) => return Err(error),

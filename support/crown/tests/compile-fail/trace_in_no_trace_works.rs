@@ -15,6 +15,6 @@ struct NotTraceableStruct;
 struct NoTrace<T>(T);
 
 struct Foo(NoTrace<TraceableStruct>);
-//~^ ERROR: must_not_have_traceable marked wrapper must not have jsmanaged inside on 0-th position. Consider removing the wrapper.
+//~^ ERROR: must_not_have_traceable marked wrapper must not have jsmanaged inside on 0-th position. Consider removing the wrapper
 
 fn main() {}

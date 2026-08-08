@@ -8,7 +8,7 @@ struct Foo(i32);
 
 fn foo2() {
     let foo = Foo(0);
-    //~^ ERROR: Expression of type Foo must be rooted
+    //~^ ERROR: expression of type Foo must be rooted
 }
 
 fn main() {}
