@@ -23,6 +23,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
     AllowOrDeny, AnimationState, CustomHandlersAutomationMode, EmbedderMsg, Image, LoadStatus,
+    Theme,
 };
 use encoding_rs::{Encoding, UTF_8};
 use html5ever::{LocalName, QualName, local_name, ns};
@@ -714,6 +715,10 @@ pub(crate) struct Document {
 
     /// <https://html.spec.whatwg.org/multipage/#doc-history>
     history: MutNullableDom<History>,
+
+    /// Theme specific for this document, set by a meta element
+    #[no_trace]
+    theme: Cell<Option<Theme>>,
 }
 
 impl Document {
@@ -3905,6 +3910,7 @@ impl Document {
             )),
             image_cache,
             history: Default::default(),
+            theme: Default::default(),
         }
     }
 
@@ -5041,6 +5047,15 @@ impl Document {
 
     pub(crate) fn set_iframe_load_in_progress(&self, value: bool) {
         self.iframe_load_in_progress.set(value)
+    }
+
+    pub(crate) fn theme(&self) -> Option<Theme> {
+        self.theme.get()
+    }
+
+    pub(crate) fn set_theme(&self, new_theme: Option<Theme>) {
+        self.theme.set(new_theme);
+        self.window.refresh_theme();
     }
 }
 

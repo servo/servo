@@ -290,7 +290,7 @@ impl HTMLIFrameElement {
                     load_data: load_data.clone(),
                     old_pipeline_id,
                     viewport_details,
-                    theme: window.theme(),
+                    embedder_theme: window.embedder_theme(),
                 };
                 window
                     .as_global_scope()
@@ -307,7 +307,7 @@ impl HTMLIFrameElement {
                     load_data,
                     viewport_details,
                     user_content_manager_id: None,
-                    theme: window.theme(),
+                    embedder_theme: window.embedder_theme(),
                     target_snapshot_params,
                 };
 
@@ -322,7 +322,7 @@ impl HTMLIFrameElement {
                     load_data,
                     old_pipeline_id,
                     viewport_details,
-                    theme: window.theme(),
+                    embedder_theme: window.embedder_theme(),
                 };
                 window
                     .as_global_scope()

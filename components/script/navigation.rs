@@ -180,7 +180,7 @@ pub(crate) struct InProgressLoad {
     pub(crate) user_content_manager_id: Option<UserContentManagerId>,
     /// The [`Theme`] to use for this page, once it loads.
     #[no_trace]
-    pub(crate) theme: Theme,
+    pub(crate) embedder_theme: Theme,
     /// The [`TargetSnapshotParams`] to use when creating this document.
     #[no_trace]
     pub(crate) target_snapshot_params: TargetSnapshotParams,
@@ -204,7 +204,7 @@ impl InProgressLoad {
             load_data: new_pipeline_info.load_data,
             url_list: vec![url],
             user_content_manager_id: new_pipeline_info.user_content_manager_id,
-            theme: new_pipeline_info.theme,
+            embedder_theme: new_pipeline_info.embedder_theme,
             target_snapshot_params: new_pipeline_info.target_snapshot_params,
         }
     }

@@ -79,7 +79,7 @@ pub struct NewPipelineInfo {
     /// The ID of the `UserContentManager` associated with this new pipeline's `WebView`.
     pub user_content_manager_id: Option<UserContentManagerId>,
     /// The [`Theme`] of the new layout.
-    pub theme: Theme,
+    pub embedder_theme: Theme,
     /// A snapshot of the navigation parameters of the target of this navigation.
     pub target_snapshot_params: TargetSnapshotParams,
 }

@@ -339,7 +339,7 @@ pub(crate) struct Window {
 
     /// Platform theme.
     #[no_trace]
-    theme: Cell<Theme>,
+    embedder_theme: Cell<Theme>,
 
     /// Parent id associated with this page, if any.
     #[no_trace]
@@ -3359,19 +3359,25 @@ impl Window {
         }
     }
 
-    /// Get the theme of this [`Window`].
-    pub(crate) fn theme(&self) -> Theme {
-        self.theme.get()
+    /// Get the embedder theme of this [`Window`].
+    pub(crate) fn embedder_theme(&self) -> Theme {
+        self.embedder_theme.get()
     }
 
     /// Handle a theme change request, triggering a reflow is any actual change occurred.
-    pub(crate) fn set_theme(&self, new_theme: Theme) {
-        self.theme.set(new_theme);
+    pub(crate) fn set_embedder_theme(&self, new_theme: Theme) {
+        self.embedder_theme.set(new_theme);
+        self.refresh_theme();
+    }
+
+    pub(crate) fn refresh_theme(&self) {
+        let document = self.Document();
+        // The theme of a document takes precedence over the theme of the embedder
+        let new_theme = document.theme().unwrap_or(self.embedder_theme.get());
         if !self.layout_mut().set_theme(new_theme) {
             return;
         }
-        self.Document()
-            .add_restyle_reason(RestyleReason::ThemeChanged);
+        document.add_restyle_reason(RestyleReason::ThemeChanged);
         // The change in `prefers-color-scheme` may flip `MediaQueryList`
         // results so we flag the next "update the rendering" turn to re-evaluate them.
         self.pending_media_query_evaluation.set(true);
@@ -3881,7 +3887,7 @@ impl Window {
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
-        theme: Theme,
+        embedder_theme: Theme,
         weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
         let error_reporter = CSSErrorReporter {
@@ -3965,7 +3971,7 @@ impl Window {
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
             current_event: DomRefCell::new(None),
-            theme: Cell::new(theme),
+            embedder_theme: Cell::new(embedder_theme),
             trusted_types: Default::default(),
             reporting_observer_list: Default::default(),
             report_list: Default::default(),
