@@ -15,7 +15,7 @@ use keyboard_types::{Key, NamedKey};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::PointerEventBinding::PointerEventMethods;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use stylo_atoms::Atom;
 
@@ -139,7 +139,7 @@ impl Event {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Event> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Event::new_inherited()), global, proto, cx)
+        reflect_dom_object_with_proto(cx, Box::new(Event::new_inherited()), global, proto)
     }
 
     pub(crate) fn new(

@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::jsapi::CallArgs;
 use js::jsval::{Int32Value, JSVal};
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
@@ -41,7 +41,7 @@ impl CountQueuingStrategy {
         proto: Option<HandleObject>,
         init: f64,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_inherited(init)), global, proto, cx)
+        reflect_dom_object_with_proto(cx, Box::new(Self::new_inherited(init)), global, proto)
     }
 }
 

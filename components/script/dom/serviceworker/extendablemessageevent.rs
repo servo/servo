@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
@@ -160,7 +160,7 @@ impl ExtendableMessageEvent {
             source,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto_and_cx(ev, global, proto, cx);
+        let ev = reflect_dom_object_with_proto(cx, ev, global, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);

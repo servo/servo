@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverEntryBinding::{
@@ -91,7 +91,7 @@ impl IntersectionObserverEntry {
             intersection_ratio,
             target,
         ));
-        reflect_dom_object_with_proto_and_cx(observer, window, proto, cx)
+        reflect_dom_object_with_proto(cx, observer, window, proto)
     }
 
     fn new_from_dictionary(
@@ -113,7 +113,7 @@ impl IntersectionObserverEntry {
             init.intersectionRatio,
             &init.target,
         ));
-        reflect_dom_object_with_proto_and_cx(observer, window, proto, cx)
+        reflect_dom_object_with_proto(cx, observer, window, proto)
     }
 }
 

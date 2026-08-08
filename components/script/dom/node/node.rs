@@ -38,7 +38,7 @@ use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
 use script_bindings::reflector::{
-    DomObject, DomObjectWrap, WeakReferenceableDomObjectWrap, reflect_dom_object_with_proto_and_cx,
+    DomObject, DomObjectWrap, WeakReferenceableDomObjectWrap, reflect_dom_object_with_proto,
     reflect_weak_referenceable_dom_object_with_proto,
 };
 use script_traits::DocumentActivity;
@@ -2246,7 +2246,7 @@ impl Node {
         N: DerivedFrom<Node> + DomObject + DomObjectWrap<crate::DomTypeHolder>,
     {
         let window = document.window();
-        reflect_dom_object_with_proto_and_cx(node, window, proto, cx)
+        reflect_dom_object_with_proto(cx, node, window, proto)
     }
 
     pub(crate) fn reflect_weak_referenceable_node_with_proto<N>(

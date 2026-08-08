@@ -12,7 +12,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::callback::OwnerWindow;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserver_Binding::MutationObserverMethods;
 use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
@@ -80,7 +80,7 @@ impl MutationObserver {
         callback: Rc<MutationCallback>,
     ) -> DomRoot<MutationObserver> {
         let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object_with_proto_and_cx(boxed_observer, global, proto, cx)
+        reflect_dom_object_with_proto(cx, boxed_observer, global, proto)
     }
 
     fn new_inherited(callback: Rc<MutationCallback>) -> MutationObserver {

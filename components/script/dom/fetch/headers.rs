@@ -17,7 +17,7 @@ use net_traits::request::is_cors_safelisted_request_header;
 use net_traits::trim_http_whitespace;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -62,7 +62,7 @@ impl Headers {
         global: &GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Headers> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Headers::new_inherited()), global, proto, cx)
+        reflect_dom_object_with_proto(cx, Box::new(Headers::new_inherited()), global, proto)
     }
 }
 
