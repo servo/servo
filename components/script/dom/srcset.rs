@@ -218,7 +218,7 @@ impl SourceSet {
                 if child.has_attribute(&local_name!("width")) ||
                     child.has_attribute(&local_name!("height"))
                 {
-                    image.set_dimension_attribute_source(Some(&child));
+                    image.set_dimension_attribute_source(Some(child));
                 } else {
                     image.set_dimension_attribute_source(Some(el));
                 }
