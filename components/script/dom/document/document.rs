@@ -714,6 +714,8 @@ pub(crate) struct Document {
 
     /// <https://html.spec.whatwg.org/multipage/#doc-history>
     history: MutNullableDom<History>,
+
+    window_replaced: Cell<bool>,
 }
 
 impl Document {
@@ -750,7 +752,7 @@ impl Document {
         // TODO
 
         // Step 4. If document's salvageable state is false, then:
-        if !self.salvageable.get() {
+        if !self.salvageable.get() && self.is_window_relevant() {
             let global_scope = self.window.as_global_scope();
 
             // Step 4.1. For each EventSource object eventSource whose relevant global object is equal to window, forcibly close eventSource.
@@ -996,7 +998,9 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend(cx);
+            if self.is_window_relevant() {
+                self.window().suspend(cx);
+            }
             media.suspend(&client_context_id);
             return;
         }
@@ -2192,6 +2196,10 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
     pub(crate) fn unload(&self, cx: &mut JSContext, recursive_flag: bool) {
+        if !self.is_window_relevant() {
+            return;
+        }
+
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2350,7 +2358,7 @@ impl Document {
                 let document = document.root();
                 // Step 9.3. Let window be the Document's relevant global object.
                 let window = document.window();
-                if !window.is_alive() {
+                if !window.is_alive() || !document.is_window_relevant() {
                     return;
                 }
 
@@ -3911,7 +3919,16 @@ impl Document {
             )),
             image_cache,
             history: Default::default(),
+            window_replaced: Default::default(),
         }
+    }
+
+    pub(crate) fn disown_window(&self) {
+        self.window_replaced.set(true);
+    }
+
+    pub(crate) fn is_window_relevant(&self) -> bool {
+        !self.window_replaced.get()
     }
 
     /// Returns a policy value that should be used for fetches initiated by this document.
@@ -6442,7 +6459,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // TODO: prompt to unload.
         // TODO: set unload_event_start and unload_event_end
 
-        self.window().set_navigation_start();
+        self.window()
+            .set_navigation_start(CrossProcessInstant::now());
 
         // Step 8. If document's node navigable is non-null and document's node navigable's
         // ongoing navigation is a navigation ID, then stop loading document's node navigable.

@@ -497,9 +497,20 @@ pub(crate) struct Window {
     /// A flag to indicate whether the developer tools has requested
     /// live updates from the window.
     devtools_wants_updates: Cell<bool>,
+
+    about_blank_performance_entry: Cell<Option<usize>>,
 }
 
 impl Window {
+    pub(crate) fn set_about_blank_performance_entry(&self, index: usize) {
+        debug_assert!(self.about_blank_performance_entry.get().is_none());
+        self.about_blank_performance_entry.set(Some(index));
+    }
+
+    pub(crate) fn about_blank_performance_entry(&self) -> Option<usize> {
+        self.about_blank_performance_entry.get()
+    }
+
     pub(crate) fn script_thread(&self) -> Rc<ScriptThread> {
         Weak::upgrade(&self.weak_script_thread)
             .expect("Weak reference should always be upgradable when a ScriptThread is running")
@@ -3271,12 +3282,20 @@ impl Window {
     }
 
     pub(crate) fn init_window_proxy(&self, window_proxy: &WindowProxy) {
-        assert!(self.window_proxy.get().is_none());
+        assert!(
+            self.window_proxy
+                .get()
+                .is_none_or(|current_proxy| &*current_proxy as *const WindowProxy == window_proxy)
+        );
         self.window_proxy.set(Some(window_proxy));
     }
 
     pub(crate) fn init_document(&self, document: &Document) {
-        assert!(self.document.get().is_none());
+        assert!(
+            self.document
+                .get()
+                .is_none_or(|document| document.is_initial_about_blank())
+        );
         assert!(document.window() == self);
         self.document.set(Some(document));
     }
@@ -3620,8 +3639,8 @@ impl Window {
         &self.local_script_source
     }
 
-    pub(crate) fn set_navigation_start(&self) {
-        self.navigation_start.set(CrossProcessInstant::now());
+    pub(crate) fn set_navigation_start(&self, instant: CrossProcessInstant) {
+        self.navigation_start.set(instant);
     }
 
     pub(crate) fn navigation_start(&self) -> CrossProcessInstant {
@@ -3974,6 +3993,7 @@ impl Window {
             pending_media_query_evaluation: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
             devtools_wants_updates: Default::default(),
+            about_blank_performance_entry: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, &origin, win)
@@ -4001,6 +4021,27 @@ impl Window {
         T: Copy + MallocSizeOf,
     {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
+    }
+
+    pub(crate) fn prepare_for_document_replacement(
+        &self,
+        layout: Box<dyn Layout>,
+        creation_url: ServoUrl,
+        top_level_creation_url: ServoUrl,
+        navigation_start: CrossProcessInstant,
+        viewport_details: ViewportDetails,
+    ) {
+        *self.layout.borrow_mut() = layout;
+        self.set_viewport_details(viewport_details);
+        self.navigation_start.set(navigation_start);
+        self.viewport_details.set(viewport_details);
+
+        let global = self.upcast::<GlobalScope>();
+        global.set_creation_url(creation_url);
+        global.set_top_level_creation_url(top_level_creation_url);
+        global.origin().reset();
+
+        self.Document().disown_window();
     }
 }
 

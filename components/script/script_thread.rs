@@ -3220,26 +3220,30 @@ impl ScriptThread {
                 parser.abort(cx);
             }
 
-            debug!("{pipeline_id}: Shutting down layout");
-            document.window().layout_mut().exit_now();
+            if document.is_window_relevant() {
+                debug!("{pipeline_id}: Shutting down layout");
+                document.window().layout_mut().exit_now();
+            }
 
             // Clear any active animations and unroot all of the associated DOM objects.
             debug!("{pipeline_id}: Clearing animations");
             document.animations().clear();
 
-            // We discard the browsing context after requesting layout shut down,
-            // to avoid running layout on detached iframes.
-            let window = document.window();
-            if discard_bc == DiscardBrowsingContext::Yes {
-                window.discard_browsing_context();
+            if document.is_window_relevant() {
+                // We discard the browsing context after requesting layout shut down,
+                // to avoid running layout on detached iframes.
+                let window = document.window();
+                if discard_bc == DiscardBrowsingContext::Yes {
+                    window.discard_browsing_context();
+                }
+
+                // Clear the image cache now, instead of waiting for the Window to be
+                // garbage collected. See servo/servo#45239.
+                window.image_cache().clear();
+
+                debug!("{pipeline_id}: Clearing JavaScript runtime");
+                window.clear_js_runtime();
             }
-
-            // Clear the image cache now, instead of waiting for the Window to be
-            // garbage collected. See servo/servo#45239.
-            window.image_cache().clear();
-
-            debug!("{pipeline_id}: Clearing JavaScript runtime");
-            window.clear_js_runtime();
         }
 
         // Prevent any further work for this Pipeline.
@@ -3469,50 +3473,69 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
-        let window = Window::new(
-            cx,
-            incomplete.webview_id,
-            self.js_runtime.clone(),
-            self.senders.self_sender.clone(),
-            self.layout_factory.create(layout_config),
-            font_context,
-            self.senders.image_cache_sender.clone(),
-            self.resource_threads.clone(),
-            self.storage_threads.clone(),
-            #[cfg(feature = "bluetooth")]
-            self.senders.bluetooth_sender.clone(),
-            self.senders.memory_profiler_sender.clone(),
-            self.senders.time_profiler_sender.clone(),
-            self.senders.devtools_server_sender.clone(),
-            self.senders.pipeline_to_constellation_sender.clone(),
-            self.senders.pipeline_to_embedder_sender.clone(),
-            self.senders.constellation_sender.clone(),
-            incomplete.pipeline_id,
-            incomplete.parent_info,
-            incomplete.viewport_details,
-            origin.clone(),
-            final_url.clone(),
-            // TODO(37417): Set correct top-level URL here. Currently, we only specify the
-            // url of the current window. However, in case this is an iframe, we should
-            // pass in the URL from the frame that includes the iframe (which potentially
-            // is another nested iframe in a frame).
-            final_url.clone(),
-            incomplete.navigation_start,
-            self.webgl_chan.as_ref().map(|chan| chan.channel()),
-            #[cfg(feature = "webxr")]
-            self.webxr_registry.clone(),
-            self.paint_api.clone(),
-            self.unminify_js,
-            self.unminify_css,
-            self.local_script_source.clone(),
-            user_contents,
-            self.player_context.clone(),
-            #[cfg(feature = "webgpu")]
-            self.gpu_id_hub.clone(),
-            incomplete.load_data.inherited_secure_context,
-            incomplete.theme,
-            self.this.clone(),
-        );
+        let window = match window_for_replacement(
+            &self.window_proxies,
+            incomplete.browsing_context_id,
+            &origin,
+        ) {
+            Some(window) => {
+                window.prepare_for_document_replacement(
+                    self.layout_factory.create(layout_config),
+                    final_url.clone(),
+                    // TODO(37417): Set correct top-level URL here.
+                    final_url.clone(),
+                    incomplete.navigation_start,
+                    incomplete.viewport_details,
+                );
+                window
+            },
+            None => {
+                Window::new(
+                    cx,
+                    incomplete.webview_id,
+                    self.js_runtime.clone(),
+                    self.senders.self_sender.clone(),
+                    self.layout_factory.create(layout_config),
+                    font_context,
+                    self.senders.image_cache_sender.clone(),
+                    self.resource_threads.clone(),
+                    self.storage_threads.clone(),
+                    #[cfg(feature = "bluetooth")]
+                    self.senders.bluetooth_sender.clone(),
+                    self.senders.memory_profiler_sender.clone(),
+                    self.senders.time_profiler_sender.clone(),
+                    self.senders.devtools_server_sender.clone(),
+                    self.senders.pipeline_to_constellation_sender.clone(),
+                    self.senders.pipeline_to_embedder_sender.clone(),
+                    self.senders.constellation_sender.clone(),
+                    incomplete.pipeline_id,
+                    incomplete.parent_info,
+                    incomplete.viewport_details,
+                    origin.clone(),
+                    final_url.clone(),
+                    // TODO(37417): Set correct top-level URL here. Currently, we only specify the
+                    // url of the current window. However, in case this is an iframe, we should
+                    // pass in the URL from the frame that includes the iframe (which potentially
+                    // is another nested iframe in a frame).
+                    final_url.clone(),
+                    incomplete.navigation_start,
+                    self.webgl_chan.as_ref().map(|chan| chan.channel()),
+                    #[cfg(feature = "webxr")]
+                    self.webxr_registry.clone(),
+                    self.paint_api.clone(),
+                    self.unminify_js,
+                    self.unminify_css,
+                    self.local_script_source.clone(),
+                    user_contents,
+                    self.player_context.clone(),
+                    #[cfg(feature = "webgpu")]
+                    self.gpu_id_hub.clone(),
+                    incomplete.load_data.inherited_secure_context,
+                    incomplete.theme,
+                    self.this.clone(),
+                )
+            },
+        };
         if self.senders.devtools_server_sender.is_some() {
             self.debugger_global.fire_add_debuggee(
                 cx,
@@ -4432,4 +4455,19 @@ impl Drop for ScriptThread {
             root.set(None);
         });
     }
+}
+
+/// Steps 1, 5, and 6 of <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
+fn window_for_replacement(
+    script_window_proxies: &ScriptWindowProxies,
+    id: BrowsingContextId,
+    origin: &MutableOrigin,
+) -> Option<DomRoot<Window>> {
+    script_window_proxies
+        .find_window_proxy(id)
+        .and_then(|window_proxy| window_proxy.document())
+        .filter(|document| {
+            document.is_initial_about_blank() && document.origin().same_origin(origin)
+        })
+        .map(|document| DomRoot::from_ref(document.window()))
 }
