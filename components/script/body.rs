@@ -52,7 +52,7 @@ use crate::dom::readablestream::{
 use crate::dom::urlsearchparams::URLSearchParams;
 use crate::mime_multipart::{Node, read_multipart_body};
 use crate::realms::enter_auto_realm;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_source::SendableTaskSource;
 
 /// <https://fetch.spec.whatwg.org/#concept-body-clone>
 pub(crate) fn clone_body_stream_for_dom_body(

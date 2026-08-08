@@ -37,7 +37,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissions::{descriptor_permission_state, PermissionAlgorithm};
 use crate::dom::promise::Promise;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 use dom_struct::dom_struct;
 use js::conversions::ConversionResult;
 use profile_traits::{generic_channel};

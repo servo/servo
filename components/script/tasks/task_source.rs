@@ -14,8 +14,8 @@ use crate::dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTas
 use crate::dom::eventtarget::EventTarget;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::script_runtime::ScriptThreadEventCategory;
-use crate::task::{TaskCanceller, TaskOnce};
-use crate::task_manager::TaskManager;
+use crate::tasks::task::{TaskCanceller, TaskOnce};
+use crate::tasks::task_manager::TaskManager;
 
 /// The names of all task sources, used to differentiate TaskCancellers. Note: When adding a task
 /// source, update this enum.

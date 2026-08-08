@@ -53,7 +53,7 @@ use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_source::SendableTaskSource;
 
 #[dom_struct]
 pub(crate) struct RTCPeerConnection {

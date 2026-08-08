@@ -31,8 +31,8 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::types::HTMLDialogElement;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
 use crate::script_runtime::ScriptThreadEventCategory;
-use crate::task::TaskOnce;
-use crate::task_source::TaskSourceName;
+use crate::tasks::task::TaskOnce;
+use crate::tasks::task_source::TaskSourceName;
 
 impl Document {
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>

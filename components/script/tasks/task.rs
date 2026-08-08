@@ -25,7 +25,7 @@ macro_rules! task {
                 // or moved into fields in the struct (and therefore traced).
             }
         }
-        impl<F> crate::task::NonSendTaskOnce for $name<F>
+        impl<F> crate::tasks::task::NonSendTaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce($($field_type,)*),
         {
@@ -42,7 +42,7 @@ macro_rules! task {
     ($name:ident: move || $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
-        impl<F> crate::task::TaskOnce for $name<F>
+        impl<F> crate::tasks::task::TaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce() + Send,
         {
@@ -73,7 +73,7 @@ macro_rules! task {
                 // or moved into fields in the struct (and therefore traced).
             }
         }
-        impl<F> crate::task::NonSendTaskOnce for $name<F>
+        impl<F> crate::tasks::task::NonSendTaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce(&mut js::context::JSContext, $($field_type,)*),
         {
@@ -90,7 +90,7 @@ macro_rules! task {
     ($name:ident: move |$cx: ident| $body:tt) => {{
         #[allow(non_camel_case_types)]
         struct $name<F>(F);
-        impl<F> crate::task::TaskOnce for $name<F>
+        impl<F> crate::tasks::task::TaskOnce for $name<F>
         where
             F: ::std::ops::FnOnce(&mut js::context::JSContext) + Send,
         {

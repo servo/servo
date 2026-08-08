@@ -214,9 +214,9 @@ use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::script_thread::{ScriptThread, SharedRwLocks};
 use crate::stylesheet_loader::StylesheetContextId;
 use crate::stylesheet_set::StylesheetSetRef;
-use crate::task::NonSendTaskBox;
-use crate::task_manager::TaskManager;
-use crate::task_source::TaskSourceName;
+use crate::tasks::task::NonSendTaskBox;
+use crate::tasks::task_manager::TaskManager;
+use crate::tasks::task_source::TaskSourceName;
 use crate::timers::{OneshotTimerCallback, OneshotTimers};
 use crate::xpath::parse_expression;
 

@@ -81,7 +81,7 @@ use crate::modules::module_loading::{
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
-use crate::task::NonSendTaskBox;
+use crate::tasks::task::NonSendTaskBox;
 
 pub(crate) fn gen_type_error(
     cx: &mut JSContext,

@@ -26,7 +26,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_source::SendableTaskSource;
 
 struct HapticEffectListener {
     task_source: SendableTaskSource,

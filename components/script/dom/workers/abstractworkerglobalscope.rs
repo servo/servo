@@ -15,7 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_auto_realm;
-use crate::task_queue::{QueuedTaskConversion, TaskQueue};
+use crate::tasks::task_queue::{QueuedTaskConversion, TaskQueue};
 
 pub(crate) trait WorkerEventLoopMethods {
     type WorkerMsg: QueuedTaskConversion + Send;

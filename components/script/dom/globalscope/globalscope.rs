@@ -155,8 +155,8 @@ use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::ThreadSafeJSContext;
 use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::task_manager::TaskManager;
-use crate::task_source::SendableTaskSource;
+use crate::tasks::task_manager::TaskManager;
+use crate::tasks::task_source::SendableTaskSource;
 use crate::timers::{
     IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback,
     TimerEventId, TimerSource,

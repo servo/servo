@@ -36,8 +36,8 @@ use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
-use crate::task::TaskCanceller;
-use crate::task_manager::TaskManager;
+use crate::tasks::task::TaskCanceller;
+use crate::tasks::task_manager::TaskManager;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>

@@ -24,7 +24,7 @@ mod animations;
 mod css;
 mod script_window_proxies;
 #[macro_use]
-mod task;
+mod tasks;
 mod body;
 pub(crate) mod conversions;
 mod devtools;
@@ -59,9 +59,6 @@ pub(crate) mod serviceworker_manager;
 mod stylesheet_loader;
 mod stylesheet_set;
 mod svg_font;
-mod task_manager;
-mod task_queue;
-mod task_source;
 pub mod test;
 mod timers;
 mod webdriver_handlers;

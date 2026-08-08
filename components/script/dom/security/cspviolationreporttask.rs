@@ -28,7 +28,7 @@ use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 pub(crate) struct CSPViolationReportTask {
     global: Trusted<GlobalScope>,
