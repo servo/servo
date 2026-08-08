@@ -943,10 +943,6 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ready-states>
-    #[expect(
-        clippy::collapsible_match,
-        reason = "This way follows the spec more closely"
-    )]
     fn change_ready_state(&self, ready_state: ReadyState) {
         let old_ready_state = self.ready_state.get();
         self.ready_state.set(ready_state);

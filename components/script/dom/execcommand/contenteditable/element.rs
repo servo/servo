@@ -70,7 +70,9 @@ impl Element {
                 if let Some(value) = CssPropertyName::TextDecorationLine.value_set_for_style(self) {
                     // Step 4.1. If element's style attribute sets "text-decoration" to a value containing "line-through", return "line-through".
                     // Step 4.2. Return null.
-                    return Some("line-through".into()).filter(|_| value.contains("line-through"));
+                    return value
+                        .contains("line-through")
+                        .then_some("line-through".into());
                 }
                 // Step 5. If command is "strikethrough" and element is an s or strike element, return "line-through".
                 if matches!(*self.local_name(), local_name!("s") | local_name!("strike")) {
@@ -82,7 +84,7 @@ impl Element {
                 if let Some(value) = CssPropertyName::TextDecorationLine.value_set_for_style(self) {
                     // Step 6.1. If element's style attribute sets "text-decoration" to a value containing "underline", return "underline".
                     // Step 6.2. Return null.
-                    return Some("underline".into()).filter(|_| value.contains("underline"));
+                    return value.contains("underline").then_some("underline".into());
                 }
                 // Step 7. If command is "underline" and element is a u element, return "underline".
                 if *self.local_name() == local_name!("u") {

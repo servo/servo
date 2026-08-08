@@ -274,7 +274,7 @@ fn inner<R: BufRead>(
         }
 
         // Read the headers (which end in 2 line terminators)
-        buf.truncate(0); // start fresh
+        buf.clear(); // start fresh
         let (_, found) = reader.stream_until_token(&ltlt, &mut buf)?;
         if !found {
             return Err(Error::EofInPartHeaders);
@@ -367,7 +367,7 @@ fn inner<R: BufRead>(
 
             nodes.push(Node::File(filepart));
         } else {
-            buf.truncate(0); // start fresh
+            buf.clear(); // start fresh
             let (_, found) = reader.stream_until_token(&lt_boundary, &mut buf)?;
             if !found {
                 return Err(Error::EofInPart);

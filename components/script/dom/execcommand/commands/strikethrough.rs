@@ -17,8 +17,8 @@ pub(crate) fn execute_strikethrough_command(
 ) -> bool {
     // > If queryCommandState("strikethrough") returns true, set the selection's value to null.
     // > Otherwise set the selection's value to "line-through". Either way, return true.
-    let value = Some("line-through".into())
-        .filter(|_| !document.command_state_for_command(cx, "strikethrough".into()));
+    let value = (!document.command_state_for_command(cx, "strikethrough".into()))
+        .then_some("line-through".into());
     selection.set_the_selection_value(cx, value, CommandName::Strikethrough, document);
 
     true

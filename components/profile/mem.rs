@@ -96,7 +96,7 @@ impl Profiler {
                 // Panic if it hasn't previously been registered.
                 match self.reporters.remove(&name) {
                     Some(_) => true,
-                    None => panic!("UnregisterReporter: '{}' name is unknown", &name),
+                    None => panic!("UnregisterReporter: '{}' name is unknown", name),
                 }
             },
 

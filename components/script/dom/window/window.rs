@@ -652,13 +652,9 @@ impl Window {
     /// Returns the window proxy if it has not been discarded.
     /// <https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded>
     pub(crate) fn undiscarded_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
-        self.window_proxy.get().and_then(|window_proxy| {
-            if window_proxy.is_browsing_context_discarded() {
-                None
-            } else {
-                Some(window_proxy)
-            }
-        })
+        self.window_proxy
+            .get()
+            .filter(|window_proxy| !window_proxy.is_browsing_context_discarded())
     }
 
     /// Get the active [`Document`] of top-level browsing context, or return [`Window`]'s [`Document`]

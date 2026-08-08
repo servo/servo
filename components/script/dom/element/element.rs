@@ -5006,13 +5006,7 @@ impl Element {
             },
             _ => None,
         };
-        element.and_then(|elem| {
-            if elem.is_instance_activatable() {
-                Some(elem)
-            } else {
-                None
-            }
-        })
+        element.filter(|elem| elem.is_instance_activatable())
     }
 
     pub(crate) fn as_stylesheet_owner(&self) -> Option<&dyn StylesheetOwner> {

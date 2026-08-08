@@ -129,13 +129,10 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 StringOrElementCreationOptions::ElementCreationOptions(ElementCreationOptions {
                     is: None,
                 });
-            match doc
-                .upcast::<Document>()
-                .CreateElementNS(cx, maybe_namespace, qname, options)
-            {
-                Err(error) => return Err(error),
-                Ok(elem) => Some(elem),
-            }
+            Some(
+                doc.upcast::<Document>()
+                    .CreateElementNS(cx, maybe_namespace, qname, options)?,
+            )
         };
 
         {

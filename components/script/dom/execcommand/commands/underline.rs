@@ -17,8 +17,8 @@ pub(crate) fn execute_underline_command(
 ) -> bool {
     // > If queryCommandState("underline") returns true, set the selection's value to null.
     // > Otherwise set the selection's value to "underline". Either way, return true.
-    let value = Some("underline".into())
-        .filter(|_| !document.command_state_for_command(cx, "underline".into()));
+    let value =
+        (!document.command_state_for_command(cx, "underline".into())).then_some("underline".into());
     selection.set_the_selection_value(cx, value, CommandName::Underline, document);
 
     true

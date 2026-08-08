@@ -1299,7 +1299,6 @@ impl IndexedDBManager {
                 pending_upgrade: Some(pending_upgrade),
                 id,
                 proxy_map,
-                db_name: _,
                 ..
             } = front
             else {

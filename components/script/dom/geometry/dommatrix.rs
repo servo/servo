@@ -488,15 +488,11 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
         // 1. Parse transformList into an abstract matrix, and let
         // matrix and 2dTransform be the result. If the result is failure,
         // then throw a "SyntaxError" DOMException.
-        match transform_to_matrix(&transformList.str()) {
-            Ok(tuple) => {
-                // 2. Set is 2D to the value of 2dTransform.
-                self.parent.set_is2D(tuple.0);
-                // 3. Set m11 element through m44 element to the element values of matrix in column-major order.
-                self.parent.set_matrix(tuple.1);
-            },
-            Err(error) => return Err(error),
-        }
+        let (is_2d, matrix) = transform_to_matrix(&transformList.str())?;
+        // 2. Set is 2D to the value of 2dTransform.
+        self.parent.set_is2D(is_2d);
+        // 3. Set m11 element through m44 element to the element values of matrix in column-major order.
+        self.parent.set_matrix(matrix);
 
         // 4. Return the current matrix.
         Ok(DomRoot::from_ref(self))

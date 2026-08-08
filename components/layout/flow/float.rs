@@ -760,10 +760,7 @@ impl FloatBandNode {
 impl FloatBandLink {
     /// Returns the first band whose top is less than or equal to the given `block_position`.
     fn find(&self, block_position: Au) -> Option<FloatBand> {
-        let this = match self.0 {
-            None => return None,
-            Some(ref node) => node,
-        };
+        let this = self.0.as_ref()?;
 
         if block_position < this.band.top {
             return this.left.find(block_position);
@@ -780,10 +777,7 @@ impl FloatBandLink {
 
     /// Returns the first band whose top is strictly greater than the given `block_position`.
     fn find_next(&self, block_position: Au) -> Option<FloatBand> {
-        let this = match self.0 {
-            None => return None,
-            Some(ref node) => node,
-        };
+        let this = self.0.as_ref()?;
 
         if block_position >= this.band.top {
             return this.right.find_next(block_position);

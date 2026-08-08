@@ -2323,27 +2323,29 @@ impl Node {
             // Step 6. If command is "strikethrough",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "line-through",
             // return "line-through". Otherwise, return null.
-            CommandName::Strikethrough => Some("line-through".into()).filter(|_| {
-                self.inclusive_ancestors(ShadowIncluding::No).any(|node| {
+            CommandName::Strikethrough => self
+                .inclusive_ancestors(ShadowIncluding::No)
+                .any(|node| {
                     node.downcast::<Element>()
                         .and_then(|element| {
                             CssPropertyName::TextDecorationLine.resolved_value_for_node(element)
                         })
                         .is_some_and(|property| property.contains("line-through"))
                 })
-            }),
+                .then_some("line-through".into()),
             // Step 7. If command is "underline",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "underline",
             // return "underline". Otherwise, return null.
-            CommandName::Underline => Some("underline".into()).filter(|_| {
-                self.inclusive_ancestors(ShadowIncluding::No).any(|node| {
+            CommandName::Underline => self
+                .inclusive_ancestors(ShadowIncluding::No)
+                .any(|node| {
                     node.downcast::<Element>()
                         .and_then(|element| {
                             CssPropertyName::TextDecorationLine.resolved_value_for_node(element)
                         })
                         .is_some_and(|property| property.contains("underline"))
                 })
-            }),
+                .then_some("underline".into()),
             // Step 8. Return the resolved value for node of the relevant CSS property for command.
             _ => command.resolved_value_for_node(element),
         }

@@ -672,10 +672,7 @@ impl CookieStore {
         // 12. If domain is non-null
         if let Some(domain) = &properties.domain {
             // 10. Let host be url's host.
-            let host = match url.host() {
-                Some(host) => host.to_owned(),
-                None => return None,
-            };
+            let host = url.host()?.to_owned();
             // 12.1 If domain starts with U+002E (.), then return failure
             if domain.starts_with('.') {
                 return None;

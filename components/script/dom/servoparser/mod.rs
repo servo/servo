@@ -1065,7 +1065,7 @@ impl ParserContext {
         let Some(media_type) = MimeClassifier::get_media_type(&mime_type) else {
             let page = format!(
                 "<html><body><p>Unknown content type ({}).</p></body></html>",
-                &mime_type,
+                mime_type,
             );
             self.load_inline_unknown_content(cx, parser, page);
             return;
@@ -1089,7 +1089,7 @@ impl ParserContext {
             MediaType::Font => {
                 let page = format!(
                     "<html><body><p>Unable to load font with content type ({}).</p></body></html>",
-                    &mime_type,
+                    mime_type,
                 );
                 self.load_inline_unknown_content(cx, parser, page);
                 return;
