@@ -14,6 +14,7 @@ use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use servo_arc::Arc as ServoArc;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_base::text::Utf32CodeUnits;
@@ -2317,9 +2318,12 @@ fn glyphs(
     justification_adjustment: Au,
     include_whitespace: bool,
 ) -> (Vec<GlyphInstance>, Au) {
-    let mut glyphs = vec![];
-    let mut largest_advance = Au::zero();
 
+    // This is a realtively fast computation as shaped_text_slices are just vectors
+    let total_glyph_size = shaped_text_slices.iter().filter(|shaped_text_slice| !shaped_text_slice.is_whitespace()).map(|shaped_text_slice| shaped_text_slice.glyphs()).flatten().count());
+
+    let mut largest_advance = Au::zero();
+    let mut glyphs = Vec::with_capacity(total_glyph_size);
     for shaped_text_slice in shaped_text_slices {
         for glyph in shaped_text_slice.glyphs() {
             if !shaped_text_slice.is_whitespace() || include_whitespace {
