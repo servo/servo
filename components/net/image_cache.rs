@@ -873,7 +873,7 @@ impl ImageCache for ImageCacheImpl {
         let fontdb_size = self.usvg_options.conditional_size_of(ops);
         vec![
             Report {
-                path: path![prefix, "image-cache"],
+                path: path![prefix, "image-cache", "cache"],
                 kind: ReportKind::ExplicitSystemHeapSize,
                 size: store_size,
             },
