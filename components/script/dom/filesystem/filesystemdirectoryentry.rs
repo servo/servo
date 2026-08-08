@@ -57,6 +57,14 @@ impl FileSystemDirectoryEntry {
     pub(crate) fn push_child(&self, child: &FileSystemEntry) {
         self.children.borrow_mut().push(Dom::from_ref(child));
     }
+
+    pub(crate) fn children(&self) -> Vec<DomRoot<FileSystemEntry>> {
+        self.children
+            .borrow()
+            .iter()
+            .map(|child| DomRoot::from_ref(&**child))
+            .collect()
+    }
 }
 
 impl FileSystemDirectoryEntryMethods<crate::DomTypeHolder> for FileSystemDirectoryEntry {
