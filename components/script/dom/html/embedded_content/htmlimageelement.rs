@@ -7,7 +7,6 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use app_units::Au;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -24,12 +23,10 @@ use net_traits::{
 };
 use num_traits::ToPrimitive;
 use pixels::{CorsStatus, ImageMetadata, Snapshot};
-use rustc_hash::FxHashSet;
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use style::values::specified::source_size_list::SourceSizeList;
 
 use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::activation::Activatable;
@@ -61,41 +58,19 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmlmapelement::HTMLMapElement;
 use crate::dom::html::htmlpictureelement::HTMLPictureElement;
-use crate::dom::html::htmlsourceelement::HTMLSourceElement;
 use crate::dom::iterators::ShadowIncluding;
-use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::srcset::{
-    Descriptor, ImageSource, SourceSet, parse_a_sizes_attribute, parse_a_srcset_attribute,
-};
+use crate::dom::srcset::SourceSet;
 use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::script_thread::ScriptThread;
-
-/// Supported image MIME types as defined by
-/// <https://mimesniff.spec.whatwg.org/#image-mime-type>.
-/// Keep this in sync with 'detect_image_format' from components/pixels/lib.rs
-const SUPPORTED_IMAGE_MIME_TYPES: &[&str] = &[
-    "image/bmp",
-    "image/gif",
-    "image/jpeg",
-    "image/jpg",
-    "image/pjpeg",
-    "image/png",
-    "image/apng",
-    "image/x-png",
-    "image/svg+xml",
-    "image/vnd.microsoft.icon",
-    "image/x-icon",
-    "image/webp",
-];
 
 /// <https://html.spec.whatwg.org/multipage/#img-req-state>
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -587,263 +562,6 @@ impl HTMLImageElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#create-a-source-set>
-    fn create_source_set(&self) -> SourceSet {
-        let element = self.upcast::<Element>();
-
-        // Step 1. Let source set be an empty source set.
-        let mut source_set = SourceSet::new();
-
-        // Step 2. If srcset is not an empty string, then set source set to the result of parsing
-        // srcset.
-        if let Some(srcset) = element.get_attribute_string_value(&local_name!("srcset")) {
-            source_set.image_sources = parse_a_srcset_attribute(&srcset);
-        }
-
-        // Step 3. Set source set's source size to the result of parsing sizes with img.
-        if let Some(sizes) = element.get_attribute_string_value(&local_name!("sizes")) {
-            source_set.source_size = parse_a_sizes_attribute(&sizes);
-        }
-
-        // Step 4. If default source is not the empty string and source set does not contain an
-        // image source with a pixel density descriptor value of 1, and no image source with a width
-        // descriptor, append default source to source set.
-        let src = element.get_string_attribute(&local_name!("src"));
-        let no_density_source_of_1 = source_set
-            .image_sources
-            .iter()
-            .all(|source| source.descriptor.density != Some(1.));
-        let no_width_descriptor = source_set
-            .image_sources
-            .iter()
-            .all(|source| source.descriptor.width.is_none());
-        if !src.is_empty() && no_density_source_of_1 && no_width_descriptor {
-            source_set.image_sources.push(ImageSource {
-                url: String::from(src),
-                descriptor: Descriptor {
-                    width: None,
-                    density: None,
-                },
-            })
-        }
-
-        // Step 5. Normalize the source densities of source set.
-        self.normalise_source_densities(&mut source_set);
-
-        // Step 6. Return source set.
-        source_set
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
-    fn update_source_set(&self) {
-        // Step 1. Set el's source set to an empty source set.
-        *self.source_set.borrow_mut() = SourceSet::new();
-
-        // Step 2. Let elements be « el ».
-        // Step 3. If el is an img element whose parent node is a picture element, then replace the
-        // contents of elements with el's parent node's child elements, retaining relative order.
-        // Step 4. Let img be el if el is an img element, otherwise null.
-        let elem = self.upcast::<Element>();
-        let parent = elem.upcast::<Node>().GetParentElement();
-        let elements = match parent.as_ref() {
-            Some(p) => {
-                if p.is::<HTMLPictureElement>() {
-                    p.upcast::<Node>()
-                        .children()
-                        .filter_map(DomRoot::downcast::<Element>)
-                        .map(|n| DomRoot::from_ref(&*n))
-                        .collect()
-                } else {
-                    vec![DomRoot::from_ref(elem)]
-                }
-            },
-            None => vec![DomRoot::from_ref(elem)],
-        };
-
-        // Step 5. For each child in elements:
-        for element in &elements {
-            // Step 5.1. If child is el:
-            if *element == DomRoot::from_ref(elem) {
-                // Step 5.1.10. Set el's source set to the result of creating a source set given
-                // default source, srcset, sizes, and img.
-                *self.source_set.borrow_mut() = self.create_source_set();
-
-                // Step 5.1.11. Return.
-                return;
-            }
-            // Step 5.2. If child is not a source element, then continue.
-            if !element.is::<HTMLSourceElement>() {
-                continue;
-            }
-
-            let mut source_set = SourceSet::new();
-
-            // Step 5.3. If child does not have a srcset attribute, continue to the next child.
-            // Step 5.4. Parse child's srcset attribute and let source set be the returned source
-            // set.
-            match element.get_attribute_string_value(&local_name!("srcset")) {
-                Some(srcset) => {
-                    source_set.image_sources = parse_a_srcset_attribute(&srcset);
-                },
-                _ => continue,
-            }
-
-            // Step 5.5. If source set has zero image sources, continue to the next child.
-            if source_set.image_sources.is_empty() {
-                continue;
-            }
-
-            // Step 5.6. If child has a media attribute, and its value does not match the
-            // environment, continue to the next child.
-            if let Some(media) = element.get_attribute_string_value(&local_name!("media")) &&
-                !MediaList::matches_environment(&element.owner_document(), &media)
-            {
-                continue;
-            }
-
-            // Step 5.7. Parse child's sizes attribute with img, and let source set's source size be
-            // the returned value.
-            if let Some(sizes) = element.get_attribute_string_value(&local_name!("sizes")) {
-                source_set.source_size = parse_a_sizes_attribute(&sizes);
-            }
-
-            // Step 5.8. If child has a type attribute, and its value is an unknown or unsupported
-            // MIME type, continue to the next child.
-            if let Some(type_) = element.get_attribute_string_value(&local_name!("type")) &&
-                !is_supported_image_mime_type(&type_)
-            {
-                continue;
-            }
-
-            // Step 5.9. If child has width or height attributes, set el's dimension attribute
-            // source to child. Otherwise, set el's dimension attribute source to el.
-            if element.has_attribute(&local_name!("width")) ||
-                element.has_attribute(&local_name!("height"))
-            {
-                self.dimension_attribute_source.set(Some(element));
-            } else {
-                self.dimension_attribute_source.set(Some(elem));
-            }
-
-            // Step 5.10. Normalize the source densities of source set.
-            self.normalise_source_densities(&mut source_set);
-
-            // Step 5.11. Set el's source set to source set.
-            *self.source_set.borrow_mut() = source_set;
-
-            // Step 5.12. Return.
-            return;
-        }
-    }
-
-    fn evaluate_source_size_list(&self, source_size_list: &SourceSizeList) -> Au {
-        let document = self.owner_document();
-        let quirks_mode = document.quirks_mode();
-        source_size_list.evaluate(document.window().layout().device(), quirks_mode)
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
-    fn normalise_source_densities(&self, source_set: &mut SourceSet) {
-        // Step 1. Let source size be source set's source size.
-        let source_size = self.evaluate_source_size_list(&source_set.source_size);
-
-        // Step 2. For each image source in source set:
-        for image_source in &mut source_set.image_sources {
-            // Step 2.1. If the image source has a pixel density descriptor, continue to the next
-            // image source.
-            if image_source.descriptor.density.is_some() {
-                continue;
-            }
-
-            // Step 2.2. Otherwise, if the image source has a width descriptor, replace the width
-            // descriptor with a pixel density descriptor with a value of the width descriptor value
-            // divided by source size and a unit of x.
-            if let Some(width) = image_source.descriptor.width {
-                image_source.descriptor.density = Some(width as f64 / source_size.to_f64_px());
-            } else {
-                // Step 2.3. Otherwise, give the image source a pixel density descriptor of 1x.
-                image_source.descriptor.density = Some(1_f64);
-            }
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#select-an-image-source>
-    fn select_image_source(&self) -> Option<(USVString, f64)> {
-        // Step 1. Update the source set for el.
-        self.update_source_set();
-
-        // Step 2. If el's source set is empty, return null as the URL and undefined as the pixel
-        // density.
-        if self.source_set.borrow().image_sources.is_empty() {
-            return None;
-        }
-
-        // Step 3. Return the result of selecting an image from el's source set.
-        self.select_image_source_from_source_set()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#select-an-image-source-from-a-source-set>
-    fn select_image_source_from_source_set(&self) -> Option<(USVString, f64)> {
-        // Step 1. If an entry b in sourceSet has the same associated pixel density descriptor as an
-        // earlier entry a in sourceSet, then remove entry b. Repeat this step until none of the
-        // entries in sourceSet have the same associated pixel density descriptor as an earlier
-        // entry.
-        let source_set = self.source_set.borrow();
-        let len = source_set.image_sources.len();
-
-        // Using FxHash is ok here as the indices are just 0..len
-        let mut repeat_indices = FxHashSet::default();
-        for outer_index in 0..len {
-            if repeat_indices.contains(&outer_index) {
-                continue;
-            }
-            let imgsource = &source_set.image_sources[outer_index];
-            let pixel_density = imgsource.descriptor.density.unwrap();
-            for inner_index in (outer_index + 1)..len {
-                let imgsource2 = &source_set.image_sources[inner_index];
-                if pixel_density == imgsource2.descriptor.density.unwrap() {
-                    repeat_indices.insert(inner_index);
-                }
-            }
-        }
-
-        let mut max = (0f64, 0);
-        let img_sources = &mut vec![];
-        for (index, image_source) in source_set.image_sources.iter().enumerate() {
-            if repeat_indices.contains(&index) {
-                continue;
-            }
-            let den = image_source.descriptor.density.unwrap();
-            if max.0 < den {
-                max = (den, img_sources.len());
-            }
-            img_sources.push(image_source);
-        }
-
-        // Step 2. In an implementation-defined manner, choose one image source from sourceSet. Let
-        // selectedSource be this choice.
-        let mut best_candidate = max;
-        let device_pixel_ratio = self
-            .owner_document()
-            .window()
-            .viewport_details()
-            .hidpi_scale_factor
-            .get() as f64;
-        for (index, image_source) in img_sources.iter().enumerate() {
-            let current_den = image_source.descriptor.density.unwrap();
-            if current_den < best_candidate.0 && current_den >= device_pixel_ratio {
-                best_candidate = (current_den, index);
-            }
-        }
-        let selected_source = img_sources.remove(best_candidate.1).clone();
-
-        // Step 3. Return selectedSource and its associated pixel density.
-        Some((
-            USVString(selected_source.url),
-            selected_source.descriptor.density.unwrap(),
-        ))
-    }
-
     fn init_image_request(
         &self,
         request: &DomRefCell<ImageRequest>,
@@ -960,7 +678,11 @@ impl HTMLImageElement {
     fn update_the_image_data_sync_steps(&self, cx: &mut js::context::JSContext) {
         // Step 10. Let selected source and selected pixel density be the URL and pixel density that
         // results from selecting an image source, respectively.
-        let Some((selected_source, selected_pixel_density)) = self.select_image_source() else {
+        let Some((selected_source, selected_pixel_density)) = self
+            .source_set
+            .borrow_mut()
+            .select_image_source(self.upcast::<Element>())
+        else {
             // Step 11. If selected source is null, then:
 
             // Step 11.1. Set the current request's state to broken, abort the image request for the
@@ -1207,7 +929,11 @@ impl HTMLImageElement {
 
         // Step 3. Let selected source and selected pixel density be the URL and pixel density that
         // results from selecting an image source, respectively.
-        let Some((selected_source, selected_pixel_density)) = self.select_image_source() else {
+        let Some((selected_source, selected_pixel_density)) = self
+            .source_set
+            .borrow_mut()
+            .select_image_source(self.upcast::<Element>())
+        else {
             // Step 4. If selected source is null, then return.
             return;
         };
@@ -1575,6 +1301,10 @@ impl HTMLImageElement {
             .base_url()
             .join(&self.CurrentSrc())
             .ok()
+    }
+
+    pub(crate) fn set_dimension_attribute_source(&self, value: Option<&Element>) {
+        self.dimension_attribute_source.set(value)
     }
 }
 
@@ -2121,26 +1851,4 @@ enum ChangeType {
         selected_pixel_density: f64,
     },
     Element,
-}
-
-/// Returns true if the given image MIME type is supported.
-fn is_supported_image_mime_type(input: &str) -> bool {
-    // Remove any leading and trailing HTTP whitespace from input.
-    let mime_type = input.trim();
-
-    // <https://mimesniff.spec.whatwg.org/#mime-type-essence>
-    let mime_type_essence = match mime_type.find(';') {
-        Some(semi) => &mime_type[..semi],
-        _ => mime_type,
-    };
-
-    // The HTML specification says the type attribute may be present and if present, the value
-    // must be a valid MIME type string. However an empty type attribute is implicitly supported
-    // to match the behavior of other browsers.
-    // <https://html.spec.whatwg.org/multipage/#attr-source-type>
-    if mime_type_essence.is_empty() {
-        return true;
-    }
-
-    SUPPORTED_IMAGE_MIME_TYPES.contains(&mime_type_essence)
 }
