@@ -19,33 +19,10 @@
 
 use servo_config::pref;
 
-#[cfg(target_env = "ohos")]
-mod ohos {
-    //! On `ohos` targets we only have the `OH_QoS_SetThreadQoS` API from qos/qos.h,
-    //! which influences scheduling priority, but empirically does not help with ensuring
-    //! important servo threads like script get scheduled on larger cores, presumably because
-    //! we do a lot of IPC, and the workload doesn't pass heuristic thresholds to get promoted
-    //! to a larger core.
-    //! [uclamp_min](https://docs.kernel.org/scheduler/sched-util-clamp.html) is supported but
-    //! ignored (empirically tested) on the hongmeng kernel.
-    //! Thqt leaves thread affinity as a last fallback, which allows us to prevent scheduling a
-    //! thread on little cores. Android developer docs discourages using thread affinity, since it
-    //! will also negatively affect power consumption if the little cores would have been
-    //! sufficient, but for now this is all we have (pending better official OH APIs, perhaps
-    //! modeled after the android performance hint API).
+#[cfg(target_os = "linux")]
+mod linux_sysfs {
     use std::fs;
     use std::sync::LazyLock;
-
-    /// Highest QoS level from OHOS `qos/qos.h` (API 12+).
-    const QOS_USER_INTERACTIVE: i32 = 5;
-
-    #[link(name = "qos")]
-    #[expect(unsafe_code)]
-    unsafe extern "C" {
-        // SAFETY: Calling this function is always safe.
-        safe fn OH_QoS_SetThreadQoS(level: i32) -> i32;
-    }
-
     // The current maximum supported by CPU_SET is 1024, so u16 is sufficiently large.
     // <https://man7.org/linux/man-pages/man3/CPU_SET.3.html>
     type CoreId = u16;
@@ -120,8 +97,12 @@ mod ohos {
         Ok(Some(chosen))
     }
 
+    /// Try and pin this thread to cpu cores above the smallest capacity class.
+    /// 
+    /// If the cpu only has one kind of core, or only one core above the smallest capacity class
+    /// this is a no-op.
     #[expect(unsafe_code)]
-    fn pin_thread_to_medium_or_large_cpus() -> Result<(), String> {
+    pub(super) fn pin_thread_to_medium_or_large_cpus() -> Result<(), String> {
         // Note: If we encountered an error when parsing the cpu structure, then
         // we logged the error in the LazyLock (once), which avoids flooding the logs
         // with error messages for every thread we want to pin.
@@ -143,13 +124,17 @@ mod ohos {
         }
         Ok(())
     }
+}
 
-    pub fn mark_thread_as_critical() {
-        let qos_rc = OH_QoS_SetThreadQoS(QOS_USER_INTERACTIVE);
-        if qos_rc != 0 {
-            log::warn!("Failed to set QOS_USER_INTERACTIVE");
-        }
-        if let Err(error) = pin_thread_to_medium_or_large_cpus() {
+#[cfg(target_os = "linux")]
+mod platform {
+    use super::BoostAffinity;
+    use super::linux_sysfs::pin_thread_to_medium_or_large_cpus;
+
+    pub fn boost_thread(_: super::ThreadPriority, boost_affinity: super::BoostAffinity) {
+        if matches!(boost_affinity, BoostAffinity::Boost) &&
+            let Err(error) = pin_thread_to_medium_or_large_cpus()
+        {
             log::warn!(
                 "Failed to pin {} to medium or large cpus: {error:?}",
                 std::thread::current().name().unwrap_or("<unnamed>"),
@@ -158,7 +143,82 @@ mod ohos {
     }
 }
 
+#[cfg(target_env = "ohos")]
+mod platform {
+    //! On `ohos` targets we only have the `OH_QoS_SetThreadQoS` API from qos/qos.h,
+    //! which influences scheduling priority, but empirically does not help with ensuring
+    //! important servo threads like script get scheduled on larger cores, presumably because
+    //! we do a lot of IPC, and the workload doesn't pass heuristic thresholds to get promoted
+    //! to a larger core.
+    //! [uclamp_min](https://docs.kernel.org/scheduler/sched-util-clamp.html) is supported but
+    //! ignored (empirically tested) on the hongmeng kernel.
+    //! That leaves thread affinity as a last fallback, which allows us to prevent scheduling a
+    //! thread on little cores. Android developer docs discourages using thread affinity, since it
+    //! will also negatively affect power consumption if the little cores would have been
+    //! sufficient, but for now this is all we have (pending better official OH APIs, perhaps
+    //! modeled after the android performance hint API).
+    
+    use super::linux_sysfs::pin_thread_to_medium_or_large_cpus;
+
+    // Constants copied from `qos/qos.h`. Avoids depending on ohos-libqos-sys just for this one function.
+    // See also <https://docs.rs/ohos-libqos-sys/0.1.0/src/ohos_libqos_sys/qos_ffi.rs.html#21>
+    const QOS_USER_INITIATED: i32 = 3;
+    const QOS_USER_INTERACTIVE: i32 = 5;
+
+    #[link(name = "qos")]
+    #[expect(unsafe_code)]
+    unsafe extern "C" {
+        // SAFETY: Calling this function is always safe.
+        safe fn OH_QoS_SetThreadQoS(level: i32) -> i32;
+    }
+
+
+    pub fn boost_thread(priority: ThreadPriority, boost_affinity: BoostAffinity) {
+        let qos_rc = match priority {
+            ThreadPriority::Elevated => OH_QoS_SetThreadQoS(QOS_USER_INITIATED),
+            ThreadPriority::Critical => OH_QoS_SetThreadQoS(QOS_USER_INTERACTIVE),
+            ThreadPriority::Default => 0,
+        };
+        if qos_rc != 0 {
+            log::warn!("Failed to boost thread priority. `OH_QoS_SetThreadQoS` returned {qos_rc}");
+        }
+        if matches!(boost_affinity, BoostAffinity::Boost) &&
+            let Err(error) = pin_thread_to_medium_or_large_cpus()
+        {
+            log::warn!(
+                "Failed to pin {} to medium or large cpus: {error:?}",
+                std::thread::current().name().unwrap_or("<unnamed>"),
+            );
+        }
+    }
+}
+
+#[cfg(not(any(target_os = "linux", target_env = "ohos")))]
+mod platform {
+    pub fn boost_thread(_: super::ThreadPriority, _: super::BoostAffinity) {}
+}
+
+pub enum ThreadPriority {
+    /// Priority will remain unchanged.
+    Default,
+    /// Increase the thread priority.
+    Elevated,
+    /// Higher priority than `Elevated`, should be used sparingly.
+    Critical,
+}
+
+/// On heterougenous systems (e.g. big.LITTLE architecture), select
+/// whether we should attempt to boost this thread to a larger core.
+/// The exact effect is platform specific, a hint and may be ignored.
+pub enum BoostAffinity {
+    No,
+    /// Prioritize Medium or Large cores and avoid small cores.
+    Boost,
+}
+
 /// Hint to the scheduler that this thread should be prioritised.
+///
+/// No effect if `pref!(perf_thread_boost_enabled)` is `false`.
 ///
 /// TODO: The exact API and inner-workings are subject to change:
 /// - This is a hint to servo / the embedder and can be a no-op.
@@ -168,9 +228,8 @@ mod ohos {
 /// - Some optimizations like thread affinity selection also affect children threads,
 ///   if spawned after this call, so placement can be important.
 #[allow(unsafe_code)]
-pub fn mark_thread_as_critical() {
+pub fn boost_thread(priority: ThreadPriority, boost_affinity: BoostAffinity) {
     if pref!(perf_thread_boost_enabled) {
-        #[cfg(target_env = "ohos")]
-        ohos::mark_thread_as_critical()
+        platform::boost_thread(priority, boost_affinity)
     }
 }
