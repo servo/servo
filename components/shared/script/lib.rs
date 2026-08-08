@@ -128,6 +128,16 @@ pub enum ProgressiveWebMetricType {
     },
     /// Time to interactive
     TimeToInteractive,
+    /// A container timing update.
+    /// <https://wicg.github.io/container-timing/>
+    ContainerTiming {
+        /// The value of the `containertiming` attribute on the container element.
+        identifier: String,
+        /// Total accumulated painted area in CSS px squared
+        size: f32,
+        /// The first time the container was painted.
+        first_render_time: servo_base::cross_process_instant::CrossProcessInstant,
+    },
 }
 
 impl ProgressiveWebMetricType {

@@ -3471,6 +3471,9 @@ impl Document {
             ProgressiveWebMetricType::TimeToInteractive => {
                 unreachable!("Unexpected non-paint metric.")
             },
+            ProgressiveWebMetricType::ContainerTiming { .. } => {
+                // TODO: Create PerformanceContainerTiming entry and queue it.
+            },
         }
     }
 

@@ -1487,6 +1487,18 @@ impl LayoutThread {
             paint_timing_handler.unset_lcp_candidate_updated();
         }
 
+        if paint_timing_handler.did_container_timing_update() {
+            for candidate in paint_timing_handler.take_container_timing_candidates() {
+                self.paint_api.send_container_timing_candidate(
+                    candidate,
+                    self.webview_id,
+                    self.id,
+                    stacking_context_tree.paint_info.epoch,
+                );
+            }
+            paint_timing_handler.reset_container_timing_dirty();
+        }
+
         let (keys, instance_keys) = self
             .font_context
             .collect_unused_webrender_resources(false /* all */);

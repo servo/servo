@@ -556,6 +556,21 @@ impl Paint {
                     painter.enable_lcp_calculation(&webview_id);
                 }
             },
+            PaintMessage::SendContainerTimingCandidate(candidate, webview_id, pipeline_id, epoch) => {
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.append_container_timing_candidate(
+                        candidate,
+                        webview_id,
+                        pipeline_id,
+                        epoch,
+                    );
+                }
+            },
+            PaintMessage::EnableContainerTimingCalculation(webview_id) => {
+                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    painter.enable_container_timing_calculation(&webview_id);
+                }
+            },
         }
     }
 

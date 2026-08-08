@@ -135,6 +135,9 @@ pub enum PaintMetricEvent {
         Option<ServoUrl>,
         LCPCandidateID,
     ),
+    /// A container timing update: identifier, first_render_time, paint_time,
+    /// size (painted area in px²), and intersection rect (x, y, width, height).
+    ContainerTiming(String, CrossProcessInstant, CrossProcessInstant, f32),
 }
 
 impl fmt::Debug for EmbedderToConstellationMessage {

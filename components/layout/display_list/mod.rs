@@ -679,6 +679,44 @@ impl DisplayListBuilder<'_> {
         );
     }
 
+    #[allow(clippy::too_many_arguments)]
+    fn check_for_container_timing_candidate(
+        &mut self,
+        state: &TraversalState,
+        clip_rect: LayoutRect,
+        bounds: LayoutRect,
+        tag: Option<Tag>,
+        flags: FragmentFlags,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
+    ) {
+        if !pref!(container_timing_enabled) {
+            return;
+        }
+
+        if !flags.contains(FragmentFlags::HAS_CONTAINER_TIMING) {
+            return;
+        }
+
+        let Some(tag) = tag else {
+            return;
+        };
+
+        let transform = self
+            .paint_info
+            .scroll_tree
+            .cumulative_node_to_root_transform(state.spatial_id);
+
+        self.paint_timing_handler.update_container_timing(
+            tag.node,
+            bounds,
+            clip_rect,
+            transform,
+            natural_width,
+            natural_height,
+        );
+    }
+
     fn visit_stacking_context_reference_frame_info(
         &mut self,
         stacking_context: &StackingContext,
@@ -1173,6 +1211,16 @@ impl Fragment {
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
         builder.mark_is_contentful();
+
+        builder.check_for_container_timing_candidate(
+            state,
+            common.clip_rect,
+            glyph_bounds,
+            fragment.base.tag,
+            fragment.base.flags,
+            None,
+            None,
+        );
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration
@@ -1914,6 +1962,15 @@ impl<'a> BuilderForBoxFragment<'a> {
                             layer.common.clip_rect,
                             self.fragment.base.tag,
                             None,
+                            natural_width,
+                            natural_height,
+                        );
+                        builder.check_for_container_timing_candidate(
+                            state,
+                            layer.common.clip_rect,
+                            layer.bounds,
+                            self.fragment.base.tag,
+                            self.fragment.base.flags,
                             natural_width,
                             natural_height,
                         );
