@@ -4808,6 +4808,8 @@ where
             WebDriverCommandMsg::GetViewportSize(..) |
             WebDriverCommandMsg::SetWindowRect(..) |
             WebDriverCommandMsg::MaximizeWebView(..) |
+            WebDriverCommandMsg::FullscreenWebView(..) |
+            WebDriverCommandMsg::MinimizeWebView(..) |
             WebDriverCommandMsg::LoadUrl(..) |
             WebDriverCommandMsg::Refresh(..) |
             WebDriverCommandMsg::InputEvent(..) |

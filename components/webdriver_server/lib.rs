@@ -998,6 +998,62 @@ impl Handler {
         Ok(WebDriverResponse::WindowRect(window_size_response))
     }
 
+    /// <https://w3c.github.io/webdriver/#fullscreen-window>
+    fn handle_fullscreen_window(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If the remote end does not support the Fullscreen Window command for session's
+        // current top-level browsing context for any reason,
+        // return error with error code unsupported operation.
+        let webview_id = self.webview_id()?;
+        // Step 2. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        // Step 3. Try to handle any user prompts with session.
+        self.handle_any_user_prompts(self.webview_id()?)?;
+
+        // Step 4. Fullscreen the window of session's current top-level browsing context.
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::FullscreenWebView(webview_id, sender))?;
+
+        let window_rect = wait_for_oneshot_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
+        let window_size_response = WindowRectResponse {
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
+        };
+        Ok(WebDriverResponse::WindowRect(window_size_response))
+    }
+
+    /// <https://w3c.github.io/webdriver/#minimize-window>
+    fn handle_minimize_window(&mut self) -> WebDriverResult<WebDriverResponse> {
+        // Step 1. If the remote end does not support the Minimize Window command for session's
+        // current top-level browsing context for any reason,
+        // return error with error code unsupported operation.
+        let webview_id = self.webview_id()?;
+        // Step 2. If session's current top-level browsing context is no longer open,
+        // return error with error code no such window.
+        self.verify_top_level_browsing_context_is_open(webview_id)?;
+
+        // Step 3. Try to handle any user prompts with session.
+        self.handle_any_user_prompts(self.webview_id()?)?;
+
+        // Step 4. Iconify the window of session's current top-level browsing context.
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::MinimizeWebView(webview_id, sender))?;
+
+        let window_rect = wait_for_oneshot_response(receiver)?;
+        debug!("Result window_rect: {window_rect:?}");
+        let window_size_response = WindowRectResponse {
+            x: window_rect.min.x,
+            y: window_rect.min.y,
+            width: window_rect.width(),
+            height: window_rect.height(),
+        };
+        Ok(WebDriverResponse::WindowRect(window_size_response))
+    }
+
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
         // Step 1. If session's current browsing context is no longer open,
         // return error with error code no such window.
@@ -2740,6 +2796,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::NewWindow(ref parameters) => self.handle_new_window(parameters),
             WebDriverCommand::CloseWindow => self.handle_close_window(),
             WebDriverCommand::MaximizeWindow => self.handle_maximize_window(),
+            WebDriverCommand::FullscreenWindow => self.handle_fullscreen_window(),
+            WebDriverCommand::MinimizeWindow => self.handle_minimize_window(),
             WebDriverCommand::SwitchToFrame(ref parameters) => {
                 self.handle_switch_to_frame(parameters)
             },

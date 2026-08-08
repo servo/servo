@@ -118,6 +118,10 @@ pub enum WebDriverCommandMsg {
     ),
     /// Maximize the window. Send back result window rectangle.
     MaximizeWebView(WebViewId, GenericOneshotSender<DeviceIndependentIntRect>),
+    /// Fullscreen the window. Send back result window rectangle.
+    FullscreenWebView(WebViewId, GenericOneshotSender<DeviceIndependentIntRect>),
+    /// Minimize the window. Send back result window rectangle.
+    MinimizeWebView(WebViewId, GenericOneshotSender<DeviceIndependentIntRect>),
     /// Take a screenshot of the viewport.
     TakeScreenshot(
         WebViewId,

@@ -417,6 +417,7 @@ pub(crate) trait PlatformWindow {
     }
     fn window_rect(&self) -> DeviceIndependentIntRect;
     fn maximize(&self, _: &WebView) {}
+    fn minimize(&self, _: &WebView) {}
     fn focus(&self) {}
     fn has_platform_focus(&self) -> bool {
         true

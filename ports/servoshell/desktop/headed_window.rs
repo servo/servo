@@ -1031,6 +1031,10 @@ impl PlatformWindow for HeadedWindow {
         self.winit_window.set_maximized(true);
     }
 
+    fn minimize(&self, _webview: &WebView) {
+        self.winit_window.set_minimized(true);
+    }
+
     /// Handle servoshell key bindings that may have been prevented by the page in the active webview.
     fn notify_input_event_handled(
         &self,

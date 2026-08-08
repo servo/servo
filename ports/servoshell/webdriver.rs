@@ -229,6 +229,28 @@ impl RunningAppState {
                         warn!("Failed to send response of GetWindowSize: {error}");
                     }
                 },
+                WebDriverCommandMsg::FullscreenWebView(webview_id, response_sender) => {
+                    let Some(webview) = self.webview_by_id(webview_id) else {
+                        continue;
+                    };
+                    let platform_window = self.platform_window_for_webview(&webview);
+                    platform_window.set_fullscreen(true);
+
+                    if let Err(error) = response_sender.send(platform_window.window_rect()) {
+                        warn!("Failed to send response of GetWindowSize: {error}");
+                    }
+                },
+                WebDriverCommandMsg::MinimizeWebView(webview_id, response_sender) => {
+                    let Some(webview) = self.webview_by_id(webview_id) else {
+                        continue;
+                    };
+                    let platform_window = self.platform_window_for_webview(&webview);
+                    platform_window.minimize(&webview);
+
+                    if let Err(error) = response_sender.send(platform_window.window_rect()) {
+                        warn!("Failed to send response of GetWindowSize: {error}");
+                    }
+                },
                 WebDriverCommandMsg::SetWindowRect(webview_id, requested_rect, size_sender) => {
                     let Some(webview) = self.webview_by_id(webview_id) else {
                         continue;
