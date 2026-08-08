@@ -20,10 +20,12 @@ use icu_locid::subtags::Language;
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
-use read_fonts::FontRead;
+use read_fonts::collections::int_set::Domain;
+use read_fonts::tables::fvar::Fvar;
 use read_fonts::tables::name::Name as NameTable;
 use read_fonts::tables::os2::{Os2, SelectionFlags};
 use read_fonts::types::Tag;
+use read_fonts::{FontRead, ReadError};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;
@@ -31,8 +33,10 @@ use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use skrifa::string::LocalizedString;
 use smallvec::SmallVec;
 use style::Atom;
+use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_variant_caps;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
+use style::font_face::FontStyleRange;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
@@ -63,11 +67,13 @@ pub(crate) const COLR: Tag = Tag::new(b"COLR");
 pub(crate) const CWSH: Tag = Tag::new(b"cwsh");
 pub(crate) const FRAC: Tag = Tag::new(b"frac");
 pub(crate) const DLIG: Tag = Tag::new(b"dlig");
+pub(crate) const FVAR: Tag = Tag::new(b"fvar");
 pub(crate) const FWID: Tag = Tag::new(b"fwid");
 pub(crate) const GPOS: Tag = Tag::new(b"GPOS");
 pub(crate) const GSUB: Tag = Tag::new(b"GSUB");
 pub(crate) const HIST: Tag = Tag::new(b"hist");
 pub(crate) const HLIG: Tag = Tag::new(b"hlig");
+pub(crate) const ITAL: Tag = Tag::new(b"ital");
 pub(crate) const JP04: Tag = Tag::new(b"jp04");
 pub(crate) const JP78: Tag = Tag::new(b"jp78");
 pub(crate) const JP83: Tag = Tag::new(b"jp83");
@@ -85,6 +91,7 @@ pub(crate) const PWID: Tag = Tag::new(b"pwid");
 pub(crate) const RUBY: Tag = Tag::new(b"ruby");
 pub(crate) const SALT: Tag = Tag::new(b"salt");
 pub(crate) const SBIX: Tag = Tag::new(b"sbix");
+pub(crate) const SLNT: Tag = Tag::new(b"slnt");
 pub(crate) const SMPL: Tag = Tag::new(b"smpl");
 pub(crate) const SUBS: Tag = Tag::new(b"subs");
 pub(crate) const SUPS: Tag = Tag::new(b"sups");
@@ -92,6 +99,10 @@ pub(crate) const SWSH: Tag = Tag::new(b"swsh");
 pub(crate) const TNUM: Tag = Tag::new(b"tnum");
 pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
+
+/// The number of degrees to slant the font face by if the `font-style` is `italic`
+/// but the font does not support native italic.
+const SLNT_VALUE_FOR_ITALIC_STYLE: f32 = 14.0;
 
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -163,6 +174,10 @@ pub trait PlatformFontMethods: Sized {
     /// Return all the variation values that the font was instantiated with.
     fn variations(&self) -> &[FontVariation];
 
+    fn set_variations(&mut self, _variations: &[FontVariation]) -> Result<(), &'static str> {
+        Ok(())
+    }
+
     fn descriptor_from_os2_table(os2: &Os2) -> FontTemplateDescriptor {
         let mut style = FontStyle::NORMAL;
         if os2.fs_selection().contains(SelectionFlags::ITALIC) {
@@ -192,6 +207,12 @@ pub(crate) type FractionalPixel = f64;
 
 pub(crate) trait FontTableMethods {
     fn buffer(&self) -> &[u8];
+    fn parse_as_specific_table<'a, Table>(&'a self) -> Result<Table, ReadError>
+    where
+        Table: FontRead<'a>,
+    {
+        Table::read(read_fonts::FontData::new(self.buffer()))
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -336,13 +357,22 @@ impl Font {
             is_bold && allows_synthetic_bold
         };
 
-        let handle = PlatformFont::new_from_template(
+        // TODO: Don't pass the variation settings to this method, we'll set the variations later.
+        // This might cause issues with the core text font cache on macos.
+        let mut handle = PlatformFont::new_from_template(
             template.clone(),
             Some(descriptor.pt_size),
             &descriptor.variation_settings,
             &data,
             synthetic_bold,
         )?;
+
+        // Compute the variations
+        if servo_config::pref!(layout_variable_fonts_enabled) {
+            let used_variations = compute_variations(&descriptor, &template, &handle);
+            handle.set_variations(&used_variations)?;
+        }
+
         let metrics = Arc::new(handle.metrics());
 
         Ok(Font {
@@ -1103,4 +1133,141 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
     }
 
     mapping[mapping.len() - 1].1
+}
+
+/// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>
+fn compute_variations(
+    descriptor: &FontDescriptor,
+    template: &FontTemplateRef,
+    platform_font: &PlatformFont,
+) -> Vec<FontVariation> {
+    let font_face_rule = template.font_face_rule();
+
+    // The steps in this algorithm are inverted order because they are listed in ascending order of precedence.
+    let mut variations: Vec<FontVariation> = vec![];
+
+    let mut add_variation = |variation: FontVariation| {
+        if !variations
+            .iter()
+            .any(|existing_variation| existing_variation.tag == variation.tag)
+        {
+            variations.push(variation);
+        }
+    };
+
+    // Step 12. Font variations implied by the value of the font-variation-settings property are applied.
+    // These values should be clamped to the values that are supported by the font.
+    // NOTE: Clamping happens inside the PlatformFont.
+    descriptor
+        .variation_settings
+        .iter()
+        .copied()
+        .for_each(&mut add_variation);
+
+    // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
+    // NOTE The precise behaviour of font-optical-sizing:auto is not defined.
+    // We choose to set "opsz" to the font size if it's not already set elsewhere. This is the easiest
+    // at the end of this function, so we move this step down.
+
+    if let Some(font_face_rule) = &font_face_rule {
+        // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
+        // descriptor in the @font-face rule are applied.
+        if let Some(variation_settings) = font_face_rule.font_variation_settings.as_ref() {
+            variation_settings
+                .0
+                .iter()
+                .map(|variation| FontVariation {
+                    tag: variation.tag.0,
+                    value: variation.value.get().expect(
+                        "The value is enforced to be resolvable at parse time \
+                        (see FontVariationSettings::parse_for_font_face_rule).",
+                    ),
+                })
+                .for_each(&mut add_variation);
+        }
+    }
+
+    // Step 2. Font variations as enabled by the font-weight, font-width, and font-style properties are applied.
+    //
+    // The application of the value enabled by font-style is affected by font selection, because this property might
+    // select an italic or an oblique font. The value applied is the closest matching value as determined by the font
+    // matching algorithm. User agents must apply at most one value due to the font-style property; both "ital" and
+    // "slnt" values must not be set together.
+    //
+    // If the selected font is defined in an @font-face rule, then the values applied at this step should be clamped
+    // to the value of the font-weight, font-width, and font-style descriptors in that @font-face rule.
+    // TODO: Clamp weight/stretch to the descriptors from the @font-face rule, if any
+    // NOTE: font-stretch is a legacy alias to font-width
+    add_variation(FontVariation {
+        tag: Tag::new(b"wght").to_u32(),
+        value: descriptor.weight.value(),
+    });
+
+    add_variation(FontVariation {
+        tag: Tag::new(b"wdth").to_u32(),
+        value: descriptor.stretch.0.to_float(),
+    });
+
+    let fvar_table = platform_font.table_for_tag(FVAR);
+    let has_ital_axis = fvar_table
+        .as_ref()
+        .and_then(|table| table.parse_as_specific_table::<Fvar<'_>>().ok())
+        .and_then(|fvar: Fvar<'_>| fvar.axis_instance_arrays().ok())
+        .is_some_and(|axis_instance_arrays| {
+            axis_instance_arrays
+                .axes()
+                .iter()
+                .any(|axis| axis.axis_tag() == ITAL)
+        });
+
+    let clamped_font_style = font_face_rule
+        .as_ref()
+        .and_then(|descriptor| descriptor.font_style.as_ref())
+        .map(|font_style_range| match font_style_range {
+            FontStyleRange::Italic => FontStyle::ITALIC,
+            FontStyleRange::Oblique(min_angle, max_angle) => {
+                let specified_angle = if descriptor.style == FontStyle::ITALIC {
+                    SLNT_VALUE_FOR_ITALIC_STYLE
+                } else {
+                    descriptor.style.oblique_degrees()
+                };
+                let clamped_angle = specified_angle
+                    .min(max_angle.degrees().unwrap_or(f32::INFINITY))
+                    .max(min_angle.degrees().unwrap_or(f32::NEG_INFINITY));
+                FontStyle::oblique(clamped_angle)
+            },
+        })
+        .unwrap_or(descriptor.style);
+    // TODO: We should recognize when a font has neither a ital nor a slnt axis and then
+    // synthesize an appropriate font face if allowed by font-synthesis.
+    if has_ital_axis {
+        add_variation(FontVariation {
+            tag: ITAL.to_u32(),
+            value: (clamped_font_style != FontStyle::NORMAL) as u32 as f32,
+        });
+    } else {
+        // Note: CSS and OpenType measure slnt in opposite directions, so we need to negate the
+        // angles.
+        if clamped_font_style == FontStyle::ITALIC {
+            add_variation(FontVariation {
+                tag: SLNT.to_u32(),
+                value: -SLNT_VALUE_FOR_ITALIC_STYLE,
+            });
+        } else {
+            add_variation(FontVariation {
+                tag: SLNT.to_u32(),
+                value: -clamped_font_style.oblique_degrees(),
+            });
+        }
+    }
+
+    // This is the implementation for Step 9. Refer to the note on Step 9 for an explanation of why it's here.
+    if descriptor.optical_sizing == FontOpticalSizing::Auto {
+        add_variation(FontVariation {
+            tag: Tag::new(b"opsz").to_u32(),
+            value: descriptor.pt_size.to_f32_px(),
+        });
+    }
+
+    variations
 }
