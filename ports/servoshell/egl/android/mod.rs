@@ -217,8 +217,11 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
                 WindowHandle::borrow_raw(window_handle),
             )
         };
-
-        let hidpi_scale_factor = Scale::new(density);
+        let hidpi_scale_factor = Scale::new(
+            servoshell_preferences
+                .device_pixel_ratio_override
+                .unwrap_or(density),
+        );
 
         APP.with(|app| {
             let new_app = App::new(AppInitOptions {
