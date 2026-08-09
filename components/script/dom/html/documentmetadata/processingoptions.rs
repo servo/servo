@@ -31,6 +31,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
+use crate::dom::srcset::SourceSet;
 use crate::dom::types::HTMLLinkElement;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
@@ -76,7 +77,7 @@ pub(crate) struct LinkProcessingOptions {
     /// <https://html.spec.whatwg.org/multipage/#link-options-policy-container>
     pub(crate) policy_container: PolicyContainer,
     /// <https://html.spec.whatwg.org/multipage/#link-options-source-set>
-    pub(crate) source_set: Option<()>,
+    pub(crate) source_set: Option<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#link-options-base-url>
     pub(crate) base_url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#link-options-origin>
@@ -267,7 +268,7 @@ impl LinkProcessingOptions {
 
     /// <https://html.spec.whatwg.org/multipage/#preload>
     pub(crate) fn preload(
-        self,
+        mut self,
         webview_id: WebViewId,
         link: Option<Trusted<HTMLLinkElement>>,
         document: &Document,
@@ -278,7 +279,16 @@ impl LinkProcessingOptions {
         assert!(self.type_matches_destination());
         // Step 2. If options's destination is "image" and options's source set is not null,
         // then set options's href to the result of selecting an image source from options's source set.
-        // TODO
+        if self.destination == Destination::Image {
+            if let Some(srcset) = &mut self.source_set {
+                self.href = String::from(
+                    srcset
+                        .select_image_source_from_source_set(document)
+                        .unwrap_or_default()
+                        .0,
+                );
+            }
+        }
         // Step 3. Let request be the result of creating a link request given options.
         let Some(request) = self.create_link_request(webview_id) else {
             // Step 4. If request is null, then return.
@@ -414,7 +424,16 @@ pub(crate) fn process_link_headers(
         // Step 2.8. If attribs["imagesrcset"] exists and attribs["imagesizes"] exists,
         // then set options's source set to the result of creating a source set given
         // linkObject["target_uri"], attribs["imagesrcset"], attribs["imagesizes"], and null.
-        // TODO
+        if let Some(imagesrcset) = link_object.value_for_key_in_link_header("imagesrcset") &&
+            let Some(imagesizes) = link_object.value_for_key_in_link_header("imagesizes")
+        {
+            options.source_set = Some(SourceSet::create_source_set(
+                &link_object.url,
+                imagesrcset,
+                imagesizes,
+                document,
+            ))
+        }
         // Step 2.9. Run the process a link header steps for rel given options.
         options.process_link_header(rel, document);
     }

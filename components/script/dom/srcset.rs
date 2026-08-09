@@ -25,7 +25,7 @@ use crate::dom::htmlpictureelement::HTMLPictureElement;
 use crate::dom::htmlsourceelement::HTMLSourceElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
-use crate::dom::{Element, Node};
+use crate::dom::{Document, Element, Node};
 
 /// Supported image MIME types as defined by
 /// <https://mimesniff.spec.whatwg.org/#image-mime-type>.
@@ -46,7 +46,7 @@ const SUPPORTED_IMAGE_MIME_TYPES: &[&str] = &[
 ];
 
 /// <https://html.spec.whatwg.org/multipage/#source-set>
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct SourceSet {
     pub image_sources: Vec<ImageSource>,
     pub source_size: SourceSizeList,
@@ -82,26 +82,37 @@ impl SourceSet {
         }
     }
 
+    pub fn new_from_element(element: &Element) -> SourceSet {
+        let mut source_set = SourceSet::new();
+        source_set.update_source_set(element);
+
+        source_set
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#create-a-source-set>
-    pub fn create_source_set(element: &Element) -> SourceSet {
+    pub fn create_source_set(
+        default_source: &str,
+        srcset: &str,
+        sizes: &str,
+        document: &Document,
+    ) -> SourceSet {
         // Step 1. Let source set be an empty source set.
         let mut source_set = SourceSet::new();
 
         // Step 2. If srcset is not an empty string, then set source set to the result of parsing
         // srcset.
-        if let Some(srcset) = element.get_attribute_string_value(&local_name!("srcset")) {
-            source_set.image_sources = parse_a_srcset_attribute(&srcset);
+        if !srcset.is_empty() {
+            source_set.image_sources = parse_a_srcset_attribute(srcset);
         }
 
         // Step 3. Set source set's source size to the result of parsing sizes with img.
-        if let Some(sizes) = element.get_attribute_string_value(&local_name!("sizes")) {
-            source_set.source_size = parse_a_sizes_attribute(&sizes);
+        if !sizes.is_empty() {
+            source_set.source_size = parse_a_sizes_attribute(sizes);
         }
 
         // Step 4. If default source is not the empty string and source set does not contain an
         // image source with a pixel density descriptor value of 1, and no image source with a width
         // descriptor, append default source to source set.
-        let src = element.get_string_attribute(&local_name!("src"));
         let no_density_source_of_1 = source_set
             .image_sources
             .iter()
@@ -110,9 +121,9 @@ impl SourceSet {
             .image_sources
             .iter()
             .all(|source| source.descriptor.width.is_none());
-        if !src.is_empty() && no_density_source_of_1 && no_width_descriptor {
+        if !default_source.is_empty() && no_density_source_of_1 && no_width_descriptor {
             source_set.image_sources.push(ImageSource {
-                url: String::from(src),
+                url: String::from(default_source),
                 descriptor: Descriptor {
                     width: None,
                     density: None,
@@ -121,7 +132,7 @@ impl SourceSet {
         }
 
         // Step 5. Normalize the source densities of source set.
-        source_set.normalise_source_densities(element);
+        source_set.normalise_source_densities(document);
 
         // Step 6. Return source set.
         source_set
@@ -157,9 +168,54 @@ impl SourceSet {
         for child in &elements {
             // Step 5.1. If child is el:
             if *child == DomRoot::from_ref(el) {
+                // Step 5.1.1: Let default source be the empty string.
+                // Step 5.1.2: Let srcset be the empty string.
+                // Step 5.1.3: Let sizes be the empty string.
+                let default_source: String;
+                let srcset: String;
+                let sizes: String;
+
+                if el.is::<HTMLImageElement>() {
+                    // Step 5.1.4: If el is an img element that has a srcset attribute, then
+                    // set srcset to that attribute's value.
+                    srcset = el
+                        .get_attribute_string_value(&local_name!("srcset"))
+                        .unwrap_or_default();
+                    // Step 5.1.6: If el is an img element that has a sizes attribute, then set sizes to that attribute's value.
+                    sizes = el
+                        .get_attribute_string_value(&local_name!("sizes"))
+                        .unwrap_or_default();
+                    // Step 5.1.8: If el is an img element that has a src attribute, then set default source to that attribute's value.
+                    default_source = el
+                        .get_attribute_string_value(&local_name!("src"))
+                        .unwrap_or_default();
+                } else if el.is::<HTMLLinkElement>() {
+                    // Step 5.1.5: Otherwise, if el is a link element that has an imagesrcset attribute, then set srcset to that attribute's value.
+                    srcset = el
+                        .get_attribute_string_value(&local_name!("imagesrcset"))
+                        .unwrap_or_default();
+                    // Step 5.1.7: Otherwise, if el is a link element that has an imagesizes attribute, then set sizes to that attribute's value.
+                    sizes = el
+                        .get_attribute_string_value(&local_name!("imagesizes"))
+                        .unwrap_or_default();
+                    // Step 5.1.9: Otherwise, if el is a link element that has an href attribute, then set default source to that attribute's value.
+                    default_source = el
+                        .get_attribute_string_value(&local_name!("href"))
+                        .unwrap_or_default();
+                } else {
+                    default_source = String::new();
+                    srcset = String::new();
+                    sizes = String::new();
+                }
+
                 // Step 5.1.10. Set el's source set to the result of creating a source set given
                 // default source, srcset, sizes, and img.
-                *self = SourceSet::create_source_set(el);
+                *self = SourceSet::create_source_set(
+                    &default_source,
+                    &srcset,
+                    &sizes,
+                    &el.owner_document(),
+                );
 
                 // Step 5.1.11. Return.
                 return;
@@ -224,7 +280,7 @@ impl SourceSet {
             }
 
             // Step 5.10. Normalize the source densities of source set.
-            source_set.normalise_source_densities(el);
+            source_set.normalise_source_densities(&el.owner_document());
 
             // Step 5.11. Set el's source set to source set.
             *self = source_set;
@@ -234,17 +290,16 @@ impl SourceSet {
         }
     }
 
-    pub fn evaluate_source_size_list(&self, element: &Element) -> Au {
-        let document = element.owner_document();
+    pub fn evaluate_source_size_list(&self, document: &Document) -> Au {
         let quirks_mode = document.quirks_mode();
         self.source_size
             .evaluate(document.window().layout().device(), quirks_mode)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
-    pub fn normalise_source_densities(&mut self, element: &Element) {
+    pub fn normalise_source_densities(&mut self, document: &Document) {
         // Step 1. Let source size be source set's source size.
-        let source_size = self.evaluate_source_size_list(element);
+        let source_size = self.evaluate_source_size_list(document);
 
         // Step 2. For each image source in source set:
         for image_source in self.image_sources.iter_mut() {
@@ -267,7 +322,7 @@ impl SourceSet {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#select-an-image-source>
-    pub(crate) fn select_image_source(&mut self, element: &Element) -> Option<(USVString, f64)> {
+    pub fn select_image_source(&mut self, element: &Element) -> Option<(USVString, f64)> {
         // Step 1. Update the source set for el.
         self.update_source_set(element);
 
@@ -278,11 +333,14 @@ impl SourceSet {
         }
 
         // Step 3. Return the result of selecting an image from el's source set.
-        self.select_image_source_from_source_set(element)
+        self.select_image_source_from_source_set(&element.owner_document())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#select-an-image-source-from-a-source-set>
-    fn select_image_source_from_source_set(&self, element: &Element) -> Option<(USVString, f64)> {
+    pub fn select_image_source_from_source_set(
+        &self,
+        document: &Document,
+    ) -> Option<(USVString, f64)> {
         // Step 1. If an entry b in sourceSet has the same associated pixel density descriptor as an
         // earlier entry a in sourceSet, then remove entry b. Repeat this step until none of the
         // entries in sourceSet have the same associated pixel density descriptor as an earlier
@@ -321,8 +379,7 @@ impl SourceSet {
         // Step 2. In an implementation-defined manner, choose one image source from sourceSet. Let
         // selectedSource be this choice.
         let mut best_candidate = max;
-        let device_pixel_ratio = element
-            .owner_document()
+        let device_pixel_ratio = document
             .window()
             .viewport_details()
             .hidpi_scale_factor

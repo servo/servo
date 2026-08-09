@@ -58,6 +58,7 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
+use crate::dom::srcset::SourceSet;
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::links::LinkRelations;
 use crate::modules::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
@@ -514,7 +515,7 @@ impl HTMLLinkElement {
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
             policy_container: document.policy_container().to_owned(),
-            source_set: None, // FIXME
+            source_set: Some(SourceSet::new_from_element(element)),
             origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),
             request_client: global.request_client(None),
