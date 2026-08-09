@@ -1,3 +1,7 @@
+html {
+  color: CanvasText;
+}
+
 input[type="hidden"] {
   display: none !important;
 }
@@ -5,9 +9,9 @@ input[type="hidden"] {
 /* Textual inputs */
 input:not([type="file"]),
 textarea {
-  background: white;
+  background-color: Field;
   border: solid grey 1px;
-  color: black;
+  color: FieldText;
 }
 
 input[type="radio"] {
@@ -118,7 +122,15 @@ input[type="file"]::file-selector-button {
   border-radius: 2px;
   border: 1px solid ButtonBorder;
   padding: 4px;
-  color: black;
+  color: ButtonText;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="date"],
+input[type="password"],
+input[type="number"] {
+  color: FieldText;
 }
 
 button,
