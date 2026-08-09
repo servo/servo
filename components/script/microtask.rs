@@ -22,9 +22,9 @@ use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::notify_about_rejected_promises;
-use crate::script_thread::ScriptThread;
 
 /// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]

@@ -27,7 +27,7 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidityState;
-use crate::script_thread::ScriptThread;
+use crate::event_loop::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct HTMLFieldSetElement {

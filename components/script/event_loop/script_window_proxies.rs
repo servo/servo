@@ -11,11 +11,11 @@ use servo_base::generic_channel;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
-use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::{GlobalScope, Window};
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
+use crate::event_loop::document_collection::DocumentCollection;
 use crate::messaging::ScriptThreadSenders;
 
 #[derive(JSTraceable, Default, MallocSizeOf)]

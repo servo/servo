@@ -177,9 +177,9 @@ use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollingBox};
+use crate::event_loop::script_thread::ScriptThread;
 use crate::layout_dom::ServoDangerousStyleElement;
 use crate::realms::enter_auto_realm;
-use crate::script_thread::ScriptThread;
 use crate::stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,

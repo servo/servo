@@ -64,9 +64,9 @@ use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
+use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::navigation::navigate;
-use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::script_window_proxies::ScriptWindowProxies;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:

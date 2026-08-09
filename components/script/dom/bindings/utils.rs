@@ -26,7 +26,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::windowproxy::WindowProxyHandler;
-use crate::script_thread::ScriptThread;
+use crate::event_loop::script_thread::ScriptThread;
 
 #[derive(JSTraceable, MallocSizeOf)]
 /// Static data associated with a global object.

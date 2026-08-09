@@ -46,7 +46,6 @@ use stylo_atoms::Atom;
 use url::Position;
 
 use crate::body::{BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal};
-use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::buffer_source::{HeapBufferSource, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
@@ -76,6 +75,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
+use crate::event_loop::document_loader::DocumentLoader;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};

@@ -24,7 +24,6 @@ use style::attr::AttrValue;
 use style::stylesheets::Origin;
 
 use crate::conversions::Convert;
-use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
@@ -50,6 +49,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::{
     CSSGroupingRule, CSSLayerBlockRule, EventTarget, HTMLElement, TrustedHTML,
 };
+use crate::event_loop::document_collection::DocumentCollection;
 use crate::realms::enter_auto_realm;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]

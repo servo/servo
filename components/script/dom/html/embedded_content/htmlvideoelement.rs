@@ -28,7 +28,6 @@ use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
-use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -44,6 +43,7 @@ use crate::dom::html::htmlmediaelement::{HTMLMediaElement, NetworkState, ReadySt
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
+use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;

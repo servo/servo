@@ -18,7 +18,7 @@ use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
 use crate::dom::types::Window;
-use crate::script_thread::with_script_thread;
+use crate::event_loop::script_thread::with_script_thread;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]

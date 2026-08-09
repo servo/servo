@@ -25,8 +25,8 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_thread::ScriptThread;
 
 fn pref_to_jsval(cx: &mut js::context::JSContext, pref: &PrefValue, rval: MutableHandleValue) {
     match pref {

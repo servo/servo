@@ -35,7 +35,7 @@ use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrtest::XRTest;
-use crate::script_thread::ScriptThread;
+use crate::event_loop::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct XRSystem {

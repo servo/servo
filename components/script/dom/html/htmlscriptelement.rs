@@ -27,7 +27,6 @@ use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
 
-use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
@@ -60,6 +59,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
+use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::modules::import_map::{ImportMap, parse_an_import_map_string, register_import_map};
 use crate::modules::script_module::{

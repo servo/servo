@@ -48,7 +48,6 @@ use webrender_api::{
     ImageDescriptorFlags, ImageFormat, ImageKey,
 };
 
-use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
@@ -103,11 +102,12 @@ use crate::dom::trackevent::TrackEvent;
 use crate::dom::url::URL;
 use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
+use crate::event_loop::document_loader::{LoadBlocker, LoadType};
+use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::MicrotaskRunnable;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::script_thread::ScriptThread;
 use crate::tasks::task_source::SendableTaskSource;
 
 /// A CSS file to style the media controls.

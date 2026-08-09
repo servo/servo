@@ -53,9 +53,9 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::promise::Promise;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::microtask::CustomElementReactionMicrotask;
 use crate::realms::enter_auto_realm;
-use crate::script_thread::ScriptThread;
 
 /// <https://dom.spec.whatwg.org/#concept-element-custom-element-state>
 #[derive(Clone, Copy, Default, Eq, JSTraceable, MallocSizeOf, PartialEq)]

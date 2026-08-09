@@ -15,7 +15,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::window::Window;
 
-/// The collection of all [`Document`]s managed by the [`crate::script_thread::ScriptThread`].
+/// The collection of all [`Document`]s managed by the [`crate::event_loop::script_thread::ScriptThread`].
 /// This is stored as a mapping of [`PipelineId`] to [`Document`], but for updating the
 /// rendering, [`Document`]s should be processed in order via [`Self::documents_in_order`].
 #[derive(JSTraceable)]
@@ -70,7 +70,7 @@ impl DocumentCollection {
         }
     }
 
-    /// Return the documents managed by this [`crate::script_thread::ScriptThread`] in the
+    /// Return the documents managed by this [`crate::event_loop::script_thread::ScriptThread`] in the
     /// order specified by the *[update the rendering][update-the-rendering]* step of the
     /// HTML specification:
     ///
@@ -133,7 +133,7 @@ struct DocumentTreeNode {
 /// order of the [`Document`]s may not be correct. Perhaps the Constellation could
 /// ensure that every [`ScriptThread`][st] has the full view of the frame tree.
 ///
-/// [st]: crate::script_thread::ScriptThread
+/// [st]: crate::event_loop::script_thread::ScriptThread
 #[derive(Default)]
 struct DocumentTree {
     tree: FxHashMap<PipelineId, DocumentTreeNode>,
