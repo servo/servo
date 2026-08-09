@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
@@ -115,7 +115,7 @@ pub(crate) fn generate_key(
     // Step 9. Set the [[type]] internal slot of key to "secret".
     // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 11. Set the [[extractable]] internal slot of key to be extractable.
-    // Step 12. Set the [[usages]] internal slot of key to be usages.
+    // Step 12. Set the [[usages]] internal slot of key to be the normalized value of usages.
     let algorithm_name = match aes_algorithm {
         AesAlgorithm::AesCtr => {
             // Step 7. Set the name attribute of algorithm to "AES-CTR".
@@ -148,7 +148,7 @@ pub(crate) fn generate_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         handle,
     );
 

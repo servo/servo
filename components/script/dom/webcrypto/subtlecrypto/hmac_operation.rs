@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsag
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
@@ -149,14 +149,14 @@ pub(crate) fn generate_key(
     // Step 12. Set the [[type]] internal slot of key to "secret".
     // Step 13. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 14. Set the [[extractable]] internal slot of key to be extractable.
-    // Step 15. Set the [[usages]] internal slot of key to be usages.
+    // Step 15. Set the [[usages]] internal slot of key to be the normalized value of usages.
     let key = CryptoKey::new(
         cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::Hmac(key_data.into()),
     );
 

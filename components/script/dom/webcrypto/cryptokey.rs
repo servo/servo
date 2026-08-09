@@ -16,6 +16,7 @@ use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
 use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHandle};
+use strum::VariantArray;
 use zeroize::Zeroizing;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -652,6 +653,9 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
 pub(crate) trait KeyUsageVecHelper {
     /// <https://w3c.github.io/webcrypto/#concept-usage-intersection>
     fn usage_intersection(&self, other: &[KeyUsage]) -> Vec<KeyUsage>;
+
+    /// <https://w3c.github.io/webcrypto/#concept-normalized-usages>
+    fn normalized_value(&self) -> Vec<KeyUsage>;
 }
 
 impl KeyUsageVecHelper for Vec<KeyUsage> {
@@ -670,5 +674,12 @@ impl KeyUsageVecHelper for Vec<KeyUsage> {
         intersection.dedup();
 
         intersection
+    }
+
+    fn normalized_value(&self) -> Vec<KeyUsage> {
+        // When this specification says to calculate the normalized value of a usages list, usages
+        // the result shall be the usage intersection of usages and a sequence containing all
+        // recognized key usage values.
+        self.usage_intersection(KeyUsage::VARIANTS)
     }
 }
