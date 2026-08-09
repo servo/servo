@@ -42,9 +42,9 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use dom_struct::dom_struct;
 use js::conversions::{ConversionBehavior, ConversionResult, FromJSValConvertible};
 use js::jsapi::{Heap, JSObject};
-use js::jsval::UndefinedValue;
+use js::jsval::{ObjectOrNullValue, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::JS_ParseJSON;
+use js::rust::wrappers2::{JS_NewObject, JS_ParseJSON};
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
@@ -63,9 +63,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AesKeyAlgorithm, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EncapsulatedBits,
-    EncapsulatedKey, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm, KeyFormat, KmacKeyAlgorithm,
-    RsaHashedKeyAlgorithm, RsaKeyAlgorithm, SubtleCryptoMethods,
+    Algorithm, AlgorithmIdentifier, EncapsulatedBits, EncapsulatedKey, JsonWebKey, KeyFormat,
+    SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -79,6 +78,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
+use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -2901,11 +2901,16 @@ pub(crate) struct SubtleKeyAlgorithm {
 }
 
 impl ToJSValConvertible for SubtleKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        let dictionary = KeyAlgorithm {
-            name: self.name.as_str().into(),
-        };
-        dictionary.safe_to_jsval(cx, rval);
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut name_js = UndefinedValue());
+        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
+            .expect("Failed to set name property of KeyAlgorithm");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
@@ -2991,26 +2996,52 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
 }
 
 impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-        let public_exponent =
-            create_buffer_source(cx, &self.public_exponent, js_object.handle_mut())
-                .expect("Fail to convert publicExponent to Uint8Array");
-        let key_algorithm = KeyAlgorithm {
-            name: self.name.as_str().into(),
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut name_js = UndefinedValue());
+        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
+            .expect("Failed to set name property of RsaHashedKeyAlgorithm");
+
+        rooted!(&in(cx) let mut modulus_length_js = UndefinedValue());
+        self.modulus_length
+            .safe_to_jsval(cx, modulus_length_js.handle_mut());
+        set_dictionary_property(
+            cx,
+            object.handle(),
+            c"modulusLength",
+            modulus_length_js.handle(),
+        )
+        .expect("Failed to set modulusLength property of RsaHashedKeyAlgorithm");
+
+        rooted!(&in(cx) let mut public_exponent_js = UndefinedValue());
+        rooted!(&in(cx) let mut public_exponent_js_object = ptr::null_mut::<JSObject>());
+        let public_exponent = create_buffer_source::<ArrayBufferU8>(
+            cx,
+            &self.public_exponent,
+            public_exponent_js_object.handle_mut(),
+        )
+        .expect("Failed to convert publicExponent to Uint8Array");
+        public_exponent.safe_to_jsval(cx, public_exponent_js.handle_mut());
+        set_dictionary_property(
+            cx,
+            object.handle(),
+            c"publicExponent",
+            public_exponent_js.handle(),
+        )
+        .expect("Failed to set publicExponent property of RsaHashedKeyAlgorithm");
+
+        rooted!(&in(cx) let mut hash_js = UndefinedValue());
+        let hash = SubtleKeyAlgorithm {
+            name: self.hash.name(),
         };
-        let rsa_key_algorithm = RootedTraceableBox::new(RsaKeyAlgorithm {
-            parent: key_algorithm,
-            modulusLength: self.modulus_length,
-            publicExponent: public_exponent,
-        });
-        let rsa_hashed_key_algorithm = RootedTraceableBox::new(RsaHashedKeyAlgorithm {
-            parent: rsa_key_algorithm,
-            hash: KeyAlgorithm {
-                name: self.hash.name().as_str().into(),
-            },
-        });
-        rsa_hashed_key_algorithm.safe_to_jsval(cx, rval);
+        hash.safe_to_jsval(cx, hash_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"hash", hash_js.handle())
+            .expect("Failed to set hash property of RsaHashedKeyAlgorithm");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
@@ -3188,15 +3219,22 @@ pub(crate) struct SubtleEcKeyAlgorithm {
 }
 
 impl ToJSValConvertible for SubtleEcKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        let parent = KeyAlgorithm {
-            name: self.name.as_str().into(),
-        };
-        let dictionary = EcKeyAlgorithm {
-            parent,
-            namedCurve: self.named_curve.clone().into(),
-        };
-        dictionary.safe_to_jsval(cx, rval);
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut name_js = UndefinedValue());
+        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
+            .expect("Failed to set name property of EcKeyAlgorithm");
+
+        rooted!(&in(cx) let mut named_curve_js = UndefinedValue());
+        self.named_curve
+            .safe_to_jsval(cx, named_curve_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"namedCurve", named_curve_js.handle())
+            .expect("Failed to set namedCurve property of EcKeyAlgorithm");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
@@ -3322,15 +3360,21 @@ pub(crate) struct SubtleAesKeyAlgorithm {
 }
 
 impl ToJSValConvertible for SubtleAesKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        let parent = KeyAlgorithm {
-            name: self.name.as_str().into(),
-        };
-        let dictionary = AesKeyAlgorithm {
-            parent,
-            length: self.length,
-        };
-        dictionary.safe_to_jsval(cx, rval);
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut name_js = UndefinedValue());
+        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
+            .expect("Failed to set name property of AesKeyAlgorithm");
+
+        rooted!(&in(cx) let mut length_js = UndefinedValue());
+        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
+            .expect("Failed to set length property of AesKeyAlgorithm");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
@@ -3517,19 +3561,29 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
 }
 
 impl ToJSValConvertible for SubtleHmacKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        let parent = KeyAlgorithm {
-            name: self.name.as_str().into(),
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut name_js = UndefinedValue());
+        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
+            .expect("Failed to set name property of HmacKeyAlgorithm");
+
+        rooted!(&in(cx) let mut hash_js = UndefinedValue());
+        let hash = SubtleKeyAlgorithm {
+            name: self.hash.name(),
         };
-        let hash = KeyAlgorithm {
-            name: self.hash.name().as_str().into(),
-        };
-        let dictionary = HmacKeyAlgorithm {
-            parent,
-            hash,
-            length: self.length,
-        };
-        dictionary.safe_to_jsval(cx, rval);
+        hash.safe_to_jsval(cx, hash_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"hash", hash_js.handle())
+            .expect("Failed to set hash property of HmacKeyAlgorithm");
+
+        rooted!(&in(cx) let mut length_js = UndefinedValue());
+        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
+            .expect("Failed to set length property of HmacKeyAlgorithm");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
@@ -3959,15 +4013,21 @@ pub(crate) struct SubtleKmacKeyAlgorithm {
 }
 
 impl ToJSValConvertible for SubtleKmacKeyAlgorithm {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        let parent = KeyAlgorithm {
-            name: self.name.as_str().into(),
-        };
-        let dictionary = KmacKeyAlgorithm {
-            parent,
-            length: self.length,
-        };
-        dictionary.safe_to_jsval(cx, rval);
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut name_js = UndefinedValue());
+        self.name.as_str().safe_to_jsval(cx, name_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"name", name_js.handle())
+            .expect("Failed to set name property of KmacKeyAlgorithm");
+
+        rooted!(&in(cx) let mut length_js = UndefinedValue());
+        self.length.safe_to_jsval(cx, length_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"length", length_js.handle())
+            .expect("Failed to set length property of KmacKeyAlgorithm");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
