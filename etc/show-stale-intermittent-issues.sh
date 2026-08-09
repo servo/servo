@@ -34,7 +34,9 @@ do
     last_update_timestamp=$(date -u --date="${last_update}" "+%s")
     if (( "${last_update_timestamp}" < "${NOW_LAST_MONTH}" )); then
       # To automatically close this issue, grab the issue ID and run
-      # `gh issue close <ISSUE-ID> -c "Closing as stale as this issue has not received any failure references for over a month" --repo servo/servo`
+      #
+      #     gh issue close <ISSUE-ID> -c "Closing as stale as this issue has not received any failure references for over a month" --repo servo/servo
+      #
       echo "https://github.com/servo/servo/issues/${issue_id} has not received updates for over a month"
     fi
   fi
