@@ -12,7 +12,7 @@
     <script>
 
       promise_test(async t => {
-        // Sub‑sample stitching with identical context/buffer rates.
+        // Sub-sample stitching with identical context/buffer rates.
         const sampleRate = 44100;
         const bufferRate = 44100;
         const bufferLength = 30;
@@ -22,7 +22,7 @@
         const errorThreshold = 9.0957e-5;
         const snrThreshold = 85.580;
 
-        assert_equals(sampleRate, 44100, 'Test 1: context.sampleRate');
+        assert_equals(sampleRate, 44100, 'Test 1: context.sampleRate');
 
         const resultBuffer =
             await testBufferStitching(sampleRate, bufferRate, bufferLength);
@@ -34,18 +34,18 @@
             actual,
             expected,
             errorThreshold,
-            `Stitched sine‑wave buffers at sample rate ${bufferRate}`);
+            `Stitched sine-wave buffers at sample rate ${bufferRate}`);
 
         const SNR = 10 * Math.log10(computeSNR(actual, expected));
 
         assert_greater_than_equal(
             SNR,
             snrThreshold,
-            `SNR (${SNR.toFixed(3)} dB) should be ≥ ${snrThreshold} dB`);
+            `SNR (${SNR.toFixed(3)} dB) should be >= ${snrThreshold} dB`);
       }, 'buffer-stitching-1');
 
       promise_test(async t => {
-        // Sub‑sample stitching with differing context/buffer rates.
+        // Sub-sample stitching with differing context/buffer rates.
         const sampleRate = 44100;
         const bufferRate = 43800;
         const bufferLength = 30;
@@ -55,7 +55,7 @@
         const errorThreshold = 3.8986e-3;
         const snrThreshold = 65.737;
 
-        assert_equals(sampleRate, 44100, 'Test 2: context.sampleRate');
+        assert_equals(sampleRate, 44100, 'Test 2: context.sampleRate');
 
         const resultBuffer = await testBufferStitching(
             sampleRate,
@@ -69,14 +69,14 @@
             actual,
             expected,
             errorThreshold,
-            `Stitched sine‑wave buffers at sample rate ${bufferRate}`);
+            `Stitched sine-wave buffers at sample rate ${bufferRate}`);
 
         const SNR = 10 * Math.log10(computeSNR(actual, expected));
 
         assert_greater_than_equal(
             SNR,
             snrThreshold,
-            `SNR (${SNR.toFixed(3)} dB) should be ≥ ${snrThreshold} dB`);
+            `SNR (${SNR.toFixed(3)} dB) should be >= ${snrThreshold} dB`);
       }, 'buffer-stitching-2');
 
       // Create graph to test stitching of consecutive ABSNs.  The context rate
@@ -86,8 +86,8 @@
       // rate.
       function testBufferStitching(sampleRate, bufferRate, bufferLength) {
         // The OfflineAudioContext used for rendering.
-        // Channel 0 captures the stitched output.
-        // Channel 1 records the expected reference signal.
+        // Channel 0 captures the stitched output.
+        // Channel 1 records the expected reference signal.
         const context = new OfflineAudioContext({
           numberOfChannels: 2,
           length: sampleRate,
@@ -98,7 +98,7 @@
             context, {numberOfInputs: context.destination.channelCount});
         merger.connect(context.destination);
 
-        // Reference signal (channel 1): pure 440 Hz sine wave
+        // Reference signal (channel 1): pure 440 Hz sine wave
         const ref = new OscillatorNode(context, {frequency: 440, type: 'sine'});
         ref.connect(merger, 0, 1);
         ref.start();
@@ -118,7 +118,7 @@
           const buffer =
               new AudioBuffer({length: bufferLength, sampleRate: bufferRate});
 
-          // Copy the slice into the AudioBuffer’s first (and only) channel.
+          // Copy the slice into the AudioBuffer's first (and only) channel.
           buffer.copyToChannel(waveSignal.slice(k, k + bufferLength), 0);
 
           const src = new AudioBufferSourceNode(context, {buffer: buffer});

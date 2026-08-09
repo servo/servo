@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+    Digital Credentials: User agent allows the required presentation protocols
+</title>
+<link rel="help" href="https://github.com/w3c-fedid/digital-credentials/pull/454" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script type="module">
+  const REQUIRED_PRESENTATION_PROTOCOLS = [
+    "org-iso-mdoc",
+    "openid4vp-v1-signed",
+    "openid4vp-v1-multisigned",
+    "openid4vp-v1-unsigned",
+  ];
+
+  for (const protocol of REQUIRED_PRESENTATION_PROTOCOLS) {
+    test(() => {
+      assert_true(
+        DigitalCredential.userAgentAllowsProtocol(protocol),
+        `User agent must support the "${protocol}" presentation protocol`,
+      );
+    }, `Presentation protocol support: ${protocol}`);
+  }
+</script>

@@ -1,0 +1,54 @@
+<!doctype html>
+<title>@supports at-rule</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#support-definition-at-rules">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function test_supports_serialization(condition, expected) {
+    test(() => {
+      let sheet = new CSSStyleSheet();
+      sheet.replaceSync(`@supports ${condition} {}`);
+      assert_equals(sheet.cssRules[0].conditionText, expected ?? condition);
+    });
+  }
+
+  // Basic at-rule support.
+  test_supports_serialization("at-rule(@supports)");
+  test_supports_serialization("at-rule( @supports)", "at-rule(@supports)");
+  test_supports_serialization("at-rule(@supports )", "at-rule(@supports)");
+  test_supports_serialization("at-rule(@media)");
+  test_supports_serialization("at-rule(@counter-style)");
+  test_supports_serialization("at-rule(@doesnotexist)");
+
+  // At-rules with special positioning requirements.
+  test_supports_serialization("at-rule(@import)");
+  test_supports_serialization("at-rule(@swash)");
+  test_supports_serialization("at-rule(@starting-style)");
+
+  // Escapes in the <at-keyword-token> are handled correctly.
+  test_supports_serialization("at-rule(@a\\ b)");
+  test_supports_serialization("at-rule(@\\31 23)");
+  test_supports_serialization("at-rule(@--\\31 23)", "at-rule(@--123)");
+
+  // Combining at-rule() with <supports-decl> using 'and'.
+  test_supports_serialization("at-rule(@supports) and (color: red)");
+  test_supports_serialization("at-rule(@media) and (display: flex)");
+  test_supports_serialization("at-rule(@doesnotexist) and (color: red)");
+  test_supports_serialization("at-rule(@supports) and (doesnotexist: red)");
+
+  // Combining at-rule() with <supports-decl> using 'or'.
+  test_supports_serialization("at-rule(@supports) or (color: red)");
+  test_supports_serialization("at-rule(@doesnotexist) or (color: red)");
+  test_supports_serialization("at-rule(@supports) or (doesnotexist: red)");
+  test_supports_serialization("at-rule(@doesnotexist) or (doesnotexist: red)");
+
+  // 'not' with at-rule().
+  test_supports_serialization("not at-rule(@supports)");
+  test_supports_serialization("not at-rule(@doesnotexist)");
+
+  // <supports-decl> first, at-rule() second.
+  test_supports_serialization("(color: red) and at-rule(@supports)");
+  test_supports_serialization("(color: red) and at-rule(@doesnotexist)");
+  test_supports_serialization("(color: red) or at-rule(@doesnotexist)");
+  test_supports_serialization("(doesnotexist: red) or at-rule(@doesnotexist)");
+</script>

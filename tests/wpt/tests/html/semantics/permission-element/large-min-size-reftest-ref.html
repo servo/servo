@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <meta charset=utf-8>
 <body>
   <div>
@@ -24,11 +25,15 @@
   }
 </style>
 
-<div><usermedia id="id1" type="microphone"></usermedia></div>
-<div><usermedia id="id2" type="camera"></usermedia></div>
+<div><usermedia id="id1"></usermedia></div>
+<div><geolocation id="id2"></geolocation></div>
 <script>
-  el = document.getElementById("id1");
-  let w = getComputedStyle(el).width;
-  el.style.width = `calc(3 * ${w})`; // 3 * fit-content
+  requestAnimationFrame(() => {
+    el = document.getElementById("id1");
+    let w = getComputedStyle(el).width;
+    el.style.width = `calc(3 * ${w})`; // 3 * fit-content
+
+    document.documentElement.classList.remove('reftest-wait');
+  });
 </script>
 </body>

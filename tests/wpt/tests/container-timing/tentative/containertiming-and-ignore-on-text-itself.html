@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Container Timing: observe a paragraph with both containertiming and containertiming-ignore</title>
+<title>Container Timing: observe a paragraph with both containertiming and containertimingignore</title>
 <body>
 <style>
 body {
@@ -34,18 +34,18 @@ body {
     observer.observe({entryTypes: ['container']});
 
     // Add a paragraph that is itself a container timing root AND has
-    // containertiming-ignore set. containertiming-ignore only blocks upward
+    // containertimingignore set. containertimingignore only blocks upward
     // propagation to ancestor roots; the element's own text paint still
     // reports under its own root.
     const p = document.createElement('p');
     p.setAttribute('containertiming', 'p_ct');
-    p.setAttribute('containertiming-ignore', '');
+    p.setAttribute('containertimingignore', '');
     p.id = 'my_id';
     p.innerText = "This is a text";
     document.body.appendChild(p);
 
     beforeRender = performance.now();
-  }, 'Text element with both containertiming and containertiming-ignore reports its own paint.');
+  }, 'Text element with both containertiming and containertimingignore reports its own paint.');
 </script>
 
 </body>

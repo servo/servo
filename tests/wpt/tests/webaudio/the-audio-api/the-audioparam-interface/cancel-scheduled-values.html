@@ -37,7 +37,7 @@
         assert_throws_js(TypeError,
           () => source.offset.cancelScheduledValues(Infinity),
           'cancelScheduledValues(Infinity)');
-      }, 'cancel‑time: handle cancelTime values');
+      }, 'cancel-time: handle cancelTime values');
 
       promise_test(async t => {
         const context = new OfflineAudioContext({
@@ -68,7 +68,7 @@
         const time2 = curveStartTime + curveDuration / 2;
         const value2 = 3;
 
-        // Self‑consistency checks for the test.
+        // Self-consistency checks for the test.
         assert_greater_than(cancelTime, curveStartTime,
                             'cancelTime is after curve start');
         assert_less_than(cancelTime, curveStartTime + curveDuration,

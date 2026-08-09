@@ -26,7 +26,7 @@
             offlineContext.state, 'suspended',
             'offlineContext.state should start as "suspended"');
 
-        // Multiple calls to suspend() should not be a problem, but we can’t
+        // Multiple calls to suspend() should not be a problem, but we can't
         // test that on an offline context.  Thus, check that suspend() on an
         // OfflineAudioContext rejects the promise.
         const p1 = offlineContext.suspend();
@@ -41,7 +41,7 @@
 
       // Task: test resume().
       promise_test(async t => {
-        // Multiple calls to resume() should not be a problem, but we can’t
+        // Multiple calls to resume() should not be a problem, but we can't
         // test that on an offline context.  Thus, check that resume() on an
         // OfflineAudioContext rejects the promise.
         const offlineContext = new OfflineAudioContext(
@@ -49,7 +49,7 @@
         const p2 = offlineContext.resume();
         assert_true(p2 instanceof Promise, 'p2 is a Promise');
 
-        // resume() doesn’t actually resume an offline context.
+        // resume() doesn't actually resume an offline context.
         assert_equals(
             offlineContext.state, 'suspended',
             'State after resume() is still "suspended"');
@@ -70,7 +70,7 @@
         osc.connect(offlineContext.destination);
         osc.start();
 
-        // We don’t care about the actual rendering result.
+        // We don't care about the actual rendering result.
         await offlineContext.startRendering();
 
         // After rendering, the context should be closed.
@@ -92,7 +92,7 @@
       // Task: resume a running AudioContext.
       promise_test(async t => {
         // Ideally this test is best with an online AudioContext, but content
-        // shell doesn’t really have a working online AudioContext.
+        // shell doesn't really have a working online AudioContext.
         // Nonetheless, create one and check resume().
         const context = new AudioContext();
         assert_equals(context.state, 'suspended', 'Initial state is suspended');

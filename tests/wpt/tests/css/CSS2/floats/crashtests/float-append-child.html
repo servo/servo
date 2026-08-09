@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>No crash when appending inline with float child to ancestor inline</title>
+<link rel="help" href="https://crbug.com/40077397">
+<!--
+  The stray </h3> intentionally has no matching <h3>, so the parser ignores it
+  and leaves the preceding <div> open. That keeps inlineToMove, and the
+  trailing <div><video>, nested inside it, which is required for appendChild()
+  below to reproduce the crash.
+
+  Also do not add a unit to `border: 4058` below. It's deliberately invalid so
+  the shorthand is dropped, leaving only `border-top: dashed` applied.
+-->
+<span id="enclosingInline"><span><div style="font: 110px/7em sans-serif; zoom: 36717;"> }     Z bP  v    ed
+</h3><span id="inlineToMove"><div></div>
+x<div style="border-top: dashed; float: left; border: 4058 solid;"></div><div>x</div>
+<div><video>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    enclosingInline.appendChild(inlineToMove);
+    document.body.offsetTop;
+  });
+</script>

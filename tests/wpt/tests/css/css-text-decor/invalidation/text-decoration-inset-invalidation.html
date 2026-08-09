@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Text Decoration Test: text-decoration-inset invalidation on style change</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<meta name="assert" content="Adding and removing text-decoration-inset, including negative insets that extend beyond the text, is correctly invalidated and repainted.">
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="match" href="reference/text-decoration-inset-invalidation-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+    div {
+        margin: 30px;
+    }
+    .decorated {
+        text-decoration-line: underline;
+        text-decoration-color: green;
+        text-decoration-thickness: 5px;
+    }
+    .inset {
+        text-decoration-inset: 30px;
+    }
+    .negative-inset {
+        text-decoration-inset: -20px;
+    }
+</style>
+<div><span id="remove-inset" class="decorated inset">
+The underline should span the full text when the test completes.
+</span></div>
+<div><span id="add-inset" class="decorated">
+The underline should be trimmed by 30px on each side when the test completes.
+</span></div>
+<div><span id="remove-decoration" class="decorated negative-inset">
+There should be no sign of an underline when the test completes.
+</span></div>
+<div><span id="add-negative-inset" class="decorated">
+The underline should extend 20px beyond each side when the test completes.
+</span></div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  document.getElementById('remove-inset').classList.remove("inset");
+  document.getElementById('add-inset').classList.add("inset");
+  document.getElementById('remove-decoration').classList.remove("decorated", "negative-inset");
+  document.getElementById('add-negative-inset').classList.add("negative-inset");
+  takeScreenshot();
+});
+</script>
+</html>

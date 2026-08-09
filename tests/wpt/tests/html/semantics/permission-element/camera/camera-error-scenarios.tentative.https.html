@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Camera Element: Error Scenarios</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../usermedia/resources/pepc-helper.js"></script>
+<body>
+<script>
+// Scenario 1: User denying camera permission prompt triggers oncancel with NotAllowedError
+promise_test(async (t) => {
+  const camera = document.createElement('camera');
+  camera.setConstraints({});
+  document.body.appendChild(camera);
+  t.add_cleanup(() => {
+    if (camera.parentNode) {
+      document.body.removeChild(camera);
+    }
+  });
+
+  let track_fired = false;
+  camera.ontrack = () => { track_fired = true; };
+
+  const cancel_promise = new Promise((resolve) => {
+    camera.oncancel = resolve;
+  });
+
+  await test_driver.set_permission({name: 'camera'}, 'denied');
+
+  await new Promise(resolve => t.step_timeout(resolve, PEPC_CLICK_DELAY));
+  await test_driver.click(camera);
+
+  await cancel_promise;
+  assert_false(track_fired, "ontrack should not fire when permission is denied");
+  assert_equals(camera.track, null, "track should be null when permission is denied");
+  assert_not_equals(camera.error, null, "error should not be null on prompt cancel");
+  assert_equals(camera.error.name, "NotAllowedError", "error name should be NotAllowedError");
+}, "Denying camera permission prompt triggers oncancel event and sets NotAllowedError");
+
+// Scenario 2: Untrusted programmatic click on camera element
+promise_test(async (t) => {
+  const camera = document.createElement('camera');
+  camera.setConstraints({});
+  document.body.appendChild(camera);
+  t.add_cleanup(() => {
+    if (camera.parentNode) {
+      document.body.removeChild(camera);
+    }
+  });
+
+  const error_promise = new Promise((resolve) => {
+    camera.onerror = resolve;
+  });
+
+  camera.click();
+
+  await error_promise;
+  assert_not_equals(camera.error, null, "error attribute should not be null on untrusted click");
+  assert_equals(camera.error.name, "InvalidStateError", "error name should be InvalidStateError");
+}, "Untrusted click on camera element fails with InvalidStateError");
+</script>
+</body>
+

@@ -305,28 +305,16 @@ def start(logger, dest=None, reinstall=False, prompt=True, device_serial=None):
 
 
 def run_install(venv, **kwargs):
-    try:
-        import logging
-        logging.basicConfig()
-        logger = logging.getLogger()
+    import logging
+    logging.basicConfig()
+    logger = logging.getLogger()
 
-        install(logger, **kwargs)
-    except Exception:
-        import traceback
-        traceback.print_exc()
-        import pdb
-        pdb.post_mortem()
+    install(logger, **kwargs)
 
 
 def run_start(venv, **kwargs):
-    try:
-        import logging
-        logging.basicConfig()
-        logger = logging.getLogger()
+    import logging
+    logging.basicConfig()
+    logger = logging.getLogger()
 
-        start(logger, **kwargs)
-    except Exception:
-        import traceback
-        traceback.print_exc()
-        import pdb
-        pdb.post_mortem()
+    start(logger, **kwargs)

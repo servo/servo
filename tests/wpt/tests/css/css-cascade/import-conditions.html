@@ -113,6 +113,21 @@
       importCondition: "supports(font-format(invalid))",
       matches: false
     },
+
+    // at-rule()
+    {
+      importCondition: "supports(at-rule(@import))",
+      matches: true
+    },
+    {
+      importCondition: "supports(at-rule(@media) or at-rule(@doesnotexist))",
+      matches: true
+    },
+    {
+      importCondition: "supports(at-rule(@doesnotexist))",
+      matches: false
+    },
+
     {
       importCondition: "layer(A.B) supports(font-format(opentype))",
       matches: true

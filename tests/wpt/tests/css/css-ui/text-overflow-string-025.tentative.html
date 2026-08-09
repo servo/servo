@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow - string</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4">
+<link rel="match" href="reference/text-overflow-string-025-ref.tentative.html">
+<meta name="assert" content="Test checks that a line feed in text-overflow string
+is stripped when between Chinese characters.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  div {
+    font-family: monospace;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: "你好\0A你好";
+    /* 120px for four Ahem glyphs + 4ic for the ellipsis string "你好你好". */
+    width: calc(120px + 4.1ic);
+  }
+  span {
+    font-family: Ahem;
+    font-size: 30px;
+  }
+</style>
+<body>
+  <p>Test passes if there is an <strong>你好你好</strong> after a black rectangle below.</p>
+  <div>
+    <span>TestChecksThatTheBrokenContentRepalcedByTextOverflow</span>
+  </div>
+</body>

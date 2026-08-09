@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Container Timing: two nested containertiming nodes, with a child img inside of the inner, and a containertiming-ignore between the roots</title>
+<title>Container Timing: two nested containertiming nodes, with a child img inside of the inner, and a containertimingignore between the roots</title>
 <body>
 <style>
 body {
@@ -30,10 +30,10 @@ body {
     div1.setAttribute('containertiming', 'div1_ct');
     document.body.appendChild(div1);
 
-    // Intermediate div with containertiming-ignore blocking propagation to
+    // Intermediate div with containertimingignore blocking propagation to
     // the parent containertiming root
     const div2 = document.createElement('div');
-    div2.setAttribute('containertiming-ignore', '');
+    div2.setAttribute('containertimingignore', '');
     div1.appendChild(div2);
 
     // Add another div, child of the first, that is also a container root

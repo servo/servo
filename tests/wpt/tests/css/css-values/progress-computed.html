@@ -42,6 +42,7 @@ test_math_used('scale(progress(sign(1em - 1rem) * 1ex, 0rem, 0em))', 'scale(0)',
 test_math_used('calc(progress(1, 0, 1) * 10px)', '10px');
 test_math_used('calc(progress(1, 0, 1) * 1s)', '1s', {type:'time'});
 test_math_used('calc(progress(1, 0, 1) * 1deg)', '1deg', {type:'angle', approx:0.001});
+test_math_used('calc(progress(50%, 0px, 100px) * 10px)', '5px', {type:'length'});
 
 // Test different number accepting properties
 test_math_used('calc(progress(sign(1001em - 10lh * progress(100px, 2rex, 10ex)) * 10em, 2rem, 12em) / 2)', '0.4', {prop:'opacity', type:'number'});

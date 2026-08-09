@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: Declarative tools in documents without browsing context are not registered</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const doc = document.implementation.createHTMLDocument();
+  const form = doc.createElement('form');
+  form.setAttribute('toolname', 'mytool');
+  form.setAttribute('tooldescription', 'description');
+  doc.body.append(form);
+
+  const tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 0, "No tools should be registered from a frame-less document");
+}, "Declarative tool in document without active frame is not registered");
+
+promise_test(async t => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`
+    <form toolname="mytool" tooldescription="description"></form>
+  `, 'text/html');
+
+  const tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 0, "No tools should be registered from DOMParser document");
+}, "Declarative tool in DOMParser document is not registered");
+
+promise_test(async t => {
+  const doc = document.implementation.createHTMLDocument();
+  const form = doc.createElement('form');
+  form.setAttribute('toolname', 'mytool');
+  doc.body.append(form);
+
+  const tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 0, "No tools should be registered from a frame-less document with name only");
+}, "Declarative tool with name only in document without active frame is not registered");
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  document.body.append(iframe);
+  iframe.contentDocument.body.innerHTML =
+    `<form toolname="mytool" tooldescription="description"></form>`;
+  const tool = await waitForTool('mytool');
+  assert_equals(tool.name, 'mytool');
+  assert_equals(tool.description, 'description');
+
+  const form = iframe.contentDocument.querySelector('form');
+  iframe.remove();
+  form.setAttribute('toolname', 'differenttool');
+}, "Declarative tool in iframe removed after registration does not crash on attribute modification");
+</script>
+</body>

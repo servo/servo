@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Showing a dialog nested in a hint popover dismisses unrelated auto popovers</title>
+<link rel="author" href="mailto:bfulgham@webkit.org">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html#popover-hint">
+<link rel=help href="https://github.com/whatwg/html/issues/12304">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div popover=hint id=hint>Hint
+  <dialog id=dialogInHint>Dialog</dialog>
+</div>
+<div popover id=unrelatedAuto>Unrelated auto</div>
+
+<script>
+  function hintSupported() {
+    const element = document.createElement('div');
+    element.setAttribute('popover', 'hint');
+    return element.popover === 'hint';
+  }
+
+  function closeAll() {
+    if (dialogInHint.open)
+      dialogInHint.close();
+    hint.hidePopover();
+    unrelatedAuto.hidePopover();
+  }
+
+  // A dialog / fullscreen element joining the top layer light-dismisses every popover that is not
+  // one of its ancestors. When the dialog is nested inside a popover=hint, the ancestor hint must
+  // be kept, but an unrelated open popover=auto elsewhere must still be dismissed. These use the
+  // same Document::hidePopoversForTopLayerElement() path, so dialog show() / showModal() cover the
+  // fullscreen case as well.
+  function testDialog(showDialog, description) {
+    promise_test(async t => {
+      assert_implements_optional(hintSupported(), 'popover=hint is not supported');
+      t.add_cleanup(closeAll);
+
+      // Show the auto first: showing an auto closes all hints, so the hint must be shown last.
+      unrelatedAuto.showPopover();
+      hint.showPopover();
+      assert_true(unrelatedAuto.matches(':popover-open'), 'unrelated auto is open');
+      assert_true(hint.matches(':popover-open'), 'ancestor hint is open');
+
+      showDialog();
+      assert_true(dialogInHint.open, 'dialog is open');
+      assert_true(hint.matches(':popover-open'), 'the dialog\'s ancestor hint must stay open');
+      assert_false(unrelatedAuto.matches(':popover-open'), 'the unrelated auto must be dismissed');
+    }, description);
+  }
+
+  testDialog(() => dialogInHint.show(),
+    'dialog.show() nested in a hint dismisses unrelated auto popovers but keeps the ancestor hint');
+  testDialog(() => dialogInHint.showModal(),
+    'dialog.showModal() nested in a hint dismisses unrelated auto popovers but keeps the ancestor hint');
+</script>

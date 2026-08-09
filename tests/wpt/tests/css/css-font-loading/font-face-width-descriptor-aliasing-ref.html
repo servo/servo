@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tests that the width attribute of FontFace works</title>
+
+<script>
+/* Load the font similarly to the testcase so that Gecko gives it
+   the same antialiasing treatment. */
+const font = new FontFace(
+    'Testing',
+    'url("./resources/variabletest_matching.ttf")'
+);
+document.fonts.add(font);
+</script>
+<style>
+.target {
+  font-family: "Testing";
+  font-size: 80px;
+}
+</style>
+
+<div class="target">
+  4
+</div>
+<div class="target">
+  8
+</div>
+<div class="target">
+  8
+</div>
+<div class="target">
+  8
+</div>

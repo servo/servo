@@ -136,5 +136,24 @@
 }`);
       }, 'serialization of @mixin defined without a parameter list');
     </script>
+
+
+    <style id=style8>
+      @mixin --m5() {
+        @result { color: green; }
+      }
+      #foo {
+        @apply --m5 { }
+      }
+    </style>
+    <script>
+      test(() => {
+        let ss = style8.sheet;
+        assert_equals(ss.cssRules[1].cssText,
+`#foo {
+  @apply --m5 { }
+}`);
+      }, 'serialization of @apply with an empty contents block');
+    </script>
   </body>
 </html>

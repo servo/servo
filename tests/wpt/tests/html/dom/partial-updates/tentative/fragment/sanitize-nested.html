@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: nested sanitization combinations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+class CustomElement1 extends HTMLElement {
+  constructor() {
+    super();
+    window.customElement1Run = true;
+  }
+}
+customElements.define('custom-element-1', CustomElement1);
+
+class CustomDiv extends HTMLDivElement {
+  constructor() {
+    super();
+    window.customDivRun = true;
+  }
+}
+customElements.define('custom-div', CustomDiv, { extends: 'div' });
+</script>
+<div id="container1">
+  <div id="target1" marker="outer-marker-1">
+    <?start name="outer-marker-1">Original 1<?end>
+  </div>
+  <template for="outer-marker-1" sanitize>
+    <div id="inner-target-1" marker="inner-marker-1">
+      <?start name="inner-marker-1">Inner Original 1<?end>
+    </div>
+    <template for="inner-marker-1" sanitize="unsafe">
+      <script>window.nestedScript1 = true;</script>
+      <span id="ok1">Allowed 1</span>
+    </template>
+  </template>
+</div>
+
+<div id="container2">
+  <div id="target2" marker="outer-marker-2">
+    <?start name="outer-marker-2">Original 2<?end>
+  </div>
+  <template for="outer-marker-2">
+    <div id="inner-target-2" marker="inner-marker-2">
+      <?start name="inner-marker-2">Inner Original 2<?end>
+    </div>
+    <template for="inner-marker-2" sanitize>
+      <script>window.nestedScript2 = true;</script>
+      <span id="ok2">Allowed 2</span>
+    </template>
+  </template>
+</div>
+
+<div id="container3">
+  <div id="target3" marker="outer-marker-3">
+    <?start name="outer-marker-3">Original 3<?end>
+  </div>
+  <template for="outer-marker-3">
+    <div id="inner-target-3" marker="inner-marker-3">
+      <?start name="inner-marker-3">Inner Original 3<?end>
+    </div>
+    <template for="inner-marker-3">
+      <script>window.nestedScript3 = true;</script>
+      <span id="ok3">Allowed 3</span>
+    </template>
+  </template>
+</div>
+
+<div id="container4">
+  <div id="target4" marker="outer-marker-4">
+    <?start name="outer-marker-4">Original 4<?end>
+  </div>
+  <template for="outer-marker-4" sanitize>
+    <custom-element-1 id="ce1"></custom-element-1>
+  </template>
+</div>
+
+<div id="container5">
+  <div id="target5" marker="outer-marker-5">
+    <?start name="outer-marker-5">Original 5<?end>
+  </div>
+  <template for="outer-marker-5" sanitize>
+    <div is="custom-div" id="ce2"></div>
+  </template>
+</div>
+
+<script>
+test(() => {
+  assert_false(!!window.nestedScript1, "Script in nested unsafe template should be stripped by outer safe template");
+  assert_false(!!window.nestedScript2, "Script in nested safe template should be stripped by inner safe template even if outer is unsafe");
+  assert_true(!!window.nestedScript3, "Script in nested unsafe template inside unsafe outer template should run");
+
+  const innerTarget1 = document.getElementById('target1').firstElementChild;
+  assert_not_equals(innerTarget1, null);
+  assert_equals(innerTarget1.querySelector('span'), null, "Inner template is stripped, so no span");
+  assert_true(innerTarget1.textContent.includes('Inner Original 1'));
+
+  const innerTarget2 = document.getElementById('target2').firstElementChild;
+  assert_not_equals(innerTarget2, null);
+  assert_equals(innerTarget2.querySelector('span').textContent, 'Allowed 2');
+
+  const innerTarget3 = document.getElementById('target3').firstElementChild;
+  assert_not_equals(innerTarget3, null);
+  assert_equals(innerTarget3.querySelector('span').textContent, 'Allowed 3');
+
+  // Custom Element / is attribute sanitization under template-level sanitizer
+});
+
+test(() => {
+  assert_false(!!window.customElement1Run, "Custom element constructor should not run under safe sanitizer");
+}, "Custom element constructor");
+
+test(() => {
+  assert_false(!!window.customDivRun, "Custom div constructor should not run under safe sanitizer");
+}, "Custom div constructor");
+
+test(() => {
+  const container6 = document.createElement('div');
+  document.body.appendChild(container6);
+  container6.setHTML(`
+    <div id="target6" marker="outer-marker-6">
+      <?start name="outer-marker-6">Original 6<?end>
+    </div>
+    <template for="outer-marker-6" sanitize>
+      <span id="ok6">Allowed 6</span>
+    </template>
+  `);
+  const target6 = container6.firstElementChild;
+  assert_not_equals(target6, null, "target6 should exist");
+  // If setHTML allows partial updates, it should have streamed the span
+  const span = target6.querySelector('span');
+  if (span) {
+    assert_equals(span.textContent, 'Allowed 6');
+  } else {
+    // If it didn't stream, the original content should still be there
+    assert_true(target6.textContent.includes('Original 6'));
+  }
+}, "Safe template inside setHTML");
+
+test(() => {
+  const container7 = document.createElement('div');
+  document.body.appendChild(container7);
+  container7.setHTML(`
+    <div id="target7" marker="outer-marker-7">
+      <?start name="outer-marker-7">Original 7<?end>
+    </div>
+    <template for="outer-marker-7" sanitize="unsafe">
+      <script>window.nestedScript7 = true;<\/script>
+      <span id="ok7">Allowed 7</span>
+    </template>
+  `);
+  assert_false(!!window.nestedScript7, "Script in nested unsafe template inside setHTML should not run");
+}, "Unsafe template inside setHTML");
+
+test(() => {
+  const container8 = document.createElement('div');
+  document.body.appendChild(container8);
+
+  // Bespoke sanitizer that allows span and template, but disallows div.
+  // We must explicitly allow 'for' and 'marker' attributes to allow streaming.
+  const bespoke = new Sanitizer({
+    elements: ['span', 'template'],
+    attributes: ['for', 'marker']
+  });
+
+  container8.setHTML(`
+    <span marker="outer-marker-8">
+      <?start name="outer-marker-8">Original Outer<?end>
+    </span>
+    <template for="outer-marker-8" sanitize="unsafe">
+      <span marker="inner-marker-8">
+        <?start name="inner-marker-8">Original Inner<?end>
+      </span>
+      <template for="inner-marker-8" sanitize>
+        <div>Nested Div (Disallowed)</div>
+        <span>Nested Span (Allowed)</span>
+      </template>
+    </template>
+  `, { sanitizer: bespoke });
+
+  // Wait, target8 is span, it might have id stripped?
+  // Let's get it by container8.firstElementChild
+  const target8 = container8.firstElementChild;
+  assert_not_equals(target8, null, "target8 should exist");
+
+  // target8 should contain inner-target-8
+  const innerTarget8 = target8.firstElementChild;
+  assert_not_equals(innerTarget8, null, "innerTarget8 should exist. container8.innerHTML: " + container8.innerHTML);
+
+  // innerTarget8 should contain Nested Span but NOT Nested Div
+  const divs = innerTarget8.querySelectorAll('div');
+  assert_equals(divs.length, 0, "Nested div should be disallowed and stripped");
+
+  const spans = innerTarget8.querySelectorAll('span');
+  assert_not_equals(spans.length, 0, "Nested span should be allowed");
+}, "Safe template nested inside unsafe template under bespoke main sanitizer");
+</script>
+</body>

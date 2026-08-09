@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Reference: text-decoration-inset invalidation on style change</title>
+<style>
+    div {
+        margin: 30px;
+    }
+    .decorated {
+        text-decoration-line: underline;
+        text-decoration-color: green;
+        text-decoration-thickness: 5px;
+    }
+    .inset {
+        text-decoration-inset: 30px;
+    }
+    .negative-inset {
+        text-decoration-inset: -20px;
+    }
+</style>
+<div><span class="decorated">
+The underline should span the full text when the test completes.
+</span></div>
+<div><span class="decorated inset">
+The underline should be trimmed by 30px on each side when the test completes.
+</span></div>
+<div><span>
+There should be no sign of an underline when the test completes.
+</span></div>
+<div><span class="decorated negative-inset">
+The underline should extend 20px beyond each side when the test completes.
+</span></div>

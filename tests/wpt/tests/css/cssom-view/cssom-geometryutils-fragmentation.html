@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<title>CSSOM View - getBoxQuads() on fragmented boxes</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body { margin: 0; }
+  #container {
+    position: absolute;
+    left: 40px;
+    top: 30px;
+    width: 350px;
+    height: 200px;
+  }
+  #columns {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    width: 260px;
+    height: 100px;
+    columns: 2;
+    column-gap: 20px;
+    column-fill: auto;
+  }
+  #fragmented {
+    height: 170px;
+    border: 3px solid black;
+    padding: 4px;
+    background: lightblue;
+  }
+  #target {
+    position: absolute;
+    left: 15px;
+    top: 20px;
+    width: 50px;
+    height: 40px;
+    background: gold;
+  }
+</style>
+<div id="container">
+  <div id="columns"><div id="fragmented"></div></div>
+  <div id="target"></div>
+</div>
+<script>
+test(() => {
+  const fragmented = document.getElementById("fragmented");
+  const rects = fragmented.getClientRects();
+  const quads = fragmented.getBoxQuads();
+  assert_greater_than(rects.length, 1, "element is fragmented");
+  assert_equals(quads.length, rects.length, "one quad per fragment");
+  for (let i = 0; i < quads.length; ++i) {
+    assert_rect_approx_equals(quads[i].getBounds(), rects[i], `fragment ${i}`);
+  }
+}, "getBoxQuads() returns every multicol fragment");
+
+test(() => {
+  const columns = document.getElementById("columns");
+  const fragmented = document.getElementById("fragmented");
+  const rects = fragmented.getClientRects();
+  const columnsRect = columns.getBoundingClientRect();
+  const quadsRelativeToColumns =
+    fragmented.getBoxQuads({ relativeTo: columns });
+
+  assert_equals(quadsRelativeToColumns.length, rects.length, "fragment count");
+  for (let i = 0; i < quadsRelativeToColumns.length; ++i) {
+    const expectedRect = new DOMRect(
+      rects[i].left - columnsRect.left,
+      rects[i].top - columnsRect.top,
+      rects[i].width,
+      rects[i].height
+    );
+    assert_rect_approx_equals(
+      quadsRelativeToColumns[i].getBounds(),
+      expectedRect,
+      `relativeTo columns fragment ${i}`
+    );
+  }
+}, "getBoxQuads({relativeTo}) maps every fragment relative to a container");
+
+test(() => {
+  const container = document.getElementById("container");
+  const fragmented = document.getElementById("fragmented");
+  const rects = fragmented.getClientRects();
+  const containerRect = container.getBoundingClientRect();
+  const quadsRelativeToAncestor =
+    fragmented.getBoxQuads({ relativeTo: container });
+
+  assert_equals(quadsRelativeToAncestor.length, rects.length, "fragment count");
+  for (let i = 0; i < quadsRelativeToAncestor.length; ++i) {
+    const expectedRect = new DOMRect(
+      rects[i].left - containerRect.left,
+      rects[i].top - containerRect.top,
+      rects[i].width,
+      rects[i].height
+    );
+    assert_rect_approx_equals(
+      quadsRelativeToAncestor[i].getBounds(),
+      expectedRect,
+      `relativeTo container fragment ${i}`
+    );
+  }
+}, "getBoxQuads({relativeTo}) maps every fragment relative to an ancestor");
+
+test(() => {
+  const target = document.getElementById("target");
+  const fragmented = document.getElementById("fragmented");
+  const targetQuadsRelativeToFragmented =
+    target.getBoxQuads({ relativeTo: fragmented });
+  const targetRect = target.getBoundingClientRect();
+  const firstFragmentRect = fragmented.getClientRects()[0];
+
+  assert_equals(targetQuadsRelativeToFragmented.length, 1);
+  assert_point_approx_equals(
+    targetQuadsRelativeToFragmented[0].p1,
+    new DOMPoint(
+      targetRect.left - firstFragmentRect.left,
+      targetRect.top - firstFragmentRect.top
+    ),
+    "target p1 relative to fragmented border box"
+  );
+}, "getBoxQuads({relativeTo}) works when relativeTo is a fragmented element");
+</script>

@@ -58,9 +58,8 @@ test_math_used("calc(10% * 10% / 1px * 1deg / 1deg)", "1px", {"prop": "line-heig
 test_math_used("calc(1px * 2deg / 1deg)", "2px", {"prop": "line-height"});
 // 1px * 3deg / 1deg / 1px -> 3.
 test_math_used("calc(1px * 3deg / 1deg / 1px)", "3", {"prop": "line-height"});
-
+// 50% -> 50px; 1px * (50px / 1px)^1 -> 50px
 test_math_used("calc(1px * pow(50% / 1px, 1))", "50px", {"prop": "width"});
-test_invalid_value("width", "calc(1px * pow(tan(atan2(50%, 1px)), 1))");
 
 test_invalid_value("width", "calc((1% * 1deg) / 1px)");
 test_invalid_value("width", "calc((1% * 1% * 1%) / 1px)");

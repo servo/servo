@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Relative URLs in a CSS module fetched through a redirect resolve
+      against the response URL</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+
+  <!-- "Fetch a single module script" sets the module script's base URL to the
+       response URL, so a redirect has to carry the base URL along with it.
+       resources/redirect-target.css contains url('./image.png'), which
+       therefore has to resolve inside resources/ rather than inside common/,
+       where the redirector lives. image.png does not need to exist: a
+       relative url() is resolved against the base URL at parse time, and the
+       computed value is that resolved absolute URL, independent of whether
+       the resource can be fetched.
+
+       The static and dynamic cases are deliberately in separate module
+       scripts. A failing static import aborts its whole script, so sharing
+       one script would let a static-import failure silently erase the
+       dynamic subtest instead of reporting it. -->
+
+  <script type="module">
+    import redirected from
+        "/common/redirect.py?location=/html/semantics/scripting-1/the-script-element/css-module/resources/redirect-target.css"
+        with { type: "css" };
+
+    test(() => {
+      const target = document.querySelector("#target");
+      document.adoptedStyleSheets = [redirected];
+      assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)",
+                    "the redirected sheet should apply");
+      // Anchored at this document, which lives beside resources/, so this is
+      // independent of however the import specifier above was spelled.
+      const expected = new URL("./resources/image.png", document.baseURI).href;
+      assert_equals(getComputedStyle(target).backgroundImage,
+                    'url("' + expected + '")',
+                    "the relative url() should resolve against the response " +
+                    "URL, not the pre-redirect request URL");
+    }, "A relative URL in a statically imported CSS module resolves against " +
+       "the URL the request was redirected to");
+  </script>
+
+  <script type="module">
+    promise_test(async () => {
+      // A distinct specifier, so that this is a separate module map entry
+      // from the static import above.
+      const module = await import(
+          "/common/redirect.py?location=/html/semantics/scripting-1/" +
+          "the-script-element/css-module/resources/redirect-target.css" +
+          "&dynamic=1", { with: { type: "css" } });
+      const target = document.querySelector("#target");
+      document.adoptedStyleSheets = [module.default];
+      assert_equals(getComputedStyle(target).color, "rgb(0, 128, 0)",
+                    "the redirected sheet should apply");
+      const expected = new URL("./resources/image.png", document.baseURI).href;
+      assert_equals(getComputedStyle(target).backgroundImage,
+                    'url("' + expected + '")',
+                    "the relative url() should resolve against the response " +
+                    "URL, not the pre-redirect request URL");
+    }, "A relative URL in a dynamically imported CSS module resolves against " +
+       "the URL the request was redirected to");
+  </script>
+</body>
+</html>

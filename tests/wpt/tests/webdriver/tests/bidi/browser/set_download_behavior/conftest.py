@@ -1,5 +1,6 @@
 import os
 import tempfile
+import uuid
 
 import pytest
 import pytest_asyncio
@@ -65,8 +66,11 @@ def trigger_download(bidi_session, subscribe_events, wait_for_event,
     downloaded_files = []
 
     async def trigger_download(context):
+        # Generate a unique `.txt` file name, so that downloads triggered by different
+        # tests don't conflict with each other.
+        filename = f"{uuid.uuid4().hex}.txt"
         page_with_download_link = inline(
-            f"""<a id="download_link" href="{inline("")}" download="some_file.txt">download</a>""")
+            f"""<a id="download_link" href="{inline("")}" download="{filename}">download</a>""")
         await bidi_session.browsing_context.navigate(context=context["context"],
                                                      url=page_with_download_link,
                                                      wait="complete")

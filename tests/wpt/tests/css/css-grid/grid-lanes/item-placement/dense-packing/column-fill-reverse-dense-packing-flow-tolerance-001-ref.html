@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(6, 50px);
+    height: 80px;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing honors flow-tolerance for multi-span items with fill-reverse. The yellow item should be placed in the flow-tolerance-preferred opening spanning tracks 1-2 (55px from the top after reversal), not the strictly-highest opening spanning tracks 4-5.</p>
+  <div class="grid">
+    <div style="background: lightskyblue; height: 5px; grid-column: 1 / span 2; grid-row: 1; transform: translateY(75px);">1</div>
+    <div style="background: lightblue; height: 60px; grid-column: 3; grid-row: 1; transform: translateY(20px);">2</div>
+    <div style="background: darkblue; height: 60px; grid-column: 6; grid-row: 1; transform: translateY(20px);">3</div>
+    <div style="background: lightsteelblue; height: 20px; grid-column: 1 / span 6; grid-row: 1;">4</div>
+    <div style="background: yellow; height: 20px; grid-column: 1 / span 2; grid-row: 1; transform: translateY(55px);">5</div>
+  </div>
+</body>
+</html>

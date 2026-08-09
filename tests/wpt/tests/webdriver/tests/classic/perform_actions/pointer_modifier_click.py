@@ -89,3 +89,61 @@ def test_many_modifiers_click(session, test_actions_page, key_chain, mouse_chain
         e["altKey"] = True
     events = [filter_dict(e, expected[0]) for e in get_events(session)]
     assert events == expected
+
+
+@pytest.mark.parametrize("modifier, prop", [
+    (Keys.CONTROL, "ctrlKey"),
+    (Keys.R_CONTROL, "ctrlKey"),
+])
+def test_control_dblclick(session, test_actions_page, key_chain, mouse_chain, modifier, prop):
+    os = session.capabilities["platformName"]
+    key_chain \
+        .pause(0) \
+        .key_down(modifier) \
+        .pause(200) \
+        .pause(0) \
+        .pause(200) \
+        .pause(0) \
+        .key_up(modifier)
+    outer = session.find.css("#outer", all=False)
+    mouse_chain \
+        .pointer_move(0, 0, origin=outer) \
+        .pointer_down(0) \
+        .pointer_up(0) \
+        .pause(0) \
+        .pointer_down(0) \
+        .pointer_up(0)
+    session.actions.perform([key_chain.dict, mouse_chain.dict])
+    if os != "mac":
+        expected = [
+            {"type": "mousemove"},
+            {"type": "mousedown"},
+            {"type": "mouseup"},
+            {"type": "click"},
+            {"type": "mousedown"},
+            {"type": "mouseup"},
+            {"type": "click"},
+            {"type": "dblclick"},
+        ]
+    else:
+        expected = [
+            {"type": "mousemove"},
+            {"type": "mousedown"},
+            {"type": "contextmenu"},
+            {"type": "mouseup"},
+            {"type": "mousedown"},
+            {"type": "contextmenu"},
+            {"type": "mouseup"},
+        ]
+    defaults = {
+        "altKey": False,
+        "metaKey": False,
+        "shiftKey": False,
+        "ctrlKey": False
+    }
+    for e in expected:
+        e.update(defaults)
+        if e["type"] != "mousemove":
+            e[prop] = True
+    filtered_events = [filter_dict(e, expected[0]) for e in get_events(session)]
+    assert expected == filtered_events

@@ -36,6 +36,8 @@ def test_add_resident_credential(session, authenticator):
 def test_add_credential_with_large_blob(session, authenticator):
     credential = create_credential(
         credential_id="bGFyZ2VibG9i",
+        is_resident_credential=True,
+        user_handle="dXNlcjE",
         large_blob="c29tZSBibG9i",
     )
 

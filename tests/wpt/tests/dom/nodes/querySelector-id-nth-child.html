@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>querySelector(All) matching id + nth-child() compound selector</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselector">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div>
+  <div id="target"></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(document.querySelector("#target:nth-child(1)"), target);
+    assert_equals(document.querySelector("#target:nth-child(4)"), null);
+  }, "querySelector matching #id + constant nth-child()");
+
+  test(() => {
+    assert_equals(document.querySelectorAll("#target:nth-child(1)").length, 1);
+    assert_equals(document.querySelectorAll("#target:nth-child(4)").length, 0);
+  }, "querySelectorAll matching #id + constant nth-child()");
+
+</script>

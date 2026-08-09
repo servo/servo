@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Anchor Positioning Module Level 1: anchor-name from lower shadow tree is not visible outside</title>
+  <link rel="author" title="Jack Holden" href="mailto:jack@holdhelm.com">
+  <link rel="help" href="https://www.w3.org/TR/css-anchor-position-1/#name">
+  <meta name="assert" content="A positioned element outside a shadow tree cannot reference an anchor-name defined in a lower shadow tree.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+    #host {
+      inline-size: 200px;
+      block-size: 100px;
+      background: lightgray;
+      margin: 50px;
+    }
+
+    #anchored {
+      position: absolute;
+      left: anchor(--lower-anchor end, 37px);
+      top: anchor(--lower-anchor start, 37px);
+      inline-size: 50px;
+      block-size: 50px;
+      background: green;
+    }
+  </style>
+</head>
+<body>
+  <div id="host">
+    <template shadowrootmode="open">
+      <style>
+        #inner-anchor {
+          anchor-name: --lower-anchor;
+          inline-size: 100px;
+          block-size: 50px;
+          background: red;
+        }
+      </style>
+      <div id="inner-anchor"></div>
+    </template>
+  </div>
+
+  <div id="anchored"></div>
+
+  <script>
+    test(() => {
+      const anchored = document.getElementById("anchored");
+      const anchoredRect = anchored.getBoundingClientRect();
+
+      // Should not be able to reference the lower-tree anchor-name, so the fallback value (37px) will be used.
+      assert_equals(anchoredRect.left, 37,
+        "positioned element outside shadow tree must not resolve anchor-name from lower tree");
+
+      const host = document.getElementById("host");
+      const innerAnchor = host.shadowRoot.getElementById("inner-anchor");
+      const subtreeAnchorRect = innerAnchor.getBoundingClientRect();
+
+      assert_not_equals(anchoredRect.left, subtreeAnchorRect.left,
+        "positioned element outside shadow tree must not be aligned to lower-tree anchor");
+    }, "anchor() outside a shadow tree cannot reference an anchor-name defined in a lower shadow tree");
+  </script>
+</body>
+</html>

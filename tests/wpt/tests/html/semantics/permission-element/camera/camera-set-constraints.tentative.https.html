@@ -1,0 +1,87 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="timeout" content="long" />
+<title>HTMLCameraElement setConstraints(), track initialization, and sanitization</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../usermedia/resources/pepc-helper.js"></script>
+<body>
+  <script>
+    promise_test(async (t) => {
+      await test_driver.set_permission({ name: "camera" }, "granted");
+
+      const camera = document.createElement("camera");
+      document.body.appendChild(camera);
+      t.add_cleanup(() => {
+        if (camera.parentNode) {
+          document.body.removeChild(camera);
+        }
+      });
+
+      const track_promise = new Promise((resolve) => {
+        camera.ontrack = resolve;
+      });
+
+      camera.setConstraints({ width: 640, height: 480 });
+
+      // Wait until the element is clickable.
+      await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+
+      await test_driver.click(camera);
+      await track_promise;
+
+      const track = camera.track;
+      t.add_cleanup(() => {
+        if (track) {
+          track.stop();
+        }
+      });
+
+      assert_true(track instanceof MediaStreamTrack, "camera.track is instance of MediaStreamTrack");
+      assert_equals(track.kind, "video", "camera.track must be video kind");
+      assert_not_equals(track.kind, "audio", "camera must never have audio track");
+    }, "HTMLCameraElement initializes video track and never audio track");
+
+    promise_test(async (t) => {
+      await test_driver.set_permission({ name: "camera" }, "granted");
+
+      const camera = document.createElement("camera");
+      document.body.appendChild(camera);
+      t.add_cleanup(() => {
+        if (camera.parentNode) {
+          document.body.removeChild(camera);
+        }
+      });
+
+      const track_promise = new Promise((resolve) => {
+        camera.ontrack = resolve;
+      });
+
+      // Pass complex range parameters (exact/ideal) and audio properties to test sanitization.
+      camera.setConstraints({
+        width: 640,
+        height: 480,
+        frameRate: { exact: 30 },
+        echoCancellation: true
+      });
+
+      await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
+
+      await test_driver.click(camera);
+      await track_promise;
+
+      const track = camera.track;
+      t.add_cleanup(() => {
+        if (track) {
+          track.stop();
+        }
+      });
+
+      assert_true(track instanceof MediaStreamTrack, "sanitized camera track successfully created");
+      assert_equals(track.kind, "video", "sanitized track kind is video");
+    }, "HTMLCameraElement setConstraints sanitization strips complex ranges without crashing");
+  </script>
+</body>
+

@@ -7,11 +7,12 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
 <body>
   <div id="el1" lang="en">
     <div id="el2" lang="en">
       <div>
-        <usermedia id="usermedia-element" type="camera" style="width:fit-content"></usermedia>
+        <usermedia id="usermedia-element" style="width:fit-content"></usermedia>
       </div>
     </div>
   </div>
@@ -22,8 +23,9 @@
   // invalidated and updated when changes are made. As such, this test looks
   // for side-effects of changing the language, such as changing the rendered
   // size of the element.
-  promise_test(async() => {
+  promise_test(async(t) => {
     var usermedia_element = document.getElementById("usermedia-element");
+    await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
     const initial_width = usermedia_element.offsetWidth;
     let widths = new Set();
     widths.add(initial_width);

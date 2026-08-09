@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Resource Timing for cross-origin subresources fetched via Service Worker with Server-Timing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+</head>
+<body>
+<script>
+const host_info = get_host_info();
+const worker_url = 'resources/resource-timing-server-timing-worker.js';
+const scope = 'resources/blank.html';
+
+promise_test(async t => {
+  const registration = await service_worker_unregister_and_register(t, worker_url, scope);
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+
+  const frame = await with_iframe(scope);
+  t.add_cleanup(() => frame.remove());
+
+  async function test_fetch({ target, mode, expect_timing_allow, description }) {
+    const fetch_url = `blank.html?subresource=1&mode=${mode}&target=${encodeURIComponent(target)}`;
+    const absolute_url = new URL(fetch_url, frame.contentWindow.location.href).href;
+
+    const entry_promise = new Promise(resolve => {
+      const observer = new frame.contentWindow.PerformanceObserver(list => {
+        const entry = list.getEntries().find(e => e.name === absolute_url);
+        if (entry) {
+          observer.disconnect();
+          resolve(entry);
+        }
+      });
+      observer.observe({ type: 'resource', buffered: true });
+    });
+
+    const response = await frame.contentWindow.fetch(fetch_url, { mode: mode === 'no-cors' ? 'no-cors' : 'cors' });
+    try {
+      await response.blob();
+    } catch (_) {}
+
+    const entry = await entry_promise;
+
+    if (expect_timing_allow) {
+      assert_equals(entry.serverTiming.length, 1, `${description}: serverTiming should be exposed when timing allow check passes.`);
+      assert_equals(entry.serverTiming[0].name, 'metric', `${description}: serverTiming name should match.`);
+    } else {
+      assert_equals(entry.serverTiming.length, 0, `${description}: serverTiming should NOT be exposed for filtered response.`);
+      assert_equals(entry.decodedBodySize, 0, `${description}: decodedBodySize should be 0 for filtered response.`);
+      assert_equals(entry.encodedBodySize, 0, `${description}: encodedBodySize should be 0 for filtered response.`);
+    }
+  }
+
+  // 1. Cross-origin opaque response (no-cors) without TAO: filtered response (kOpaque), timing allow check fails.
+  const remote_no_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py`;
+  await test_fetch({
+    target: remote_no_tao,
+    mode: 'no-cors',
+    expect_timing_allow: false,
+    description: 'Cross-origin opaque response (no-cors)'
+  });
+
+  // 2. Cross-origin CORS response without TAO: filtered response (kCors), timing allow check fails.
+  const remote_cors_no_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py?cors=1`;
+  await test_fetch({
+    target: remote_cors_no_tao,
+    mode: 'cors',
+    expect_timing_allow: false,
+    description: 'Cross-origin CORS response without TAO'
+  });
+
+  // 3. Cross-origin CORS response with TAO: filtered response (kCors), timing allow check fails for client.
+  const remote_cors_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py?cors=1&tao=1`;
+  await test_fetch({
+    target: remote_cors_tao,
+    mode: 'cors',
+    expect_timing_allow: false,
+    description: 'Cross-origin CORS response with TAO'
+  });
+
+  // 4. Synthetic response created inside Service Worker: synthetic response (kDefault), timing allow check passes.
+  await test_fetch({
+    target: 'synthetic',
+    mode: 'cors',
+    expect_timing_allow: true,
+    description: 'Synthetic response from ServiceWorker'
+  });
+
+  // 5. Same-origin response (kBasic): timing allow check passes.
+  const same_origin_url = `${host_info.HTTPS_ORIGIN}${base_path()}resources/server-timing.py`;
+  await test_fetch({
+    target: same_origin_url,
+    mode: 'cors',
+    expect_timing_allow: true,
+    description: 'Same-origin response fetched by ServiceWorker'
+  });
+
+}, 'Timing allow check for subresource responses handled by Service Worker');
+</script>
+</body>
+</html>

@@ -81,6 +81,9 @@
   test_valid_supports_import('@import url("nonexist.css") supports(font-tech(color-colrv1));');
   test_valid_supports_import('@import url("nonexist.css") supports(font-format(opentype));');
 
+  test_valid_supports_import('@import url("nonexist.css") supports(at-rule(@import));');
+  test_valid_supports_import('@import url("nonexist.css") supports(at-rule(@doesnotexist));');
+
   test_valid_supports_import('@import url(nonexist.css) supports(display:block);',
                              '@import url("nonexist.css") supports(display:block);');
 

@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Microphone Element Test: common use cases for single audio capture</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../usermedia/resources/pepc-helper.js"></script>
+<body>
+<script>
+  promise_test(async (t) => {
+    const microphone = document.createElement("microphone");
+    microphone.setConstraints({});
+    document.body.appendChild(microphone);
+    t.add_cleanup(() => {
+      if (microphone.parentNode) {
+        document.body.removeChild(microphone);
+      }
+    });
+
+    const track_promise = new Promise((resolve) => {
+      microphone.ontrack = resolve;
+    });
+
+    await test_driver.set_permission({ name: "microphone" }, "granted");
+
+    // Wait until element is clickable
+    await new Promise((resolve) => t.step_timeout(resolve, PEPC_CLICK_DELAY));
+    await test_driver.click(microphone);
+
+    const e = await track_promise;
+    const track = e.target.track;
+    t.add_cleanup(() => {
+      if (track) {
+        track.stop();
+      }
+    });
+
+    assert_true(track instanceof MediaStreamTrack, "track should be an instance of MediaStreamTrack");
+    assert_equals(track.kind, "audio", "microphone element should produce an audio track");
+    assert_equals(microphone.track, track, "microphone.track should match the event target track");
+  }, "A microphone element with audio constraints requests microphone permission and yields single audio capture track on user click");
+</script>
+</body>

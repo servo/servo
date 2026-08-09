@@ -34,10 +34,10 @@ for (const {coord, desc} of gInvalidCoordTestCases) {
 }
 
 for (const attr of ['x', 'y', 'z']) {
-  for (const {value, desc} of gInvalidCoordTestCases) {
+  for (const {coord, desc} of gInvalidCoordTestCases) {
     test(() => {
       let result = new CSSRotate(0, 0, 0, CSS.deg(0));
-      assert_throws_js(TypeError, () => result[attr] = value);
+      assert_throws_js(TypeError, () => result[attr] = coord);
       assert_style_value_equals(result[attr], CSS.number(0));
     }, 'Updating CSSRotate.' + attr + ' to ' + desc + ' throws a TypeError');
   }

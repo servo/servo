@@ -1,0 +1,40 @@
+<!doctype html>
+<title>Test SVGNumber to-animation with a valid value still animates.</title>
+<link rel="help" href="https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ToAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+    <defs>
+        <filter id="effect">
+            <feComposite id="composite" in="SourceGraphic" in2="SourceAlpha" operator="arithmetic" k1="1">
+                <animate attributeName="k1" begin="0s" dur="4s" to="3" />
+            </feComposite>
+        </filter>
+    </defs>
+    <rect id="rect" x="0" y="0" width="100" height="100" fill="green" filter="url(#effect)" />
+</svg>
+
+<script>
+
+// A to-animation has an empty 'from'; the start value comes from the base value at
+// runtime. This guards against the empty-'from' path incorrectly rejecting the animation.
+async_test(t => {
+    const svg = document.getElementById("svg");
+    const composite = document.getElementById("composite");
+
+    window.addEventListener('load', t.step_func(() => {
+        // Pause before seeking so the timeline can't advance past 2s, which keeps the
+        // sampled value exact.
+        svg.pauseAnimations();
+        svg.setCurrentTime(2);
+
+        requestAnimationFrame(t.step_func_done(() => {
+          assert_equals(composite.k1.baseVal, 1);
+          // Linear interpolation from base (1) to 'to' (3) at the mid-point.
+          assert_equals(composite.k1.animVal, 2);
+        }));
+    }));
+  });
+
+</script>

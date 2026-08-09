@@ -24,10 +24,6 @@ promise_test(async t => {
 
   assert_equals(message, "blocked");
 }, 'FencedFrame is not available in an insecure context');
-
-promise_test(async t => {
-  assert_throws_js(TypeError, () => navigator.canLoadAdAuctionFencedFrame());
-}, 'navigator.canLoadAdAuctionFencedFrame is unavailable in insecure contexts');
 </script>
 
 </body>

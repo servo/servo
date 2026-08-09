@@ -1,0 +1,14 @@
+<html class="reftest-wait">
+<title>Animated JPEG XL in <img></title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<link rel="match" href="animated-img-timeout-ref.html">
+<link rel="stylesheet" href="resources/jpegxl-reftest.css">
+<script>
+  function loaded() {
+    setTimeout(() => {
+      document.documentElement.classList.remove("reftest-wait");
+    }, 1000);
+  }
+</script>
+<img src="resources/animated-red-green.jxl" onload="loaded()">
+</html>

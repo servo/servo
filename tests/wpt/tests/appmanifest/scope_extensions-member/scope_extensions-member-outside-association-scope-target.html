@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scope Extensions - Outside Association Scope Target</title>
+  <script>
+    function reportDisplayMode() {
+      const displayMode = matchMedia("(display-mode: standalone)").matches ?
+        "standalone" : "browser";
+      document.querySelector("#display-mode").textContent =
+        `Reported display mode: ${displayMode}. Display mode alone does not ` +
+        "determine whether this URL is out of scope.";
+    }
+
+    addEventListener("DOMContentLoaded", reportDisplayMode);
+  </script>
+</head>
+<body>
+  <h1>Target Outside the Association Scope</h1>
+  <p>
+    This origin authorizes the installed app, but only for URLs under the
+    <code>/appmanifest/scope_extensions-member/resources/</code> path. This URL
+    is outside that path.
+  </p>
+  <p>
+    <strong>Expected:</strong> This URL is treated as outside the app's scope.
+    The user agent can open it in a browser tab or display its normal
+    out-of-scope UI.
+  </p>
+  <p id="display-mode"></p>
+  <p>
+    Return to the test page using Back. If this target opened in a separate tab
+    or window, close it instead.
+  </p>
+  <button type="button" onclick="history.back()">Return using Back</button>
+</body>
+</html>
