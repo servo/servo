@@ -356,7 +356,7 @@ pub(crate) fn import_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::Hmac(truncated_data.into()),
     );
 

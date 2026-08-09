@@ -658,7 +658,7 @@ pub(crate) fn import_key(
         key_type,
         extractable,
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         key_handle,
     );
 

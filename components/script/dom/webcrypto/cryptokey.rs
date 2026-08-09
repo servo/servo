@@ -183,19 +183,6 @@ impl CryptoKey {
     pub(crate) fn handle(&self) -> &Handle {
         &self.handle
     }
-
-    pub(crate) fn set_extractable(&self, extractable: bool) {
-        self.extractable.set(extractable);
-    }
-
-    pub(crate) fn set_usages(&self, cx: &mut js::context::JSContext, usages: &[KeyUsage]) {
-        *self.usages.borrow_mut() = usages.to_owned();
-
-        // Create and store a cached object of usages
-        rooted!(&in(cx) let mut usages_object_value: Value);
-        usages.safe_to_jsval(cx, usages_object_value.handle_mut());
-        self.usages_cached.set(usages_object_value.to_object());
-    }
 }
 
 impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
