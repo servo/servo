@@ -78,7 +78,7 @@
           tstNode = new AudioBufferSourceNode(context, nodeOptions);
         }, `${prefix}: create test AudioBufferSourceNode`);
 
-        // Set automation on the reference node’s param
+        // Set automation on the reference node's param
         test.step(() => {
           refNode[paramName].setValueAtTime(...startValue);
         }, `${prefix}: setValueAtTime(${startValue[0]}, ${startValue[1]})`);
@@ -88,7 +88,7 @@
         }, `${prefix}: linearRampToValueAtTime(${endValue[0]}, ` +
             `${endValue[1]})`);
 
-        // Modulate test node’s param via input signal
+        // Modulate test node's param via input signal
         let mod = new ConstantSourceNode(context, { offset: 0 });
 
         const modStart = startValue[0] - refNode[paramName].defaultValue;

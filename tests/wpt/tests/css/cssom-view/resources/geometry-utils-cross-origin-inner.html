@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<title>GeometryUtils same-origin inner frame</title>
+<style>
+  #inner { position: absolute; left: 25px; top: 35px; width: 70px; height: 45px; }
+</style>
+<div id="inner"></div>
+<script>top.postMessage("geometry-utils-inner-ready", "*");</script>

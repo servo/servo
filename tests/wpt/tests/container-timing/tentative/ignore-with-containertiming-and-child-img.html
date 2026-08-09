@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Container Timing: an image inside a containertiming inside a containertiming-ignore</title>
+<title>Container Timing: an image inside a containertiming inside a containertimingignore</title>
 <body>
 <style>
 body {
@@ -27,7 +27,7 @@ body {
 
     // Add a div that is the container timing root
     const div1 = document.createElement('div');
-    div1.setAttribute('containertiming-ignore', '');
+    div1.setAttribute('containertimingignore', '');
     document.body.appendChild(div1);
 
     // Intermediate ignore should block paint events
@@ -42,7 +42,7 @@ body {
     div2.appendChild(img);
 
     beforeRender = performance.now();
-}, 'An image inside a containertiming, inside a containertiming-ignore is still reported.');
+}, 'An image inside a containertiming, inside a containertimingignore is still reported.');
 </script>
 
 </body>

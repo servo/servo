@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#placement-tolerance">
+<link rel="match" href="column-track-reverse-dense-packing-flow-tolerance-002-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 5px;
+    grid-template-columns: repeat(6, 50px);
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+    grid-lanes-direction: column track-reverse;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing honors flow-tolerance for multi-span items with track-reverse. The yellow item should be placed in the first preferred opening in the reversed track direction, spanning tracks 4-5 (running position 5px), not tracks 1-2.</p>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue; height: 5px; grid-column: 4 / span 2;">1</div>
+    <div style="background: lightblue; height: 60px; grid-column: 3;">2</div>
+    <div style="background: darkblue; height: 60px; grid-column: 6;">3</div>
+    <div style="background: lightsteelblue; height: 20px; grid-column: span 6;">4</div>
+    <div style="background: yellow; height: 20px; grid-column: span 2;">5</div>
+  </div>
+</body>
+</html>

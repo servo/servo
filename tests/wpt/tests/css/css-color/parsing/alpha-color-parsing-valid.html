@@ -23,10 +23,6 @@ test_valid_value("color", "alpha(from red / 100%)");
 // None alpha.
 test_valid_value("color", "alpha(from red / none)");
 
-// Omitted alpha (defaults to origin's alpha).
-test_valid_value("color", "alpha(from red)");
-test_valid_value("color", "alpha(from currentcolor)");
-
 // Alpha keyword referencing origin's alpha.
 test_valid_value("color", "alpha(from currentcolor / alpha)");
 
@@ -54,8 +50,7 @@ test_valid_value("color", "alpha(from currentcolor / 0.5)");
 test_valid_value("color", "alpha(from red / 2)");
 test_valid_value("color", "alpha(from red / -1)");
 
-// Origin color carrying its own alpha (with and without replacement).
-test_valid_value("color", "alpha(from rgba(255, 0, 0, 0.3))");
+// Origin color carrying its own alpha.
 test_valid_value("color", "alpha(from rgba(255, 0, 0, 0.8) / alpha)");
 
 // Non-legacy origins keep their color space in the serialized origin.

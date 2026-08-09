@@ -37,7 +37,7 @@
   #improperlynestedauto1 {left:100px; top:500px;}
   #hint1        {left:200px; top:100px;}
   #hint2        {left:200px; top:200px;}
-  #improperlynestedauto1 {left:200px; top:400px;}
+  #improperlynestedauto2 {left:200px; top:300px;}
   #manual1      {left:300px; top:100px;}
   #outside {width:25px;height:25px}
 </style>
@@ -93,6 +93,13 @@
       assertState(setB, expectedState);
     }, 'Mixed auto/hint light dismiss behavior, click on ' + setB[i].id);
   }
+
+  promise_test(async (t) => {
+    const popovers = [hint1, hint2, improperlynestedauto2, manual1];
+    openall(popovers, t);
+    await clickOn(improperlynestedauto2);
+    assertState(popovers, [true, true, true, true]);
+  }, 'Clicking an auto nested inside a hint keeps the whole chain open');
 
   promise_test(async (t) => {
     openall(setA, t);

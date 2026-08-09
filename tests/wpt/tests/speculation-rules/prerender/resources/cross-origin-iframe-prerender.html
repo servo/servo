@@ -29,7 +29,7 @@ async function main() {
   await new Promise((resolve, reject) => {
     //window.addEventListener('message', (e) => {
     iFrameChannel.addEventListener('message', (e) => {
-      if (e.data == 'onload')
+      if (e.data == 'onload. initial_prerendering=true')
         resolve();
       else
         reject('bad message: ' + e.data);

@@ -1,0 +1,16 @@
+<!doctype html>
+<title>CSS Conditional Test: @supports with combination of at-rule() and another condition</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional/#support-definition-at-rules">
+<link rel="match" href="at-supports-001-ref.html">
+<style>
+  div {
+    background-color:red;
+    height:100px;
+    width:100px;
+  }
+  @supports at-rule(@supports) and (background: green) {
+    div { background: green };
+  }
+</style>
+<p>Test passes if there is a <strong>filled green square</strong> and <strong>no red</strong>.</p>
+<div></div>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+    <script src="/reporting/resources/report-helper.js"></script>
+  </head>
+  <body>
+    <script>
+      const { HTTPS_ORIGIN, HTTPS_REMOTE_ORIGIN } = get_host_info();
+      const endpoint = "/reporting/resources/report.py";
+      const reportID = 'fb99a3c0-37d9-43af-8d01-a08880629a42';
+
+      promise_test(async t => {
+          const iframe = document.createElement('iframe');
+
+          const p = new Promise((resolve) => {
+                iframe.onload = () => step_timeout(() => resolve(), 50);
+                iframe.onerror = () => resolve();
+              });
+
+          const target_url = `${HTTPS_REMOTE_ORIGIN}/connection-allowlist/tentative/resources/post-message.html`;
+          iframe.src = target_url;
+          document.body.appendChild(iframe);
+          await p;
+          document.body.removeChild(iframe);
+
+          await wait(5000);
+          const reports = await pollReports(endpoint, reportID);
+
+          const report = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === target_url);
+          assert_true(!!report, `A report for ${target_url} should be present.`);
+          assert_equals(report.body.disposition, 'enforce');
+      }, 'Connection-Allowlist report is delivered to the reporting endpoint for a blocked navigation.');
+    </script>
+  </body>
+</html>

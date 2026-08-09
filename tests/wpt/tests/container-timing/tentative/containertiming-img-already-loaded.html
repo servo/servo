@@ -1,0 +1,43 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: observe an image whose resource is already loaded</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  // Like containertiming-img-itself.html, but the resource is fully loaded
+  // before the <img> is inserted, so the load is notified for an element that
+  // has never been laid out. Happens naturally when the image is cached.
+  const IMAGE_URL = '/container-timing/resources/square100.png';
+  let beforeRender;
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+    const observer = new PerformanceObserver(
+      t.step_func_done(function(entryList) {
+        assert_equals(entryList.getEntries().length, 1);
+        const entry = entryList.getEntries()[0];
+        checkContainerEntry(entry, 'image_ct', 'my_id', beforeRender);
+      })
+    );
+    observer.observe({entryTypes: ['container']});
+
+    const preload = new Image();
+    preload.onload = t.step_func(function() {
+      const img = document.createElement('img');
+      img.src = IMAGE_URL;
+      img.setAttribute('containertiming', 'image_ct');
+      img.setAttribute('id', 'my_id');
+      document.body.appendChild(img);
+      beforeRender = performance.now();
+    });
+    preload.src = IMAGE_URL;
+  }, 'An already-loaded image with containertiming still reports its paint.');
+</script>
+
+</body>

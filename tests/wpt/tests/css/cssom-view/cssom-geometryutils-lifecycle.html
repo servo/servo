@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils lifecycle updates</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="frame" style="border: 0; margin-left: 10px"
+        srcdoc="<div id='target' style='width:20px;height:20px'></div>"></iframe>
+<div id="locked" style="content-visibility:hidden">
+  <div id="locked-target" style="width:20px;height:20px"></div>
+</div>
+<script>
+promise_test(async () => {
+  await new Promise(resolve => frame.addEventListener("load", resolve,
+                                                       {once: true}));
+  const target = frame.contentDocument.getElementById("target");
+  const initial = target.getBoxQuads({relativeTo: document})[0];
+
+  frame.style.marginLeft = "70px";
+  const moved = target.getBoxQuads({relativeTo: document})[0];
+  assert_approx_equals(moved.p1.x - initial.p1.x, 60, 0.01,
+                       "dirty parent document is updated");
+}, "getBoxQuads() updates a dirty embedding document");
+
+test(() => {
+  const target = document.getElementById("locked-target");
+  target.style.width = "50px";
+  const quad = target.getBoxQuads()[0];
+  assert_approx_equals(quad.p2.x - quad.p1.x, 50, 0.01,
+                       "dirty display-locked subtree is updated");
+}, "getBoxQuads() updates a dirty display-locked subtree");
+</script>

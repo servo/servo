@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<script src="/common/utils.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/deferred-promise-utils.js"></script>
+<body>
+<script>
+async function main() {
+  const testChannel = new PrerenderChannel('test-channel');
+
+  // "slm" stands for Supports-Loading-Mode.
+  const slmUid = token();
+  const slmChannel = new PrerenderChannel('iframe-with-slm-channel', slmUid);
+  const slmQueue = new BroadcastMessageQueue(slmChannel);
+
+  const noSlmUid = token();
+  const noSlmChannel = new PrerenderChannel('iframe-no-slm-channel', noSlmUid);
+  const noSlmQueue = new BroadcastMessageQueue(noSlmChannel);
+
+  // 1. Middle iframe WITH SLM header
+  const slmUrl = new URL(
+      `cross-origin-iframe-nesting-src-prerender.html?uid=${slmUid}`,
+      get_host_info()['HTTPS_REMOTE_ORIGIN'] + window.location.pathname);
+  const slmIframe = document.createElement('iframe');
+  slmIframe.src = slmUrl.href;
+  document.body.appendChild(slmIframe);
+
+  // 2. Middle iframe WITHOUT SLM header
+  const noSlmUrl = new URL(
+      `cross-origin-iframe-nesting-src-no-slm-prerender.html?uid=${noSlmUid}`,
+      get_host_info()['HTTPS_REMOTE_ORIGIN'] + window.location.pathname);
+  const noSlmIframe = document.createElement('iframe');
+  noSlmIframe.src = noSlmUrl.href;
+  document.body.appendChild(noSlmIframe);
+
+  try {
+    // Wait for both middle iframes to load during prerendering
+    const slmOnload = await slmQueue.nextMessage();
+    if (slmOnload !== 'onload') {
+      throw new Error('Middle iframe with SLM onload failed: ' + slmOnload);
+    }
+    const noSlmOnload = await noSlmQueue.nextMessage();
+    if (noSlmOnload !== 'onload') {
+      throw new Error('Middle iframe without SLM onload failed: ' + noSlmOnload);
+    }
+
+    // Both middle iframes are loaded; ready to activate
+    const prerenderChannel = new PrerenderChannel('prerender-channel');
+    prerenderChannel.postMessage('readyToActivate');
+    prerenderChannel.close();
+
+    // Wait for both middle iframes to complete their 2x2 checks
+    const slmResult = await slmQueue.nextMessage();
+    if (slmResult !== 'iframe with SLM finished correctly.') {
+      throw new Error('Middle iframe with SLM result: ' + slmResult);
+    }
+    const noSlmResult = await noSlmQueue.nextMessage();
+    if (noSlmResult !== 'iframe without SLM finished correctly.') {
+      throw new Error('Middle iframe without SLM result: ' + noSlmResult);
+    }
+
+    testChannel.postMessage('iframe prerender finished correctly.');
+  } catch (e) {
+    testChannel.postMessage('error: ' + e.message);
+  } finally {
+    slmChannel.close();
+    noSlmChannel.close();
+    testChannel.close();
+  }
+
+  new PrerenderChannel('close').addEventListener('message', () => {
+    window.close();
+  });
+}
+
+const params = new URLSearchParams(location.search);
+if (!params.has('prerendering')) {
+  const rule_extras = {'target_hint': getTargetHint()};
+  loadInitiatorPage(rule_extras);
+} else {
+  main();
+}
+</script>
+</body>

@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>GeometryUtils cross-origin middle frame</title>
+<iframe id="inner"></iframe>
+<script>
+const innerOrigin = new URL(location.href).searchParams.get("inner_origin");
+document.getElementById("inner").src = innerOrigin +
+  "/css/cssom-view/resources/geometry-utils-cross-origin-inner.html";
+</script>

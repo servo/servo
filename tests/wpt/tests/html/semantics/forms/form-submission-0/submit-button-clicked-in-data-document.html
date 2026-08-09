@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clicking a submit button in a document without a browsing context</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/targetted-form.js"></script>
+<body>
+<div id="log"></div>
+<script>
+promise_test(async t => {
+  const frameName = "data-document-submit-target";
+  const iframe = document.createElement("iframe");
+  iframe.name = frameName;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  const dataDoc = document.implementation.createHTMLDocument("");
+  const form = dataDoc.createElement("form");
+  form.action = new URL("/common/blank.html", location.href).href;
+  form.target = frameName;
+  const button = dataDoc.createElement("button");
+  button.type = "submit";
+  form.appendChild(button);
+  dataDoc.body.appendChild(form);
+
+  // Cannot submit anything, and must not leave the form deferring the
+  // submissions that come after it.
+  button.click();
+
+  document.body.appendChild(document.adoptNode(form));
+  t.add_cleanup(() => form.remove());
+
+  const loaded = loadPromise(iframe);
+  form.submit();
+  await loaded;
+}, "A form is still submittable after its submit button was clicked while the " +
+   "form was in a data document");
+</script>

@@ -737,7 +737,6 @@ css/css-scroll-snap/snap-after-relayout/not-resnap-outside-proximity-threshold.h
 css/css-scroll-snap/snap-after-relayout/resnap-on-oveflow-hidden-container.html @web-platform-tests/interop
 css/css-scroll-snap/snap-after-relayout/resnap-on-overflowing-snap-area.html @web-platform-tests/interop
 css/css-scroll-snap/snap-after-relayout/resnap-on-reconstructing-frame.html @web-platform-tests/interop
-css/css-scroll-snap/snap-fling-in-large-area.html @web-platform-tests/interop
 css/css-scroll-snap/snap-intended-direction.html @web-platform-tests/interop
 css/css-scroll-snap/snap-on-focus.html @web-platform-tests/interop
 css/css-scroll-snap/snap-to-combination-of-two-elements-1.html @web-platform-tests/interop

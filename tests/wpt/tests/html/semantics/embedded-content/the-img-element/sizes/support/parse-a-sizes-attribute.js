@@ -20,10 +20,17 @@ function check(p, iframe) {
   }
 }
 
-onload = function() {
+function runTests() {
   var iframe = document.querySelector('iframe');
+  assert_true(!!iframe, 'iframe element must exist');
   [].forEach.call(iframe.contentDocument.querySelectorAll('p'), function(p) {
     check(p, iframe);
   });
   done();
+}
+
+if (document.readyState === 'complete') {
+  runTests();
+} else {
+  window.addEventListener('load', runTests);
 }

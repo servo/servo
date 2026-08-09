@@ -38,6 +38,8 @@
 <div id="target">
   <div id="source"></div>
 </div>
+<div id="hidden-source" style="display: none"></div>
+<div id="hidden-target" style="display: none"></div>
 <script>
 const source = document.getElementById("source");
 const target = document.getElementById("target");
@@ -73,4 +75,20 @@ test(() => {
   assert_point_approx_equals(actual, expected,
                              "source border origin in document coordinates");
 }, "Document.convertPointFromNode() converts to viewport coordinates");
+
+test(() => {
+  const hiddenSource = document.getElementById("hidden-source");
+  assert_throws_dom(
+    "NotFoundError",
+    () => target.convertPointFromNode({x: 0, y: 0}, hiddenSource)
+  );
+}, "convertPointFromNode() throws for a display:none source");
+
+test(() => {
+  const hiddenTarget = document.getElementById("hidden-target");
+  assert_throws_dom(
+    "NotFoundError",
+    () => hiddenTarget.convertPointFromNode({x: 0, y: 0}, source)
+  );
+}, "convertPointFromNode() throws for a display:none target");
 </script>

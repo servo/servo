@@ -68,7 +68,7 @@
 
           const merger = new ChannelMergerNode(context, {numberOfInputs: 3});
           merger.connect(context.destination);
-          // Graph: ConstantSource → Panner → destination
+          // Graph: ConstantSource -> Panner -> destination
           const source = new ConstantSourceNode(context);
           const commonOpts = {
             distanceModel: 'inverse',
@@ -85,12 +85,12 @@
           const kRatePanner = new PannerNode(context, commonOpts);
           const aRatePanner = new PannerNode(context, commonOpts);
 
-          // Switch only the k‑rate node’s target param to k‑rate
+          // Switch only the k-rate node's target param to k-rate
           // automation
           const kRateParam = kRatePanner[param.name];
           kRateParam.automationRate = K_RATE;
           assert_equals(kRateParam.automationRate, K_RATE,
-              `${param.name}.automationRate should be k‑rate`);
+              `${param.name}.automationRate should be k-rate`);
 
           // Identical automation on both nodes
           [kRatePanner, aRatePanner].forEach(panner => {
@@ -99,15 +99,15 @@
                 testDuration);
           });
 
-          // Build routing: source → both panners
+          // Build routing: source -> both panners
           source.connect(kRatePanner);
           source.connect(aRatePanner);
 
-          // k‑rate result → channel‑0; a‑rate → channel‑1
+          // k-rate result -> channel-0; a-rate -> channel-1
           kRatePanner.connect(merger, 0, 0);
           aRatePanner.connect(merger, 0, 1);
 
-          // Difference channel: k‑rate – a‑rate
+          // Difference channel: k-rate - a-rate
           const inverter = new GainNode(context, {gain: -1});
           kRatePanner.connect(merger, 0, 2);
           aRatePanner.connect(inverter).connect(merger, 0, 2);
@@ -121,19 +121,19 @@
           const diff = buffer.getChannelData(2);
 
           // The difference signal must NOT be constant zero.
-          assert_not_constant(diff, `Panner ${param.name} – diff`);
+          assert_not_constant(diff, `Panner ${param.name} - diff`);
 
-          // Verify that the k‑rate output is constant over each render quantum
+          // Verify that the k-rate output is constant over each render quantum
           for (let k = 0; k < kData.length; k += BLOCK) {
             const slice = kData.slice(k, k + BLOCK);
             assert_all_close(slice, slice[0],
-                `Panner ${param.name} k‑rate frames [` +
+                `Panner ${param.name} k-rate frames [` +
                 `${k}, ${k + slice.length - 1}]`
             );
           }
 
-          // (No strict requirement on a‑rate slice variability, so we skip.)
-        }, `Panner k‑rate vs a‑rate – ${param.name}`);
+          // (No strict requirement on a-rate slice variability, so we skip.)
+        }, `Panner k-rate vs a-rate - ${param.name}`);
       });
 
       // Test k-rate automation of the listener.  The intial and final

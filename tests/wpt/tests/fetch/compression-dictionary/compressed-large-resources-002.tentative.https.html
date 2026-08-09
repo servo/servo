@@ -32,15 +32,13 @@
       // Append the compressed subframe.
       const iframe = document.createElement("iframe");
       iframe.src = `./resources/static/${config.subframe_compressed}`;
-      window.iframeMessageReceived = false;
-      function iframeListener(event) {
-        window.iframeMessageReceived = (event.data === "ready");
-      }
-      window.addEventListener("message", iframeListener);
-      t.add_cleanup(_ => {
-        iframe.remove();
-        window.iframeMessageReceived = undefined;
-        window.removeEventListener("message", iframeListener);
+      const waitMessageFromIframe = new Promise(resolve => {
+        function iframeListener(event) { resolve(event.data === "ready"); }
+        window.addEventListener("message", iframeListener, {once: true});
+        t.add_cleanup(_ =>  {
+          iframe.remove();
+          window.removeEventListener("message", iframeListener);
+        });
       });
       await new Promise((resolve, reject) => {
         iframe.onload = resolve;
@@ -48,8 +46,8 @@
         document.body.appendChild(iframe);
       });
 
-      // Verify script in HTML page  was executed.
-      assert_true(window.iframeMessageReceived);
+      // Verify script in HTML page was executed.
+      assert_true(await waitMessageFromIframe, "iframe posted its ready message");
     }, `Loading ${config.subframe_compressed} using ${config.subframe_dictionary} as a dictionary works`);
   });
 });

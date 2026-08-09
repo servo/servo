@@ -6,22 +6,17 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/pepc-helper.js"></script>
 <body>
 <!-- The usermedia element should not be focusable by script.
 -->
-<usermedia tabindex="0" id="valid_usermedia_element" type="camera"></usermedia>
+<usermedia tabindex="0" id="valid_usermedia_element"></usermedia>
 
 <span tabindex="0" id="focusable_span">This is some text</span>
 
-<!-- style needed to allow the invalid element to have a width -->
-<usermedia style="width: auto; padding-left: 10px" tabindex="0" id="invalid_usermedia_element" type="invalid"></usermedia>
-
 <script>
-  promise_test(async() => {
-    invalid_usermedia_element.focus();
-    assert_equals(document.activeElement, invalid_usermedia_element,
-      "Invalid usermedia element should be focusable");
-
+  promise_test(async(t) => {
+    await new Promise((r) => t.step_timeout(r, PEPC_CLICK_DELAY));
     focusable_span.focus();
     valid_usermedia_element.focus();
     assert_equals(document.activeElement, focusable_span,

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>margin-trim: block-container dynamic block-start</title>
+<link rel="author" title="Tiaan Louw" href="mailto:tlouw@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-box-4/#margin-trim-block">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Setting margin-trim: block-start after layout trims the first child's block-start margin.">
+<style>
+.container {
+    background-color: green;
+    width: min-content;
+}
+.outer {
+    background-color: green;
+    width: 100px;
+    height: 50px;
+}
+.child {
+    margin-top: 50px;
+    width: 100px;
+    height: 50px;
+}
+</style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square.</p>
+    <div class="outer"></div>
+    <div class="container">
+        <div class="child"></div>
+    </div>
+</body>
+<script>
+// Force an initial layout with margin-trim:none, then turn it on. The child's
+// block-start margin must be trimmed in response for the two green boxes to
+// form a filled 100x100 square.
+document.body.offsetHeight;
+document.querySelector(".container").style["margin-trim"] = "block-start";
+</script>
+</html>

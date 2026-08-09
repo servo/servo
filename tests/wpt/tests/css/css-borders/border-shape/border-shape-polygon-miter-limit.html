@@ -11,6 +11,22 @@
     display: inline-block;
   }
 
+  .test-path {
+    border-shape: path("M 0 0 L 106 190 L 106 0 L 0 190 Z") border-box;
+    width: 66px;
+    height: 150px;
+    margin: 50px 20px;
+    display: inline-block;
+  }
+
+  .test-shape {
+    border-shape: shape(from 0% 0%, line to 100% 100%, line to 100% 0%, line to 0% 100%, close) border-box;
+    width: 66px;
+    height: 150px;
+    margin: 50px 20px;
+    display: inline-block;
+  }
+
   .t1 {
     border: 20px solid green;
   }
@@ -21,3 +37,6 @@
 </style>
 <div class="test t1"></div>
 <div class="test t2"></div>
+<div class="test-path t1"></div>
+<div class="test-shape t1"></div>
+<div class="test-shape t2"></div>

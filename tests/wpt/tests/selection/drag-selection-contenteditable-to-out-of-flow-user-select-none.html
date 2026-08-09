@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<body>
+<meta name="assert" content="Drag from contenteditable into out-of-flow user-select:none extends selection to editable boundary">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#valdef-user-select-none">
+<link rel="help" href="https://issues.chromium.org/issues/522844903">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+#container {
+  position: relative;
+  width: 500px;
+  height: 60px;
+}
+#editable {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 200px;
+  padding: 4px;
+}
+#none-oof {
+  position: absolute;
+  left: 260px;
+  top: 10px;
+  width: 200px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+</style>
+
+<div id="container">
+  <div id="editable" contenteditable="true">Editable content here</div>
+  <div id="none-oof">Unselectable OOF</div>
+</div>
+
+<script>
+function clearSelection() {
+  window.getSelection().removeAllRanges();
+}
+
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
+
+  let editable = document.getElementById('editable');
+  const editableRect = editable.getBoundingClientRect();
+  const noneRect = document.getElementById('none-oof').getBoundingClientRect();
+
+  // Mousedown at the left edge of the editable, drag right into the OOF element.
+  let actions = new test_driver.Actions();
+  await actions
+      .pointerMove(editableRect.left + 4, editableRect.top + 4)
+      .pointerDown()
+      .pointerMove(noneRect.left + 10, noneRect.top + 4)
+      .pointerUp()
+      .send();
+
+  const selection = window.getSelection();
+  assert_true(editable.contains(selection.anchorNode),
+      "Anchor node should be inside the contenteditable");
+  assert_true(editable.contains(selection.focusNode),
+      "Focus node should be clamped inside the contenteditable");
+  assert_false(selection.isCollapsed,
+      "Selection should extend (not stay collapsed) when dragging from " +
+      "contenteditable into out-of-flow user-select:none");
+}, 'Drag from contenteditable into out-of-flow user-select:none extends selection to editable boundary.');
+</script>
+</html>

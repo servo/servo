@@ -339,6 +339,69 @@ test_scope(document.currentScript, () => {
 <template>
   <style>
     @scope (.a) {
+      @scope (:has(:scope .b)) {
+        span { background-color: green; }
+      }
+    }
+  </style>
+  <div class=a>
+    <div class=c>
+      <span>not green</span>
+      <div class=b></div>
+    </div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  // ':has(:scope .b)' can only match ancestors of the outer scoping root,
+  // which are never in the outer scope.
+  assert_not_green('.c > span');
+}, 'Nested scopes, :has(:scope ...) in inner from-selector');
+</script>
+
+<template>
+  <style>
+    @scope (.a) {
+      @scope (.b:has(:scope)) {
+        span { background-color: green; }
+      }
+    }
+  </style>
+  <div class=b>
+    <div class=a>
+      <span>not green</span>
+    </div>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  // The inner scoping root matches, but it is not in the outer scope.
+  assert_not_green('.a > span');
+}, 'Nested scopes, inner scoping root must be in the outer scope');
+</script>
+
+<template>
+  <style>
+    @scope (.a) {
+      @scope (:scope) {
+        span { background-color: green; }
+      }
+    }
+  </style>
+  <div class=a>
+    <span>green</span>
+  </div>
+</template>
+<script>
+test_scope(document.currentScript, () => {
+  // The scoping root is in its own scope.
+  assert_green('.a > span');
+}, 'Nested scopes, inner scoping root may be the outer scoping root');
+</script>
+
+<template>
+  <style>
+    @scope (.a) {
       :scope { background-color: green; }
     }
   </style>

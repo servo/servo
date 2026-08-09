@@ -1,0 +1,15 @@
+<!doctype html>
+<title>'zoom' interaction with 'vector-effect: non-scaling-stroke' in background-image</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/painting.html#PaintingVectorEffects">
+<link rel="match" href="../../struct/reftests/reference/green-100x100.html">
+<style>
+  #target {
+    width: 50px;
+    height: 50px;
+    zoom: 2;
+    background-color: red;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'><line x1='0' y1='25' x2='50' y2='25' stroke-width='50' stroke='green' vector-effect='non-scaling-stroke'/></svg>");
+    background-size: 100% 100%;
+  }
+</style>
+<div id="target"></div>

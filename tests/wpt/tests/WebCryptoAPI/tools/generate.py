@@ -1,77 +1,262 @@
-# script to generate the generateKey tests
+"""Generate the WebCryptoAPI generateKey registry and entrypoints."""
 
-import os
+import argparse
+import difflib
+import json
+from pathlib import Path
+import sys
 
-here = os.path.dirname(__file__)
 
-successes_html = """<!DOCTYPE html>
-<meta charset=utf-8>
-<meta name="timeout" content="long">
-<title>WebCryptoAPI: generateKey() Successful Calls</title>
-<link rel="author" title="Charles Engelke" href="mailto:w3c@engelke.com">
-<link rel="help" href="https://www.w3.org/TR/WebCryptoAPI/#dfn-SubtleCrypto-method-generateKey">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
+HERE = Path(__file__).resolve().parent
+WEBCRYPTO_ROOT = HERE.parent
+GENERATE_KEY_ROOT = WEBCRYPTO_ROOT / "generateKey"
 
-<script src="/WebCryptoAPI/util/helpers.js"></script>
-<script src="successes.js"></script>
+ALGORITHMS = (
+    ("AES-CTR", "CryptoKey", ("encrypt", "decrypt", "wrapKey", "unwrapKey"), ()),
+    ("AES-CBC", "CryptoKey", ("encrypt", "decrypt", "wrapKey", "unwrapKey"), ()),
+    ("AES-GCM", "CryptoKey", ("encrypt", "decrypt", "wrapKey", "unwrapKey"), ()),
+    ("AES-OCB", "CryptoKey", ("encrypt", "decrypt", "wrapKey", "unwrapKey"), ()),
+    (
+        "ChaCha20-Poly1305",
+        "CryptoKey",
+        ("encrypt", "decrypt", "wrapKey", "unwrapKey"),
+        (),
+    ),
+    ("AES-KW", "CryptoKey", ("wrapKey", "unwrapKey"), ()),
+    ("HMAC", "CryptoKey", ("sign", "verify"), ()),
+    ("RSASSA-PKCS1-v1_5", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    ("RSA-PSS", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    (
+        "RSA-OAEP",
+        '"CryptoKeyPair"',
+        ("encrypt", "decrypt", "wrapKey", "unwrapKey"),
+        ("decrypt", "unwrapKey"),
+    ),
+    ("ECDSA", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    (
+        "ECDH",
+        '"CryptoKeyPair"',
+        ("deriveKey", "deriveBits"),
+        ("deriveKey", "deriveBits"),
+    ),
+    ("Ed25519", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    ("Ed448", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    ("ML-DSA-44", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    ("ML-DSA-65", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    ("ML-DSA-87", '"CryptoKeyPair"', ("sign", "verify"), ("sign",)),
+    (
+        "ML-KEM-512",
+        '"CryptoKeyPair"',
+        ("decapsulateBits", "decapsulateKey", "encapsulateBits", "encapsulateKey"),
+        ("decapsulateBits", "decapsulateKey"),
+    ),
+    (
+        "ML-KEM-768",
+        '"CryptoKeyPair"',
+        ("decapsulateBits", "decapsulateKey", "encapsulateBits", "encapsulateKey"),
+        ("decapsulateBits", "decapsulateKey"),
+    ),
+    (
+        "ML-KEM-1024",
+        '"CryptoKeyPair"',
+        ("decapsulateBits", "decapsulateKey", "encapsulateBits", "encapsulateKey"),
+        ("decapsulateBits", "decapsulateKey"),
+    ),
+    (
+        "X25519",
+        '"CryptoKeyPair"',
+        ("deriveKey", "deriveBits"),
+        ("deriveKey", "deriveBits"),
+    ),
+    (
+        "X448",
+        '"CryptoKeyPair"',
+        ("deriveKey", "deriveBits"),
+        ("deriveKey", "deriveBits"),
+    ),
+    ("KMAC128", "CryptoKey", ("sign", "verify"), ()),
+    ("KMAC256", "CryptoKey", ("sign", "verify"), ()),
+)
 
-<h1>generateKey Tests for Good Parameters</h1>
-<p>
-    <strong>Warning!</strong> RSA key generation is intrinsically
-    very slow, so the related tests can take up to
-    several minutes to complete, depending on browser!
-</p>
+GROUPS = (
+    ("AES-CTR", ("AES-CTR",), False),
+    ("AES-CBC", ("AES-CBC",), False),
+    ("AES-GCM", ("AES-GCM",), False),
+    ("AES-OCB", ("AES-OCB",), True),
+    ("chacha20_poly1305", ("ChaCha20-Poly1305",), True),
+    ("AES-KW", ("AES-KW",), False),
+    ("HMAC", ("HMAC",), False),
+    ("RSASSA-PKCS1-v1_5", ("RSASSA-PKCS1-v1_5",), False),
+    ("RSA-PSS", ("RSA-PSS",), False),
+    ("RSA-OAEP", ("RSA-OAEP",), False),
+    ("ECDSA", ("ECDSA",), False),
+    ("ECDH", ("ECDH",), False),
+    ("Ed25519", ("Ed25519",), False),
+    ("Ed448", ("Ed448",), True),
+    ("ML-DSA", ("ML-DSA-44", "ML-DSA-65", "ML-DSA-87"), True),
+    ("ML-KEM", ("ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"), True),
+    ("X25519", ("X25519",), False),
+    ("X448", ("X448",), True),
+    ("kmac", ("KMAC128", "KMAC256"), True),
+)
 
-<div id="log"></div>
-<script>
-run_test([%s]);
-</script>"""
 
-failures_html = """<!DOCTYPE html>
-<meta charset=utf-8>
-<meta name="timeout" content="long">
-<title>WebCryptoAPI: generateKey() for Failures</title>
-<link rel="author" title="Charles Engelke" href="mailto:w3c@engelke.com">
-<link rel="help" href="https://www.w3.org/TR/WebCryptoAPI/#dfn-SubtleCrypto-method-generateKey">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
+def js_array(values):
+    return json.dumps(list(values))
 
-<script src="/WebCryptoAPI/util/helpers.js"></script>
-<script src="failures.js"></script>
 
-<h1>generateKey Tests for Bad Parameters</h1>
+# Algorithm normalization failures are independent of the algorithm under test,
+# so they get a single wrapper instead of one per group.
+BAD_ALGORITHM_WRAPPER = "\n".join(
+    [
+        "// META: title=WebCryptoAPI: generateKey() for Failures",
+        "// META: timeout=long",
+        "// META: script=../util/helpers.js",
+        "// META: script=failures.js",
+        "run_bad_algorithm_test();",
+        "",
+    ]
+)
 
-<div id="log"></div>
-<script>
-run_test([%s]);
-</script>
-"""
 
-successes_worker = """// META: timeout=long
-importScripts("/resources/testharness.js");
-importScripts("../util/helpers.js");
-importScripts("successes.js");
+def generate_registry():
+    lines = [
+        "// Generated by WebCryptoAPI/tools/generate.py. Do not edit directly.",
+        "const generateKeyTestVectors = [",
+    ]
+    for name, result_type, usages, mandatory_usages in ALGORITHMS:
+        lines.append(
+            f"    {{name: {json.dumps(name)}, resultType: {result_type}, "
+            f"usages: {js_array(usages)}, "
+            f"mandatoryUsages: {js_array(mandatory_usages)}}},"
+        )
+    lines.extend(
+        [
+            "];",
+            "",
+            "function getGenerateKeyTestVectors(algorithmNames) {",
+            "    if (algorithmNames && !Array.isArray(algorithmNames)) {",
+            "        algorithmNames = [algorithmNames];",
+            "    }",
+            "",
+            "    return generateKeyTestVectors.filter(",
+            "        vector => !algorithmNames || algorithmNames.includes(vector.name));",
+            "}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
 
-run_test([%s]);
-done();"""
 
-failures_worker = """// META: timeout=long
-importScripts("/resources/testharness.js");
-importScripts("../util/helpers.js");
-importScripts("failures.js");
-run_test([%s]);
-done();"""
+def success_variants(file_id):
+    if file_id == "RSA-OAEP":
+        return [f"?{start}-{start + 9}" for start in range(1, 151, 10)] + [
+            "?151-last"
+        ]
+    if file_id in {"RSA-PSS", "RSASSA-PKCS1-v1_5"}:
+        return ["?1-10", "?11-20", "?21-30", "?31-last"]
+    return []
 
-names = ["AES-CTR", "AES-CBC", "AES-GCM", "AES-KW", "HMAC", "RSASSA-PKCS1-v1_5",
-         "RSA-PSS", "RSA-OAEP", "ECDSA", "ECDH", "Ed25519", "Ed448", "X25519",
-         "X448"]
 
-for filename_pattern, template in [("test_successes_%s.https.html", successes_html),
-                                   ("test_failures_%s.https.html", failures_html),
-                                   ("successes_%s.https.worker.js", successes_worker),
-                                   ("failures_%s.https.worker.js", failures_worker)]:
-    for name in names:
-        path = os.path.join(here, os.pardir, "generateKey", filename_pattern % name)
-        with open(path, "w") as f:
-            f.write(template % '"%s"' % name)
+def generate_wrapper(kind, file_id, algorithms):
+    title = (
+        "WebCryptoAPI: generateKey() Successful Calls"
+        if kind == "successes"
+        else "WebCryptoAPI: generateKey() for Failures"
+    )
+    lines = [
+        f"// META: title={title}",
+        "// META: timeout=long",
+    ]
+    if kind == "successes":
+        lines.extend(
+            f"// META: variant={variant}" for variant in success_variants(file_id)
+        )
+    lines.append("// META: script=../util/helpers.js")
+    if kind == "successes":
+        lines.append("// META: script=/common/subset-tests.js")
+    lines.extend(
+        [
+            "// META: script=algorithm_registry.js",
+            f"// META: script={kind}.js",
+            f"run_test({js_array(algorithms)});",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def expected_outputs():
+    outputs = {
+        GENERATE_KEY_ROOT / "algorithm_registry.js": generate_registry(),
+        GENERATE_KEY_ROOT
+        / "failures_bad_algorithm.https.any.js": BAD_ALGORITHM_WRAPPER,
+    }
+    for file_id, algorithms, tentative in GROUPS:
+        marker = ".tentative" if tentative else ""
+        for kind in ("successes", "failures"):
+            path = GENERATE_KEY_ROOT / f"{kind}_{file_id}{marker}.https.any.js"
+            outputs[path] = generate_wrapper(kind, file_id, algorithms)
+    return outputs
+
+
+def wrapper_paths():
+    return set(GENERATE_KEY_ROOT.glob("successes_*.https.any.js")) | set(
+        GENERATE_KEY_ROOT.glob("failures_*.https.any.js")
+    )
+
+
+def show_diff(path, expected):
+    current = path.read_text(encoding="utf-8") if path.exists() else ""
+    relative = path.relative_to(WEBCRYPTO_ROOT)
+    sys.stdout.writelines(
+        difflib.unified_diff(
+            current.splitlines(keepends=True),
+            expected.splitlines(keepends=True),
+            fromfile=str(relative),
+            tofile=f"{relative} (generated)",
+        )
+    )
+
+
+def check(outputs):
+    failed = False
+    for path, expected in outputs.items():
+        if not path.exists() or path.read_text(encoding="utf-8") != expected:
+            show_diff(path, expected)
+            failed = True
+
+    unexpected = wrapper_paths() - set(outputs)
+    for path in sorted(unexpected):
+        print(f"Unexpected generated wrapper: {path.relative_to(WEBCRYPTO_ROOT)}")
+        failed = True
+
+    return 1 if failed else 0
+
+
+def write(outputs):
+    for path, expected in outputs.items():
+        if not path.exists() or path.read_text(encoding="utf-8") != expected:
+            path.write_text(expected, encoding="utf-8")
+
+    unexpected = wrapper_paths() - set(outputs)
+    for path in sorted(unexpected):
+        print(f"Unexpected generated wrapper: {path.relative_to(WEBCRYPTO_ROOT)}")
+
+    return 1 if unexpected else 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="check generated files without writing them",
+    )
+    args = parser.parse_args()
+    outputs = expected_outputs()
+    return check(outputs) if args.check else write(outputs)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

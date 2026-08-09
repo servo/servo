@@ -98,3 +98,10 @@ def test_user_handle_invalid_type(session, authenticator, user_handle):
     credential["userHandle"] = user_handle
     response = add_credential(session, authenticator, credential)
     assert_error(response, "invalid argument")
+
+
+def test_user_handle_missing_for_resident_credential(session, authenticator):
+    credential = create_credential(is_resident_credential=True)
+    assert "userHandle" not in credential
+    response = add_credential(session, authenticator, credential)
+    assert_error(response, "invalid argument")

@@ -28,10 +28,5 @@ promise_test(async () => {
   assert_equals(result, "fenced-frame-src;" + expected_blocked_uri,
                 "The fenced frame is blocked because of CSP violation");
 }, "csp-fenced-frame-src-blocked");
-
-promise_test(async () => {
-  assert_false(navigator.canLoadAdAuctionFencedFrame());
-}, "fenced-frame-src none is taken into account with " +
-   "navigator.canLoadAdAuctionFencedFrame");
 </script>
 </body>

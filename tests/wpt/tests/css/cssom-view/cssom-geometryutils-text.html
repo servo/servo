@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSSOM View - GeometryUtils on Text nodes</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  html, body { margin: 0; }
+  #text-container {
+    position: absolute;
+    left: 30px;
+    top: 25px;
+    width: 95px;
+    font: 20px/1.2 monospace;
+    border: 4px solid black;
+  }
+</style>
+<div id="text-container">GeometryUtils text fragments wrap here.</div>
+<script>
+test(() => {
+  const textNode = document.getElementById("text-container").firstChild;
+  const range = document.createRange();
+  range.selectNodeContents(textNode);
+  const quads = textNode.getBoxQuads();
+  const rects = range.getClientRects();
+
+  assert_greater_than(quads.length, 1, "text node produces fragments");
+  assert_equals(quads.length, rects.length,
+                "text node quads match range fragment count");
+  for (let i = 0; i < quads.length; ++i) {
+    assert_rect_approx_equals(quads[i].getBounds(), rects[i],
+                              `text fragment ${i}`);
+  }
+}, "Text.getBoxQuads() matches Range.getClientRects() fragments");
+
+test(() => {
+  const textNode = document.getElementById("text-container").firstChild;
+  const localPoint = textNode.getBoxQuads({relativeTo: textNode})[0].p1;
+  const convertedPoint = document.convertPointFromNode(localPoint, textNode);
+  assert_point_approx_equals(convertedPoint, textNode.getBoxQuads()[0].p1,
+                             "text local p1");
+}, "convertPointFromNode() converts from a Text node");
+</script>

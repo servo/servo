@@ -25,6 +25,7 @@ test(function() {
   numRef.x = 100;
   assert_equals(numRef.x, 100);
   assert_equals(svgElement.viewBox.baseVal.x, 100);
+  assert_true(svgElement.hasAttribute("viewBox"));
 
   // Check that assigning to baseVal has no effect, as no setter is defined.
   svgElement.viewBox.baseVal = -1;

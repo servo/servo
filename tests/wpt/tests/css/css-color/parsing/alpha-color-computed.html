@@ -10,36 +10,27 @@
 <div id="target"></div>
 <script>
 
-// The expected results in the test cases below may be inconsistent between
-// cases. See these issues for clarifying alpha() resolution and serialization:
-// - https://github.com/w3c/csswg-drafts/issues/13992
-// - https://github.com/w3c/csswg-drafts/issues/13994
-
 const target = document.getElementById('target');
 
 // Basic: replace alpha on a named color.
-test_computed_value("color", "alpha(from red / 0.5)", "rgba(255, 0, 0, 0.5)");
-test_computed_value("color", "alpha(from blue / 0)", "rgba(0, 0, 255, 0)");
-test_computed_value("color", "alpha(from green / 1)", "rgb(0, 128, 0)");
+test_computed_value("color", "alpha(from red / 0.5)", "color(srgb 1 0 0 / 0.5)");
+test_computed_value("color", "alpha(from blue / 0)", "color(srgb 0 0 1 / 0)");
+test_computed_value("color", "alpha(from rebeccapurple / 1)", "color(srgb 0.4 0.2 0.6)");
 
 // Percentage alpha.
-test_computed_value("color", "alpha(from red / 50%)", "rgba(255, 0, 0, 0.5)");
-test_computed_value("color", "alpha(from red / 0%)", "rgba(255, 0, 0, 0)");
-
-// Omitted alpha defaults to origin's alpha.
-test_computed_value("color", "alpha(from red)", "rgb(255, 0, 0)");
-test_computed_value("color", "alpha(from rgba(255, 0, 0, 0.3))", "rgba(255, 0, 0, 0.3)");
+test_computed_value("color", "alpha(from red / 50%)", "color(srgb 1 0 0 / 0.5)");
+test_computed_value("color", "alpha(from red / 0%)", "color(srgb 1 0 0 / 0)");
 
 // None alpha.
 test_computed_value("color", "alpha(from red / none)", "color(srgb 1 0 0 / none)");
 test_computed_value("color", "color-mix(in srgb, rgb(255 0 0 / 0.5), alpha(from red / none))", "color(srgb 1 0 0 / 0.5)")
 
 // Alpha clamped to [0, 1].
-test_computed_value("color", "alpha(from red / 2)", "rgb(255, 0, 0)");
-test_computed_value("color", "alpha(from red / -1)", "rgba(255, 0, 0, 0)");
+test_computed_value("color", "alpha(from red / 2)", "color(srgb 1 0 0)");
+test_computed_value("color", "alpha(from red / -1)", "color(srgb 1 0 0 / 0)");
 
 // Origin color with existing alpha.
-test_computed_value("color", "alpha(from rgba(255, 0, 0, 0.3) / 0.8)", "rgba(255, 0, 0, 0.8)");
+test_computed_value("color", "alpha(from rgba(255, 0, 0, 0.3) / 0.8)", "color(srgb 1 0 0 / 0.8)");
 
 // Preserves non-legacy color spaces.
 test_computed_value("color", "alpha(from color(display-p3 1 0 0) / 0.5)", "color(display-p3 1 0 0 / 0.5)");
@@ -47,16 +38,16 @@ test_computed_value("color", "alpha(from color(srgb 1 0 0) / 0.5)", "color(srgb 
 test_computed_value("color", "alpha(from color(srgb 1 0 0) / 50%)", "color(srgb 1 0 0 / 0.5)");
 
 // calc() referencing the origin's alpha keyword.
-test_computed_value("color", "alpha(from rgba(255, 0, 0, 0.8) / calc(alpha + 0.1))", "rgba(255, 0, 0, 0.9)");
-test_computed_value("color", "alpha(from green / calc(alpha / 1))", "rgb(0, 128, 0)");
+test_computed_value("color", "alpha(from rgba(255, 0, 0, 0.8) / calc(alpha + 0.1))", "color(srgb 1 0 0 / 0.9)");
+test_computed_value("color", "alpha(from rebeccapurple / calc(alpha / 1))", "color(srgb 0.4 0.2 0.6)");
 
 // Nested alpha(): the inner result is the outer origin (and its alpha).
-test_computed_value("color", "alpha(from alpha(from red / 0.5) / calc(alpha + 0.25))", "rgba(255, 0, 0, 0.75)");
-test_computed_value("color", "alpha(from alpha(from green / 0%) / 100%)", "rgb(0, 128, 0)");
+test_computed_value("color", "alpha(from alpha(from red / 0.5) / calc(alpha + 0.25))", "color(srgb 1 0 0 / 0.75)");
+test_computed_value("color", "alpha(from alpha(from rebeccapurple / 0%) / 100%)", "color(srgb 0.4 0.2 0.6)");
 
 // Other color functions as origin.
 test_computed_value("color", "alpha(from color-mix(in srgb, red, blue) / 0.5)", "color(srgb 0.5 0 0.5 / 0.5)");
-test_computed_value("color", "alpha(from rgb(from red r g b) / 0.8)", "rgba(255, 0, 0, 0.8)");
+test_computed_value("color", "alpha(from rgb(from red r g b) / 0.8)", "color(srgb 1 0 0 / 0.8)");
 
 // alpha() as the origin of other relative color functions: the `alpha` channel
 // keyword reads the alpha produced by alpha().
@@ -75,12 +66,10 @@ function test_currentcolor_alpha(specified, expected, current) {
 
 // Explicit alpha replaces origin alpha.
 test_currentcolor_alpha("alpha(from currentcolor / 0.5)", "color(srgb 1 0 0 / 0.5)", "red");
-// Omitted alpha defaults to origin's alpha.
-test_currentcolor_alpha("alpha(from currentcolor)", "color(srgb 0 0 1)", "blue");
 // Alpha keyword references origin's alpha.
 test_currentcolor_alpha("alpha(from currentcolor / alpha)", "color(srgb 1 0 0 / 0.8)", "rgba(255, 0, 0, 0.8)");
 // None alpha.
-test_currentcolor_alpha("alpha(from currentcolor / none)", "color(srgb 0 0.50196 0 / none)", "green");
+test_currentcolor_alpha("alpha(from currentcolor / none)", "color(srgb 0.4 0.2 0.6 / none)", "rebeccapurple");
 // Percentage alpha.
 test_currentcolor_alpha("alpha(from currentcolor / 50%)", "color(srgb 1 0 0 / 0.5)", "red");
 // Calc with alpha keyword.

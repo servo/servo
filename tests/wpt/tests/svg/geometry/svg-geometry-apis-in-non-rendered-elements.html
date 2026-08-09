@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Geometry APIs on SVG elements that generate no box</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getclientrects">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-none">
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  #css-display-none { display: none; }
+  #visibility-hidden-rect { visibility: hidden; }
+  /* Ahem keeps the <text> measurement deterministic across platforms. The
+     expected result is 0 either way, but an engine that fails this reports the
+     width it measured, and that should not vary per platform. */
+  #text-in-display-none { font: 10px/1 Ahem; }
+</style>
+<body>
+
+<!--
+  CSSOM View, getClientRects():
+    1. If the element on which it was invoked does not have an associated box
+       return an empty DOMRectList object and stop this algorithm.
+    2. If the element has an associated SVG layout box return [...] a single
+       DOMRect [...]
+
+  Step 1 precedes step 2, so the SVG branch is only reachable for an element
+  that has a box. CSS Display 3 says display:none causes the element and its
+  descendants "to not generate any boxes at all".
+
+  svg-get-bounding-client-rect-in-non-rendered-elements.html covers a <rect>
+  in <g display=none>, <defs>, <pattern> and <symbol>. This file covers the
+  rest of the space: the other hidden container types, display:none applied
+  from a stylesheet, nesting depth, containers rather than shapes, non-shape
+  leaf elements, and dynamic changes. It also pins the cases that DO generate
+  boxes, so that a fix suppressing too much is caught here.
+-->
+
+<svg width="200" height="200" id="root">
+  <mask id="mask"><rect id="in-mask" width="10" height="10"/></mask>
+  <clipPath id="clip-path"><rect id="in-clippath" width="10" height="10"/></clipPath>
+  <marker id="marker"><rect id="in-marker" width="10" height="10"/></marker>
+  <linearGradient id="gradient"><rect id="in-gradient" width="10" height="10"/></linearGradient>
+  <filter id="filter"><rect id="in-filter" width="10" height="10"/></filter>
+  <symbol id="symbol"><rect id="in-symbol" width="10" height="10"/></symbol>
+
+  <g id="css-display-none"><rect id="in-css-display-none" width="10" height="10"/></g>
+
+  <g display="none"><g><g><rect id="deeply-nested" width="10" height="10"/></g></g></g>
+
+  <defs><g id="g-in-defs"><rect width="10" height="10"/></g></defs>
+
+  <g display="none">
+    <text id="text-in-display-none" x="0" y="10">text</text>
+    <image id="image-in-display-none" width="10" height="10"/>
+    <foreignObject id="foreignobject-in-display-none" width="10" height="10"></foreignObject>
+    <use id="use-in-display-none" href="#rendered-rect"/>
+  </g>
+
+  <rect id="rendered-rect" width="10" height="10"/>
+  <rect id="visibility-hidden-rect" width="10" height="10"/>
+  <g opacity="0"><rect id="in-opacity-zero-g" width="10" height="10"/></g>
+  <g visibility="hidden"><rect id="in-visibility-hidden-g" width="10" height="10"/></g>
+</svg>
+
+<script>
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// getBoundingClientRect() and getClientRects() are asserted as separate
+// subtests so that neither can mask the other: an engine may return the
+// correct all-zero rect from getBoundingClientRect() while still returning a
+// non-empty list from getClientRects(), and that is worth reporting on its
+// own.
+function assertNoBox(id, description) {
+  test(function() {
+    const rect = document.getElementById(id).getBoundingClientRect();
+    assert_equals(rect.width, 0, "width");
+    assert_equals(rect.height, 0, "height");
+    assert_equals(rect.x, 0, "x");
+    assert_equals(rect.y, 0, "y");
+  }, description + ", getBoundingClientRect()");
+
+  test(function() {
+    assert_equals(document.getElementById(id).getClientRects().length, 0);
+  }, description + ", getClientRects()");
+}
+
+function assertHasBox(id, description) {
+  test(function() {
+    const rect = document.getElementById(id).getBoundingClientRect();
+    assert_equals(rect.width, 10, "width");
+    assert_equals(rect.height, 10, "height");
+  }, description + ", getBoundingClientRect()");
+
+  test(function() {
+    assert_equals(document.getElementById(id).getClientRects().length, 1);
+  }, description + ", getClientRects()");
+}
+
+// Hidden container element types other than the ones already covered.
+assertNoBox("in-mask", "rect in <mask> has no box");
+assertNoBox("in-clippath", "rect in <clipPath> has no box");
+assertNoBox("in-marker", "rect in <marker> has no box");
+assertNoBox("in-gradient", "rect in <linearGradient> has no box");
+assertNoBox("in-filter", "rect in <filter> has no box");
+// The existing test only checks <symbol> itself and a child carrying its own
+// display:none. A plain child of <symbol> is the interesting case.
+assertNoBox("in-symbol", "rect in <symbol> has no box");
+
+// display:none from a stylesheet rather than the presentation attribute.
+assertNoBox("in-css-display-none", "rect in <g> with CSS display:none has no box");
+
+// The element being measured is not a child of the hidden container.
+assertNoBox("deeply-nested", "rect three levels below <g display=none> has no box");
+
+// A container element rather than a shape.
+assertNoBox("g-in-defs", "<g> in <defs> has no box");
+
+// Leaf element types other than shapes.
+assertNoBox("text-in-display-none", "<text> in <g display=none> has no box");
+assertNoBox("image-in-display-none", "<image> in <g display=none> has no box");
+assertNoBox("foreignobject-in-display-none", "<foreignObject> in <g display=none> has no box");
+assertNoBox("use-in-display-none", "<use> in <g display=none> has no box");
+
+// Boxes that do exist. Neither visibility nor opacity removes a box, so a fix
+// for the cases above must not suppress these.
+assertHasBox("rendered-rect", "rendered rect has a box");
+assertHasBox("visibility-hidden-rect", "rect with visibility:hidden has a box");
+assertHasBox("in-opacity-zero-g", "rect in <g opacity=0> has a box");
+assertHasBox("in-visibility-hidden-g", "rect in <g visibility=hidden> has a box");
+
+test(function() {
+  const g = document.createElementNS(SVG_NS, "g");
+  const rect = document.createElementNS(SVG_NS, "rect");
+  rect.setAttribute("width", "10");
+  rect.setAttribute("height", "10");
+  g.appendChild(rect);
+  this.add_cleanup(() => g.remove());
+  document.getElementById("root").appendChild(g);
+
+  assert_equals(rect.getBoundingClientRect().width, 10, "width while rendered");
+
+  g.setAttribute("display", "none");
+  assert_equals(rect.getBoundingClientRect().width, 0,
+    "width after the parent becomes display:none");
+
+  g.removeAttribute("display");
+  assert_equals(rect.getBoundingClientRect().width, 10,
+    "width after the parent is rendered again");
+}, "display is honoured when toggled on an ancestor after layout");
+
+test(function() {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  const rect = document.createElementNS(SVG_NS, "rect");
+  rect.setAttribute("width", "10");
+  rect.setAttribute("height", "10");
+  svg.appendChild(rect);
+
+  assert_equals(rect.getBoundingClientRect().width, 0, "width");
+  assert_equals(rect.getClientRects().length, 0, "getClientRects().length");
+}, "rect in a subtree that was never inserted has no box");
+</script>
+</body>

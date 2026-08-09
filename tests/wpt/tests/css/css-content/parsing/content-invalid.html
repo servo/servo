@@ -39,6 +39,15 @@ test_invalid_value_alt_text("content", "counter(counter-name, counter-style)");
 test_invalid_value_alt_text("content", `counters(counter-name, ".")`);
 test_invalid_value_alt_text("content", `counters(counter-name, ".", counter-style)`);
 
+// Invalid symbols() inside counter()/counters().
+test_invalid_value_combinations("content", `counter(counter-name, symbols())`);
+test_invalid_value_combinations("content", `counter(counter-name, symbols(fixed))`);
+test_invalid_value_combinations("content", `counter(counter-name, symbols(a b))`);
+test_invalid_value_combinations("content", `counter(counter-name, symbols(additive "a" "b"))`);
+test_invalid_value_combinations("content", `counter(counter-name, symbols(numeric "a"))`);
+test_invalid_value_combinations("content", `counter(counter-name, symbols(alphabetic "a"))`);
+test_invalid_value_combinations("content", `counters(counter-name, ".", symbols(fixed))`);
+
 test_invalid_value_alt_text("content", `url("https://www.example.com/picture.svg")`);
 
 test_invalid_value_alt_text("content", `"hello"`);

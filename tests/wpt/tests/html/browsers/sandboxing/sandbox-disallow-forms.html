@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Form submission in an iframe sandboxed without allow-forms</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#sandboxed-forms-browsing-context-flag">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#form-submission-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<div id="log"></div>
+<script>
+const STASH_PUT = `${location.origin}/fetch/api/resources/stash-put.py`;
+
+function takeStash(key) {
+  return fetch(`/fetch/api/resources/stash-take.py?key=${key}`)
+      .then(response => response.json());
+}
+
+// The stash entry only appears once the submission reaches the server, so poll
+// for it rather than guessing how long that takes.
+async function waitForStash(t, key) {
+  for (let i = 0; i < 20; i++) {
+    const value = await takeStash(key);
+    if (value !== null) {
+      return value;
+    }
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+  }
+  return null;
+}
+
+// A GET submission replaces the action's query string with the entry list, so
+// the key stash-put.py reads has to travel as form data. The target is the
+// sandboxed document's own child iframe, so a wrongly performed submission
+// doesn't tear down the document that reports back.
+const MAKE_FORM = `
+  function makeForm(doc, key) {
+    const form = doc.createElement("form");
+    form.method = "get";
+    form.action = "${STASH_PUT}";
+    form.target = "target";
+    for (const [name, value] of [["key", key], ["value", "submitted"]]) {
+      const input = doc.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    }
+    const button = doc.createElement("button");
+    button.type = "submit";
+    form.appendChild(button);
+    doc.body.appendChild(form);
+    return { form, button };
+  }
+`;
+
+function runInSandboxedFrame(t, sandbox, script) {
+  const iframe = document.createElement("iframe");
+  iframe.sandbox = sandbox;
+  t.add_cleanup(() => iframe.remove());
+
+  const done = new Promise(resolve => {
+    window.addEventListener("message", function onMessage(event) {
+      if (event.source === iframe.contentWindow && event.data === "done") {
+        window.removeEventListener("message", onMessage);
+        resolve();
+      }
+    });
+  });
+
+  iframe.srcdoc = `
+    <iframe name="target"></iframe>
+    <script>
+      ${MAKE_FORM}
+      ${script}
+      parent.postMessage("done", "*");
+    <\/script>
+  `;
+  document.body.appendChild(iframe);
+  return done;
+}
+
+promise_test(async t => {
+  const key = token();
+  await runInSandboxedFrame(t, "allow-scripts allow-forms", `
+    makeForm(document, "${key}").form.submit();
+  `);
+  assert_equals(await waitForStash(t, key), "submitted");
+}, "A document sandboxed with allow-forms can submit a form");
+
+promise_test(async t => {
+  const key = token();
+  await runInSandboxedFrame(t, "allow-scripts", `
+    makeForm(document, "${key}").form.submit();
+  `);
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+  assert_equals(await takeStash(key), null);
+}, "A document sandboxed without allow-forms cannot submit a form");
+
+promise_test(async t => {
+  const key = token();
+  // A data document has no sandbox flags of its own, so a submission can be
+  // built there and the form then moved into the sandboxed document.
+  await runInSandboxedFrame(t, "allow-scripts", `
+    const dataDoc = document.implementation.createHTMLDocument("");
+    const { form, button } = makeForm(dataDoc, "${key}");
+    button.click();
+    form.submit();
+
+    document.body.appendChild(document.adoptNode(form));
+    button.click();
+  `);
+  await new Promise(resolve => t.step_timeout(resolve, 1000));
+  assert_equals(await takeStash(key), null);
+}, "A document sandboxed without allow-forms cannot perform a form submission " +
+   "built in a data document");
+</script>

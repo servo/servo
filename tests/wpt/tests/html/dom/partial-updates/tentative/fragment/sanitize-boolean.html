@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: sanitize attribute boolean behavior</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<div id="container-no-val">
+  <div id="target-no-val">
+    <?start name="marker-no-val">Original<?end>
+  </div>
+  <template for="marker-no-val" sanitize>
+    <script>window.scriptNoVal = true;</script>
+    <span id="ok-no-val">Allowed No Val</span>
+  </template>
+</div>
+
+<div id="container-empty-val">
+  <div id="target-empty-val">
+    <?start name="marker-empty-val">Original<?end>
+  </div>
+  <template for="marker-empty-val" sanitize="">
+    <script>window.scriptEmptyVal = true;</script>
+    <span id="ok-empty-val">Allowed Empty Val</span>
+  </template>
+</div>
+
+<div id="container-name-val">
+  <div id="target-name-val">
+    <?start name="marker-name-val">Original<?end>
+  </div>
+  <template for="marker-name-val" sanitize="sanitize">
+    <script>window.scriptNameVal = true;</script>
+    <span id="ok-name-val">Allowed Name Val</span>
+  </template>
+</div>
+
+<div id="container-case-val">
+  <div id="target-case-val">
+    <?start name="marker-case-val">Original<?end>
+  </div>
+  <template for="marker-case-val" sanitize="SaNiTiZe">
+    <script>window.scriptCaseVal = true;</script>
+    <span id="ok-case-val">Allowed Case Val</span>
+  </template>
+</div>
+
+<div id="container-invalid-val">
+  <div id="target-invalid-val">
+    <?start name="marker-invalid-val">Original<?end>
+  </div>
+  <template for="marker-invalid-val" sanitize="invalid">
+    <script>window.scriptInvalidVal = true;</script>
+    <span id="ok-invalid-val">Allowed Invalid Val</span>
+  </template>
+</div>
+
+<div id="container-space-val">
+  <div id="target-space-val">
+    <?start name="marker-space-val">Original<?end>
+  </div>
+  <template for="marker-space-val" sanitize=" ">
+    <script>window.scriptSpaceVal = true;</script>
+    <span id="ok-space-val">Allowed Space Val</span>
+  </template>
+</div>
+
+<script>
+test(() => {
+  assert_false(!!window.scriptNoVal, "sanitize (no value) should sanitize and block script");
+  assert_equals(document.querySelector('#target-no-val span').textContent, 'Allowed No Val');
+
+  assert_false(!!window.scriptEmptyVal, "sanitize=\"\" (empty value) should sanitize and block script");
+  assert_equals(document.querySelector('#target-empty-val span').textContent, 'Allowed Empty Val');
+
+  assert_false(!!window.scriptNameVal, "sanitize=\"sanitize\" (exact name match) should sanitize and block script");
+  assert_equals(document.querySelector('#target-name-val span').textContent, 'Allowed Name Val');
+
+  assert_false(!!window.scriptCaseVal, "sanitize=\"SaNiTiZe\" (case-insensitive match) should sanitize and block script");
+  assert_equals(document.querySelector('#target-case-val span').textContent, 'Allowed Case Val');
+
+  assert_true(!!window.scriptInvalidVal, "sanitize=\"invalid\" (invalid value) should NOT sanitize and script should run");
+  assert_equals(document.querySelector('#target-invalid-val span').textContent, 'Allowed Invalid Val');
+
+  assert_true(!!window.scriptSpaceVal, "sanitize=\" \" (space value) should NOT sanitize and script should run");
+  assert_equals(document.querySelector('#target-space-val span').textContent, 'Allowed Space Val');
+}, "The sanitize attribute behaves like a boolean attribute");
+</script>
+</body>

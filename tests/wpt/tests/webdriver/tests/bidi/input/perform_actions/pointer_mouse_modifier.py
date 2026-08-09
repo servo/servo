@@ -78,6 +78,86 @@ async def test_control_click(
     assert expected == filtered_events
 
 
+@pytest.mark.parametrize(
+    "modifier, prop",
+    [
+        (Keys.CONTROL, "ctrlKey"),
+        (Keys.R_CONTROL, "ctrlKey"),
+    ],
+)
+async def test_control_dblclick(
+    bidi_session,
+    current_session,
+    top_context,
+    get_element,
+    load_static_test_page,
+    modifier,
+    prop,
+):
+    os = current_session.capabilities["platformName"]
+
+    await load_static_test_page(page="test_actions.html")
+    outer = await get_element("#outer")
+
+    actions = Actions()
+    (
+        actions.add_key()
+        .pause(duration=0)
+        .key_down(modifier)
+        .pause(duration=200)
+        .pause(duration=0)
+        .pause(duration=200)
+        .pause(duration=0)
+        .key_up(modifier)
+    )
+    (
+        actions.add_pointer()
+        .pointer_move(x=0, y=0, origin=get_element_origin(outer))
+        .pointer_down(button=0)
+        .pointer_up(button=0)
+        .pause(duration=0)
+        .pointer_down(button=0)
+        .pointer_up(button=0)
+    )
+
+    await bidi_session.input.perform_actions(
+        actions=actions, context=top_context["context"]
+    )
+
+    if os != "mac":
+        expected = [
+            {"type": "mousemove"},
+            {"type": "mousedown"},
+            {"type": "mouseup"},
+            {"type": "click"},
+            {"type": "mousedown"},
+            {"type": "mouseup"},
+            {"type": "click"},
+            {"type": "dblclick"},
+        ]
+    else:
+        expected = [
+            {"type": "mousemove"},
+            {"type": "mousedown"},
+            {"type": "contextmenu"},
+            {"type": "mouseup"},
+            {"type": "mousedown"},
+            {"type": "contextmenu"},
+            {"type": "mouseup"},
+        ]
+
+    defaults = {"altKey": False, "metaKey": False, "shiftKey": False, "ctrlKey": False}
+
+    for e in expected:
+        e.update(defaults)
+        if e["type"] != "mousemove":
+            e[prop] = True
+
+    all_events = await get_events(bidi_session, top_context["context"])
+    filtered_events = [filter_dict(e, expected[0]) for e in all_events]
+    assert expected == filtered_events
+
+
 async def test_control_click_release(
     bidi_session, top_context, load_static_test_page, get_focused_key_input
 ):

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<title>CSSOM View - getBoxQuads() during custom element connection</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#the-geometryutils-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/geometry-utils.js"></script>
+<style>
+  geometry-source {
+    display: block;
+    position: absolute;
+    width: 80px;
+    height: 24px;
+    border: 2px solid;
+  }
+
+  geometry-source > span {
+    box-sizing: border-box;
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: 8px;
+    height: 6px;
+    border: 1px solid;
+  }
+
+  geometry-overlay {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  #canvas {
+    position: relative;
+  }
+
+</style>
+<div id="canvas"></div>
+<script>
+const markerPositions = [
+  [3, 4],
+  [14, 5],
+  [25, 6],
+  [36, 7],
+  [47, 8],
+  [58, 9],
+];
+const observations = [];
+const sources = [];
+
+customElements.define("geometry-overlay", class extends HTMLElement {
+  connectedCallback() {
+    observations.push([...this.source.children].map(marker =>
+      marker.getBoxQuads({relativeTo: this.relativeTo})[0]));
+  }
+});
+
+test(() => {
+  assert_equals(typeof Element.prototype.getBoxQuads, "function",
+                "Element.prototype.getBoxQuads");
+
+  const itemCount = 300;
+  const canvas = document.getElementById("canvas");
+
+  for (let i = 0; i < itemCount; ++i) {
+    const source = document.createElement("geometry-source");
+    source.style.left = `${(i % 100) * 2}px`;
+    source.style.top = `${Math.floor(i / 100) * 2}px`;
+    for (const [x, y] of markerPositions) {
+      const marker = document.createElement("span");
+      marker.style.setProperty("--x", `${x}px`);
+      marker.style.setProperty("--y", `${y}px`);
+      source.appendChild(marker);
+    }
+    canvas.appendChild(source);
+    sources.push(source);
+  }
+  canvas.offsetTop;
+
+  for (const source of sources) {
+    const overlay = document.createElement("geometry-overlay");
+    overlay.source = source;
+    overlay.relativeTo = canvas;
+    canvas.appendChild(overlay);
+  }
+  assert_equals(observations.length, itemCount,
+                "every connected callback collected geometry");
+
+  for (let itemIndex = 0; itemIndex < observations.length; ++itemIndex) {
+    assert_equals(observations[itemIndex].length, markerPositions.length,
+                  `item ${itemIndex} has one quad per marker`);
+  }
+
+  const sampleIndices = [...new Set([
+    0,
+    Math.floor(itemCount / 2),
+    itemCount - 1,
+  ])];
+  for (const itemIndex of sampleIndices) {
+    const source = sources[itemIndex];
+    const stableQuads = [...source.children].map(marker =>
+      marker.getBoxQuads({relativeTo: canvas})[0]);
+    for (let markerIndex = 0; markerIndex < markerPositions.length;
+         ++markerIndex) {
+      assert_quad_approx_equals(
+        observations[itemIndex][markerIndex], stableQuads[markerIndex],
+        `item ${itemIndex}, marker ${markerIndex}`);
+    }
+  }
+}, "getBoxQuads() returns current geometry from connectedCallback");
+
+test(() => {
+  const container = document.createElement("div");
+  container.style.cssText =
+    "position:relative; overflow:auto; width:100px; height:100px";
+  const oldChild = document.createElement("div");
+  oldChild.style.cssText =
+    "position:absolute; right:0; bottom:0; width:20px; height:20px";
+  container.appendChild(oldChild);
+  document.body.appendChild(container);
+  oldChild.getBoxQuads();
+
+  const overflowChild = document.createElement("div");
+  overflowChild.style.cssText =
+    "position:absolute; left:200px; top:200px; width:20px; height:20px";
+  container.appendChild(overflowChild);
+
+  const quad = oldChild.getBoxQuads({relativeTo: container})[0];
+  assert_approx_equals(quad.p2.x, container.clientWidth, 0.01,
+                       "right edge follows the resized containing block");
+  assert_approx_equals(quad.p3.y, container.clientHeight, 0.01,
+                       "bottom edge follows the resized containing block");
+}, "getBoxQuads() updates reused OOF geometry after scrollbars appear");
+</script>

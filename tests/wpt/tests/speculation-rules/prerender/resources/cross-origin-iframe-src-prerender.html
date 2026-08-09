@@ -12,7 +12,7 @@ document.addEventListener('prerenderingchange', () => {
   prerenderChannel.close();
 });
 
-prerenderChannel.postMessage('onload');
+prerenderChannel.postMessage(`onload. initial_prerendering=${initial_prerendering}`);
 </script>
 foobar
 </body>

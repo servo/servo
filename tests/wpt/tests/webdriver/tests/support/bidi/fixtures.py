@@ -124,6 +124,20 @@ async def execute_as_async(bidi_session):
 
 
 @pytest_asyncio.fixture
+async def get_document_focus(bidi_session):
+    async def get_document_focus(context):
+        result = await bidi_session.script.call_function(
+            function_declaration="""() => {
+            return document.hasFocus();
+        }""",
+            target=ContextTarget(context["context"]),
+            await_promise=False)
+        return result["value"]
+
+    return get_document_focus
+
+
+@pytest_asyncio.fixture
 async def subscribe_events(bidi_session):
     subscriptions = []
 

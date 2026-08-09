@@ -48,6 +48,7 @@ def test_get_credentials_resident(session, authenticator):
     credential = create_credential(
         credential_id="cmVzaWRlbnQ",
         is_resident_credential=True,
+        user_handle="dXNlcjE",
         sign_count=10,
     )
     session.web_authn.add_credential(authenticator, credential)

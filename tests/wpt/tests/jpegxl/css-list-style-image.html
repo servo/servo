@@ -1,0 +1,20 @@
+<html class="reftest-wait">
+<title>JPEG XL CSS list-style-image</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<link rel="match" href="css-list-style-image-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  li {
+    list-style-image: url(resources/3x3_srgb_lossless.jxl);
+  }
+</style>
+<ul><li>item</li></ul>
+<script>
+  new Promise(r => {
+    const img = new Image();
+    img.onload = r;
+    img.onerror = r;
+    img.src = "resources/3x3_srgb_lossless.jxl";
+  }).then(takeScreenshot);
+</script>
+</html>
