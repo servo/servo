@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
@@ -128,20 +128,12 @@ pub(crate) fn generate_key(
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
             // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
             // of usages and [ "verify" ].
-            usages
-                .iter()
-                .filter(|usage| **usage == KeyUsage::Verify)
-                .cloned()
-                .collect()
+            usages.usage_intersection(&[KeyUsage::Verify])
         },
         RsaAlgorithm::RsaOaep => {
             // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
             // of usages and [ "encrypt", "wrapKey" ].
-            usages
-                .iter()
-                .filter(|usage| matches!(usage, KeyUsage::Encrypt | KeyUsage::WrapKey))
-                .cloned()
-                .collect()
+            usages.usage_intersection(&[KeyUsage::Encrypt, KeyUsage::WrapKey])
         },
     };
     let public_key = CryptoKey::new(
@@ -163,20 +155,12 @@ pub(crate) fn generate_key(
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
             // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
             // of usages and [ "sign" ].
-            usages
-                .iter()
-                .filter(|usage| **usage == KeyUsage::Sign)
-                .cloned()
-                .collect()
+            usages.usage_intersection(&[KeyUsage::Sign])
         },
         RsaAlgorithm::RsaOaep => {
             // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
             // of usages and [ "decrypt", "unwrapKey" ].
-            usages
-                .iter()
-                .filter(|usage| matches!(usage, KeyUsage::Decrypt | KeyUsage::UnwrapKey))
-                .cloned()
-                .collect()
+            usages.usage_intersection(&[KeyUsage::Decrypt, KeyUsage::UnwrapKey])
         },
     };
     let private_key = CryptoKey::new(
