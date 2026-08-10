@@ -391,13 +391,6 @@ pub(crate) struct GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#resolved-module-set>
     resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
 
-    /// The [`FontContext`] for this [`GlobalScope`] if it has one. This is used for
-    /// canvas and layout, so if this [`GlobalScope`] doesn't need to use either, this
-    /// might be `None`.
-    #[conditional_malloc_size_of]
-    #[no_trace]
-    font_context: Option<Arc<FontContext>>,
-
     /// <https://fetch.spec.whatwg.org/#environment-settings-object-fetch-group>
     #[no_trace]
     fetch_group: RefCell<FetchGroup>,
@@ -791,7 +784,6 @@ impl GlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
-        font_context: Option<Arc<FontContext>>,
     ) -> Self {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
@@ -834,7 +826,6 @@ impl GlobalScope {
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
             resolved_module_set: Default::default(),
-            font_context,
             fetch_group: Default::default(),
         }
     }
@@ -868,8 +859,14 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn font_context(&self) -> Option<&Arc<FontContext>> {
-        self.font_context.as_ref()
+    pub(crate) fn font_context(&self) -> Arc<FontContext> {
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.font_context()
+        } else if let Some(window) = self.downcast::<Window>() {
+            window.font_context()
+        } else {
+            unreachable!("Unsupported global type retrieving font context")
+        }
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>

@@ -369,6 +369,11 @@ pub(crate) struct WorkerGlobalScope {
 
     #[no_trace]
     origin: MutableOrigin,
+
+    /// The [`FontContext`] for this worker, used by any offscreen canvas.
+    #[conditional_malloc_size_of]
+    #[no_trace]
+    font_context: Arc<FontContext>,
 }
 
 impl WorkerGlobalScope {
@@ -383,7 +388,7 @@ impl WorkerGlobalScope {
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,
-        font_context: Option<Arc<FontContext>>,
+        font_context: Arc<FontContext>,
         event_loop_sender: Option<ScriptEventLoopSender>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
@@ -409,7 +414,6 @@ impl WorkerGlobalScope {
                 gpu_id_hub,
                 init.inherited_secure_context,
                 init.unminify_js,
-                font_context,
             ),
             caches: Default::default(),
             microtask_queue: runtime.microtask_queue.clone(),
@@ -443,7 +447,12 @@ impl WorkerGlobalScope {
                 Some(TaskCanceller { cancelled: closing }),
             )),
             origin: MutableOrigin::new(init.origin),
+            font_context,
         }
+    }
+
+    pub(crate) fn font_context(&self) -> Arc<FontContext> {
+        self.font_context.clone()
     }
 
     pub(crate) fn timers(&self) -> &OneshotTimers {

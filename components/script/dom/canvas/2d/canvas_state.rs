@@ -1572,11 +1572,7 @@ impl CanvasState {
             self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into());
         }
 
-        let Some(font_context) = global.font_context() else {
-            warn!("Tried to paint to a canvas of GlobalScope without a FontContext.");
-            return TextMetrics::default(global, cx);
-        };
-
+        let font_context = &global.font_context();
         let font_style = self.font_style();
         let font_group = font_context.font_group(font_style);
         let font = font_group.first(font_context).expect("couldn't find font");
@@ -2354,10 +2350,7 @@ impl CanvasState {
         size: f64,
         max_width: Option<f64>,
     ) -> Option<(Rect<f64>, Vec<TextRun>)> {
-        let Some(font_context) = global_scope.font_context() else {
-            warn!("Tried to paint to a canvas of GlobalScope without a FontContext.");
-            return None;
-        };
+        let font_context = &global_scope.font_context();
 
         // Step 1: If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.
         if max_width.is_some_and(|max_width| max_width.is_nan() || max_width <= 0.) {

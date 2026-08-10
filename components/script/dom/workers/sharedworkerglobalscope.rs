@@ -251,7 +251,7 @@ impl SharedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<SharedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
-        font_context: Option<Arc<FontContext>>,
+        font_context: Arc<FontContext>,
         debugger_global: &DebuggerGlobalScope,
         storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
@@ -313,7 +313,7 @@ impl SharedWorkerGlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         control_receiver: Receiver<SharedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
-        font_context: Option<Arc<FontContext>>,
+        font_context: Arc<FontContext>,
         debugger_global: &DebuggerGlobalScope,
         storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
@@ -384,7 +384,7 @@ impl SharedWorkerGlobalScope {
         storage_key: SharedWorkerStorageKey,
         insecure_requests_policy: InsecureRequestsPolicy,
         policy_container: PolicyContainer,
-        font_context: Option<Arc<FontContext>>,
+        font_context: Arc<FontContext>,
     ) -> io::Result<JoinHandle<()>> {
         let event_loop_id = ScriptEventLoopId::installed()
             .expect("Should always be in a ScriptThread or in a worker");

@@ -735,6 +735,10 @@ impl Layout for LayoutThread {
     fn set_needs_accessibility_update(&self) {
         self.needs_accessibility_update.set(true);
     }
+
+    fn font_context(&self) -> &Arc<FontContext> {
+        &self.font_context
+    }
 }
 
 impl LayoutThread {
