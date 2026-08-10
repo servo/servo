@@ -890,7 +890,7 @@ impl ImageCache for ImageCacheImpl {
                 size: svg_id_map,
             },
             Report {
-                path: path![prefix, "image-cache", "broken_image"],
+                path: path![prefix, "image-cache", "broken_image_icon"],
                 kind: ReportKind::ExplicitSystemHeapSize,
                 size: broken_image_size,
             },
