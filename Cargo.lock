@@ -12366,11 +12366,10 @@ dependencies = [
 
 [[package]]
 name = "wuff"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f0bd4b3863c66b53b6569ff8470434a7191ab07642fe8ddb3f9558ced547fe0"
+checksum = "f625c6894838ab68e8c1c6e0f728e67363c9d4391cfa82333e58e6e30bc3a627"
 dependencies = [
- "arrayvec",
  "brotli-decompressor",
  "bytes",
 ]
