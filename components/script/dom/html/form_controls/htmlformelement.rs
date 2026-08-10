@@ -341,12 +341,14 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                 let owner = match submitters_owner {
                     Some(owner) => owner,
                     None => {
-                        return Err(Error::NotFound(None));
+                        return Err(Error::NotFound(Some(
+                            "Form element's owner does not exist".into(),
+                        )));
                     },
                 };
 
                 if *owner != *self {
-                    return Err(Error::NotFound(None));
+                    return Err(Error::NotFound(Some("The form that owns this submitter element does not match the form element provided".into())));
                 }
 
                 submit_button

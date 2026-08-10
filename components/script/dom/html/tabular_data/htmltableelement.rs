@@ -117,7 +117,9 @@ impl HTMLTableElement {
         if let Some(e) = section &&
             e.upcast::<Element>().local_name() != atom
         {
-            return Err(Error::HierarchyRequest(None));
+            return Err(Error::HierarchyRequest(Some(
+                "Section element must be null or is not a thead nor a tfoot element".into(),
+            )));
         }
 
         self.delete_first_section_of_type(cx, atom);
@@ -350,7 +352,9 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         let number_of_row_elements = rows.Length(cx);
 
         if index < -1 || index > number_of_row_elements as i32 {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Index value must be equal to or greater than -1 and less than the number of row elements".into(),
+            )));
         }
 
         let new_row = Element::create(
@@ -431,7 +435,9 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         // Step 1: If index is less than −1 or greater than or equal to the number of elements
         // in the rows collection, then throw an "IndexSizeError".
         if !(-1..num_rows).contains(&index) {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Index value must be equal to or greater than -1 and less than the number of row elements".into(),
+            )));
         }
 
         let num_rows = rows.Length(cx) as i32;

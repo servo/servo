@@ -873,7 +873,9 @@ impl HTMLMediaElement {
             self.paused.set(true);
 
             // Step 2.2. Take pending play promises and let promises be the result.
-            self.take_pending_play_promises(Err(Error::Abort(None)));
+            self.take_pending_play_promises(Err(Error::Abort(Some(
+                "Could not take pending play promise for media element".into(),
+            ))));
 
             // Step 2.3. Queue a media element task given the media element and the following steps:
             let this = Trusted::new(self);
@@ -1613,7 +1615,9 @@ impl HTMLMediaElement {
     fn queue_dedicated_media_source_failure_steps(&self) {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
-        self.take_pending_play_promises(Err(Error::NotSupported(None)));
+        self.take_pending_play_promises(Err(Error::NotSupported(Some(
+            "Could not take pending play promises".into(),
+        ))));
         self.owner_global()
             .task_manager()
             .media_element_task_source()
@@ -1767,7 +1771,9 @@ impl HTMLMediaElement {
 
                 // Step 7.6.2. Take pending play promises and reject pending play promises with the
                 // result and an "AbortError" DOMException.
-                self.take_pending_play_promises(Err(Error::Abort(None)));
+                self.take_pending_play_promises(Err(Error::Abort(Some(
+                    "Could not take pending play promises".into(),
+                ))));
                 self.fulfill_in_flight_play_promises(cx, |_| ());
             }
 
@@ -2334,7 +2340,7 @@ impl HTMLMediaElement {
 
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
                     // the result and an "AbortError" DOMException.
-                    this.take_pending_play_promises(Err(Error::Abort(None)));
+                    this.take_pending_play_promises(Err(Error::Abort(Some("Could not take pending play promises".into()))));
                     this.fulfill_in_flight_play_promises(cx, |_| ());
                 }
 
@@ -3217,7 +3223,10 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             .get()
             .is_some_and(|e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
         {
-            promise.reject_error(cx, Error::NotSupported(None));
+            promise.reject_error(
+                cx,
+                Error::NotSupported(Some("Media element source not supported".into())),
+            );
             return promise;
         }
 
@@ -3261,7 +3270,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let min_allowed = -64.0;
         let max_allowed = 64.0;
         if *value < min_allowed || *value > max_allowed {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Playback rate value must be between -64.0 and 64.0".into(),
+            )));
         }
 
         if self.default_playback_rate.get() == *value {
@@ -3291,7 +3302,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let min_allowed = -64.0;
         let max_allowed = 64.0;
         if *value < min_allowed || *value > max_allowed {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Playback rate value must be between -64.0 and 64.0".into(),
+            )));
         }
 
         if self.playback_rate.get() == *value {
@@ -3456,7 +3469,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         let minimum_volume = 0.0;
         let maximum_volume = 1.0;
         if *value < minimum_volume || *value > maximum_volume {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Volume value must be between 0.0 and 1.0".into(),
+            )));
         }
 
         if self.volume.get() == *value {
