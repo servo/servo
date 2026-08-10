@@ -194,8 +194,8 @@ pub(crate) struct DefaultImageDecoder<'a> {
 
 /// Main Image decoder trait.
 pub(crate) trait ServoImageDecoder<'a>: Sized + std::fmt::Debug {
-    /// Create a decoder for a `format` from a `buffer`.
-    fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self>;
+    /// Create a decoder for a `buffer`. Return an error if the format is not supported.
+    fn make_decoder(buffer: &'a [u8]) -> ImageResult<Self>;
     fn is_animated(&self) -> bool;
     /// Return the created decoder in `impl ImageDecoder`
     fn decoder(self) -> impl ImageDecoder;
@@ -204,7 +204,8 @@ pub(crate) trait ServoImageDecoder<'a>: Sized + std::fmt::Debug {
 }
 
 impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
-    fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self> {
+    fn make_decoder(buffer: &'a [u8]) -> ImageResult<Self> {
+        let format = image::guess_format(buffer)?;
         let reader = Cursor::new(buffer);
         let decoder = match format {
             ImageFormat::Png => {
