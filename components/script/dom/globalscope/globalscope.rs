@@ -3655,6 +3655,10 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     fn is_secure_context(&self) -> bool {
         self.is_secure_context()
     }
+
+    fn pipeline_id(&self) -> PipelineId {
+        self.pipeline_id()
+    }
 }
 
 impl OwnerWindow<DomTypeHolder> for GlobalScope {}

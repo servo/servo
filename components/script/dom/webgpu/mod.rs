@@ -2,8 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+use std::sync::Arc;
+
+use script_webgpu::promise::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+
+use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::types::GPUAdapter;
+use crate::dom::{GlobalScope, Promise};
+use crate::routed_promise::callback_promise;
+
 pub(crate) mod gpu;
-pub(crate) mod gpuadapter;
+pub(crate) mod gpuadapter_promise_listener;
+pub(crate) mod gpuadapter {
+    pub(crate) type GPUAdapter = script_webgpu::gpuadapter::GPUAdapter<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuadapterinfo {
     pub(crate) type GPUAdapterInfo =
         script_webgpu::gpuadapterinfo::GPUAdapterInfo<crate::DomTypeHolder>;
@@ -63,8 +76,14 @@ pub(crate) mod gpushaderstage {
     pub(crate) type GPUShaderStage =
         script_webgpu::gpushaderstage::GPUShaderStage<crate::DomTypeHolder>;
 }
-pub(crate) mod gpusupportedfeatures;
-pub(crate) mod gpusupportedlimits;
+pub(crate) mod gpusupportedfeatures {
+    pub(crate) type GPUSupportedFeatures =
+        script_webgpu::gpusupportedfeatures::GPUSupportedFeatures<crate::DomTypeHolder>;
+}
+pub(crate) mod gpusupportedlimits {
+    pub(crate) type GPUSupportedLimits =
+        script_webgpu::gpusupportedlimits::GPUSupportedLimits<crate::DomTypeHolder>;
+}
 pub(crate) mod gputexture;
 pub(crate) mod gputextureusage {
     pub(crate) type GPUTextureUsage =
@@ -76,4 +95,23 @@ pub(crate) mod gpuvalidationerror;
 pub(crate) mod identityhub {
     pub(crate) type IdentityHub = script_webgpu::identityhub::IdentityHub;
 }
-pub(crate) mod wgsllanguagefeatures;
+pub(crate) mod wgsllanguagefeatures {
+    pub(crate) type WGSLLanguageFeatures =
+        script_webgpu::wgsllanguagefeatures::WGSLLanguageFeatures<crate::DomTypeHolder>;
+}
+
+impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
+    fn callback_promise(
+        self: &Rc<Self>,
+        d: &GPUAdapter,
+    ) -> servo_base::generic_channel::GenericCallback<webgpu_traits::WebGPUDeviceResponse> {
+        let task_manager = <GPUAdapter as DomGlobal>::global(d).task_manager();
+        callback_promise(self, d, task_manager.dom_manipulation_task_source())
+    }
+}
+
+impl WebGPUGlobalTrait for GlobalScope {
+    fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
+        self.wgpu_id_hub()
+    }
+}

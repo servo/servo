@@ -13,6 +13,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use crate::conversions::DerivedFrom;
 use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
+use crate::realms::enter_auto_realm;
 use crate::root::{Dom, DomRoot, Root};
 use crate::{DomTypes, JSTraceable};
 
@@ -222,6 +223,19 @@ pub trait DomGlobalGeneric<D: DomTypes>: DomObject {
     where
         Self: Sized,
     {
+        // SAFETY: We only use this `cx` to enter a realm. That does not
+        // incur a GC and hence is safe to perform. We do not want to
+        // pass a `cx` as parameter to this function, as this used in
+        // loads of places. At the same time, it also isn't necessary in
+        // nearly all cases to enter realm, since we are already in the
+        // correct realm.
+        //
+        // However, there are cases where it is difficult to ensure that
+        // we are in the correct realm. Hence we always enter a realm here
+        // even if that is unnecessary at times.
+        let cx = unsafe { JSContext::get_from_thread() };
+        let cx = &mut cx.expect("JS runtime has shut down");
+        let _realm = enter_auto_realm::<D>(cx, self);
         D::GlobalScope::from_reflector(self)
     }
 }

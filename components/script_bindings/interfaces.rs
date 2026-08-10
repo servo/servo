@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::thread::LocalKey;
 
 use js::context::JSContext;
@@ -10,6 +11,7 @@ use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
+use servo_base::id::PipelineId;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::DomTypes;
@@ -80,6 +82,13 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     fn get_url(&self) -> ServoUrl;
 
     fn is_secure_context(&self) -> bool;
+
+    fn pipeline_id(&self) -> PipelineId;
+}
+
+pub trait PromiseHelpers<D: DomTypes> {
+    fn new_in_realm(cx: &mut CurrentRealm) -> Rc<D::Promise>;
+    fn reject_error(&self, cx: &mut JSContext, error: Error);
 }
 
 pub trait DocumentHelpers {
