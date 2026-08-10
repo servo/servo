@@ -16,10 +16,9 @@ use style::attr::parse_unsigned_integer;
 use style::stylesheets::CssRuleType;
 use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::ParsingMode;
-use url::Url;
 use xml5ever::local_name;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlpictureelement::HTMLPictureElement;
@@ -348,11 +347,13 @@ impl SourceSet {
 pub fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
-    let url_data = Url::parse("about:blank").unwrap().into();
     // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
     // browsers do regarding quirks-mode in a media list?
-    let context =
-        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::empty(), &url_data);
+    let context = parser_context_for_anonymous_content(
+        CssRuleType::Style,
+        ParsingMode::empty(),
+        &ANONYMOUS_CONTENT_URL_DATA,
+    );
     SourceSizeList::parse(&context, &mut parser)
 }
 

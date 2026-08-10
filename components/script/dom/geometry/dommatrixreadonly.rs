@@ -24,9 +24,8 @@ use servo_base::id::{DomMatrixId, DomMatrixIndex};
 use servo_constellation_traits::DomMatrix;
 use style::stylesheets::CssRuleType;
 use style_traits::ParsingMode;
-use url::Url;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{
     DOMMatrix2DInit, DOMMatrixInit, DOMMatrixMethods,
@@ -1242,9 +1241,11 @@ pub(crate) fn transform_to_matrix(value: &str) -> Fallible<(bool, Transform3D<f6
 
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
-    let url_data = Url::parse("about:blank").unwrap().into();
-    let context =
-        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url_data);
+    let context = parser_context_for_anonymous_content(
+        CssRuleType::Style,
+        ParsingMode::DEFAULT,
+        &ANONYMOUS_CONTENT_URL_DATA,
+    );
 
     let transform = match parser.parse_entirely(|t| transform::parse(&context, t)) {
         Ok(result) => result,

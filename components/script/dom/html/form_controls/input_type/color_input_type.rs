@@ -16,9 +16,8 @@ use style::selector_parser::PseudoElement;
 use style::stylesheets::CssRuleType;
 use style::values::specified::Color;
 use style_traits::{ParsingMode, ToCss};
-use url::Url;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::document_embedder_controls::ControlElement;
@@ -268,14 +267,14 @@ impl SpecificInputActivationType for ColorInputActivation {
     }
 }
 
-fn parse_color_value(value: &str, url: Url) -> AbsoluteColor {
-    // TODO: Use a dummy url here, like gecko
-    // https://searchfox.org/firefox-main/rev/3eaf7e2acf8186eb7aa579561eaa1312cb89132b/servo/ports/geckolib/glue.rs#8931
-    let urlextradata = url.into();
+fn parse_color_value(value: &str, _url: Url) -> AbsoluteColor {
+    // Color-parsing does not use a URL, but ParserContext requires it as a parameter.
+    // We pass ANONYMOUS_CONTENT_URL_DATA since that's cheap and it will be ignored anyway.
+    let urlextradata = &ANONYMOUS_CONTENT_URL_DATA;
     let context = parser_context_for_anonymous_content(
         CssRuleType::Style,
         ParsingMode::DEFAULT,
-        &urlextradata,
+        urlextradata,
     );
     let mut input = ParserInput::new(value);
     let mut input = Parser::new(&mut input);
