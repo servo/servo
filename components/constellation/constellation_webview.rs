@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
+
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use servo_base::Epoch;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_constellation_traits::SessionHistoryTraversalRequest;
 use style_traits::CSSPixel;
 
 use crate::browsingcontext::BrowsingContext;
@@ -42,6 +45,16 @@ pub(crate) struct ConstellationWebView {
 
     /// The joint session history for this webview.
     pub session_history: JointSessionHistory,
+
+    /// <https://html.spec.whatwg.org/multipage/#tn-session-history-traversal-queue>
+    ///
+    /// A queue of traversals that should be applied sequentially. The next item from
+    /// the queue is applied once [`Self::ongoing_history_traversal_request`] has finished.
+    pub session_history_traversal_request_queue: VecDeque<SessionHistoryTraversalRequest>,
+
+    /// The currently running session history traversal. This will be completed once all
+    /// `Pipeline`s in a traversal become active or their load fails for some other reason.
+    pub ongoing_history_traversal_request: Option<OngoingHistoryTraversalRequest>,
 
     /// The [`UserContentManagerId`] for all pipelines in this `WebView`. This is `Some`
     /// if the embedder has set a `UserContentManager` using the WebViewBuilder API and
@@ -76,6 +89,8 @@ impl ConstellationWebView {
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),
             session_history: JointSessionHistory::new(),
+            session_history_traversal_request_queue: Default::default(),
+            ongoing_history_traversal_request: None,
             theme: Theme::Light,
             accessibility_active: false,
         }
@@ -188,4 +203,42 @@ impl ConstellationWebView {
             ));
         true
     }
+
+    /// If there is an ongoing history traversal request that is waiting on documents to
+    /// reload, check to see if none of its pipelines are awaiting activation. If that's the
+    /// case unset the ongoing request and return it.
+    pub(crate) fn maybe_finish_ongoing_session_history_traversal_request(
+        &mut self,
+        pipelines_with_pending_changes: &FxHashSet<PipelineId>,
+    ) -> Option<SessionHistoryTraversalRequest> {
+        let ongoing_history_traversal_request = self.ongoing_history_traversal_request.as_mut()?;
+        ongoing_history_traversal_request
+            .pipelines_awaiting_activation
+            .retain(|pipeline_id| pipelines_with_pending_changes.contains(pipeline_id));
+
+        if !ongoing_history_traversal_request
+            .pipelines_awaiting_activation
+            .is_empty()
+        {
+            return None;
+        }
+        Some(
+            self.ongoing_history_traversal_request
+                .take()
+                .expect("Guaranteed above")
+                .traversal_request,
+        )
+    }
+}
+
+/// A [`HistoryTraversalRequest`] that is in progress because it is waiting
+/// for documents that need reloading.
+pub(crate) struct OngoingHistoryTraversalRequest {
+    /// The [`HistoryTraversalRequest`] that spawned this series of navigations.
+    pub traversal_request: SessionHistoryTraversalRequest,
+    /// The ids of all the `Pipeline`s that needed reloading for this traversal.
+    /// Multiple pipelines can be traversed if the top-level document contained
+    /// `<iframe>`s / browsing contexts. The traversal is only done when all of
+    /// the pipelines are ready or have failed to load.
+    pub pipelines_awaiting_activation: FxHashSet<PipelineId>,
 }

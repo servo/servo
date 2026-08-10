@@ -92,10 +92,10 @@ use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_constellation_traits::{
-    LoadData, LoadOrigin, NavigationHistoryBehavior, RemoteFocusOperation,
+    HistoryTraversalSource, LoadData, LoadOrigin, NavigationHistoryBehavior, RemoteFocusOperation,
     ScreenshotReadinessResponse, ScriptToConstellationChan, ScriptToConstellationMessage,
-    ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams, TraversalDirection,
-    WindowSizeType,
+    ScrollStateUpdate, SessionHistoryTraversalRequest, StructuredSerializedData,
+    TargetSnapshotParams, TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -4258,12 +4258,19 @@ impl ScriptThread {
         // The constellation only needs to know the WebView ID for navigation,
         // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.
         if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            let webview_id = document.webview_id();
             self.senders
                 .pipeline_to_constellation_sender
                 .send((
-                    document.webview_id(),
+                    webview_id,
                     pipeline_id,
-                    ScriptToConstellationMessage::TraverseHistory(direction),
+                    ScriptToConstellationMessage::TraverseHistory(
+                        SessionHistoryTraversalRequest::new(
+                            webview_id,
+                            direction,
+                            HistoryTraversalSource::Script,
+                        ),
+                    ),
                 ))
                 .unwrap();
         }

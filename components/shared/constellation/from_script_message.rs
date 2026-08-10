@@ -47,7 +47,8 @@ use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 
 use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
-    LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, TraversalDirection, WindowSizeType,
+    LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, SessionHistoryTraversalRequest,
+    WindowSizeType,
 };
 
 pub type ScriptToConstellationSender =
@@ -758,7 +759,7 @@ pub enum ScriptToConstellationMessage {
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
     NavigatedToFragment(ServoUrl, NavigationHistoryBehavior),
     /// HTMLIFrameElement Forward or Back traversal.
-    TraverseHistory(TraversalDirection),
+    TraverseHistory(SessionHistoryTraversalRequest),
     /// Inform the constellation of a pushed history state.
     PushHistoryState(HistoryStateId, ServoUrl),
     /// Inform the constellation of a replaced history state.
