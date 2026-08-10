@@ -96,10 +96,7 @@ impl ColorInputType {
 
         // Step 3. Let color be the result of parsing value.
         // Step 4. If color is failure, then set color to opaque black.
-        let color = parse_color_value(
-            &value.str(),
-            input.owner_document().url().as_url().to_owned(),
-        );
+        let color = parse_color_value(&value.str());
 
         // Step 5. Set element's value to the result of serializing a color well control color
         // given element and color.
@@ -198,11 +195,8 @@ impl SpecificInputType for ColorInputType {
     fn show_the_picker_if_applicable(&self, input: &HTMLInputElement) {
         let document = input.owner_document();
         let current_value = input.Value();
-        let current_color = parse_color_value(
-            &current_value.str(),
-            input.owner_document().url().as_url().to_owned(),
-        )
-        .to_color_space(ColorSpace::Srgb);
+        let current_color =
+            parse_color_value(&current_value.str()).to_color_space(ColorSpace::Srgb);
         let current_color = RgbColor {
             red: (current_color.components.0 * 255.0).round() as u8,
             green: (current_color.components.1 * 255.0).round() as u8,
@@ -267,7 +261,7 @@ impl SpecificInputActivationType for ColorInputActivation {
     }
 }
 
-fn parse_color_value(value: &str, _url: Url) -> AbsoluteColor {
+fn parse_color_value(value: &str) -> AbsoluteColor {
     // Color-parsing does not use a URL, but ParserContext requires it as a parameter.
     // We pass ANONYMOUS_CONTENT_URL_DATA since that's cheap and it will be ignored anyway.
     let urlextradata = &ANONYMOUS_CONTENT_URL_DATA;
