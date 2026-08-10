@@ -11,7 +11,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 
-use crate::encoding::{DefaultImageEncoder, EncodedImageType, ServoImageEncoder};
+use crate::encoding::{EncodedImageType, ServoImageEncoder};
 use crate::{Multiply, rgba8_get_rect, transform_inplace};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
@@ -327,7 +327,15 @@ impl Snapshot {
         self.transform(alpha_mode, SnapshotPixelFormat::RGBA);
         let data = &self.data;
 
-        DefaultImageEncoder::encode_to_writer(data, image_type, width, height, encoder, quality)
+        cfg_select! {
+            target_env = "ohos" => crate::encoding_ohos::OhosImageEncoder::encode_to_writer(
+                data, image_type, width, height, encoder, quality,
+            )
+            .map_err(|_| {
+                ImageError::IoError(std::io::Error::new(std::io::ErrorKind::Other, "OHOS Encoder Error"))
+            }),
+            _ =>         crate::encoding::DefaultImageEncoder::encode_to_writer(data, image_type, width, height, encoder, quality),
+        }
     }
 }
 

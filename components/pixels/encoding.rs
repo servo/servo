@@ -5,7 +5,7 @@
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::webp::WebPEncoder;
-use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageResult, Rgb};
+use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageError, Rgb};
 
 #[derive(PartialEq)]
 pub enum EncodedImageType {
@@ -43,6 +43,8 @@ impl EncodedImageType {
 }
 
 pub(crate) trait ServoImageEncoder<W: std::io::Write> {
+    type Error;
+    /// Given pixels in an array `data` representing a picuture of `width` and `height`, encode them into `image_type` with optional quality `quality` and write the bytes to a `writer`.
     fn encode_to_writer(
         data: &[u8],
         image_type: &EncodedImageType,
@@ -50,12 +52,14 @@ pub(crate) trait ServoImageEncoder<W: std::io::Write> {
         height: u32,
         writer: W,
         quality: Option<f64>,
-    ) -> ImageResult<()>;
+    ) -> Result<(), Self::Error>;
 }
 
+#[cfg_attr(target_env = "ohos", expect(unused))]
 pub(crate) struct DefaultImageEncoder {}
 
 impl<W: std::io::Write> ServoImageEncoder<W> for DefaultImageEncoder {
+    type Error = ImageError;
     fn encode_to_writer(
         data: &[u8],
         image_type: &EncodedImageType,
@@ -63,7 +67,7 @@ impl<W: std::io::Write> ServoImageEncoder<W> for DefaultImageEncoder {
         height: u32,
         writer: W,
         quality: Option<f64>,
-    ) -> ImageResult<()> {
+    ) -> Result<(), Self::Error> {
         match image_type {
             EncodedImageType::Png => {
                 // FIXME(nox): https://github.com/image-rs/image-png/issues/86

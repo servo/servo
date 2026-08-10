@@ -4,6 +4,8 @@
 
 mod decoding;
 pub mod encoding;
+#[cfg(target_env = "ohos")]
+mod encoding_ohos;
 mod snapshot;
 
 use std::borrow::Cow;
