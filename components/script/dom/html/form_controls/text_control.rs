@@ -86,7 +86,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Step 1: If this element is an input element, and selectionStart does not apply
         // to this element, throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Selection API does not apply to input element".into(),
+            )));
         }
 
         // Step 2: Let end be the value of this element's selectionEnd attribute.
@@ -124,7 +126,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Step 1: If this element is an input element, and selectionEnd does not apply to
         // this element, throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Selection API does not apply to input element".into(),
+            )));
         }
 
         // Step 2: Set the selection range with the value of this element's selectionStart
@@ -148,7 +152,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     pub(crate) fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Selection API does not apply to input element".into(),
+            )));
         }
 
         // Step 2
@@ -170,7 +176,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
     ) -> ErrorResult {
         // Step 1
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Selection API does not apply to input element".into(),
+            )));
         }
 
         // Step 2
@@ -194,7 +202,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Step 1: If this element is an input element, and setRangeText() does not apply
         // to this element, throw an "InvalidStateError" DOMException.
         if !self.element.selection_api_applies() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Selection API does not apply to input element".into(),
+            )));
         }
 
         // Step 2: Set this element's dirty value flag to true.
@@ -214,7 +224,9 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Step 4: If start is greater than end, then throw an "IndexSizeError"
         // DOMException.
         if start > end {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Input element's start index cannot be greater than its end index".into(),
+            )));
         }
 
         // Save the original selection state to later pass to set_selection_range, because we will

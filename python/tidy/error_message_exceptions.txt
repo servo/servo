@@ -62,15 +62,6 @@
 ./components/script/dom/globalscope/globalscope.rs 1
 ./components/script/dom/globalscope/messageport.rs 2
 ./components/script/dom/globalscope/script_execution.rs 1
-./components/script/dom/html/embedded_content/htmlcanvaselement.rs 6
-./components/script/dom/html/embedded_content/htmlimageelement.rs 4
-./components/script/dom/html/embedded_content/htmlmediaelement.rs 8
-./components/script/dom/html/form_controls/htmlformelement.rs 2
-./components/script/dom/html/form_controls/htmlinputelement.rs 5
-./components/script/dom/html/form_controls/text_control.rs 6
-./components/script/dom/html/tabular_data/htmltableelement.rs 3
-./components/script/dom/html/htmlelement.rs 7
-./components/script/dom/html/htmloptionscollection.rs 2
 ./components/script/dom/indexeddb/idbcursor.rs 1
 ./components/script/dom/indexeddb/idbdatabase.rs 13
 ./components/script/dom/indexeddb/idbfactory.rs 9

@@ -435,7 +435,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
         if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Canvas element's context mode is set to placeholder: Cannot set width".into(),
+            )));
         }
 
         let value = if value > UNSIGNED_LONG_MAX {
@@ -457,7 +459,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
         if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Canvas element's context mode is set to placeholder: Cannot set height".into(),
+            )));
         }
 
         let value = if value > UNSIGNED_LONG_MAX {
@@ -479,7 +483,9 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     ) -> Fallible<Option<RootedRenderingContext>> {
         // Always throw an InvalidState exception when the canvas is in Placeholder mode (See table in the spec).
         if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Canvas element's context mode is set to placeholder: Cannot get context".into(),
+            )));
         }
 
         Ok(match &*id.str() {
@@ -508,7 +514,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // Step 1: If this canvas element's bitmap's origin-clean flag is set to false,
         // then throw a "SecurityError" DOMException.
         if !self.origin_is_clean() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some("Canvas bitmap is not clean".into())));
         }
 
         // Step 2: If this canvas element's bitmap has no pixels (i.e. either its
@@ -558,7 +564,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // If this canvas element's bitmap's origin-clean flag is set to false, then throw a
         // "SecurityError" DOMException.
         if !self.origin_is_clean() {
-            return Err(Error::Security(None));
+            return Err(Error::Security(Some("Canvas bitmap is not clean".into())));
         }
 
         // Step 2. Let result be null.
@@ -629,7 +635,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         if self.context_mode.borrow().is_some() {
             // Step 1.
             // If this canvas element's context mode is not set to none, throw an "InvalidStateError" DOMException.
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some("Canvas element's context mode must not be set when transferring control to an offscreen canvas".into())));
         };
 
         // Step 2.

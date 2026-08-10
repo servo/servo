@@ -138,7 +138,9 @@ impl HTMLImageElement {
 
         match self.current_request.borrow().state {
             // If image's current request's state is broken, then throw an "InvalidStateError" DOMException.
-            State::Broken => Err(Error::InvalidState(None)),
+            State::Broken => Err(Error::InvalidState(Some(
+                "Image element's state is broken".into(),
+            ))),
             State::CompletelyAvailable => Ok(true),
             // If image is not fully decodable, then return bad.
             State::PartiallyAvailable | State::Unavailable => Ok(false),
@@ -1036,7 +1038,7 @@ impl HTMLImageElement {
         if !self.owner_document().is_fully_active() ||
             matches!(self.current_request.borrow().state, State::Broken)
         {
-            promise.reject_error(cx, Error::Encoding(None));
+            promise.reject_error(cx, Error::Encoding(Some("Image element's owner document is not fully active or image element's request is broken".into())));
         } else if matches!(
             self.current_request.borrow().state,
             State::CompletelyAvailable
@@ -1050,7 +1052,12 @@ impl HTMLImageElement {
             // request's state is unavailable and current URL is empty string (<img> without "src"
             // and "srcset" attributes) then reject promise with an "EncodingError" DOMException.
             // <https://github.com/whatwg/html/issues/11769>
-            promise.reject_error(cx, Error::Encoding(None));
+            promise.reject_error(
+                cx,
+                Error::Encoding(Some(
+                    "Image element does not provide `src` or `srcset` attributes".into(),
+                )),
+            );
         } else {
             self.image_decode_promises.borrow_mut().push(promise);
         }
@@ -1105,7 +1112,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(cx, Error::Encoding(None));
+                    trusted_promise.root().reject_error(cx, Error::Encoding(Some("Could not decode all image promises".into())));
                 }
             }));
     }

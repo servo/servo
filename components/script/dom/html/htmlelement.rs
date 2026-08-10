@@ -614,7 +614,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn SetOuterText(&self, cx: &mut JSContext, input: DOMString) -> Fallible<()> {
         // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "Cannot modify HTML element as its parent element is null".into(),
+            )));
         };
 
         let node = self.upcast::<Node>();
@@ -703,7 +705,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
                     .set_attribute(cx, attr_name, AttrValue::String(lower_value));
             },
             // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
-            _ => return Err(Error::Syntax(None)),
+            _ => {
+                return Err(Error::Syntax(Some(
+                    "Invalid attribute for HTML element".into(),
+                )));
+            },
         };
         Ok(())
     }
@@ -718,7 +724,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn AttachInternals(&self, cx: &mut JSContext) -> Fallible<DomRoot<ElementInternals>> {
         // Step 1: If this's is value is not null, then throw a "NotSupportedError" DOMException
         if self.element.get_is().is_some() {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Local name of HTML element must not be set".into(),
+            )));
         }
 
         // Step 2: Let definition be the result of looking up a custom element definition
@@ -745,18 +753,26 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
         let definition = match definition {
             Some(definition) => definition,
-            None => return Err(Error::NotSupported(None)),
+            None => {
+                return Err(Error::NotSupported(Some(
+                    "HTML element defintion is not defined".into(),
+                )));
+            },
         };
 
         // Step 4: If definition's disable internals is true, then throw a "NotSupportedError" DOMException
         if definition.disable_internals {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "HTML element defintion's `disable_internals` must be set to true".into(),
+            )));
         }
 
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
         let internals = self.element.ensure_element_internals(cx);
         if internals.attached() {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "HTML element's attached internals are null".into(),
+            )));
         }
 
         // Step 6: If this's custom element state is not "precustomized" or "custom",
@@ -765,7 +781,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             self.element.get_custom_element_state(),
             CustomElementState::Precustomized | CustomElementState::Custom
         ) {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Custom element state must either be precustomized, or custom".into(),
+            )));
         }
 
         if self.is_form_associated_custom_element() {
