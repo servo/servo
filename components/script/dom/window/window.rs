@@ -105,6 +105,7 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
+use crate::dom::WorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -702,7 +703,14 @@ impl Window {
 
     fn new_paint_worklet(&self, cx: &mut JSContext) -> DomRoot<Worklet> {
         debug!("Creating new paint worklet.");
-        Worklet::new(cx, self, WorkletGlobalScopeType::Paint)
+
+        let worklet_global_scope_init = self.into();
+        Worklet::new(
+            cx,
+            self,
+            WorkletGlobalScopeType::Paint,
+            Box::new(|| Rc::new(WorkletThreadPool::spawn(worklet_global_scope_init))),
+        )
     }
 
     pub(crate) fn register_image_cache_listener(

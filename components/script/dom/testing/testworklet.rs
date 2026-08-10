@@ -11,6 +11,7 @@ use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
+use crate::dom::WorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
@@ -41,7 +42,13 @@ impl TestWorklet {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestWorklet> {
-        let worklet = Worklet::new(cx, window, WorkletGlobalScopeType::Test);
+        let worklet_global_scope_init = window.into();
+        let worklet = Worklet::new(
+            cx,
+            window,
+            WorkletGlobalScopeType::Test,
+            Box::new(|| Rc::new(WorkletThreadPool::spawn(worklet_global_scope_init))),
+        );
         reflect_dom_object_with_proto(
             cx,
             Box::new(TestWorklet::new_inherited(&worklet)),
@@ -73,7 +80,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         let id = self.worklet.worklet_id();
 
         self.worklet
-            .get_worklet_thread_pool()
+            .worklet_thread_pool()
             .test_worklet_lookup(id, String::from(key))
             .map(DOMString::from)
     }

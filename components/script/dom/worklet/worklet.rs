@@ -10,7 +10,7 @@
 //! thread pool implementation, which only performs GC or code loading on
 //! a backup thread, not on the primary worklet thread.
 
-use std::cell::{OnceCell, RefCell, RefMut};
+use std::cell::{self, Cell, RefCell, RefMut};
 use std::cmp::max;
 use std::collections::hash_map;
 use std::rc::Rc;
@@ -42,10 +42,9 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::{WorkletMethods, Wo
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::{CustomTraceable, JSTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 #[cfg(feature = "testbinding")]
@@ -66,20 +65,29 @@ use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
 const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
+type LazyCellWithBoxedInitializer<T> = cell::LazyCell<T, Box<dyn FnOnce() -> T>>;
+
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableField {
     worklet_id: WorkletId,
     /// The cached version of the script thread's WorkletThreadPool. We keep this cached
     /// because we may need to access it after the script thread has terminated.
+    /// NOTE: Do not access the `thread_pool` field directly, instead use the
+    /// `Worklet::worklet_thread_pool` method to access the Thread Pool.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
-    thread_pool: OnceCell<Rc<WorkletThreadPool>>,
+    thread_pool: LazyCellWithBoxedInitializer<Rc<WorkletThreadPool>>,
+
+    /// NOTE: The `is_thread_pool_initialized` field is a temporary workaround because
+    /// using the `LazyCell::get()` method requires Rust version >1.94.0 and is not
+    /// supported by the current MSRV (Minimum Supported Rust Version).
+    is_thread_pool_initialized: Cell<bool>,
 }
 
 impl Drop for DroppableField {
     fn drop(&mut self) {
         let worklet_id = self.worklet_id;
-        if let Some(thread_pool) = self.thread_pool.get_mut() {
-            thread_pool.exit_worklet(worklet_id);
+        if self.is_thread_pool_initialized.get() {
+            self.thread_pool.exit_worklet(worklet_id);
         }
     }
 }
@@ -94,14 +102,19 @@ pub(crate) struct Worklet {
 }
 
 impl Worklet {
-    fn new_inherited(window: &Window, global_type: WorkletGlobalScopeType) -> Worklet {
+    fn new_inherited(
+        window: &Window,
+        global_type: WorkletGlobalScopeType,
+        thread_pool_constructor: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
+    ) -> Worklet {
         Worklet {
             reflector: Reflector::new(),
             window: Dom::from_ref(window),
             global_type,
             droppable_field: DroppableField {
                 worklet_id: WorkletId::new(),
-                thread_pool: OnceCell::new(),
+                thread_pool: LazyCellWithBoxedInitializer::new(thread_pool_constructor),
+                is_thread_pool_initialized: Cell::new(false),
             },
         }
     }
@@ -110,13 +123,23 @@ impl Worklet {
         cx: &mut JSContext,
         window: &Window,
         global_type: WorkletGlobalScopeType,
+        thread_pool_constructor: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object_with_cx(
-            Box::new(Worklet::new_inherited(window, global_type)),
+            Box::new(Worklet::new_inherited(
+                window,
+                global_type,
+                thread_pool_constructor,
+            )),
             window,
             cx,
         )
+    }
+
+    pub(crate) fn worklet_thread_pool(&self) -> &WorkletThreadPool {
+        self.droppable_field.is_thread_pool_initialized.set(true);
+        &self.droppable_field.thread_pool
     }
 
     #[cfg(feature = "testbinding")]
@@ -127,28 +150,6 @@ impl Worklet {
     #[expect(dead_code)]
     pub(crate) fn worklet_global_scope_type(&self) -> WorkletGlobalScopeType {
         self.global_type
-    }
-
-    pub(crate) fn get_worklet_thread_pool(&self) -> &Rc<WorkletThreadPool> {
-        let global = self.window.global();
-
-        let init = WorkletGlobalScopeInit {
-            to_script_thread_sender: self.window.main_thread_script_chan().clone(),
-            resource_threads: global.resource_threads().clone(),
-            storage_threads: global.storage_threads().clone(),
-            mem_profiler_chan: global.mem_profiler_chan().clone(),
-            time_profiler_chan: global.time_profiler_chan().clone(),
-            devtools_chan: global.devtools_chan().cloned(),
-            script_to_constellation_sender: global.script_to_constellation_chan().sender,
-            to_embedder_sender: global.script_to_embedder_chan().clone(),
-            image_cache: global.image_cache(),
-            #[cfg(feature = "webgpu")]
-            gpu_id_hub: global.wgpu_id_hub(),
-        };
-
-        self.droppable_field
-            .thread_pool
-            .get_or_init(|| Rc::new(WorkletThreadPool::spawn(init)))
     }
 }
 
@@ -193,7 +194,7 @@ impl WorkletMethods<crate::DomTypeHolder> for Worklet {
         // NOTE: We skip step 6.3 because we do not implement the `added modules list` yet
         // <https://html.spec.whatwg.org/multipage/#concept-worklet-added-modules-list>
 
-        self.get_worklet_thread_pool()
+        self.worklet_thread_pool()
             .fetch_and_invoke_a_worklet_script(
                 self.window.pipeline_id(),
                 self.droppable_field.worklet_id,
