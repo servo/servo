@@ -46,7 +46,7 @@ const SUPPORTED_IMAGE_MIME_TYPES: &[&str] = &[
 ];
 
 /// <https://html.spec.whatwg.org/multipage/#source-set>
-#[derive(Debug, MallocSizeOf)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SourceSet {
     pub image_sources: Vec<ImageSource>,
     pub source_size: SourceSizeList,
@@ -80,13 +80,6 @@ impl SourceSet {
             image_sources: Vec::new(),
             source_size: SourceSizeList::empty(),
         }
-    }
-
-    pub fn new_from_element(element: &Element) -> SourceSet {
-        let mut source_set = SourceSet::new();
-        source_set.update_source_set(element);
-
-        source_set
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-source-set>

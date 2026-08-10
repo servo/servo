@@ -111,6 +111,8 @@ pub(crate) struct HTMLLinkElement {
     previous_media_environment_matched: Cell<bool>,
     /// Line number this element was created on
     line_number: u64,
+    /// <https://html.spec.whatwg.org/multipage/#source-set>
+    source_set: DomRefCell<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#dom-link-blocking>
     blocking: MutNullableDom<DOMTokenList>,
 }
@@ -136,6 +138,7 @@ impl HTMLLinkElement {
             previous_type_matched: Cell::new(true),
             previous_media_environment_matched: Cell::new(true),
             line_number: creator.return_line_number(),
+            source_set: DomRefCell::new(SourceSet::new()),
             blocking: Default::default(),
         }
     }
@@ -515,7 +518,7 @@ impl HTMLLinkElement {
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
             policy_container: document.policy_container().to_owned(),
-            source_set: Some(SourceSet::new_from_element(element)),
+            source_set: Some(self.source_set.borrow().clone()),
             origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),
             request_client: global.request_client(None),
@@ -892,7 +895,7 @@ impl HTMLLinkElement {
     /// and type matching destination steps of <https://html.spec.whatwg.org/multipage/#preload>
     fn handle_preload_url(&self) {
         // Step 1. Update the source set for el.
-        // TODO
+        self.source_set.borrow_mut().update_source_set(self.upcast::<Element>());
         // Step 2. Let options be the result of creating link options from el.
         let mut options = self.processing_options();
         // Step 3. Let destination be the result of translating the keyword
