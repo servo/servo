@@ -6,15 +6,13 @@ use std::ops::{Bound, Deref, DerefMut, Range, RangeBounds};
 use std::sync::Arc;
 
 use euclid::default::{Rect, Size2D};
-use image::codecs::jpeg::JpegEncoder;
-use image::codecs::png::PngEncoder;
-use image::codecs::webp::WebPEncoder;
-use image::{ExtendedColorType, GenericImageView, ImageEncoder, ImageError, Rgb};
+use image::ImageError;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
 
-use crate::{EncodedImageType, Multiply, rgba8_get_rect, transform_inplace};
+use crate::encoding::{DefaultImageEncoder, EncodedImageType, ServoImageEncoder};
+use crate::{Multiply, rgba8_get_rect, transform_inplace};
 
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum SnapshotPixelFormat {
@@ -329,71 +327,7 @@ impl Snapshot {
         self.transform(alpha_mode, SnapshotPixelFormat::RGBA);
         let data = &self.data;
 
-        match image_type {
-            EncodedImageType::Png => {
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/86
-                // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-                PngEncoder::new(encoder).write_image(data, width, height, ExtendedColorType::Rgba8)
-            },
-            EncodedImageType::Jpeg => {
-                let mut jpeg_encoder = if let Some(quality) = quality {
-                    // The specification allows quality to be in [0.0..1.0] but the JPEG encoder
-                    // expects it to be in [1..100]
-                    if (0.0..=1.0).contains(&quality) {
-                        JpegEncoder::new_with_quality(
-                            encoder,
-                            (quality * 100.0).round().clamp(1.0, 100.0) as u8,
-                        )
-                    } else {
-                        JpegEncoder::new(encoder)
-                    }
-                } else {
-                    JpegEncoder::new(encoder)
-                };
-
-                // JPEG doesn't support transparency, so simply calling jpeg_encoder.write_image fails here.
-                // Instead we have to create a struct to translate from rgba to rgb.
-                struct RgbaDataForJpegEncoder<'a> {
-                    width: u32,
-                    height: u32,
-                    data: &'a [u8],
-                }
-
-                impl<'a> GenericImageView for RgbaDataForJpegEncoder<'a> {
-                    type Pixel = Rgb<u8>;
-
-                    fn dimensions(&self) -> (u32, u32) {
-                        (self.width, self.height)
-                    }
-
-                    fn get_pixel(&self, x: u32, y: u32) -> Self::Pixel {
-                        let offset = (self.width * y + x) as usize * 4;
-                        Rgb([
-                            self.data[offset],
-                            self.data[offset + 1],
-                            self.data[offset + 2],
-                        ])
-                    }
-                }
-
-                let image = RgbaDataForJpegEncoder {
-                    width,
-                    height,
-                    data,
-                };
-
-                jpeg_encoder.encode_image(&image)
-            },
-            EncodedImageType::Webp => {
-                // No quality support because of https://github.com/image-rs/image/issues/1984
-                WebPEncoder::new_lossless(encoder).write_image(
-                    data,
-                    width,
-                    height,
-                    ExtendedColorType::Rgba8,
-                )
-            },
-        }
+        DefaultImageEncoder::encode_to_writer(data, image_type, width, height, encoder, quality)
     }
 }
 
