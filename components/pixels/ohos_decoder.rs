@@ -43,7 +43,7 @@ impl<'a> std::fmt::Debug for OhosImageDecoder<'a> {
 }
 
 impl<'a> OhosImageDecoder<'a> {
-    fn new(format: ImageFormat, data: &'a [u8]) -> Result<Self, ()> {
+    fn new(data: &'a [u8]) -> Result<Self, ()> {
         unsafe {
             /// Use OH_ImageSourceNative_GetSupportedFormats to ask for which mimetypes are ok.
             let mut image_source_native = ptr::null_mut();
