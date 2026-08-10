@@ -3,13 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::vec::IntoIter;
-use std::{fmt, mem, ptr};
+use std::{fmt, ptr};
 
-use image::error::{ImageFormatHint, UnsupportedError};
-use image::{
-    AnimationDecoder, Frame, Frames, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
-    ImageResult, Pixel, RgbaImage,
-};
+use image::error::ImageFormatHint;
+use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageError, ImageResult, RgbaImage};
 use ohos_image_kit_sys::native_image::common::ImageResult as OhosImageResult;
 use ohos_image_kit_sys::native_image::image_source::{
     OH_DecodingOptions, OH_DecodingOptions_Create, OH_DecodingOptions_Release,
@@ -28,7 +25,6 @@ use ohos_image_kit_sys::native_image::pixelmap::{
 use crate::decoding::ServoImageDecoder;
 
 pub(crate) struct OhosImageDecoder<'a> {
-    format: ImageFormat,
     /// The data needs to be alive according to documentation on `OH_ImageSourceNative_CreateFromDataWithUserBuffer`.
     _data: &'a [u8],
     image_source: *mut OH_ImageSourceNative,
@@ -45,7 +41,6 @@ impl<'a> std::fmt::Debug for OhosImageDecoder<'a> {
 impl<'a> OhosImageDecoder<'a> {
     fn new(data: &'a [u8]) -> Result<Self, ()> {
         unsafe {
-            /// Use OH_ImageSourceNative_GetSupportedFormats to ask for which mimetypes are ok.
             let mut image_source_native = ptr::null_mut();
             let res = OH_ImageSourceNative_CreateFromDataWithUserBuffer(
                 data.as_ptr().cast_mut(),
@@ -64,7 +59,7 @@ impl<'a> OhosImageDecoder<'a> {
             );
             if res != OhosImageResult::SUCCESS || decoding_options.is_null() {
                 log::error!("Something wrong with doing decoding options");
-                todo!("Cleanup imagesourcneative");
+                OH_ImageSourceNative_Release(image_source_native);
                 return Err(());
             }
 
@@ -72,7 +67,8 @@ impl<'a> OhosImageDecoder<'a> {
             let res = OH_ImageSourceInfo_Create(&raw mut image_info);
             if res != OhosImageResult::SUCCESS || image_info.is_null() {
                 log::error!("Could not get image info");
-                todo!("Cleanup imagesourcenative and decodingoptions");
+                OH_DecodingOptions_Release(decoding_options);
+                OH_ImageSourceNative_Release(image_source_native);
                 return Err(());
             }
 
@@ -80,12 +76,13 @@ impl<'a> OhosImageDecoder<'a> {
                 OhosImageResult::SUCCESS
             {
                 log::error!("Could not populate image info");
-                todo!("cleanup imagesourcenative, decodingoption and imagesourceinfo");
+                OH_ImageSourceInfo_Release(image_info);
+                OH_DecodingOptions_Release(decoding_options);
+                OH_ImageSourceNative_Release(image_source_native);
                 return Err(());
             }
 
             Ok(OhosImageDecoder {
-                format,
                 _data: data,
                 image_source: image_source_native,
                 decoding_option: decoding_options,
@@ -148,16 +145,12 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
             );
             if res != OhosImageResult::SUCCESS || pixmap.is_null() {
                 log::error!("Could not create pixmap");
-                return Err(ImageError::Unsupported(
-                    ImageFormatHint::Exact(self.format).into(),
-                ));
+                return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
             }
 
             if write_pixmap_to_buffer(pixmap, buf).is_err() {
                 log::error!("Could not decode pixmap");
-                return Err(ImageError::Unsupported(
-                    ImageFormatHint::Exact(self.format).into(),
-                ));
+                return Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
             }
 
             if OH_PixelmapNative_Release(pixmap) != OhosImageResult::SUCCESS {
@@ -201,9 +194,9 @@ unsafe fn write_pixmap_to_buffer(
 }
 
 impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
-    fn make_decoder(format: ImageFormat, buffer: &'a [u8]) -> ImageResult<Self> {
-        OhosImageDecoder::new(format, buffer)
-            .map_err(|_| ImageError::Unsupported(ImageFormatHint::Exact(format).into()))
+    fn make_decoder(buffer: &'a [u8]) -> ImageResult<Self> {
+        OhosImageDecoder::new(buffer)
+            .map_err(|_| ImageError::Unsupported(ImageFormatHint::Unknown.into()))
     }
 
     fn is_animated(&self) -> bool {
@@ -228,6 +221,18 @@ impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
     }
 }
 
+/// Wrapper struct for the ptr.
+/// We need to be careful to release all *mut OH_PixelmapNative that are not zero.
+struct OHPixelmapNative(*mut OH_PixelmapNative);
+
+impl Drop for OHPixelmapNative {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            unsafe { OH_PixelmapNative_Release(self.0) };
+        }
+    }
+}
+
 struct OhosAnimationIterator {
     inner_iterator: IntoIter<*mut OH_PixelmapNative>,
     width: u32,
@@ -238,14 +243,12 @@ impl Iterator for OhosAnimationIterator {
     type Item = ImageResult<Frame>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Some(next_frame) = self.inner_iterator.next() else {
-            return None;
-        };
+        let next_frame = self.inner_iterator.next().map(OHPixelmapNative)?;
 
         let mut buffer = vec![0_u8; 4 * (self.width * self.height) as usize];
         unsafe {
-            if write_pixmap_to_buffer(next_frame, &mut buffer).is_err() {
-                log::error!("ERROR IN DOING BUFFER :(");
+            if write_pixmap_to_buffer(next_frame.0, &mut buffer).is_err() {
+                log::error!("Could not write pixmap buffer")
             }
         };
 
@@ -276,7 +279,7 @@ impl<'a> AnimationDecoder<'a> for OhosImageDecoder<'a> {
                 frame_count as usize,
             ) != OhosImageResult::SUCCESS
             {
-                log::error!("Something wrong with pixmap vector thingy");
+                log::error!("Something wrong with creating pixmap list");
             }
 
             let frame_iterator = Box::new(OhosAnimationIterator {
