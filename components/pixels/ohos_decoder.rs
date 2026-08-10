@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::num::NonZeroU32;
 use std::vec::IntoIter;
-use std::{fmt, ptr};
+use std::{fmt, ptr, slice};
 
 use image::error::ImageFormatHint;
+use image::metadata::LoopCount;
 use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageError, ImageResult, RgbaImage};
-use ohos_image_kit_sys::native_image::common::ImageResult as OhosImageResult;
+use ohos_image_kit_sys::native_image::common::{Image_String, ImageResult as OhosImageResult};
 use ohos_image_kit_sys::native_image::image_source::{
     OH_DecodingOptions, OH_DecodingOptions_Create, OH_DecodingOptions_Release,
     OH_DecodingOptions_SetPixelFormat, OH_ImageSource_Info, OH_ImageSourceInfo_Create,
@@ -15,7 +17,7 @@ use ohos_image_kit_sys::native_image::image_source::{
     OH_ImageSourceNative, OH_ImageSourceNative_CreateFromDataWithUserBuffer,
     OH_ImageSourceNative_CreatePixelmap, OH_ImageSourceNative_CreatePixelmapList,
     OH_ImageSourceNative_GetFrameCount, OH_ImageSourceNative_GetImageInfo,
-    OH_ImageSourceNative_Release,
+    OH_ImageSourceNative_GetImageProperty, OH_ImageSourceNative_Release,
 };
 use ohos_image_kit_sys::native_image::pixelmap::{
     OH_PixelmapNative, OH_PixelmapNative_GetByteCount, OH_PixelmapNative_ReadPixels,
@@ -289,6 +291,45 @@ impl<'a> AnimationDecoder<'a> for OhosImageDecoder<'a> {
             });
 
             Frames::new(frame_iterator)
+        }
+    }
+
+    fn loop_count(&self) -> image::metadata::LoopCount {
+        let mut loop_count_str = "LoopCount".to_owned();
+        let mut image_string = Image_String {
+            data: loop_count_str.as_mut_ptr(),
+            size: loop_count_str.len(),
+        };
+
+        let mut image_string_target = Image_String {
+            data: ptr::null_mut(),
+            size: 0,
+        };
+
+        let slice = unsafe {
+            if OH_ImageSourceNative_GetImageProperty(
+                self.image_source,
+                &raw mut image_string,
+                &raw mut image_string_target,
+            ) != OhosImageResult::SUCCESS ||
+                image_string_target.data.is_null()
+            {
+                log::info!("Could not decode loop count");
+                return LoopCount::Finite(NonZeroU32::new(1).unwrap());
+            }
+
+            slice::from_raw_parts(image_string_target.data, image_string_target.size)
+        };
+        let string = String::from_utf8_lossy(slice);
+        log::error!("STRING FOUND {:?}", string);
+        if let Ok(loop_count) = string.parse::<u32>() {
+            if loop_count == 0 {
+                LoopCount::Infinite
+            } else {
+                LoopCount::Finite(NonZeroU32::new(loop_count).unwrap())
+            }
+        } else {
+            LoopCount::Finite(NonZeroU32::new(1).unwrap())
         }
     }
 }
