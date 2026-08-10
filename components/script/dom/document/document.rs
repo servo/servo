@@ -2343,6 +2343,13 @@ impl Document {
     // https://html.spec.whatwg.org/multipage/#the-end
     // TODO(43149): Remove when document replacement is implemented
     pub(crate) fn maybe_queue_document_completion(&self, cx: &mut JSContext) {
+        // The initial about:blank document passes through
+        // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
+        // instead of the steps used by other documents.
+        if self.is_initial_about_blank() {
+            return;
+        }
+
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
