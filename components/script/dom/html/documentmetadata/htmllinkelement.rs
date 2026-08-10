@@ -895,7 +895,9 @@ impl HTMLLinkElement {
     /// and type matching destination steps of <https://html.spec.whatwg.org/multipage/#preload>
     fn handle_preload_url(&self) {
         // Step 1. Update the source set for el.
-        self.source_set.borrow_mut().update_source_set(self.upcast::<Element>());
+        self.source_set
+            .borrow_mut()
+            .update_source_set(self.upcast::<Element>());
         // Step 2. Let options be the result of creating link options from el.
         let mut options = self.processing_options();
         // Step 3. Let destination be the result of translating the keyword

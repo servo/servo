@@ -280,12 +280,13 @@ impl LinkProcessingOptions {
         // Step 2. If options's destination is "image" and options's source set is not null,
         // then set options's href to the result of selecting an image source from options's source set.
         if self.destination == Destination::Image &&
-            let Some(srcset) = &mut self.source_set {
+            let Some(srcset) = &mut self.source_set
+        {
             self.href = String::from(
                 srcset
                     .select_image_source_from_source_set(document)
                     .unwrap_or_default()
-                    .0
+                    .0,
             );
         }
         // Step 3. Let request be the result of creating a link request given options.
