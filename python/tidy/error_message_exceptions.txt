@@ -133,6 +133,5 @@
 ./components/script/dom/xpath/xpathresult.rs 1
 ./components/script/drag_data_store.rs 1
 ./components/script/indexeddb.rs 2
-./components/script/layout_dom/servo_dangerous_style_node.rs 1
 ./components/script/xpath.rs 1
 ./components/script_bindings/proxyhandler.rs 1
