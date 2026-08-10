@@ -850,7 +850,7 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             broken_image_icon_data: self.broken_image_icon_data.clone(),
             thread_pool: self.thread_pool.clone(),
             usvg_options: Arc::new(opt),
-            svg_font_resolver: font_resolver.clone(),
+            usvg_font_resolver: font_resolver.clone(),
         })
     }
 }
@@ -868,7 +868,7 @@ pub struct ImageCacheImpl {
     /// The options for usvg. Contains a fontdb::Database and fontresolver.
     usvg_options: Arc<usvg::Options<'static>>,
     /// This is only used inside `usvg::Options` but is here so we can measure it.
-    svg_font_resolver: Arc<dyn FontResolver>,
+    usvg_font_resolver: Arc<dyn FontResolver>,
 }
 
 impl ImageCache for ImageCacheImpl {
@@ -877,7 +877,7 @@ impl ImageCache for ImageCacheImpl {
         let fontdb_size = self.usvg_options.conditional_size_of(ops);
         let broken_image_size = self.broken_image_icon_data.conditional_size_of(ops);
         let svg_id_map = self.svg_id_image_id_map.conditional_size_of(ops);
-        let svg_font_resolver = self.svg_font_resolver.size_of(ops);
+        let svg_font_resolver = self.usvg_font_resolver.size_of(ops);
         vec![
             Report {
                 path: path![prefix, "image-cache", "cache"],
