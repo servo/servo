@@ -647,3 +647,28 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
         }
     }
 }
+
+/// The trait providing helper functions for [`Vec<KeyUsage>`]
+pub(crate) trait KeyUsageVecHelper {
+    /// <https://w3c.github.io/webcrypto/#concept-usage-intersection>
+    fn usage_intersection(&self, other: &[KeyUsage]) -> Vec<KeyUsage>;
+}
+
+impl KeyUsageVecHelper for Vec<KeyUsage> {
+    fn usage_intersection(&self, other: &[KeyUsage]) -> Vec<KeyUsage> {
+        // When this specification says to calculate the usage intersection of two sequences, a and
+        // b the result shall be a sequence containing each recognized key usage value that appears
+        // in both a and b, in the order listed in the list of recognized key usage values, where a
+        // value is said to appear in a sequence if an element of the sequence exists that is a
+        // case-sensitive string match for that value.
+        let mut intersection = self
+            .iter()
+            .filter(|usage| other.contains(usage))
+            .cloned()
+            .collect::<Vec<KeyUsage>>();
+        intersection.sort();
+        intersection.dedup();
+
+        intersection
+    }
+}

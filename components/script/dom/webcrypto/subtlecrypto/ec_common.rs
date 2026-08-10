@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256,
@@ -146,11 +146,7 @@ pub(crate) fn generate_key(
         EcAlgorithm::Ecdsa => {
             // Step 11. Set the [[usages]] internal slot of publicKey to be the usage intersection
             // of usages and [ "verify" ].
-            usages
-                .iter()
-                .filter(|usage| **usage == KeyUsage::Verify)
-                .cloned()
-                .collect()
+            usages.usage_intersection(&[KeyUsage::Verify])
         },
         EcAlgorithm::Ecdh => {
             // Step 11. Set the [[usages]] internal slot of publicKey to be the empty list.
@@ -175,20 +171,12 @@ pub(crate) fn generate_key(
         EcAlgorithm::Ecdsa => {
             // Step 16. Set the [[usages]] internal slot of privateKey to be the usage intersection
             // of usages and [ "sign" ].
-            usages
-                .iter()
-                .filter(|usage| **usage == KeyUsage::Sign)
-                .cloned()
-                .collect()
+            usages.usage_intersection(&[KeyUsage::Sign])
         },
         EcAlgorithm::Ecdh => {
             // Step 16. Set the [[usages]] internal slot of privateKey to be the usage intersection
             // of usages and [ "deriveKey", "deriveBits" ].
-            usages
-                .iter()
-                .filter(|usage| matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
-                .cloned()
-                .collect()
+            usages.usage_intersection(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])
         },
     };
     let private_key = CryptoKey::new(

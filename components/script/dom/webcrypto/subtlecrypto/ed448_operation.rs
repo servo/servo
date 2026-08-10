@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
@@ -178,11 +178,7 @@ pub(crate) fn generate_key(
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
-        usages
-            .iter()
-            .filter(|&usage| *usage == KeyUsage::Verify)
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::Verify]),
         Handle::Ed448PublicKey(public_key),
     );
 
@@ -199,11 +195,7 @@ pub(crate) fn generate_key(
         KeyType::Private,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages
-            .iter()
-            .filter(|&usage| *usage == KeyUsage::Sign)
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::Sign]),
         Handle::Ed448PrivateKey(private_key),
     );
 
