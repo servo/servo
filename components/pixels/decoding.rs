@@ -163,7 +163,7 @@ impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
     }
 }
 
-/// See documentation on imp `image::ImageDecoder`
+/// See documentation on impl `image::ImageDecoder`
 impl<'a> AnimationDecoder<'a> for GenericImageDecoder<'a> {
     fn into_frames(self) -> image::Frames<'a> {
         match self {
@@ -260,7 +260,7 @@ pub(crate) fn decode_static_image(
     let orientation = image_decoder.orientation();
 
     let Ok(mut dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
-        error!("Image decoding error");
+        debug!("Image decoding error");
         return None;
     };
 
