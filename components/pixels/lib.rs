@@ -310,6 +310,7 @@ pub enum Repeat {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct SharedRasterImage {
     pub metadata: ImageMetadata,
+    pub decoded_resolution: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
@@ -323,6 +324,8 @@ pub struct SharedRasterImage {
 #[derive(Clone, MallocSizeOf)]
 pub struct RasterImage {
     pub metadata: ImageMetadata,
+    /// The dimensions of the decoded pixel data, which may be smaller than the natural size.
+    pub decoded_resolution: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
@@ -405,7 +408,10 @@ impl RasterImage {
     }
 
     pub fn as_snapshot(&self) -> Snapshot {
-        let size = Size2D::new(self.metadata.width, self.metadata.height);
+        let size = Size2D::new(
+            self.decoded_resolution.width,
+            self.decoded_resolution.height,
+        );
         let format = match self.format {
             PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
             PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
@@ -477,7 +483,10 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.decoded_resolution.width as i32,
+            self.decoded_resolution.height as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -509,7 +518,10 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.decoded_resolution.width as i32,
+            self.decoded_resolution.height as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -523,6 +535,7 @@ impl RasterImage {
     pub fn to_shared(&self) -> Arc<SharedRasterImage> {
         Arc::new(SharedRasterImage {
             metadata: self.metadata,
+            decoded_resolution: self.decoded_resolution,
             format: self.format,
             id: self.id,
             cors_status: self.cors_status,
