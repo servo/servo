@@ -697,18 +697,16 @@ impl Layout for LayoutThread {
         &mut self,
         scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
-        {
-            let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
-            let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
-                warn!("Received scroll offsets before finishing layout.");
-                return;
-            };
+        let mut stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let Some(stacking_context_tree) = stacking_context_tree.as_mut() else {
+            warn!("Received scroll offsets before finishing layout.");
+            return;
+        };
 
-            stacking_context_tree
-                .paint_info
-                .scroll_tree
-                .set_all_scroll_offsets(scroll_states);
-        }
+        stacking_context_tree
+            .paint_info
+            .scroll_tree
+            .set_all_scroll_offsets(scroll_states);
 
         // Accessibility node bounds are relative to the viewport origin, so a scroll performed by
         // the renderer makes every one of them stale without any reflow occuring. Asking
