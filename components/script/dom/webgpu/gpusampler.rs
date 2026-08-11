@@ -7,7 +7,7 @@ use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_webgpu::gpuconvert::WebGPUConvert;
-use script_webgpu::promise::GPUSamplerTrait;
+use script_webgpu::traits::GPUSamplerTrait;
 use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURequest, WebGPUSampler};
 use wgpu_core::resource::SamplerDescriptor;
 

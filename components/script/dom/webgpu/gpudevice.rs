@@ -15,7 +15,7 @@ use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUAdapterMethods;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use script_webgpu::gpuconvert::WebGPUConvert;
-use script_webgpu::promise::GPUDeviceTrait;
+use script_webgpu::traits::GPUDeviceTrait;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,

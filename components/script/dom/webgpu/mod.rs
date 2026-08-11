@@ -5,7 +5,7 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use script_webgpu::promise::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use script_webgpu::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 use servo_constellation_traits::ScriptToConstellationChan;
 use webgpu_traits::Mapping;
 use wgpu_core::resource::BufferAccessError;

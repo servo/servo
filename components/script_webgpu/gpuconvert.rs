@@ -32,7 +32,7 @@ use wgpu_types::{self, AstcBlock, AstcChannel, IndexFormat};
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::gpubuffer::GPUBuffer;
-use crate::promise::{
+use crate::traits::{
     GPUDeviceTrait, GPUExternalTextureTrait, GPUQuerySetTrait, GPUSamplerTrait,
     GPUShaderModuleTrait, GPUTextureTrait, GPUTextureViewTrait, WebGPUGlobalTrait,
 };

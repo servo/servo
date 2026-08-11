@@ -9,7 +9,7 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use script_webgpu::promise::GPUShaderModuleTrait;
+use script_webgpu::traits::GPUShaderModuleTrait;
 use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::gpucompilationinfo::GPUCompilationInfo;

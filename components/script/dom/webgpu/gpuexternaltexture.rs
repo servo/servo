@@ -13,7 +13,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUDeviceMethods as _;
 use script_bindings::error::Fallible;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
-use script_webgpu::promise::GPUExternalTextureTrait;
+use script_webgpu::traits::GPUExternalTextureTrait;
 use webgpu_traits::{
     WebGPU, WebGPUDevice, WebGPUExternalTexture, WebGPUQueue, WebGPURequest, WebGPUTexture,
     WebGPUTextureView,

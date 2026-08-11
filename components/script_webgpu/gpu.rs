@@ -24,7 +24,7 @@ use wgpu_types::PowerPreference;
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
 use crate::dom::bindings::error::Error;
 use crate::gpuadapter::GPUAdapter;
-use crate::promise::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[dom_struct]
 pub struct GPU<D: DomTypes> {

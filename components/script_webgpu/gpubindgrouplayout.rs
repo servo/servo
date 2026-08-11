@@ -24,7 +24,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::gpuconvert::{WebGPUConvert, convert_bind_group_layout_entry};
-use crate::promise::{GPUDeviceTrait, WebGPUGlobalTrait};
+use crate::traits::{GPUDeviceTrait, WebGPUGlobalTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUBindGroupLayout {

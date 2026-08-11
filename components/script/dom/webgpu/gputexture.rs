@@ -9,7 +9,7 @@ use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_webgpu::gpuconvert::{WebGPUConvert, convert_texture_descriptor};
-use script_webgpu::promise::GPUTextureTrait;
+use script_webgpu::traits::GPUTextureTrait;
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 use wgpu_core::resource::{self, TextureDescriptor};
 

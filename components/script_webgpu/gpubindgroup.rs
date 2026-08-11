@@ -24,7 +24,7 @@ use crate::dom::bindings::str::USVString;
 use crate::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::gpubuffer::GPUBuffer;
 use crate::gpuconvert::{WebGPUConvert, convert_bind_group_entry};
-use crate::promise::{
+use crate::traits::{
     GPUDeviceTrait, GPUExternalTextureTrait, GPUSamplerTrait, GPUTextureTrait, GPUTextureViewTrait,
     WebGPUGlobalTrait,
 };

@@ -10,7 +10,7 @@ use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
 use script_webgpu::gpuconvert::WebGPUConvert;
-use script_webgpu::promise::GPUQuerySetTrait;
+use script_webgpu::traits::GPUQuerySetTrait;
 use webgpu_traits::{WebGPU, WebGPUQuerySet, WebGPURequest};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{

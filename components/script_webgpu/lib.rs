@@ -27,7 +27,7 @@ pub mod gpusupportedfeatures;
 pub mod gpusupportedlimits;
 pub mod gputextureusage;
 pub mod identityhub;
-pub mod promise;
+pub mod traits;
 pub mod wgsllanguagefeatures;
 
 pub(crate) use js::gc::Traceable as JSTraceable;

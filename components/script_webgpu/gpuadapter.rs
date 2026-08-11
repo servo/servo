@@ -26,7 +26,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
 use crate::gpusupportedlimits::{GPUSupportedLimits, set_limit};
-use crate::promise::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use crate::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
