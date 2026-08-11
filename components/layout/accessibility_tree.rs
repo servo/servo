@@ -272,12 +272,9 @@ impl AccessibilityTree {
     /// [`AccessibilityDamage`] from the DOM. Nodes whose bounds actually changed are added to
     /// `update`. See [`AccessibilityNode::refresh_bounds_for_subtree()`].
     ///
-    /// TODO(accessibility): We might not always need to start from the document root. For instance,
-    /// if layout performed an incremental reflow of a specific subtree, we could potentially
-    /// limit the bounds refresh to that subtree and any elements positioned after it in flow order
-    /// (which may have shifted). However, since viewport-relative coordinates are used, any ancestor
-    /// movement/scroll/zoom shifts all descendants, and layout does not currently provide
-    /// fine-grained bounds damage notifications.
+    /// TODO(accessibility): We might not always need to start from the document root. However,
+    /// since viewport-relative coordinates are used, any ancestor movement/scroll/zoom shifts all
+    /// descendants, and layout does not currently provide fine-grained bounds damage notifications.
     fn refresh_bounds<'dom>(
         &self,
         root_dom_node: &ServoLayoutNode<'dom>,
