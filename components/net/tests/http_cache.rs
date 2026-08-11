@@ -4,7 +4,7 @@
 
 use http::header::{CACHE_CONTROL, CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
-use net::http_cache::{CacheKey, HttpCache, ValidationStatus, refresh};
+use net::http_cache::{CacheKey, HttpCache, HttpCacheAssignment, ValidationStatus, refresh};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::response::{Response, ResponseBody};
@@ -35,7 +35,7 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     response
         .headers
         .insert(EXPIRES, HeaderValue::from_str("-10").unwrap());
-    let cache = HttpCache::default();
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
     for body in response_bodies {
         *response.body.lock() = body.clone();
         // First, store the 'normal' response.
@@ -69,7 +69,7 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     let incomplete_response_body = &[1, 2, 3, 4, 5];
     let url = ServoUrl::parse("https://servo.org").unwrap();
 
-    let cache = HttpCache::default();
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
     let mut headers = HeaderMap::new();
 
     headers.insert(
@@ -146,7 +146,7 @@ async fn stale_while_revalidate_freshness_for_cache_control(
         .headers
         .insert(CACHE_CONTROL, HeaderValue::from_str(cache_control).unwrap());
 
-    let cache = HttpCache::default();
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
     cache.store(&request, &response).await;
 
     let mut done_chan = None;
@@ -197,7 +197,7 @@ async fn test_stale_while_revalidate_not_used_when_request_demands_revalidation(
     );
 
     let store_request = build_stale_while_revalidate_test_request();
-    let cache = HttpCache::default();
+    let cache = HttpCache::new(HttpCacheAssignment::Public);
     cache.store(&store_request, &response).await;
 
     let mut req_headers = HeaderMap::new();
