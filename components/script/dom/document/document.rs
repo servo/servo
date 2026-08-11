@@ -737,8 +737,27 @@ impl Document {
         self.pipeline_id
     }
 
+    /// <https://fullscreen.spec.whatwg.org/#fully-exit-fullscreen>
+    fn fully_exit_fullscreen(&self, cx: &mut JSContext) {
+        // Step 1. If document’s fullscreen element is null, terminate these
+        // steps.
+        if self.fullscreen_element().is_none() {
+            return;
+        };
+
+        // TODO Step 2. Unfullscreen elements whose fullscreen flag is set,
+        // within document’s top layer, except for document’s fullscreen element.
+
+        // Step 3. Exit fullscreen document.
+        let _ = self.exit_fullscreen(cx);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps>
-    fn unloading_cleanup_steps(&self) {
+    fn unloading_cleanup_steps(&self, cx: &mut JSContext) {
+        // > https://fullscreen.spec.whatwg.org/#model
+        // > "Whenever the unloading document cleanup steps run with a document, fully exit fullscreen document."
+        self.fully_exit_fullscreen(cx);
+
         // Step 1. Let window be document's relevant global object.
         // Step 2. For each WebSocket object webSocket whose relevant global object is window, make disappear webSocket.
         if self.close_outstanding_websockets() {
@@ -2252,7 +2271,7 @@ impl Document {
         }
 
         // Step 18. Run any unloading document cleanup steps for oldDocument that are defined by this specification and other applicable specifications.
-        self.unloading_cleanup_steps();
+        self.unloading_cleanup_steps(cx);
 
         // https://w3c.github.io/FileAPI/#lifeTime
         self.window.as_global_scope().clean_up_all_file_resources();
@@ -2776,7 +2795,7 @@ impl Document {
 
         // Step 6. Run any unloading document cleanup steps for document that
         // are defined by this specification and other applicable specifications.
-        self.unloading_cleanup_steps();
+        self.unloading_cleanup_steps(cx);
 
         // Step 7. Remove any tasks whose document is document from any task queue
         // (without running those tasks).
