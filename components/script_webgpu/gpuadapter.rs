@@ -216,7 +216,7 @@ where
         // Step 2
         let promise = D::Promise::new_in_realm(cx);
 
-        let callback = WebGPUPromiseTrait::<D>::callback_promise(&promise, self);
+        let callback = WebGPUPromiseTrait::<D>::callback_promise_adapter(&promise, self);
         let mut required_features = wgpu_types::Features::empty();
         for &ext in descriptor.requiredFeatures.iter() {
             if let Some(feature) = gpu_to_wgt_feature(ext) {

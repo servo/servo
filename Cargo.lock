@@ -9141,6 +9141,7 @@ dependencies = [
  "mozjs",
  "num-traits",
  "servo-base",
+ "servo-constellation-traits",
  "servo-deny-public-fields",
  "servo-dom-struct",
  "servo-jstraceable-derive",

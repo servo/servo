@@ -15,6 +15,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUTextureFormat, GPUTextureUsageConstants,
 };
 use script_bindings::reflector::{Reflector, reflect_weak_referenceable_dom_object};
+use script_webgpu::gpuconvert::convert_texture_descriptor;
 use servo_base::{Epoch, generic_channel};
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
@@ -23,7 +24,6 @@ use webgpu_traits::{
 use webrender_api::{ImageFormat, ImageKey};
 use wgpu_core::id;
 
-use super::gpuconvert::convert_texture_descriptor;
 use super::gputexture::GPUTexture;
 use crate::canvas_context::{CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas};
 use crate::dom::bindings::codegen::Bindings::GPUCanvasContextBinding::GPUCanvasContextMethods;
@@ -342,7 +342,8 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
         // 2. Validate texture format required features of configuration.format with device.[[device]].
         // 3. Validate texture format required features of each element of configuration.viewFormats with device.[[device]].
-        let (mut wgpu_descriptor, _) = convert_texture_descriptor(&descriptor, device)?;
+        let (mut wgpu_descriptor, _) =
+            convert_texture_descriptor::<crate::DomTypeHolder>(&descriptor, device)?;
         wgpu_descriptor.label = Some(Cow::Borrowed(
             "dummy texture for texture descriptor validation",
         ));

@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::thread::LocalKey;
 
 use js::context::JSContext;
+use js::conversions::ToJSValConvertible;
 use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
@@ -89,6 +90,9 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 pub trait PromiseHelpers<D: DomTypes> {
     fn new_in_realm(cx: &mut CurrentRealm) -> Rc<D::Promise>;
     fn reject_error(&self, cx: &mut JSContext, error: Error);
+    fn is_rejected(&self) -> bool;
+    fn is_pending(&self) -> bool;
+    fn resolve_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T);
 }
 
 pub trait DocumentHelpers {
