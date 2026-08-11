@@ -51,7 +51,7 @@ use crate::dom::promise::Promise;
 use crate::dom::testworkletglobalscope::TestWorkletTask;
 use crate::dom::window::Window;
 use crate::dom::workletglobalscope::{
-    WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType, WorkletTask,
+    WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType,
 };
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg, ScriptEventLoopSender};
 use crate::microtask::MicrotaskQueue;
@@ -75,7 +75,7 @@ struct DroppableField {
     /// NOTE: Do not access the `thread_pool` field directly, instead use the
     /// `Worklet::worklet_thread_pool` method to access the Thread Pool.
     #[ignore_malloc_size_of = "Difficult to measure memory usage of Rc<...> types"]
-    thread_pool: LazyCellWithBoxedInitializer<Rc<WorkletThreadPool>>,
+    thread_pool: LazyCellWithBoxedInitializer<Rc<dyn WorkletThreadPool>>,
 
     /// NOTE: The `is_thread_pool_initialized` field is a temporary workaround because
     /// using the `LazyCell::get()` method requires Rust version >1.94.0 and is not
@@ -105,7 +105,7 @@ impl Worklet {
     fn new_inherited(
         window: &Window,
         global_type: WorkletGlobalScopeType,
-        thread_pool_constructor: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
+        thread_pool_constructor: Box<dyn FnOnce() -> Rc<dyn WorkletThreadPool>>,
     ) -> Worklet {
         Worklet {
             reflector: Reflector::new(),
@@ -123,7 +123,7 @@ impl Worklet {
         cx: &mut JSContext,
         window: &Window,
         global_type: WorkletGlobalScopeType,
-        thread_pool_constructor: Box<dyn FnOnce() -> Rc<WorkletThreadPool>>,
+        thread_pool_constructor: Box<dyn FnOnce() -> Rc<dyn WorkletThreadPool>>,
     ) -> DomRoot<Worklet> {
         debug!("Creating worklet {:?}.", global_type);
         reflect_dom_object_with_cx(
@@ -137,9 +137,10 @@ impl Worklet {
         )
     }
 
-    pub(crate) fn worklet_thread_pool(&self) -> &WorkletThreadPool {
+    pub(crate) fn worklet_thread_pool(&self) -> Rc<dyn WorkletThreadPool> {
         self.droppable_field.is_thread_pool_initialized.set(true);
-        &self.droppable_field.thread_pool
+
+        return self.droppable_field.thread_pool.clone()
     }
 
     #[cfg(feature = "testbinding")]
@@ -247,6 +248,27 @@ impl PendingTasksStruct {
     }
 }
 
+pub trait WorkletThreadPool: JSTraceable {
+    #[allow(clippy::too_many_arguments)]
+    fn fetch_and_invoke_a_worklet_script(
+        &self,
+        pipeline_id: PipelineId,
+        worklet_id: WorkletId,
+        global_type: WorkletGlobalScopeType,
+        origin: ImmutableOrigin,
+        base_url: ServoUrl,
+        script_url: ServoUrl,
+        policy_container: PolicyContainer,
+        credentials: RequestCredentials,
+        pending_tasks_struct: PendingTasksStruct,
+        promise: &Rc<Promise>,
+        inherited_secure_context: Option<bool>,
+    );
+    fn exit_worklet(&self, worklet_id: WorkletId);
+    fn wake_threads(&self);
+    fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask);
+}
+
 /// Worklets execute in a dedicated thread pool.
 ///
 /// The goal is to ensure that there is a primary worklet thread,
@@ -297,7 +319,7 @@ impl PendingTasksStruct {
 /// by a backup thread, not by the primary thread.
 
 #[derive(Clone, JSTraceable)]
-pub(crate) struct WorkletThreadPool {
+pub(crate) struct StatelessWorkletThreadPool {
     // Channels to send data messages to the three roles.
     #[no_trace]
     primary_sender: Sender<WorkletData>,
@@ -314,7 +336,7 @@ pub(crate) struct WorkletThreadPool {
     control_sender_2: Sender<WorkletControl>,
 }
 
-impl Drop for WorkletThreadPool {
+impl Drop for StatelessWorkletThreadPool {
     fn drop(&mut self) {
         let _ = self.cold_backup_sender.send(WorkletData::Quit);
         let _ = self.hot_backup_sender.send(WorkletData::Quit);
@@ -322,10 +344,10 @@ impl Drop for WorkletThreadPool {
     }
 }
 
-impl WorkletThreadPool {
+impl StatelessWorkletThreadPool {
     /// Create a new thread pool and spawn the threads.
     /// When the thread pool is dropped, the threads will be asked to quit.
-    pub(crate) fn spawn(global_init: WorkletGlobalScopeInit) -> WorkletThreadPool {
+    pub(crate) fn spawn(global_init: WorkletGlobalScopeInit) -> StatelessWorkletThreadPool {
         let primary_role = WorkletThreadRole::new(false, false);
         let hot_backup_role = WorkletThreadRole::new(true, false);
         let cold_backup_role = WorkletThreadRole::new(false, true);
@@ -338,7 +360,7 @@ impl WorkletThreadPool {
             cold_backup_sender: cold_backup_sender.clone(),
             global_init,
         };
-        WorkletThreadPool {
+        StatelessWorkletThreadPool {
             primary_sender,
             hot_backup_sender,
             cold_backup_sender,
@@ -347,7 +369,9 @@ impl WorkletThreadPool {
             control_sender_2: WorkletThread::spawn(cold_backup_role, init, 2),
         }
     }
+}
 
+impl WorkletThreadPool for StatelessWorkletThreadPool {
     /// Loads a worklet module into every worklet thread.
     /// If all of the threads load successfully, the promise is resolved.
     /// If any of the threads fails to load, the promise is rejected.
@@ -390,7 +414,7 @@ impl WorkletThreadPool {
         self.wake_threads();
     }
 
-    pub(crate) fn exit_worklet(&self, worklet_id: WorkletId) {
+    fn exit_worklet(&self, worklet_id: WorkletId) {
         for sender in &[
             &self.control_sender_0,
             &self.control_sender_1,
@@ -401,22 +425,20 @@ impl WorkletThreadPool {
         self.wake_threads();
     }
 
-    /// For testing.
-    #[cfg(feature = "testbinding")]
-    pub(crate) fn test_worklet_lookup(&self, id: WorkletId, key: String) -> Option<String> {
-        let (sender, receiver) = unbounded();
-        let msg = WorkletData::Task(id, WorkletTask::Test(TestWorkletTask::Lookup(key, sender)));
-        let _ = self.primary_sender.send(msg);
-        receiver.recv().expect("Test worklet has died?")
-    }
-
     fn wake_threads(&self) {
         // If any of the threads are blocked waiting on data, wake them up.
         let _ = self.cold_backup_sender.send(WorkletData::WakeUp);
         let _ = self.hot_backup_sender.send(WorkletData::WakeUp);
         let _ = self.primary_sender.send(WorkletData::WakeUp);
     }
+
+    fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask) {
+        let msg = WorkletData::Task(worklet_id, worklet_task);
+        let _ = self.primary_sender.send(msg);
+    }
 }
+
+type WorkletTask = Box<dyn FnOnce(&WorkletGlobalScope) + Send>;
 
 /// The data messages sent to worklet threads
 enum WorkletData {
@@ -849,7 +871,7 @@ impl WorkletThread {
     /// Perform a task.
     fn perform_a_worklet_task(&self, cx: &mut JSContext, worklet_id: WorkletId, task: WorkletTask) {
         match self.global_scopes.get(&worklet_id) {
-            Some(global) => global.perform_a_worklet_task(cx, task),
+            Some(global) => task(global),
             None => warn!("No such worklet as {:?}.", worklet_id),
         }
     }

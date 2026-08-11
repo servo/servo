@@ -105,7 +105,7 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
-use crate::dom::WorkletThreadPool;
+use crate::dom::StatelessWorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -709,7 +709,7 @@ impl Window {
             cx,
             self,
             WorkletGlobalScopeType::Paint,
-            Box::new(|| Rc::new(WorkletThreadPool::spawn(worklet_global_scope_init))),
+            Box::new(|| Rc::new(StatelessWorkletThreadPool::spawn(worklet_global_scope_init))),
         )
     }
 
