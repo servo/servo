@@ -940,7 +940,6 @@ impl LayoutThread {
         root_element: &ServoLayoutNode,
         reflow_request: &mut ReflowRequest,
         reflow_statistics: &mut ReflowStatistics,
-        reflow_phases_run: ReflowPhasesRun,
     ) -> bool {
         if reflow_request.reflow_goal != ReflowGoal::UpdateTheRendering ||
             !self.accessibility_active()
@@ -948,14 +947,15 @@ impl LayoutThread {
             return false;
         }
 
-        // Bounds go stale when geometry changes (stacking context tree rebuild or scroll offset),
-        // even without any `AccessibilityDamage` from the DOM, so those cases must still reach
-        // `update_tree()` below, which refreshes bounds for the whole tree independently of
-        // `damage`.
-        let geometry_may_have_changed = reflow_phases_run.intersects(
-            ReflowPhasesRun::BuiltStackingContextTree | ReflowPhasesRun::UpdatedScrollNodeOffset,
-        );
-        if !self.needs_accessibility_update() && !geometry_may_have_changed {
+        // Bounds go stale when geometry changes, even without any `AccessibilityDamage` from the
+        // DOM, so those cases must still reach `update_tree()` below, which refreshes bounds for
+        // the whole tree independently of `damage`. Scrolls request an accessibility update, so
+        // they are covered by `needs_accessibility_update()`; every other geometry change is
+        // committed by an "update the rendering" reflow, which roughly corresponds to a visual
+        // update.
+        let is_rendering_update =
+            matches!(reflow_request.reflow_goal, ReflowGoal::UpdateTheRendering);
+        if !self.needs_accessibility_update() && !is_rendering_update {
             return false;
         }
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
@@ -1072,7 +1072,6 @@ impl LayoutThread {
             &root_element.as_node(),
             &mut reflow_request,
             &mut reflow_statistics,
-            reflow_phases_run,
         ) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
