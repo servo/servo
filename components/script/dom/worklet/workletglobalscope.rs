@@ -198,21 +198,6 @@ impl WorkletGlobalScope {
         self.executor.clone()
     }
 
-    /// Perform a worklet task
-    pub(crate) fn perform_a_worklet_task(&self, cx: &mut JSContext, task: WorkletTask) {
-        match task {
-            #[cfg(feature = "testbinding")]
-            WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
-                Some(global) => global.perform_a_worklet_task(task),
-                None => warn!("This is not a test worklet."),
-            },
-            WorkletTask::Paint(task) => match self.downcast::<PaintWorkletGlobalScope>() {
-                Some(global) => global.perform_a_worklet_task(cx, task),
-                None => warn!("This is not a paint worklet."),
-            },
-        }
-    }
-
     pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
         self.task_manager.clone()
     }
@@ -280,9 +265,3 @@ pub(crate) enum WorkletGlobalScopeType {
     Paint,
 }
 
-/// A task which can be performed in the context of a worklet global.
-pub(crate) enum WorkletTask {
-    #[cfg(feature = "testbinding")]
-    Test(TestWorkletTask),
-    Paint(PaintWorkletTask),
-}

@@ -66,14 +66,8 @@ impl TestWorkletGlobalScope {
         TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &global.origin(), global)
     }
 
-    pub(crate) fn perform_a_worklet_task(&self, task: TestWorkletTask) {
-        match task {
-            TestWorkletTask::Lookup(key, sender) => {
-                debug!("Looking up key {}.", key);
-                let result = self.lookup_table.borrow().get(&key).cloned();
-                let _ = sender.send(result);
-            },
-        }
+    pub fn lookup_table(&self) -> &DomRefCell<HashMap<String, String>> {
+        &self.lookup_table
     }
 }
 
