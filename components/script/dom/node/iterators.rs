@@ -126,8 +126,8 @@ impl<'b> UnrootedFollowingNodeIterator<'b> {
             return current.get_next_sibling_unrooted(self.no_gc);
         }
 
-        for ancestor in current.inclusive_ancestors(self.shadow_including) {
-            if **self.root == *ancestor {
+        for ancestor in current.inclusive_ancestors_unrooted(self.no_gc, self.shadow_including) {
+            if self.root == ancestor {
                 break;
             }
             if let Some(next_sibling) = ancestor.get_next_sibling_unrooted(self.no_gc) {

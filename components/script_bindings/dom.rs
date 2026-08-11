@@ -173,7 +173,7 @@ impl<'a, T: DomObject> PartialEq<T> for UnrootedDom<'a, T> {
     }
 }
 
-impl<'a, T: DomObject> PartialEq<UnrootedDom<'a, T>> for UnrootedDom<'a, T> {
+impl<'a, 'b, T: DomObject> PartialEq<UnrootedDom<'a, T>> for UnrootedDom<'b, T> {
     fn eq(&self, other: &UnrootedDom<'a, T>) -> bool {
         self.inner == other.inner
     }
