@@ -353,11 +353,16 @@ impl Range {
         self.abstract_range().Collapsed()
     }
 
+    /// <https://drafts.csswg.org/cssom-view/#dom-range-getclientrects>
     fn client_rects<'a>(&self, no_gc: &'a NoGC) -> impl Iterator<Item = Rect<Au, CSSPixel>> + 'a {
+        // > The getClientRects() method, when invoked, must return an empty DOMRectList
+        // > object if the range is not in the document.
+
         // FIXME: For text nodes that are only partially selected, this should return the client
         // rect of the selected part, not the whole text node.
         let start = self.start_container();
         let end = self.end_container();
+        let in_document_tree = self.start_and_end_are_in_document_tree();
         let document = start.owner_doc();
         let end_clone = UnrootedDom::from_dom(Dom::from_ref(&*end), no_gc);
         start
@@ -365,6 +370,7 @@ impl Range {
             .take_while(move |node| *node != *end)
             .chain(iter::once(end_clone))
             .flat_map(move |node| node.border_boxes())
+            .take_while(move |_| in_document_tree)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
