@@ -2,25 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+mod decoding;
 mod snapshot;
 
 use std::borrow::Cow;
-use std::io::Cursor;
+use std::fmt;
 use std::num::NonZeroU32;
 use std::ops::Range;
 use std::sync::Arc;
 use std::time::Duration;
-use std::{cmp, fmt, vec};
 
 use euclid::default::{Point2D, Rect, Size2D};
-use image::codecs::{bmp, gif, ico, jpeg, png, webp};
-use image::error::ImageFormatHint;
 use image::imageops::{self, FilterType};
-use image::metadata::LoopCount;
-use image::{
-    AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
-    ImageResult, Limits, Rgba,
-};
+use image::{ImageBuffer, ImageFormat, Rgba};
 use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -30,6 +24,8 @@ use webrender_api::units::DeviceIntSize;
 use webrender_api::{
     ImageDescriptor, ImageDescriptorFlags, ImageFormat as WebRenderImageFormat, ImageKey,
 };
+
+use crate::decoding::ServoImageDecoder;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {
@@ -544,39 +540,15 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             None
         },
         Ok(format) => {
-            let Ok(image_decoder) = make_decoder(format, buffer) else {
+            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(format, buffer)
+            else {
                 return None;
             };
-            match image_decoder {
-                GenericImageDecoder::Png(png_decoder) => {
-                    if png_decoder.is_apng().unwrap_or_default() {
-                        let Ok(apng_decoder) = png_decoder.apng() else {
-                            return None;
-                        };
-                        decode_animated_image(cors_status, apng_decoder)
-                    } else {
-                        decode_static_image(cors_status, *png_decoder)
-                    }
-                },
-                GenericImageDecoder::Gif(animation_decoder) => {
-                    decode_animated_image(cors_status, *animation_decoder)
-                },
-                GenericImageDecoder::Webp(webp_decoder) => {
-                    if webp_decoder.has_animation() {
-                        decode_animated_image(cors_status, *webp_decoder)
-                    } else {
-                        decode_static_image(cors_status, *webp_decoder)
-                    }
-                },
-                GenericImageDecoder::Bmp(image_decoder) => {
-                    decode_static_image(cors_status, *image_decoder)
-                },
-                GenericImageDecoder::Jpeg(image_decoder) => {
-                    decode_static_image(cors_status, *image_decoder)
-                },
-                GenericImageDecoder::Ico(image_decoder) => {
-                    decode_static_image(cors_status, *image_decoder)
-                },
+
+            if image_decoder.is_animated() {
+                decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
+            } else {
+                decoding::decode_static_image(cors_status, image_decoder.decoder())
             }
         },
     }
@@ -731,162 +703,6 @@ fn is_webp(buffer: &[u8]) -> bool {
     // > of the whole file is at most 4 GiB minus 2 bytes.
     let len: usize = u32::from_le_bytes(size) as usize;
     buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
-}
-
-enum GenericImageDecoder<R: std::io::BufRead + std::io::Seek> {
-    Png(Box<png::PngDecoder<R>>),
-    Gif(Box<gif::GifDecoder<R>>),
-    Webp(Box<webp::WebPDecoder<R>>),
-    Jpeg(Box<jpeg::JpegDecoder<R>>),
-    Bmp(Box<bmp::BmpDecoder<R>>),
-    Ico(Box<ico::IcoDecoder<R>>),
-}
-
-fn make_decoder(
-    format: ImageFormat,
-    buffer: &[u8],
-) -> ImageResult<GenericImageDecoder<Cursor<&[u8]>>> {
-    let limits = Limits::default();
-    let reader = Cursor::new(buffer);
-    Ok(match format {
-        ImageFormat::Png => {
-            GenericImageDecoder::Png(Box::new(png::PngDecoder::with_limits(reader, limits)?))
-        },
-        ImageFormat::Gif => GenericImageDecoder::Gif(Box::new(gif::GifDecoder::new(reader)?)),
-        ImageFormat::WebP => GenericImageDecoder::Webp(Box::new(webp::WebPDecoder::new(reader)?)),
-        ImageFormat::Jpeg => GenericImageDecoder::Jpeg(Box::new(jpeg::JpegDecoder::new(reader)?)),
-        ImageFormat::Bmp => GenericImageDecoder::Bmp(Box::new(bmp::BmpDecoder::new(reader)?)),
-        ImageFormat::Ico => GenericImageDecoder::Ico(Box::new(ico::IcoDecoder::new(reader)?)),
-        _ => {
-            return Err(ImageError::Unsupported(
-                ImageFormatHint::Exact(format).into(),
-            ));
-        },
-    })
-}
-
-fn decode_static_image(
-    cors_status: CorsStatus,
-    mut image_decoder: impl ImageDecoder,
-) -> Option<RasterImage> {
-    let orientation = image_decoder.orientation();
-
-    let Ok(mut dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
-        debug!("Image decoding error");
-        return None;
-    };
-
-    if let Ok(orientation) = orientation {
-        dynamic_image.apply_orientation(orientation);
-    }
-
-    let mut rgba = dynamic_image.into_rgba8();
-
-    // Store pre-multiplied data as that prevents having to do conversions of the data at later
-    // times. This does cause an issue with some canvas APIs. See:
-    // https://github.com/servo/servo/issues/40257
-    let is_opaque = rgba8_premultiply_inplace(&mut rgba);
-
-    let frame = ImageFrame {
-        delay: None,
-        byte_range: 0..rgba.len(),
-        width: rgba.width(),
-        height: rgba.height(),
-    };
-    Some(RasterImage {
-        metadata: ImageMetadata {
-            width: rgba.width(),
-            height: rgba.height(),
-        },
-        format: PixelFormat::RGBA8,
-        frames: vec![frame],
-        bytes: Arc::new(rgba.into_vec()),
-        id: None,
-        cors_status,
-        is_opaque,
-        loop_count: None,
-    })
-}
-
-fn decode_animated_image<'a, T>(
-    cors_status: CorsStatus,
-    animated_image_decoder: T,
-) -> Option<RasterImage>
-where
-    T: AnimationDecoder<'a>,
-{
-    let mut width = 0;
-    let mut height = 0;
-
-    // This uses `map_while`, because the first non-decodable frame seems to
-    // send the frame iterator into an infinite loop. See
-    // <https://github.com/image-rs/image/issues/2442>.
-    let mut frame_data = vec![];
-    let mut total_number_of_bytes = 0;
-    let mut is_opaque = true;
-    let loop_count = match animated_image_decoder.loop_count() {
-        LoopCount::Finite(repeat_time) => Repeat::Finite(repeat_time),
-        LoopCount::Infinite => Repeat::Infinite,
-    };
-    let frames: Vec<ImageFrame> = animated_image_decoder
-        .into_frames()
-        .map_while(|decoded_frame| {
-            let mut animated_frame = match decoded_frame {
-                Ok(decoded_frame) => decoded_frame,
-                Err(error) => {
-                    debug!("decode Animated frame error: {error}");
-                    return None;
-                },
-            };
-
-            // Store pre-multiplied data as that prevents having to do conversions of the data at later
-            // times. This does cause an issue with some canvas APIs. See:
-            // https://github.com/servo/servo/issues/40257
-            is_opaque = rgba8_premultiply_inplace(animated_frame.buffer_mut()) && is_opaque;
-
-            let frame_start = total_number_of_bytes;
-            total_number_of_bytes += animated_frame.buffer().len();
-
-            // The image size should be at least as large as the largest frame.
-            let frame_width = animated_frame.buffer().width();
-            let frame_height = animated_frame.buffer().height();
-            width = cmp::max(width, frame_width);
-            height = cmp::max(height, frame_height);
-
-            let frame = ImageFrame {
-                byte_range: frame_start..total_number_of_bytes,
-                delay: Some(Duration::from(animated_frame.delay())),
-                width: frame_width,
-                height: frame_height,
-            };
-
-            frame_data.push(animated_frame);
-
-            Some(frame)
-        })
-        .collect();
-
-    if frames.is_empty() {
-        debug!("Animated Image decoding error");
-        return None;
-    }
-
-    // Coalesce the frame data into one single shared memory region.
-    let mut bytes = Vec::with_capacity(total_number_of_bytes);
-    for frame in frame_data {
-        bytes.extend_from_slice(frame.buffer());
-    }
-
-    Some(RasterImage {
-        metadata: ImageMetadata { width, height },
-        cors_status,
-        frames,
-        id: None,
-        format: PixelFormat::RGBA8,
-        bytes: Arc::new(bytes),
-        is_opaque,
-        loop_count: Some(loop_count),
-    })
 }
 
 #[cfg(test)]
