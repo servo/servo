@@ -4,7 +4,6 @@
 
 use std::cell::RefCell;
 use std::cmp::{Ordering, PartialOrd};
-use std::iter;
 use std::rc::Rc;
 
 use app_units::Au;
@@ -367,10 +366,9 @@ impl Range {
         let end_clone = UnrootedDom::from_dom(Dom::from_ref(&*end), no_gc);
         start
             .following_nodes_unrooted(no_gc, document.upcast::<Node>(), ShadowIncluding::No)
-            .take_while(move |node| *node != *end)
-            .chain(iter::once(end_clone))
+            .take_while(move |node| in_document_tree && *node != *end)
+            .chain(in_document_tree.then_some(end_clone))
             .flat_map(move |node| node.border_boxes())
-            .take_while(move |_| in_document_tree)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
