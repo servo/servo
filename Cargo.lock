@@ -802,9 +802,9 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64"
-version = "0.23.0"
+version = "0.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b25655df2c3cdd83c5e5b293b88acd880332b2ddadd7c30ac43144fdc0033da9"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "base64ct"
@@ -7991,7 +7991,7 @@ version = "0.5.0"
 dependencies = [
  "accesskit",
  "backtrace",
- "base64 0.23.0",
+ "base64 0.23.1",
  "content-security-policy",
  "crossbeam-channel",
  "euclid",
@@ -8036,7 +8036,7 @@ dependencies = [
 name = "servo-constellation-traits"
 version = "0.5.0"
 dependencies = [
- "base64 0.23.0",
+ "base64 0.23.1",
  "content-security-policy",
  "encoding_rs",
  "euclid",
@@ -8089,7 +8089,7 @@ name = "servo-devtools"
 version = "0.5.0"
 dependencies = [
  "atomic_refcell",
- "base64 0.23.0",
+ "base64 0.23.1",
  "chrono",
  "crossbeam-channel",
  "headers",
@@ -8673,7 +8673,7 @@ dependencies = [
  "async-compression",
  "async-recursion",
  "async-tungstenite",
- "base64 0.23.0",
+ "base64 0.23.1",
  "bytes",
  "chrono",
  "content-security-policy",
@@ -8917,7 +8917,7 @@ dependencies = [
  "atomic_refcell",
  "aws-lc-rs",
  "backtrace",
- "base64 0.23.0",
+ "base64 0.23.1",
  "base64ct",
  "bitflags 2.13.1",
  "brotli",
@@ -9234,7 +9234,7 @@ dependencies = [
 name = "servo-webdriver-server"
 version = "0.5.0"
 dependencies = [
- "base64 0.23.0",
+ "base64 0.23.1",
  "bytes",
  "cookie 0.18.1",
  "crossbeam-channel",
@@ -10883,7 +10883,7 @@ version = "0.48.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "977d0a4abdef933f424a99fe09f95576e089b90aebc6f016a3bc813762493e91"
 dependencies = [
- "base64 0.23.0",
+ "base64 0.23.1",
  "data-url",
  "flate2",
  "fontdb",
