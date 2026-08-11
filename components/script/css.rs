@@ -4,13 +4,19 @@
 
 //! Helpers for CSS value parsing.
 
+use std::sync::LazyLock;
+
 use style::context::QuirksMode;
 use style::error_reporting::ParseErrorReporter;
 use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style_traits::ParsingMode;
+use url::Url;
 
 use crate::dom::document::Document;
+
+pub(crate) static ANONYMOUS_CONTENT_URL_DATA: LazyLock<UrlExtraData> =
+    LazyLock::new(|| Url::parse("about:blank").unwrap().into());
 
 /// Creates a `ParserContext` from the given document.
 ///

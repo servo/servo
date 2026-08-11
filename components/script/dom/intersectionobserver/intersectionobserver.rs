@@ -21,9 +21,8 @@ use style::stylesheets::CssRuleType;
 use style::values::computed::Overflow;
 use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style_traits::{CSSPixel, ParsingMode, ToCss};
-use url::Url;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,
@@ -893,9 +892,11 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
     let mut input = ParserInput::new(value);
     let mut parser = Parser::new(&mut input);
 
-    let url = Url::parse("about:blank").unwrap().into();
-    let context =
-        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
+    let context = parser_context_for_anonymous_content(
+        CssRuleType::Style,
+        ParsingMode::DEFAULT,
+        &ANONYMOUS_CONTENT_URL_DATA,
+    );
 
     parser
         .parse_entirely(|p| IntersectionObserverMargin::parse(&context, p))
