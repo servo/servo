@@ -44,6 +44,7 @@ num-traits = { workspace = true }
 once_cell = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
+phf = { workspace = true }
 pixels = { workspace = true }
 profile_traits = { workspace = true }
 rayon = { workspace = true }

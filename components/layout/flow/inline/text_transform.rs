@@ -240,16 +240,22 @@ impl<'a> TextTransformationIterator<'a> {
         on_word_boundary: bool,
     ) -> Self {
         let text_security = style.clone__webkit_text_security();
-        let chars = text
-            .chars()
-            .map(move |character| map_character_for_webkit_text_security(text_security, character));
+
+        // <https://drafts.csswg.org/css-text-4/#text-transform-property>
+        let text_transform = style.clone_text_transform();
+        let full_size_kana = text_transform.intersects(TextTransform::FULL_SIZE_KANA);
+        // TODO: Implement `full-width` here
+        let _full_width = text_transform.intersects(TextTransform::FULL_WIDTH);
+        // TODO: Enable `math-auto` in Stylo and implement it here
+
+        let chars = text.chars().map(move |character| {
+            let character = map_character_for_webkit_text_security(text_security, character);
+            map_character_for_full_size_kana(full_size_kana, character)
+        });
         let white_space_collapse = style.clone_white_space_collapse();
         let iterator =
             WhitespaceCollapse::new(chars, white_space_collapse, trim_leading_white_space);
 
-        // TODO: Not all text transforms are about case, this logic should stop ignoring
-        // TextTransform::FULL_WIDTH and TextTransform::FULL_SIZE_KANA.
-        let text_transform = style.clone_text_transform();
         let iterator = match text_transform.case() {
             TextTransformCase::None => {
                 Box::new(iterator) as Box<dyn Iterator<Item = CharacterTransformIteration>>
@@ -269,14 +275,7 @@ impl<'a> TextTransformationIterator<'a> {
                 text.len(),
                 on_word_boundary,
             )),
-            // TODO: implement `math-auto` and enable it in Stylo
         };
-        if text_transform.intersects(TextTransform::FULL_WIDTH) {
-            // TODO: implement `full-width`
-        }
-        if text_transform.intersects(TextTransform::FULL_SIZE_KANA) {
-            // TODO: implement `full-size-kana`
-        }
 
         Self(iterator)
     }
@@ -381,6 +380,18 @@ fn map_character_for_webkit_text_security(mode: WebKitTextSecurity, character: c
             WebKitTextSecurity::Disc => '●',
             WebKitTextSecurity::Square => '■',
         },
+    }
+}
+
+fn map_character_for_full_size_kana(full_size_kana_enabled: bool, character: char) -> char {
+    if !full_size_kana_enabled {
+        character
+    } else {
+        // TODO: When MSRV is 1.95+ use std::hint::cold_path().
+        super::small_kana::SMALL_KANA_MAPPINGS
+            .get(&character)
+            .copied()
+            .unwrap_or(character)
     }
 }
 

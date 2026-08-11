@@ -8315,6 +8315,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "parking_lot",
+ "phf",
  "quickcheck",
  "rayon",
  "rustc-hash 2.1.3",
