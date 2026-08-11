@@ -8904,6 +8904,7 @@ dependencies = [
 name = "servo-pixels"
 version = "0.5.0"
 dependencies = [
+ "cfg-if",
  "criterion",
  "euclid",
  "image",

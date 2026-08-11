@@ -327,14 +327,17 @@ impl Snapshot {
         self.transform(alpha_mode, SnapshotPixelFormat::RGBA);
         let data = &self.data;
 
-        cfg_select! {
-            target_env = "ohos" => crate::encoding_ohos::OhosImageEncoder::encode_to_writer(
-                data, image_type, width, height, encoder, quality,
-            )
-            .map_err(|_| {
-                ImageError::IoError(std::io::Error::new(std::io::ErrorKind::Other, "OHOS Encoder Error"))
-            }),
-            _ =>         crate::encoding::DefaultImageEncoder::encode_to_writer(data, image_type, width, height, encoder, quality),
+        cfg_if::cfg_if! {
+            if #[cfg(target_env = "ohos")] {
+                crate::encoding_ohos::OhosImageEncoder::encode_to_writer(
+                    data, image_type, width, height, encoder, quality,
+                )
+                .map_err(|_| {
+                    ImageError::IoError(std::io::Error::new(std::io::ErrorKind::Other, "OHOS Encoder Error"))
+                })
+            } else {
+                crate::encoding::DefaultImageEncoder::encode_to_writer(data, image_type, width, height, encoder, quality)
+            }
         }
     }
 }
