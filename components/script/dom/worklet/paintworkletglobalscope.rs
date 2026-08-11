@@ -50,7 +50,7 @@ use crate::dom::css::stylepropertymapreadonly::StylePropertyMapReadOnly;
 use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
-use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit, WorkletTask};
+use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
 use crate::microtask::MicrotaskQueue;
 
 /// <https://drafts.css-houdini.org/css-paint-api/#paintworkletglobalscope>
@@ -441,62 +441,62 @@ impl PaintWorkletGlobalScope {
         }
     }
 
-    fn painter(&self, name: Atom) -> Box<dyn Painter> {
-        // Rather annoyingly we have to use a mutex here to make the painter Sync.
-        struct WorkletPainter {
-            name: Atom,
-            executor: Mutex<WorkletExecutor>,
-        }
-        impl SpeculativePainter for WorkletPainter {
-            fn speculatively_draw_a_paint_image(
-                &self,
-                properties: Vec<(Atom, String)>,
-                arguments: Vec<String>,
-            ) {
-                let name = self.name.clone();
-                let task =
-                    PaintWorkletTask::SpeculativelyDrawAPaintImage(name, properties, arguments);
-                self.executor
-                    .lock()
-                    .expect("Locking a painter.")
-                    .schedule_a_worklet_task(WorkletTask::Paint(task));
-            }
-        }
-        impl Painter for WorkletPainter {
-            fn draw_a_paint_image(
-                &self,
-                size: Size2D<f32, CSSPixel>,
-                device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
-                properties: Vec<(Atom, String)>,
-                arguments: Vec<String>,
-            ) -> Result<DrawAPaintImageResult, PaintWorkletError> {
-                let name = self.name.clone();
-                let (sender, receiver) = unbounded();
-                let task = PaintWorkletTask::DrawAPaintImage(
-                    name,
-                    size,
-                    device_pixel_ratio,
-                    properties,
-                    arguments,
-                    sender,
-                );
-                self.executor
-                    .lock()
-                    .expect("Locking a painter.")
-                    .schedule_a_worklet_task(WorkletTask::Paint(task));
-
-                let timeout = pref!(dom_worklet_timeout_ms) as u64;
-
-                receiver
-                    .recv_timeout(Duration::from_millis(timeout))
-                    .map_err(PaintWorkletError::from)
-            }
-        }
-        Box::new(WorkletPainter {
-            name,
-            executor: Mutex::new(self.worklet_global.executor()),
-        })
-    }
+    // fn painter(&self, name: Atom) -> Box<dyn Painter> {
+    //     // Rather annoyingly we have to use a mutex here to make the painter Sync.
+    //     struct WorkletPainter {
+    //         name: Atom,
+    //         executor: Mutex<WorkletExecutor>,
+    //     }
+    //     impl SpeculativePainter for WorkletPainter {
+    //         fn speculatively_draw_a_paint_image(
+    //             &self,
+    //             properties: Vec<(Atom, String)>,
+    //             arguments: Vec<String>,
+    //         ) {
+    //             let name = self.name.clone();
+    //             let task =
+    //                 PaintWorkletTask::SpeculativelyDrawAPaintImage(name, properties, arguments);
+    //             self.executor
+    //                 .lock()
+    //                 .expect("Locking a painter.")
+    //                 .schedule_a_worklet_task(WorkletTask::Paint(task));
+    //         }
+    //     }
+    //     impl Painter for WorkletPainter {
+    //         fn draw_a_paint_image(
+    //             &self,
+    //             size: Size2D<f32, CSSPixel>,
+    //             device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
+    //             properties: Vec<(Atom, String)>,
+    //             arguments: Vec<String>,
+    //         ) -> Result<DrawAPaintImageResult, PaintWorkletError> {
+    //             let name = self.name.clone();
+    //             let (sender, receiver) = unbounded();
+    //             let task = PaintWorkletTask::DrawAPaintImage(
+    //                 name,
+    //                 size,
+    //                 device_pixel_ratio,
+    //                 properties,
+    //                 arguments,
+    //                 sender,
+    //             );
+    //             self.executor
+    //                 .lock()
+    //                 .expect("Locking a painter.")
+    //                 .schedule_a_worklet_task(WorkletTask::Paint(task));
+    //
+    //             let timeout = pref!(dom_worklet_timeout_ms) as u64;
+    //
+    //             receiver
+    //                 .recv_timeout(Duration::from_millis(timeout))
+    //                 .map_err(PaintWorkletError::from)
+    //         }
+    //     }
+    //     Box::new(WorkletPainter {
+    //         name,
+    //         executor: Mutex::new(self.worklet_global.executor()),
+    //     })
+    // }
 }
 
 /// Tasks which can be peformed by a paint worklet
@@ -584,7 +584,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
         // Step 4-6.
         let property_names: Vec<String> =
             get_property(cx, paint_obj.handle(), c"inputProperties", ())?.unwrap_or_default();
-        let properties = property_names.into_iter().map(Atom::from).collect();
+        // let properties = property_names.into_iter().map(Atom::from).collect();
 
         // Step 7-9.
         let input_arguments: Vec<String> =
@@ -642,9 +642,9 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Inform layout that there is a registered paint worklet.
         // TODO: layout will end up getting this message multiple times.
-        let painter = self.painter(name.clone());
-        self.worklet_global
-            .register_paint_worklet(name, properties, painter);
+        // let painter = self.painter(name.clone());
+        // self.worklet_global
+        //     .register_paint_worklet(name, properties, painter);
 
         Ok(())
     }

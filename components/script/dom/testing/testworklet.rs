@@ -5,13 +5,15 @@
 // check-tidy: no specs after this line
 use std::rc::Rc;
 
+use crossbeam_channel::unbounded;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
+use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
-use crate::dom::WorkletThreadPool;
+use crate::dom::{GlobalScope, StatelessWorkletThreadPool};
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
@@ -19,6 +21,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::promise::Promise;
+use crate::dom::types::{TestWorkletGlobalScope, WorkletGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
@@ -47,7 +50,7 @@ impl TestWorklet {
             cx,
             window,
             WorkletGlobalScopeType::Test,
-            Box::new(|| Rc::new(WorkletThreadPool::spawn(worklet_global_scope_init))),
+            Box::new(|| Rc::new(StatelessWorkletThreadPool::spawn(worklet_global_scope_init))),
         );
         reflect_dom_object_with_proto(
             cx,
@@ -76,12 +79,33 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         self.worklet.AddModule(realm, module_url, options)
     }
 
+    // TODO:
+    // - do stuff of testworkletglobalscope:73 in a closure
+    // - downcast global_scope to test_worklet_global_scope
+    // - pass the closure to the primary_sender to execute
+
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
         let id = self.worklet.worklet_id();
 
-        self.worklet
-            .worklet_thread_pool()
-            .test_worklet_lookup(id, String::from(key))
-            .map(DOMString::from)
+        let key = String::from(key);
+        let (tx, rx) = unbounded::<Option<String>>();
+
+        let lookup_task = move |global_scope: &WorkletGlobalScope|  {
+            let test_worklet_global_scope = global_scope.downcast::<TestWorkletGlobalScope>().expect("");
+            let pending = test_worklet_global_scope.lookup_table().borrow().get(&key).cloned();
+            tx.send(pending);
+        };
+
+        self.worklet.worklet_thread_pool().run_task(id, Box::new(lookup_task));
+
+        match rx.recv() {
+            Ok(val) => {
+                val.map(DOMString::from)
+            },
+            Err(err) => {
+                error!("Test Worklet died? {}", err);
+                None
+            }
+        }
     }
 }
