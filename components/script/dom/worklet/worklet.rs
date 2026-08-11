@@ -48,7 +48,6 @@ use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 #[cfg(feature = "testbinding")]
-use crate::dom::testworkletglobalscope::TestWorkletTask;
 use crate::dom::window::Window;
 use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType,
@@ -139,8 +138,7 @@ impl Worklet {
 
     pub(crate) fn worklet_thread_pool(&self) -> Rc<dyn WorkletThreadPool> {
         self.droppable_field.is_thread_pool_initialized.set(true);
-
-        return self.droppable_field.thread_pool.clone()
+        self.droppable_field.thread_pool.clone()
     }
 
     #[cfg(feature = "testbinding")]
@@ -266,6 +264,7 @@ pub trait WorkletThreadPool: JSTraceable {
     );
     fn exit_worklet(&self, worklet_id: WorkletId);
     fn wake_threads(&self);
+    /// Send a `WorkletTask` to a Worklet thread to execute.
     fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask);
 }
 
@@ -432,13 +431,15 @@ impl WorkletThreadPool for StatelessWorkletThreadPool {
         let _ = self.primary_sender.send(WorkletData::WakeUp);
     }
 
+    /// Send a `WorkletTask` to the "Primary Worklet Thread" to execute.
     fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask) {
         let msg = WorkletData::Task(worklet_id, worklet_task);
         let _ = self.primary_sender.send(msg);
     }
 }
 
-type WorkletTask = Box<dyn FnOnce(&WorkletGlobalScope) + Send>;
+// A boxed closure sent to the "Primary Worklet Thread" to execute Worklet tasks.
+type WorkletTask = Box<dyn FnOnce(&mut JSContext, &WorkletGlobalScope) + Send>;
 
 /// The data messages sent to worklet threads
 enum WorkletData {
@@ -868,10 +869,15 @@ impl WorkletThread {
         );
     }
 
-    /// Perform a task.
-    fn perform_a_worklet_task(&self, cx: &mut JSContext, worklet_id: WorkletId, task: WorkletTask) {
+    /// Execute a `WorkletTask`.
+    fn perform_a_worklet_task(
+        &self,
+        cx: &mut JSContext,
+        worklet_id: WorkletId,
+        worklet_task: WorkletTask,
+    ) {
         match self.global_scopes.get(&worklet_id) {
-            Some(global) => task(global),
+            Some(global) => worklet_task(cx, global),
             None => warn!("No such worklet as {:?}.", worklet_id),
         }
     }

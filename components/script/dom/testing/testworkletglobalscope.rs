@@ -7,7 +7,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
@@ -66,8 +65,9 @@ impl TestWorkletGlobalScope {
         TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &global.origin(), global)
     }
 
-    pub fn lookup_table(&self) -> &DomRefCell<HashMap<String, String>> {
-        &self.lookup_table
+    /// Get a value on the `lookup_table` using a key.
+    pub fn lookup_value(&self, key: String) -> Option<String> {
+        self.lookup_table.borrow().get(&key).cloned()
     }
 }
 
@@ -78,11 +78,6 @@ impl TestWorkletGlobalScopeMethods<crate::DomTypeHolder> for TestWorkletGlobalSc
             .borrow_mut()
             .insert(String::from(key), String::from(value));
     }
-}
-
-/// Tasks which can be performed by test worklets.
-pub(crate) enum TestWorkletTask {
-    Lookup(String, Sender<Option<String>>),
 }
 
 impl HasOrigin for TestWorkletGlobalScope {
