@@ -1145,6 +1145,10 @@ impl ImageCache for ImageCacheImpl {
                         width: tinyskia_requested_size.width(),
                         height: tinyskia_requested_size.height(),
                     },
+                    decoded_resolution: ImageMetadata {
+                        width: tinyskia_requested_size.width(),
+                        height: tinyskia_requested_size.height(),
+                    },
                     format: PixelFormat::RGBA8,
                     frames: vec![frame],
                     bytes: Arc::new(bytes),

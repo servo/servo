@@ -9,6 +9,7 @@ use std::{cmp, fmt, vec};
 
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
+use image::imageops::{self, FilterType};
 use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
@@ -237,10 +238,10 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
         match &self.decoder {
             GenericImageDecoder::Apng(_) | GenericImageDecoder::Gif(_) => true,
             GenericImageDecoder::Webp(decoder) => decoder.has_animation(),
-            GenericImageDecoder::Png(_) |
-            GenericImageDecoder::Jpeg(_) |
-            GenericImageDecoder::Bmp(_) |
-            GenericImageDecoder::Ico(_) => false,
+            GenericImageDecoder::Png(_)
+            | GenericImageDecoder::Jpeg(_)
+            | GenericImageDecoder::Bmp(_)
+            | GenericImageDecoder::Ico(_) => false,
         }
     }
 
@@ -250,6 +251,28 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
 
     fn animated_decoder(self) -> impl AnimationDecoder<'a> {
         self.decoder
+    }
+}
+
+const MAX_DECODED_DIMENSION: u32 = 300;
+
+fn limited_decoded_resolution(metadata: ImageMetadata) -> ImageMetadata {
+    if metadata.width <= MAX_DECODED_DIMENSION && metadata.height <= MAX_DECODED_DIMENSION {
+        return metadata;
+    }
+
+    if metadata.width >= metadata.height {
+        ImageMetadata {
+            width: MAX_DECODED_DIMENSION,
+            height: (metadata.height as u64 * MAX_DECODED_DIMENSION as u64 / metadata.width as u64)
+                .max(1) as u32,
+        }
+    } else {
+        ImageMetadata {
+            width: (metadata.width as u64 * MAX_DECODED_DIMENSION as u64 / metadata.height as u64)
+                .max(1) as u32,
+            height: MAX_DECODED_DIMENSION,
+        }
     }
 }
 
@@ -268,7 +291,20 @@ pub(crate) fn decode_static_image(
         dynamic_image.apply_orientation(orientation);
     }
 
+    let metadata = ImageMetadata {
+        width: dynamic_image.width(),
+        height: dynamic_image.height(),
+    };
+    let decoded_resolution = limited_decoded_resolution(metadata);
     let mut rgba = dynamic_image.into_rgba8();
+    if decoded_resolution != metadata {
+        rgba = imageops::resize(
+            &rgba,
+            decoded_resolution.width,
+            decoded_resolution.height,
+            FilterType::Lanczos3,
+        );
+    }
 
     // Store pre-multiplied data as that prevents having to do conversions of the data at later
     // times. This does cause an issue with some canvas APIs. See:
@@ -282,10 +318,8 @@ pub(crate) fn decode_static_image(
         height: rgba.height(),
     };
     Some(RasterImage {
-        metadata: ImageMetadata {
-            width: rgba.width(),
-            height: rgba.height(),
-        },
+        metadata,
+        decoded_resolution,
         format: PixelFormat::RGBA8,
         frames: vec![frame],
         bytes: Arc::new(rgba.into_vec()),
@@ -316,7 +350,7 @@ where
         LoopCount::Finite(repeat_time) => Repeat::Finite(repeat_time),
         LoopCount::Infinite => Repeat::Infinite,
     };
-    let frames: Vec<ImageFrame> = animated_image_decoder
+    let mut frames: Vec<ImageFrame> = animated_image_decoder
         .into_frames()
         .map_while(|decoded_frame| {
             let mut animated_frame = match decoded_frame {
@@ -359,14 +393,33 @@ where
         return None;
     }
 
-    // Coalesce the frame data into one single shared memory region.
+    let metadata = ImageMetadata { width, height };
+    let decoded_resolution = limited_decoded_resolution(metadata);
     let mut bytes = Vec::with_capacity(total_number_of_bytes);
-    for frame in frame_data {
-        bytes.extend_from_slice(frame.buffer());
+    if decoded_resolution == metadata {
+        for frame in frame_data {
+            bytes.extend_from_slice(frame.buffer());
+        }
+    } else {
+        total_number_of_bytes = 0;
+        for (frame, frame_data) in frames.iter_mut().zip(frame_data) {
+            let scaled = imageops::resize(
+                frame_data.buffer(),
+                decoded_resolution.width,
+                decoded_resolution.height,
+                FilterType::Lanczos3,
+            );
+            frame.byte_range = total_number_of_bytes..total_number_of_bytes + scaled.len();
+            frame.width = decoded_resolution.width;
+            frame.height = decoded_resolution.height;
+            total_number_of_bytes += scaled.len();
+            bytes.extend_from_slice(&scaled);
+        }
     }
 
     Some(RasterImage {
-        metadata: ImageMetadata { width, height },
+        metadata,
+        decoded_resolution,
         cors_status,
         frames,
         id: None,
@@ -375,4 +428,34 @@ where
         is_opaque,
         loop_count: Some(loop_count),
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::limited_decoded_resolution;
+    use crate::ImageMetadata;
+
+    #[test]
+    fn test_limited_decoded_resolution_preserves_aspect_ratio() {
+        assert_eq!(
+            limited_decoded_resolution(ImageMetadata {
+                width: 1200,
+                height: 600,
+            }),
+            ImageMetadata {
+                width: 300,
+                height: 150,
+            }
+        );
+        assert_eq!(
+            limited_decoded_resolution(ImageMetadata {
+                width: 600,
+                height: 1200,
+            }),
+            ImageMetadata {
+                width: 150,
+                height: 300,
+            }
+        );
+    }
 }
