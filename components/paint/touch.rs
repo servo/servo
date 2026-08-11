@@ -110,6 +110,20 @@ pub(crate) enum PanPolicy {
     Free,
 }
 
+impl PanPolicy {
+    /// `NoScroll` is handled by the caller which suppresses the action entirely.
+    /// Only here to keep the match exhaustive.
+    fn pan_delta(self, delta: Vector2D<f32, DevicePixel>) -> Vector2D<f32, DevicePixel> {
+        match self {
+            PanPolicy::Lock(axis) => match axis {
+                PanAxis::Horizontal => Vector2D::new(delta.x, 0.0),
+                PanAxis::Vertical => Vector2D::new(0.0, delta.y),
+            },
+            PanPolicy::Free | PanPolicy::Undetermined | PanPolicy::NoScroll => delta,
+        }
+    }
+}
+
 /// Input captured at touch-down for deciding [`PanPolicy`] at pan-start.
 /// `touch_action` and the structurally scrollable axes of the hit node.
 #[derive(Clone, Copy, Debug)]
@@ -522,27 +536,8 @@ impl TouchHandler {
                 {
                     match policy {
                         PanPolicy::NoScroll => None,
-                        // No lock: emit the full 2D delta so both axes scroll
-                        // freely. `Undetermined` only occurs when the
-                        // touch-down hit-test didn't resolve a scroll node.
-                        PanPolicy::Free | PanPolicy::Undetermined => {
-                            // TODO: Probably we should track 1-3 more points and use a smarter algorithm
-                            *velocity += delta;
-                            *velocity /= 2.0;
-                            touch_sequence.active_touch_points[idx].point = point;
-                            Some(ScrollZoomEvent::Scroll(ScrollEvent {
-                                scroll: Scroll::Delta((-delta).into()),
-                                point,
-                                scroll_type: ScrollType::Touch,
-                            }))
-                        },
-                        // Locked to a single axis: zero the other axis in both the
-                        // emitted delta and the velocity (so fling stays on-axis).
-                        PanPolicy::Lock(axis) => {
-                            let pan_delta = match axis {
-                                PanAxis::Horizontal => Vector2D::new(delta.x, 0.0),
-                                PanAxis::Vertical => Vector2D::new(0.0, delta.y),
-                            };
+                        PanPolicy::Free | PanPolicy::Undetermined | PanPolicy::Lock(_) => {
+                            let pan_delta = policy.pan_delta(delta);
                             // TODO: Probably we should track 1-3 more points and use a smarter algorithm
                             *velocity += pan_delta;
                             *velocity /= 2.0;
@@ -576,15 +571,8 @@ impl TouchHandler {
                         .pan_policy_input
                         .map(|input| Self::decide_pan_policy(input, dominant))
                         .unwrap_or(PanPolicy::Undetermined);
-                    let pan_delta = match policy {
-                        PanPolicy::Lock(axis) => match axis {
-                            PanAxis::Horizontal => Vector2D::new(delta.x, 0.0),
-                            PanAxis::Vertical => Vector2D::new(0.0, delta.y),
-                        },
-                        // For `Free`/`Undetermined`/`NoScroll` we use the full
-                        // delta here; `NoScroll` is suppressed below.
-                        _ => delta,
-                    };
+                    // `NoScroll` is suppressed below.
+                    let pan_delta = policy.pan_delta(delta);
                     touch_sequence.state = Panning {
                         policy,
                         velocity: pan_delta,
