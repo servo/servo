@@ -18,10 +18,7 @@ use servo::{
 use url::Url;
 use webrender_api::units::{DevicePoint, DeviceVector2D};
 
-use crate::common::{
-    ServoTest, WebViewDelegateImpl, evaluate_javascript,
-    show_webview_and_wait_for_rendering_to_be_ready,
-};
+use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
 struct NoOpChangeHandler;
 
@@ -810,10 +807,6 @@ fn test_accessibility_bounds_updated_after_renderer_scroll() {
         main.raw_bounds().expect("main should have bounds"),
         Rect::new(10.0, 100.0, 110.0, 150.0),
     );
-
-    // The renderer can only scroll a scene it has already received.
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    delegate.last_accesskit_tree_updates.borrow_mut().clear();
 
     // A positive delta reveals more content at the bottom and right, so this is equivalent to
     // `window.scrollTo(20, 40)`.
