@@ -425,6 +425,8 @@ pub trait Layout {
 
     /// See [Self::needs_accessibility_update()].
     fn set_needs_accessibility_update(&self);
+
+    fn font_context(&self) -> &Arc<FontContext>;
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`

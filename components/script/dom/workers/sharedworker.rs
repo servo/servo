@@ -623,7 +623,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             outside_storage_key,
             global.insecure_requests_policy(),
             global.policy_container(),
-            global.font_context().cloned(),
+            global.font_context(),
         ) {
             Ok(join_handle) => join_handle,
             Err(error) => {

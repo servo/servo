@@ -824,10 +824,8 @@ impl Window {
         event.dispatch(cx, self.upcast(), true);
     }
 
-    pub(crate) fn font_context(&self) -> &Arc<FontContext> {
-        self.as_global_scope()
-            .font_context()
-            .expect("A `Window` should always have a `FontContext`")
+    pub(crate) fn font_context(&self) -> Arc<FontContext> {
+        self.layout().font_context().clone()
     }
 
     pub(crate) fn ongoing_navigation(&self) -> OngoingNavigation {
@@ -3857,7 +3855,6 @@ impl Window {
         runtime: Rc<Runtime>,
         script_chan: Sender<MainThreadScriptMsg>,
         layout: Box<dyn Layout>,
-        font_context: Arc<FontContext>,
         image_cache_sender: Sender<ImageCacheResponseMessage>,
         resource_threads: ResourceThreads,
         storage_threads: StorageThreads,
@@ -3909,7 +3906,6 @@ impl Window {
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,
-                Some(font_context),
             ),
             caches: Default::default(),
             ongoing_navigation: Default::default(),
