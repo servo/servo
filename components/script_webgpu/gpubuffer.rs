@@ -233,7 +233,7 @@ where
         // Step 1
         let promise = self.pending_map.safe_borrow_mut(cx).take();
         if let Some(promise) = promise {
-            promise.reject_error(cx, Error::Abort(None));
+            promise.reject_error(cx, Error::Abort(Some("Could not remove Promise".into())));
         }
         // Step 2
         let mut mapping = RootedTraceableBox::new(self.mapping.safe_borrow_mut(cx).take());
@@ -294,7 +294,10 @@ where
         let promise = D::Promise::new_in_realm(cx);
         // Step 2
         if self.pending_map.borrow().is_some() {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not find pending promise".into())),
+            );
             return promise;
         }
         // Step 4
@@ -356,7 +359,9 @@ where
             .safe_borrow_mut(cx)
             .take()
             .map(RootedTraceableBox::new)
-            .ok_or(Error::Operation(None))?;
+            .ok_or(Error::Operation(Some(
+                "Could not get Buffer Mapping because it is not active".into(),
+            )))?;
 
         let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
@@ -366,7 +371,9 @@ where
             self.mapping
                 .safe_borrow_mut(cx)
                 .replace(*mapping.into_box());
-            return Err(Error::Operation(None));
+            return Err(Error::Operation(Some(
+                "Buffer Mapping is not active".into(),
+            )));
         }
 
         // Step 4
@@ -377,7 +384,11 @@ where
             .data
             .view(cx, rebased_offset..rebased_offset + range_size as usize)
             .map(|view| view.array_buffer())
-            .map_err(|()| Error::Operation(None));
+            .map_err(|()| {
+                Error::Operation(Some(
+                    "Could not construct DataView for Mapped Buffer".into(),
+                ))
+            });
 
         self.mapping
             .safe_borrow_mut(cx)
@@ -437,9 +448,9 @@ where
         // Step 4
         let is_lost = self.device.is_lost();
         if is_lost {
-            p.reject_error(cx, Error::Abort(None));
+            p.reject_error(cx, Error::Abort(Some("GPUDevice is lost".into())));
         } else {
-            p.reject_error(cx, Error::Operation(None));
+            p.reject_error(cx, Error::Operation(Some("Mapping failure".into())));
         }
     }
 

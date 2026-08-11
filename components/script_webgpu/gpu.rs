@@ -121,7 +121,10 @@ where
             ))
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not request adapter".into())),
+            );
         }
         // 4. Return promise
         promise
