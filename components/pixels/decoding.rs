@@ -13,7 +13,7 @@ use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
 };
-use log::{debug, error};
+use log::debug;
 
 use crate::{
     CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat,
