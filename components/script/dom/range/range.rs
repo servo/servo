@@ -353,11 +353,28 @@ impl Range {
         self.abstract_range().Collapsed()
     }
 
-    fn client_rects<'a>(&self, no_gc: &'a NoGC) -> impl Iterator<Item = Rect<Au, CSSPixel>> + 'a {
+    /// <https://drafts.csswg.org/cssom-view/#dom-range-getclientrects>
+    fn client_rects(&self, no_gc: &NoGC) -> Vec<Rect<Au, CSSPixel>> {
         // FIXME: For text nodes that are only partially selected, this should return the client
         // rect of the selected part, not the whole text node.
         let start = self.start_container();
         let end = self.end_container();
+        // > The getClientRects() method, when invoked, must return an empty DOMRectList
+        // > object if the range is not in the document.
+        if !start.is_connected() || !end.is_connected() {
+            return vec![];
+        }
+
+        // Per the spec, only Text nodes contribute rects when the range is collapsed
+        // (including when the boundary points are identical).
+        if self.collapsed() {
+            if start.is::<CharacterData>() {
+                return start.border_boxes();
+            } else {
+                return vec![];
+            }
+        }
+
         let document = start.owner_doc();
         let end_clone = UnrootedDom::from_dom(Dom::from_ref(&*end), no_gc);
         start
@@ -365,6 +382,7 @@ impl Range {
             .take_while(move |node| *node != *end)
             .chain(iter::once(end_clone))
             .flat_map(move |node| node.border_boxes())
+            .collect()
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
@@ -1247,7 +1265,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let start = self.start_container();
         let window = start.owner_window();
 
-        let client_rects: Vec<_> = self.client_rects(cx.no_gc()).collect();
+        let client_rects = self.client_rects(cx.no_gc());
         let client_rects = client_rects
             .iter()
             .map(|rect| {
@@ -1276,7 +1294,9 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 3. If all rectangles in list have zero width or height, return the first rectangle in list.
         // Step 4. Otherwise, return a DOMRect object describing the smallest rectangle that includes all
         // of the rectangles in list of which the height or width is not zero.
-        let bounding_rect = list.fold(euclid::Rect::zero(), |acc, rect| acc.union(&rect));
+        let bounding_rect = list
+            .into_iter()
+            .fold(euclid::Rect::zero(), |acc, rect| acc.union(&rect));
 
         DOMRect::new(
             cx,
