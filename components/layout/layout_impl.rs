@@ -1025,36 +1025,12 @@ impl LayoutThread {
 
         if self.can_skip_reflow_request_entirely(&reflow_request) {
             // We can skip layout, but we might need to update a scroll node.
-            if !self.handle_update_scroll_node_request(&reflow_request) {
-                return None;
-            }
-
-            let mut reflow_phases_run = ReflowPhasesRun::UpdatedScrollNodeOffset;
-            let mut reflow_statistics = Default::default();
-
-            // Accessibility node bounds are relative to the viewport origin, so scrolling makes
-            // every one of them stale, even though no layout ran and nothing in the DOM changed.
-            let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
-            let root_element = unsafe { document.dangerous_style_node() }
-                .as_document()
-                .unwrap()
-                .root_element();
-            if let Some(root_element) = root_element &&
-                self.handle_accessibility_tree_update(
-                    &root_element.as_node(),
-                    &mut reflow_request,
-                    &mut reflow_statistics,
-                    reflow_phases_run,
-                )
-            {
-                reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
-            }
-
-            return Some(ReflowResult {
-                reflow_phases_run,
-                reflow_statistics,
-                ..Default::default()
-            });
+            return self
+                .handle_update_scroll_node_request(&reflow_request)
+                .then(|| ReflowResult {
+                    reflow_phases_run: ReflowPhasesRun::UpdatedScrollNodeOffset,
+                    ..Default::default()
+                });
         }
 
         let document = unsafe { ServoLayoutNode::new(&reflow_request.document) };
@@ -1614,6 +1590,14 @@ impl LayoutThread {
                 offset,
                 external_scroll_id,
             );
+
+            // Accessibility node bounds are relative to the viewport origin, so a script scroll
+            // makes every one of them stale even though no layout ran. Requesting an accessibility
+            // update lets the next "update the rendering" reflow recompute them, mirroring how
+            // `set_scroll_offsets_from_renderer()` handles renderer scrolls.
+            if self.accessibility_active() {
+                self.set_needs_accessibility_update();
+            }
             true
         } else {
             false
