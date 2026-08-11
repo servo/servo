@@ -42,8 +42,6 @@ bitflags! {
         const RoleChanged = 0b0010;
         /// This node's computed label or text value (for a text node) changed.
         const TextChanged = 0b0100;
-        /// This node's computed bounds changed.
-        const BoundsChanged = 0b1000;
     }
 }
 
@@ -861,13 +859,12 @@ impl AccessibilityNode {
         local_damage
     }
 
-    /// Update this node's bounds from the current layout geometry. Returns the damage caused by
-    /// the update.
+    /// Update this node's bounds from the current layout geometry.
     fn update_bounds_from_dom_node(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
         context: &AccessibilityContext<'_>,
-    ) -> LocalAccessibilityDamage {
+    ) {
         // Border box with transforms, matching getBoundingClientRect(). Bounds are in CSS pixels,
         // relative to the viewport origin (see the [`accesskit`] composition model).
         let bounds = process_box_area_request(
@@ -1067,22 +1064,20 @@ impl AccessibilityNode {
         self.accesskit_node.bounds()
     }
 
-    fn set_bounds(&mut self, bounds: accesskit::Rect) -> LocalAccessibilityDamage {
+    fn set_bounds(&mut self, bounds: accesskit::Rect) {
         if Some(bounds) == self.accesskit_node.bounds() {
-            return LocalAccessibilityDamage::empty();
+            return;
         }
         self.accesskit_node.set_bounds(bounds);
         self.dirty_state |= DirtyState::Updated;
-        LocalAccessibilityDamage::BoundsChanged
     }
 
-    fn clear_bounds(&mut self) -> LocalAccessibilityDamage {
+    fn clear_bounds(&mut self) {
         if self.accesskit_node.bounds().is_none() {
-            return LocalAccessibilityDamage::empty();
+            return;
         }
         self.accesskit_node.clear_bounds();
         self.dirty_state |= DirtyState::Updated;
-        LocalAccessibilityDamage::BoundsChanged
     }
 
     fn assert_integrity(&self, expected_parent: Option<WeakRefCell<AccessibilityNode>>) {
