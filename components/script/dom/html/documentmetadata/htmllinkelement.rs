@@ -304,7 +304,11 @@ impl VirtualMethods for HTMLLinkElement {
             local_name!("href") => {
                 // https://html.spec.whatwg.org/multipage/#attr-link-href
                 // > If both the href and imagesrcset attributes are absent, then the element does not define a link.
-                if is_removal {
+                if is_removal &&
+                    !self
+                        .upcast::<Element>()
+                        .has_attribute(&local_name!("imagesrcset"))
+                {
                     if self.relations.get().contains(LinkRelations::STYLESHEET) {
                         self.remove_stylesheet(cx.no_gc());
                     }
@@ -339,6 +343,20 @@ impl VirtualMethods for HTMLLinkElement {
                 if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
                     self.fetch_and_process_modulepreload(cx);
                 }
+            },
+            local_name!("imagesrcset") | local_name!("imagesizes") => {
+                // https://html.spec.whatwg.org/multipage/#attr-link-href
+                // > If both the href and imagesrcset attributes are absent, then the element does not define a link.
+                if is_removal && !self.upcast::<Element>().has_attribute(&local_name!("href")) {
+                    if self.relations.get().contains(LinkRelations::STYLESHEET) {
+                        self.remove_stylesheet(cx.no_gc());
+                    }
+                    return;
+                }
+
+                self.source_set
+                    .borrow_mut()
+                    .update_source_set(self.upcast::<Element>());
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
                 self.handle_favicon_url(&attr.value());
