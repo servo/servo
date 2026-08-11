@@ -2051,7 +2051,7 @@ impl Node {
     ) -> Option<UnrootedDom<'a, HTMLSlotElement>> {
         let rare_data = self.rare_data.borrow();
         let assigned_slot = rare_data.as_ref()?.slottable_data.assigned_slot.as_ref()?;
-        Some(UnrootedDom::from_dom(Dom::from_ref(&*assigned_slot), no_gc))
+        Some(UnrootedDom::from_dom(Dom::from_ref(assigned_slot), no_gc))
     }
 
     pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
