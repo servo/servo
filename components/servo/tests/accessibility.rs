@@ -797,17 +797,17 @@ fn test_accessibility_bounds_updated_after_relayout() {
 #[test]
 fn test_accessibility_bounds_updated_after_renderer_scroll() {
     let url = "data:text/html,<!DOCTYPE html>\
-               <button style='position:absolute;left:10px;top:100px;\
-               width:100px;height:50px'>Target</button>\
+               <main style='position:absolute;left:10px;top:100px;\
+               width:100px;height:50px'>Target</main>\
                <div style='width:2000px;height:2000px'></div>";
     let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
-    let button = find_first_matching_node(root, |node| node.role() == Role::Button)
-        .expect("Document should contain a button");
-    let button_id = button.locate().0; // Maps to layout's NodeId
+    let main = find_first_matching_node(root, |node| node.role() == Role::Main)
+        .expect("Document should contain a main element");
+    let main_id = main.locate().0; // Maps to layout's NodeId
     assert_rect_eq(
-        button.raw_bounds().expect("button should have bounds"),
+        main.raw_bounds().expect("main should have bounds"),
         Rect::new(10.0, 100.0, 110.0, 150.0),
     );
 
@@ -827,20 +827,20 @@ fn test_accessibility_bounds_updated_after_renderer_scroll() {
     let updated_bounds = updates
         .iter()
         .flat_map(|update| update.nodes.iter())
-        .filter(|(id, _)| *id == button_id)
+        .filter(|(id, _)| *id == main_id)
         .filter_map(|(_, node)| node.bounds())
         .next_back()
-        .expect("The button should have been re-sent with new bounds");
+        .expect("The main element should have been re-sent with new bounds");
     assert_rect_eq(updated_bounds, expected);
 
     for update in updates {
         tree.update_and_process_changes(update, &mut NoOpChangeHandler);
     }
     let root = assert_tree_structure_and_get_root_web_area(&tree);
-    let button = find_first_matching_node(root, |node| node.role() == Role::Button)
-        .expect("Document should contain a button");
+    let main = find_first_matching_node(root, |node| node.role() == Role::Main)
+        .expect("Document should contain a main element");
     assert_rect_eq(
-        button.raw_bounds().expect("button should have bounds"),
+        main.raw_bounds().expect("main should have bounds"),
         expected,
     );
 }
