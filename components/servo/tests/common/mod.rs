@@ -97,6 +97,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) number_of_controls_hidden: Cell<usize>,
     pub(crate) last_accesskit_tree_updates: RefCell<Vec<accesskit::TreeUpdate>>,
     pub(crate) console_messages: RefCell<Vec<(ConsoleLogLevel, String)>>,
+    pub(crate) fullscreen: Cell<bool>,
 }
 
 #[allow(dead_code)] // Used by some tests and not others
@@ -110,6 +111,7 @@ impl WebViewDelegateImpl {
         self.number_of_controls_hidden.set(0);
         self.last_accesskit_tree_updates.borrow_mut().clear();
         self.console_messages.borrow_mut().clear();
+        self.fullscreen.set(false);
     }
 }
 
@@ -164,6 +166,10 @@ impl WebViewDelegate for WebViewDelegateImpl {
 
     fn show_console_message(&self, _webview: WebView, level: ConsoleLogLevel, message: String) {
         self.console_messages.borrow_mut().push((level, message));
+    }
+
+    fn notify_fullscreen_state_changed(&self, _webview: WebView, fullscreen: bool) {
+        self.fullscreen.set(fullscreen);
     }
 }
 

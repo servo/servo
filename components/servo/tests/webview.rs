@@ -1135,3 +1135,39 @@ fn test_preferences_change() {
         )
     );
 }
+
+#[test]
+fn test_fullscreen() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let test_page = Url::parse(
+        "data:text/html,\
+        <button onclick='this.requestFullscreen()'>click</button>\
+        <a href=about:blank>click</a>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    click_at_point(&webview, Point2D::new(10., 10.));
+
+    let captured = delegate.clone();
+    servo_test.spin(move || !captured.fullscreen.get());
+
+    assert!(
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "document.querySelector('a').click();"
+        )
+        .is_ok()
+    );
+
+    let captured = delegate.clone();
+    servo_test.spin(move || captured.fullscreen.get());
+}
