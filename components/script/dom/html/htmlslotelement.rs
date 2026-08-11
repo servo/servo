@@ -376,7 +376,8 @@ impl HTMLSlotElement {
         }
 
         if let Some(selection) = self.owner_document().selection() &&
-            let FlatTreeParent::Parent(parent) = self.upcast::<Node>().parent_in_flat_tree() &&
+            let FlatTreeParent::Parent(parent) =
+                self.upcast::<Node>().parent_in_flat_tree(cx.no_gc()) &&
             parent.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION)
         {
             selection.set_visible_selection_dirty();

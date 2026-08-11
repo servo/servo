@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use euclid::num::Zero;
 use euclid::{Rect, Size2D};
 use html5ever::ns;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::BoxAreaType;
 use script_bindings::cell::DomRefCell;
@@ -85,6 +85,7 @@ impl ResizeObserver {
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
+        no_gc: &NoGC,
         depth: &ResizeObservationDepth,
         has_active: &mut bool,
     ) {
@@ -98,7 +99,7 @@ impl ResizeObserver {
             // Step 2.2.1 If observation.isActive() is true
             if observation.is_active(target) {
                 // Step 2.2.1.1 Let targetDepth be result of calculate depth for node for observation.target.
-                let target_depth = calculate_depth_for_node(target);
+                let target_depth = calculate_depth_for_node(no_gc, target);
 
                 // Step 2.2.1.2 If targetDepth is greater than depth then add observation to [[activeTargets]].
                 if target_depth > *depth {
@@ -140,7 +141,7 @@ impl ResizeObserver {
             entries.push(entry);
             observation.state.set(ObservationState::Done);
 
-            let target_depth = calculate_depth_for_node(target);
+            let target_depth = calculate_depth_for_node(cx.no_gc(), target);
             if target_depth < *shallowest_target_depth {
                 *shallowest_target_depth = target_depth;
             }
@@ -363,9 +364,11 @@ impl ResizeObservation {
 }
 
 /// <https://drafts.csswg.org/resize-observer/#calculate-depth-for-node>
-fn calculate_depth_for_node(target: &Element) -> ResizeObservationDepth {
+fn calculate_depth_for_node(no_gc: &NoGC, target: &Element) -> ResizeObservationDepth {
     let node = target.upcast::<Node>();
-    let depth = node.inclusive_ancestors_in_flat_tree().count();
+    let depth = node
+        .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
+        .count();
     ResizeObservationDepth(depth)
 }
 

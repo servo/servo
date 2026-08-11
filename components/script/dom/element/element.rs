@@ -380,7 +380,7 @@ impl Element {
         self.style_data.borrow_mut().take();
     }
 
-    pub(crate) fn restyle(&self, damage: NodeDamage) {
+    pub(crate) fn restyle(&self, no_gc: &NoGC, damage: NodeDamage) {
         let doc = self.node.owner_doc();
         let mut restyle = doc.ensure_pending_restyle(self);
 
@@ -391,13 +391,13 @@ impl Element {
         match damage {
             NodeDamage::Style => {},
             NodeDamage::ContentOrHeritage => {
-                doc.note_dirty_element(self);
+                doc.note_dirty_element(no_gc, self);
                 restyle
                     .damage
                     .insert(RestyleDamage::from(LayoutDamage::DescendantHasBoxDamage));
             },
             NodeDamage::Other => {
-                doc.note_dirty_element(self);
+                doc.note_dirty_element(no_gc, self);
                 restyle.damage.insert(RestyleDamage::reconstruct());
             },
         }
@@ -411,7 +411,7 @@ impl Element {
     pub(crate) fn note_dirty_descendants(&self, no_gc: &NoGC) {
         self.upcast::<Node>()
             .owner_doc_unrooted(no_gc)
-            .note_dirty_element(self);
+            .note_dirty_element(no_gc, self);
     }
 
     pub(crate) fn set_is(&self, is: LocalName) {

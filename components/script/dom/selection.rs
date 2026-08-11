@@ -130,11 +130,15 @@ impl Selection {
         };
 
         let start_position = position_in_flat_tree_for_selection(
+            no_gc,
             range.start_container(),
             range.start_offset() as usize,
         );
-        let end_position =
-            position_in_flat_tree_for_selection(range.end_container(), range.end_offset() as usize);
+        let end_position = position_in_flat_tree_for_selection(
+            no_gc,
+            range.end_container(),
+            range.end_offset() as usize,
+        );
         let start_node = start_position.node();
         let end_node = end_position.node();
 
@@ -166,10 +170,10 @@ impl Selection {
         //   as the in-order tree walk will be guaranteed to walk them.
         // - We do not need to mark these nodes as dirty as they are guaranteed to not be
         //   leaves (the only nodes that show visible selection).
-        let mut maybe_parent = start_node.parent_in_flat_tree();
+        let mut maybe_parent = start_node.parent_in_flat_tree(no_gc);
         while let FlatTreeParent::Parent(parent) = maybe_parent {
             add_selection_flag(&parent);
-            maybe_parent = parent.parent_in_flat_tree();
+            maybe_parent = parent.parent_in_flat_tree(no_gc);
         }
 
         let mut traversal = start_node.following_flat_tree_nodes_unrooted(no_gc);
@@ -870,6 +874,7 @@ impl FlatTreeNodePosition {
 /// boundaries. This projects the given position onto the flat tree, accounting for origin
 /// nodes that may not actually be in the flat tree at all.
 fn position_in_flat_tree_for_selection(
+    no_gc: &NoGC,
     container: DomRoot<Node>,
     offset: usize,
 ) -> FlatTreeNodePosition {
@@ -885,11 +890,11 @@ fn position_in_flat_tree_for_selection(
     };
 
     if let Some(child) = container.children().nth(offset) {
-        if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree() {
+        if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree(no_gc) {
             return FlatTreeNodePosition::Before(child);
         }
     } else if let Some(last_child) = container.GetLastChild() &&
-        let FlatTreeParent::Parent(_) = last_child.parent_in_flat_tree()
+        let FlatTreeParent::Parent(_) = last_child.parent_in_flat_tree(no_gc)
     {
         return FlatTreeNodePosition::After(shadow_host_or_node(&container));
     }

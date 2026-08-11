@@ -522,7 +522,7 @@ impl DocumentEventHandler {
 
         let common_ancestor = match related_target.as_ref() {
             Some(related_target) => event_target
-                .common_ancestor_in_flat_tree(related_target)
+                .common_ancestor_in_flat_tree(cx.no_gc(), related_target)
                 .unwrap_or_else(|| DomRoot::from_ref(event_target)),
             None => DomRoot::from_ref(event_target),
         };
@@ -530,8 +530,9 @@ impl DocumentEventHandler {
         // We need to create a target chain in case the event target shares
         // its boundaries with its ancestors.
         let mut targets: Vec<_> = event_target
-            .inclusive_ancestors_in_flat_tree()
-            .take_while(|node| *node != common_ancestor)
+            .inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
+            .take_while(|node| *node != *common_ancestor)
+            .map(|node| node.as_rooted())
             .collect();
 
         // The order for dispatching mouseenter/pointerenter events starts from the topmost
@@ -2389,7 +2390,8 @@ impl DocumentEventHandler {
     ) {
         let mut targets: Vec<_> = target_element
             .upcast::<Node>()
-            .inclusive_ancestors_in_flat_tree()
+            .inclusive_ancestors_in_flat_tree_unrooted(cx.no_gc())
+            .map(|node| node.as_rooted())
             .collect();
 
         // Reverse to dispatch from topmost ancestor to target
