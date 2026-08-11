@@ -521,12 +521,14 @@ impl Activatable for HTMLButtonElement {
         // Adhoc, this step is needed so that file inputs button activates the input.
         if let Some(pseudo_element) = self.upcast::<Node>().implemented_pseudo_element() {
             if pseudo_element == PseudoElement::FileSelectorButton {
-                let FlatTreeParent::Parent(parent) = self.upcast::<Node>().parent_in_flat_tree()
+                let FlatTreeParent::Parent(parent) =
+                    self.upcast::<Node>().parent_in_flat_tree(cx.no_gc())
                 else {
                     return;
                 };
 
                 parent
+                    .as_rooted()
                     .downcast::<HTMLInputElement>()
                     .expect("File select button should always be a child of an input element")
                     .activation_behavior(cx, event, target);

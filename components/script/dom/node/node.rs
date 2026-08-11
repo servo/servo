@@ -919,13 +919,13 @@ impl Node {
                     self.add_pending_accessibility_damage(AccessibilityDamage::Text);
                 }
             },
-            NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(damage),
+            NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(no_gc, damage),
             NodeTypeId::DocumentFragment(DocumentFragmentTypeId::ShadowRoot) => self
                 .downcast::<ShadowRoot>()
                 .unwrap()
                 .Host()
                 .upcast::<Element>()
-                .restyle(damage),
+                .restyle(no_gc, damage),
             _ => {},
         };
     }
@@ -990,12 +990,18 @@ impl Node {
         })
     }
 
-    pub(crate) fn common_ancestor_in_flat_tree(&self, other: &Node) -> Option<DomRoot<Node>> {
-        self.inclusive_ancestors_in_flat_tree().find(|ancestor| {
-            other
-                .inclusive_ancestors_in_flat_tree()
-                .any(|node| node == *ancestor)
-        })
+    pub(crate) fn common_ancestor_in_flat_tree(
+        &self,
+        no_gc: &NoGC,
+        other: &Node,
+    ) -> Option<DomRoot<Node>> {
+        self.inclusive_ancestors_in_flat_tree_unrooted(no_gc)
+            .find(|ancestor| {
+                other
+                    .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
+                    .any(|node| node == *ancestor)
+            })
+            .map(|node| node.as_rooted())
     }
 
     pub(crate) fn following_flat_tree_nodes_unrooted<'no_gc>(
@@ -2039,6 +2045,15 @@ impl Node {
         Some(assigned_slot)
     }
 
+    pub(crate) fn assigned_slot_unrooted<'a>(
+        &self,
+        no_gc: &'a NoGC,
+    ) -> Option<UnrootedDom<'a, HTMLSlotElement>> {
+        let rare_data = self.rare_data.borrow();
+        let assigned_slot = rare_data.as_ref()?.slottable_data.assigned_slot.as_ref()?;
+        Some(UnrootedDom::from_dom(Dom::from_ref(assigned_slot), no_gc))
+    }
+
     pub(crate) fn set_assigned_slot(&self, assigned_slot: Option<&HTMLSlotElement>) {
         self.ensure_rare_data().slottable_data.assigned_slot = assigned_slot.map(Dom::from_ref);
     }
@@ -2074,17 +2089,20 @@ impl Node {
     /// The parent might not have a flat tree relationship with the node if
     ///  - It's a light tree child of a shadow host.
     ///  - It's fallback content for an assigned slot.
-    pub(crate) fn parent_in_flat_tree(&self) -> FlatTreeParent {
-        if let Some(assigned_slot) = self.assigned_slot() {
-            return FlatTreeParent::Parent(DomRoot::upcast(assigned_slot));
+    pub(crate) fn parent_in_flat_tree<'b>(&self, no_gc: &'b NoGC) -> FlatTreeParent<'b> {
+        if let Some(assigned_slot) = self.assigned_slot_unrooted(no_gc) {
+            return FlatTreeParent::Parent(UnrootedDom::upcast::<Node>(assigned_slot));
         }
 
-        let Some(parent) = self.GetParentNode() else {
+        let Some(parent) = self.get_parent_node_unrooted(no_gc) else {
             return FlatTreeParent::RootNode;
         };
 
         if let Some(shadow_root) = parent.downcast::<ShadowRoot>() {
-            return FlatTreeParent::Parent(DomRoot::from_ref(shadow_root.Host().upcast::<Node>()));
+            return FlatTreeParent::Parent(UnrootedDom::from_dom(
+                Dom::from_ref(shadow_root.Host().upcast::<Node>()),
+                no_gc,
+            ));
         }
 
         if parent
@@ -2104,15 +2122,21 @@ impl Node {
         FlatTreeParent::Parent(parent)
     }
 
-    pub(crate) fn inclusive_ancestors_in_flat_tree(
+    pub(crate) fn inclusive_ancestors_in_flat_tree_unrooted<'a>(
         &self,
-    ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
-        SimpleNodeIterator::new(Some(DomRoot::from_ref(self)), move |node| {
-            match node.parent_in_flat_tree() {
-                FlatTreeParent::Parent(parent) => Some(parent),
+        no_gc: &'a NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + use<'a> {
+        UnrootedSimpleNodeIterator::new(
+            Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            move |node, no_gc| match node.parent_in_flat_tree(no_gc) {
+                FlatTreeParent::Parent(parent) => {
+                    // Supoptimal
+                    Some(UnrootedDom::from_dom(Dom::from_ref(&*parent), no_gc))
+                },
                 FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => None,
-            }
-        })
+            },
+            no_gc,
+        )
     }
 
     /// We are marking this as an implemented pseudo element.
@@ -2708,7 +2732,7 @@ impl Node {
             }
         }
 
-        Self::maybe_dirty_visible_selection_for_newly_inserted_nodes(parent, new_nodes);
+        Self::maybe_dirty_visible_selection_for_newly_inserted_nodes(cx.no_gc(), parent, new_nodes);
 
         if let SuppressObserver::Unsuppressed = suppress_observers {
             // Step 9. Run the children changed steps for parent.
@@ -2758,6 +2782,7 @@ impl Node {
     /// If insertion of any of the given nodes happened within an existing visible
     /// selection, mark the [`Document`]'s visible selection as dirty.
     pub(crate) fn maybe_dirty_visible_selection_for_newly_inserted_nodes(
+        no_gc: &NoGC,
         parent: &Node,
         inserted_nodes: &[&Node],
     ) {
@@ -2766,7 +2791,7 @@ impl Node {
         };
 
         for node in inserted_nodes {
-            match node.parent_in_flat_tree() {
+            match node.parent_in_flat_tree(no_gc) {
                 FlatTreeParent::RootNode | FlatTreeParent::NotInFlatTree => {},
                 FlatTreeParent::Parent(parent) => {
                     if parent.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
@@ -4393,7 +4418,11 @@ impl VirtualMethods for Node {
             .content_and_heritage_changed(cx.no_gc(), self);
 
         if let Some(parent) = self.GetParentNode() {
-            Self::maybe_dirty_visible_selection_for_newly_inserted_nodes(&parent, &[self]);
+            Self::maybe_dirty_visible_selection_for_newly_inserted_nodes(
+                cx.no_gc(),
+                &parent,
+                &[self],
+            );
         }
     }
 
@@ -4493,9 +4522,9 @@ where
 }
 
 /// The return value of [`Node::parent_in_flat_tree`].
-pub(crate) enum FlatTreeParent {
+pub(crate) enum FlatTreeParent<'a> {
     /// The parent in the flat tree.
-    Parent(DomRoot<Node>),
+    Parent(UnrootedDom<'a, Node>),
     /// This node has a parent (it's not the root), but it does not share a flat tree
     /// relationship with its parent.
     NotInFlatTree,

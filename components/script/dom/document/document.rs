@@ -825,7 +825,7 @@ impl Document {
     ///   flags up the tree until we cross the path of the new root. Once
     ///   we find this common ancestor, we record it as the restyle root, and then
     ///   clear the bits between the new restyle root and the document root.
-    pub(crate) fn note_dirty_element(&self, element: &Element) {
+    pub(crate) fn note_dirty_element(&self, no_gc: &NoGC, element: &Element) {
         let node = element.upcast::<Node>();
 
         debug_assert!(*node.owner_doc() == *self);
@@ -833,8 +833,8 @@ impl Document {
             return;
         }
 
-        let parent_element = match node.parent_in_flat_tree() {
-            FlatTreeParent::Parent(parent) => DomRoot::downcast::<Element>(parent),
+        let parent_element = match node.parent_in_flat_tree(no_gc) {
+            FlatTreeParent::Parent(parent) => UnrootedDom::downcast::<Element>(parent),
             FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => return,
         };
 
@@ -856,12 +856,15 @@ impl Document {
 
         let Some(old_dirty_root) = self.dirty_root.get() else {
             node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
-            self.set_dirty_root(Some(element));
+            self.set_dirty_root(no_gc, Some(element));
             return;
         };
 
         let old_dirty_root_node = old_dirty_root.upcast::<Node>();
-        for ancestor in element.upcast::<Node>().inclusive_ancestors_in_flat_tree() {
+        for ancestor in element
+            .upcast::<Node>()
+            .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
+        {
             // Never mark the Document node as having dirty descendants. It's never the dirty root.
             if !ancestor.is::<Element>() {
                 break;
@@ -876,13 +879,13 @@ impl Document {
             // If this node is already under the existing dirty root, there is nothing else to
             // do apart from marking this node as having dirty descendants. We need to ensure
             // we mark the root as having dirty descendants now because that has become true.
-            if old_dirty_root_node == &*ancestor {
+            if old_dirty_root_node == &**ancestor {
                 return;
             }
         }
 
         let common_element_ancestor = old_dirty_root_node
-            .inclusive_ancestors_in_flat_tree()
+            .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
             .skip(1) // Skip the old root itself.
             .find_map(|ancestor| {
                 // Never mark the Document node as having dirty descendants. It's never the dirty root.
@@ -904,7 +907,7 @@ impl Document {
                     .upcast::<Node>()
                     .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true);
             }
-            self.set_dirty_root(new_dirty_root.as_deref());
+            self.set_dirty_root(no_gc, new_dirty_root.as_deref());
             return;
         };
 
@@ -913,21 +916,21 @@ impl Document {
         // flag.
         for ancestor in new_dirty_root
             .upcast::<Node>()
-            .inclusive_ancestors_in_flat_tree()
+            .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
             .skip(1)
         {
             ancestor.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
         }
 
-        self.set_dirty_root(Some(&*new_dirty_root));
+        self.set_dirty_root(no_gc, Some(&*new_dirty_root));
     }
 
-    fn set_dirty_root(&self, new_dirty_root: Option<&Element>) {
+    fn set_dirty_root(&self, no_gc: &NoGC, new_dirty_root: Option<&Element>) {
         // Assertion: No nodes above the dirty root should be marked with the HAS_DIRTY_DESCENDANTS flag.
         debug_assert!(new_dirty_root.as_ref().is_none_or(|new_dirty_root| {
             new_dirty_root
                 .upcast::<Node>()
-                .inclusive_ancestors_in_flat_tree()
+                .inclusive_ancestors_in_flat_tree_unrooted(no_gc)
                 .skip(1)
                 .all(|node| !node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS))
         }));
@@ -3249,11 +3252,13 @@ impl Document {
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
+        no_gc: &NoGC,
         depth: &ResizeObservationDepth,
     ) -> bool {
         let mut has_active_resize_observations = false;
         for observer in self.resize_observers.borrow_mut().iter_mut() {
             observer.gather_active_resize_observations_at_depth(
+                no_gc,
                 depth,
                 &mut has_active_resize_observations,
             );
