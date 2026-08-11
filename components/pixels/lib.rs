@@ -534,9 +534,12 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
         return None;
     }
 
-    let image_decoder_result = cfg_select! {
-       target_env = "ohos" => {ohos_decoder::OhosImageDecoder::make_decoder(buffer) }
-       _ => { decoding::DefaultImageDecoder::make_decoder(buffer) }
+    cfg_if::cfg_if! {
+       if #[cfg(target_env = "ohos")] {
+           let image_decoder_result = ohos_decoder::OhosImageDecoder::make_decoder(buffer);
+       } else {
+           let image_decoder_result = decoding::DefaultImageDecoder::make_decoder(buffer);
+       }
     };
 
     let Ok(image_decoder) = image_decoder_result else {
