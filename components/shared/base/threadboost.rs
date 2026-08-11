@@ -36,6 +36,8 @@ mod platform {
     use std::fs;
     use std::sync::LazyLock;
 
+    use super::{BoostAffinity, ThreadPriority};
+
     // Constants copied from `qos/qos.h`. Avoids depending on ohos-libqos-sys just for this one function.
     // See also <https://docs.rs/ohos-libqos-sys/0.1.0/src/ohos_libqos_sys/qos_ffi.rs.html#21>
     const QOS_USER_INITIATED: i32 = 3;
