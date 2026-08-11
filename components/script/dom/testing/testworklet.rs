@@ -13,7 +13,7 @@ use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
-use crate::dom::{GlobalScope, StatelessWorkletThreadPool};
+use crate::dom::StatelessWorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
@@ -79,33 +79,30 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         self.worklet.AddModule(realm, module_url, options)
     }
 
-    // TODO:
-    // - do stuff of testworkletglobalscope:73 in a closure
-    // - downcast global_scope to test_worklet_global_scope
-    // - pass the closure to the primary_sender to execute
-
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
         let id = self.worklet.worklet_id();
 
+        let (sender, receiver) = unbounded();
         let key = String::from(key);
-        let (tx, rx) = unbounded::<Option<String>>();
 
-        let lookup_task = move |global_scope: &WorkletGlobalScope|  {
-            let test_worklet_global_scope = global_scope.downcast::<TestWorkletGlobalScope>().expect("");
-            let pending = test_worklet_global_scope.lookup_table().borrow().get(&key).cloned();
-            tx.send(pending);
+        let lookup_task = move |_cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
+            let test_worklet_global_scope = global_scope
+                .downcast::<TestWorkletGlobalScope>()
+                .expect("Could not downcast &WorkletGlobalScope to &TestWorkletGlobalScope.");
+            let value = test_worklet_global_scope.lookup_value(key);
+            let _ = sender.send(value);
         };
 
-        self.worklet.worklet_thread_pool().run_task(id, Box::new(lookup_task));
+        self.worklet
+            .worklet_thread_pool()
+            .run_task(id, Box::new(lookup_task));
 
-        match rx.recv() {
-            Ok(val) => {
-                val.map(DOMString::from)
-            },
+        match receiver.recv() {
+            Ok(value) => value.map(DOMString::from),
             Err(err) => {
                 error!("Test Worklet died? {}", err);
                 None
-            }
+            },
         }
     }
 }
