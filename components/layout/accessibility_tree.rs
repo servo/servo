@@ -866,7 +866,9 @@ impl AccessibilityNode {
         context: &AccessibilityContext<'_>,
     ) {
         // Border box with transforms, matching getBoundingClientRect(). Bounds are in CSS pixels,
-        // relative to the viewport origin (see the [`accesskit`] composition model).
+        // relative to the viewport origin; the embedder's graft node carries the transform that
+        // composes them into AccessKit's coordinate space (see the "Coordinates" section of
+        // <https://docs.rs/accesskit/latest/accesskit/struct.Node.html>).
         let bounds = process_box_area_request(
             context.layout_thread,
             context.stacking_context_tree,
