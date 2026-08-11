@@ -274,7 +274,8 @@ impl AccessibilityTree {
     ///
     /// TODO(accessibility): We might not always need to start from the document root. However,
     /// since viewport-relative coordinates are used, any ancestor movement/scroll/zoom shifts all
-    /// descendants, and layout does not currently provide fine-grained bounds damage notifications.
+    /// descendants, and layout does not currently provide fine-grained bounds damage
+    /// notifications. See #47162.
     fn refresh_bounds<'dom>(
         &self,
         root_dom_node: &ServoLayoutNode<'dom>,
@@ -882,11 +883,12 @@ impl AccessibilityNode {
         // TODO(accessibility): A text node never has bounds of its own: `LayoutBox::Text` has no
         // `LayoutBoxBase`, and `Fragment::Text` has no box area, so the query above always returns
         // `None` for one. Text nodes should get the union of the rectangles of their own
-        // `Fragment::Text` fragments, once `cumulative_box_area_rect()` can handle those.
+        // `Fragment::Text` fragments, once `cumulative_box_area_rect()` can handle those. See
+        // #47164.
         //
         // TODO(accessibility): A `display: contents` element generates no box either. Other
         // engines (Blink, WebKit, Gecko) compute its bounds as the union of the bounding boxes of
-        // its rendered descendants.
+        // its rendered descendants. See #47163.
         match bounds {
             Some(bounds) => self.set_bounds(bounds),
             None => self.clear_bounds(),

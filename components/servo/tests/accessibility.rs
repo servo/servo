@@ -681,7 +681,7 @@ fn test_accessibility_text_run_bounds() {
     // TODO(accessibility): Text nodes have no layout box of their own, so no bounds are computed
     // for them yet. They should eventually get the union of the rectangles of their own
     // `Fragment::Text` fragments. This assertion demonstrates the current behaviour; flip it once
-    // text run bounds are implemented.
+    // text run bounds are implemented. See #47164.
     let text_run = find_first_matching_node(heading, |node| node.role() == Role::TextRun)
         .expect("Heading should contain a TextRun");
     assert!(
@@ -711,7 +711,7 @@ fn test_accessibility_bounds_omitted_for_display_contents() {
     // TODO(accessibility): A `display: contents` element generates no box, so no bounds are
     // computed for it yet. Other engines (Blink, WebKit, Gecko) compute its bounds as the union of
     // the bounding boxes of its rendered descendants. This test demonstrates the current
-    // behaviour; flip these assertions once that is implemented.
+    // behaviour; flip these assertions once that is implemented. See #47163.
     let span = find_first_matching_node(root, |node| node.data().html_tag() == Some("span"))
         .expect("Document should contain the `display: contents` span");
     assert!(

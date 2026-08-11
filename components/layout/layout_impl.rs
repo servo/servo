@@ -712,7 +712,7 @@ impl Layout for LayoutThread {
         // the renderer makes every one of them stale without any reflow occuring. Asking
         // for an accessibility update BOTH schedules a rendering update and STOPS that update's
         // reflow from being skipped entirely, so that the bounds are recomputed against these new
-        // scroll offsets.
+        // scroll offsets. See #47161 for a transform-based alternative to recomputing every node.
         if self.accessibility_active() {
             self.set_needs_accessibility_update();
         }
