@@ -44,7 +44,8 @@ impl<'a> std::fmt::Debug for GenericImageDecoder<'a> {
     }
 }
 
-/// Notice that we implement methods that are implemented by default. However, these methods are necessary as
+/// Notice that we implement methods that are implemented by default. However, these methods are necessary as the default implementation
+/// will return not correct defaults.
 impl<'a> image::ImageDecoder for GenericImageDecoder<'a> {
     fn dimensions(&self) -> (u32, u32) {
         match self {
