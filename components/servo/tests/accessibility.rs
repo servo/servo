@@ -839,6 +839,50 @@ fn test_accessibility_bounds_updated_after_renderer_scroll() {
 }
 
 #[test]
+fn test_accessibility_bounds_updated_after_script_scroll() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <main style='position:absolute;left:10px;top:100px;\
+               width:100px;height:50px'>Target</main>\
+               <div style='width:2000px;height:2000px'></div>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let main = find_first_matching_node(root, |node| node.role() == Role::Main)
+        .expect("Document should contain a main element");
+    let main_id = main.locate().0; // Maps to layout's NodeId
+    assert_rect_eq(
+        main.raw_bounds().expect("main should have bounds"),
+        Rect::new(10.0, 100.0, 110.0, 150.0),
+    );
+
+    // Scrolling the viewport down and to the right shifts every viewport-relative bound up and to
+    // the left by the same amount, mirroring `..._after_renderer_scroll` but driven from script.
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "window.scrollTo(20, 40);");
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let expected = Rect::new(-10.0, 60.0, 90.0, 110.0);
+    let updated_bounds = updates
+        .iter()
+        .flat_map(|update| update.nodes.iter())
+        .filter(|(id, _)| *id == main_id)
+        .filter_map(|(_, node)| node.bounds())
+        .next_back()
+        .expect("The main element should have been re-sent with new bounds");
+    assert_rect_eq(updated_bounds, expected);
+
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let main = find_first_matching_node(root, |node| node.role() == Role::Main)
+        .expect("Document should contain a main element");
+    assert_rect_eq(
+        main.raw_bounds().expect("main should have bounds"),
+        expected,
+    );
+}
+
+#[test]
 fn test_accessibility_unchanged_bounds_are_not_resent() {
     // Absolutely positioned divs; resizing one doesn't affect the other
     let url = "data:text/html,<!DOCTYPE html>\
