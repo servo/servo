@@ -28,9 +28,9 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
+use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 #[cfg(feature = "testbinding")]
-use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
+use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
@@ -264,4 +264,3 @@ pub(crate) enum WorkletGlobalScopeType {
     /// A paint worklet
     Paint,
 }
-
