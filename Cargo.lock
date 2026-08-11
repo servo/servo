@@ -9087,6 +9087,7 @@ dependencies = [
  "servo-webxr-api",
  "servo_arc",
  "smallvec",
+ "strum",
  "stylo",
  "stylo_atoms",
  "tendril",
