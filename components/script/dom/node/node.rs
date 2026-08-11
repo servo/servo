@@ -1369,13 +1369,18 @@ impl Node {
         let mut options = GetRootNodeOptions::empty();
         options.composed = true;
         if new_parent.GetRootNode(&options) != node.GetRootNode(&options) {
-            return Err(Error::HierarchyRequest(None));
+            return Err(Error::HierarchyRequest(Some(
+                "The `new_parent` node's shadow root is not the same as the `node`'s shadow root"
+                    .into(),
+            )));
         }
 
         // Step 2. If node is a host-including inclusive ancestor of newParent, then throw a
         // "HierarchyRequestError" DOMException.
         if node.is_inclusive_ancestor_of(new_parent) {
-            return Err(Error::HierarchyRequest(None));
+            return Err(Error::HierarchyRequest(Some(
+                "`node` node cannot be the inclusive ancestor of the `newParent` node".into(),
+            )));
         }
 
         // Step 3. If child is non-null and its parent is not newParent, then throw a
@@ -1383,7 +1388,9 @@ impl Node {
         if let Some(child) = child &&
             !new_parent.is_parent_of(child)
         {
-            return Err(Error::NotFound(None));
+            return Err(Error::NotFound(Some(
+                "`child` node's parent node is not `newParent`".into(),
+            )));
         }
 
         // Step 4. If node is not an Element or a CharacterData node, then throw a
@@ -1393,7 +1400,9 @@ impl Node {
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if new_parent.is::<Document>() {
-                    return Err(Error::HierarchyRequest(None));
+                    return Err(Error::HierarchyRequest(Some(
+                        "`node` cannot be a text node when `newParent` is a document".into(),
+                    )));
                 }
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
@@ -1403,7 +1412,9 @@ impl Node {
             NodeTypeId::DocumentType |
             NodeTypeId::Document(_) |
             NodeTypeId::Attr => {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "To move `node` into a `newParent`, it must be either an Element or CharacterData node".into(),
+                )));
             },
         }
 
@@ -1413,7 +1424,9 @@ impl Node {
         if new_parent.is::<Document>() && node.is::<Element>() {
             // either newParent has an element child
             if new_parent.child_elements().next().is_some() {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "`newParent` document node cannot have any children".into(),
+                )));
             }
 
             // child is a doctype
@@ -1423,7 +1436,9 @@ impl Node {
                     .inclusively_following_siblings_unrooted(cx.no_gc())
                     .any(|child| child.is_doctype())
             }) {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "`child` node has a document node following it".into(),
+                )));
             }
         }
 
@@ -1906,7 +1921,9 @@ impl Node {
         I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
         if index < -1 {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Index cannot be less than -1".into(),
+            )));
         }
 
         let tr = new_child(cx);
@@ -1924,7 +1941,7 @@ impl Node {
                     .chain(iter::once(None))
                     .nth(index as usize)
                 {
-                    None => return Err(Error::IndexSize(None)),
+                    None => return Err(Error::IndexSize(Some("Index is out of bounds".into()))),
                     Some(node) => node,
                 };
                 self.InsertBefore(cx, tr_node, node.map(|node| node.as_rooted()).as_deref())?;
@@ -1947,7 +1964,11 @@ impl Node {
         G: Fn(&Element) -> bool,
     {
         let element = match index {
-            index if index < -1 => return Err(Error::IndexSize(None)),
+            index if index < -1 => {
+                return Err(Error::IndexSize(Some(
+                    "Index cannot be less than -1".into(),
+                )));
+            },
             -1 => {
                 let last_child = self.upcast::<Node>().GetLastChild();
                 match last_child.and_then(|node| {
@@ -1962,7 +1983,7 @@ impl Node {
             },
             index => match get_items(cx).Item(cx, index as u32) {
                 Some(element) => element,
-                None => return Err(Error::IndexSize(None)),
+                None => return Err(Error::IndexSize(Some("Index is out of bounds".into()))),
             },
         };
 
@@ -2419,7 +2440,9 @@ impl Node {
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6."DocumentFragment". If node has more than one element child or has a Text node child.
                     if node.children_unrooted(no_gc).any(|c| c.is::<Text>()) {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Parent is a document and node has a Text node child".into(),
+                        )));
                     }
                     match node.child_elements_unrooted(no_gc).count() {
                         0 => (),
@@ -2427,17 +2450,26 @@ impl Node {
                         // child is a doctype, or child is non-null and a doctype is following child.
                         1 => {
                             if parent.child_elements_unrooted(no_gc).next().is_some() {
-                                return Err(Error::HierarchyRequest(None));
+                                return Err(Error::HierarchyRequest(Some(
+                                    "Node has one element child and parent has an element child"
+                                        .into(),
+                                )));
                             }
                             if let Some(child) = child &&
                                 child
                                     .inclusively_following_siblings_unrooted(no_gc)
                                     .any(|child| child.is_doctype())
                             {
-                                return Err(Error::HierarchyRequest(None));
+                                return Err(Error::HierarchyRequest(Some(
+                                    "Node has one element child and child is a doctype".into(),
+                                )));
                             }
                         },
-                        _ => return Err(Error::HierarchyRequest(None)),
+                        _ => {
+                            return Err(Error::HierarchyRequest(Some(
+                                "Node cannot have more than one child element".into(),
+                            )));
+                        },
                     }
                 },
                 NodeTypeId::Element(_) => {
@@ -2461,7 +2493,9 @@ impl Node {
                     // Step 6."DocumentType". parent has a doctype child, child is non-null and an element is preceding child,
                     // or child is null and parent has an element child.
                     if parent.children_unrooted(no_gc).any(|c| c.is_doctype()) {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Parent cannot have a doctype child".into(),
+                        )));
                     }
                     match child {
                         Some(child) => {
@@ -2470,12 +2504,16 @@ impl Node {
                                 .take_while(|c| **c != child)
                                 .any(|c| c.is::<Element>())
                             {
-                                return Err(Error::HierarchyRequest(None));
+                                return Err(Error::HierarchyRequest(Some(
+                                    "Child is non-null and an element is preceding child".into(),
+                                )));
                             }
                         },
                         None => {
                             if parent.child_elements_unrooted(no_gc).next().is_some() {
-                                return Err(Error::HierarchyRequest(None));
+                                return Err(Error::HierarchyRequest(Some(
+                                    "Child is null and parent has an element child".into(),
+                                )));
                             }
                         },
                     }
@@ -2844,8 +2882,16 @@ impl Node {
     ) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match child.GetParentNode() {
-            Some(ref node) if &**node != parent => return Err(Error::NotFound(None)),
-            None => return Err(Error::NotFound(None)),
+            Some(ref node) if &**node != parent => {
+                return Err(Error::NotFound(Some(
+                    "Child's parent does not match the parent node provided".into(),
+                )));
+            },
+            None => {
+                return Err(Error::NotFound(Some(
+                    "Child does not have a parent node".into(),
+                )));
+            },
             _ => (),
         }
 
@@ -3333,13 +3379,13 @@ impl Node {
         )
         .map_err(|error| {
             error!("Cannot serialize node: {error}");
-            Error::InvalidState(None)
+            Error::InvalidState(Some("Cannot serialize node".into()))
         })?;
 
         // FIXME(ajeffrey): Directly convert UTF8 to DOMString
         let string = DOMString::from(String::from_utf8(writer).map_err(|error| {
             error!("Cannot serialize node: {error}");
-            Error::InvalidState(None)
+            Error::InvalidState(Some("Cannot serialize node".into()))
         })?);
 
         Ok(string)
@@ -3740,18 +3786,26 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         match self.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
-            _ => return Err(Error::HierarchyRequest(None)),
+            _ => {
+                return Err(Error::HierarchyRequest(Some(
+                    "Parent is not a Document, DocumentFragment, or Element node".into(),
+                )));
+            },
         }
 
         // Step 2. If node is a host-including inclusive ancestor of parent,
         // then throw a "HierarchyRequestError" DOMException.
         if node.is_inclusive_ancestor_of(self) {
-            return Err(Error::HierarchyRequest(None));
+            return Err(Error::HierarchyRequest(Some(
+                "Node cannot be a host-including ancestor of parent".into(),
+            )));
         }
 
         // Step 3. If child’s parent is not parent, then throw a "NotFoundError" DOMException.
         if !self.is_parent_of(child) {
-            return Err(Error::NotFound(None));
+            return Err(Error::NotFound(Some(
+                "Parent node provided does not match child's parent node".into(),
+            )));
         }
 
         // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node,
@@ -3760,13 +3814,20 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) if self.is::<Document>() => {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "Node cannot be a Text node while parent is a document".into(),
+                )));
             },
             NodeTypeId::DocumentType if !self.is::<Document>() => {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "Node cannot be a doctype when parent is not a document".into(),
+                )));
             },
             NodeTypeId::Document(_) | NodeTypeId::Attr => {
-                return Err(Error::HierarchyRequest(None));
+                return Err(Error::HierarchyRequest(Some(
+                    "Node is not a DocumentFragment, DocumentType, Element, or CharacterData node"
+                        .into(),
+                )));
             },
             _ => (),
         }
@@ -3779,7 +3840,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 NodeTypeId::DocumentFragment(_) => {
                     // Step 6.1.1(b)
                     if node.children_unrooted(cx.no_gc()).any(|c| c.is::<Text>()) {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Parent is a document and node has a Text node child".into(),
+                        )));
                     }
                     match node.child_elements_unrooted(cx.no_gc()).count() {
                         0 => (),
@@ -3789,14 +3852,23 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                                 .child_elements_unrooted(cx.no_gc())
                                 .any(|c| c.upcast::<Node>() != child)
                             {
-                                return Err(Error::HierarchyRequest(None));
+                                return Err(Error::HierarchyRequest(Some(
+                                    "Node has one element child and parent's children elements does not include child provided"
+                                        .into(),
+                                )));
                             }
                             if child.following_siblings().any(|child| child.is_doctype()) {
-                                return Err(Error::HierarchyRequest(None));
+                                return Err(Error::HierarchyRequest(Some(
+                                    "Node cannot have element child of type document".into(),
+                                )));
                             }
                         },
                         // Step 6.1.1(a)
-                        _ => return Err(Error::HierarchyRequest(None)),
+                        _ => {
+                            return Err(Error::HierarchyRequest(Some(
+                                "Node cannot have more than one child element".into(),
+                            )));
+                        },
                     }
                 },
                 // Step 6.2
@@ -3805,10 +3877,14 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                         .child_elements_unrooted(cx.no_gc())
                         .any(|c| c.upcast::<Node>() != child)
                     {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Parent's children elements does not include child provided".into(),
+                        )));
                     }
                     if child.following_siblings().any(|child| child.is_doctype()) {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Node cannot have element child of type document".into(),
+                        )));
                     }
                 },
                 // Step 6.3
@@ -3817,14 +3893,18 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                         .children_unrooted(cx.no_gc())
                         .any(|c| c.is_doctype() && *c != child)
                     {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "Parent cannot have a doctype child".into(),
+                        )));
                     }
                     if self
                         .children_unrooted(cx.no_gc())
                         .take_while(|c| **c != child)
                         .any(|c| c.is::<Element>())
                     {
-                        return Err(Error::HierarchyRequest(None));
+                        return Err(Error::HierarchyRequest(Some(
+                            "An element cannot precede the child given".into(),
+                        )));
                     }
                 },
                 NodeTypeId::CharacterData(..) => (),
@@ -3957,7 +4037,9 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     fn CloneNode(&self, cx: &mut JSContext, subtree: bool) -> Fallible<DomRoot<Node>> {
         // Step 1. If this is a shadow root, then throw a "NotSupportedError" DOMException.
         if self.is::<ShadowRoot>() {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Cannot clone a shadow root".into(),
+            )));
         }
 
         // Step 2. Return the result of cloning a node given this with subtree set to subtree.

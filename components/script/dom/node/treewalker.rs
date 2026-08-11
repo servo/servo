@@ -445,7 +445,9 @@ impl TreeWalker {
     fn accept_node(&self, cx: &mut JSContext, node: &Node) -> Fallible<u16> {
         // Step 1.
         if self.active.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "TreeWalker cannot be active".into(),
+            )));
         }
         // Step 2.
         let n = node.NodeType() - 1;
