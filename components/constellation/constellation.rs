@@ -157,8 +157,6 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas::canvas_paint_thread::CanvasPaintThread;
 use servo_canvas_traits::ConstellationCanvasMsg;
 use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
-#[cfg(feature = "webgl")]
-use servo_canvas_traits::webgl::WebGLThreads;
 use servo_config::{opts, pref};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
@@ -467,7 +465,7 @@ pub struct Constellation<STF, SWF> {
 
     /// Entry point to create and get channels to a WebGLThread.
     #[cfg(feature = "webgl")]
-    pub(crate) webgl_threads: Option<WebGLThreads>,
+    pub(crate) webgl_threads: Option<servo_canvas_traits::webgl::WebGLThreads>,
 
     /// The XR device registry
     pub(crate) webxr_registry: Option<webxr_api::Registry>,
@@ -583,7 +581,7 @@ pub struct InitialConstellationState {
 
     /// Entry point to create and get channels to a WebGLThread.
     #[cfg(feature = "webgl")]
-    pub webgl_threads: Option<WebGLThreads>,
+    pub webgl_threads: Option<servo_canvas_traits::webgl::WebGLThreads>,
 
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,

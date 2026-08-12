@@ -3663,7 +3663,7 @@ impl Window {
             .unwrap();
     }
 
-    #[cfg(all(feature = "webgl", feature = "webxr"))]
+    #[cfg(feature = "webxr")]
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         self.navigator
             .get()

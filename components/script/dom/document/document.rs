@@ -2357,14 +2357,11 @@ impl Document {
             return;
         }
 
-        self.queue_document_completion(
-            #[cfg(feature = "webgl")]
-            cx,
-        );
+        self.queue_document_completion(cx);
     }
 
     /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn queue_document_completion(&self, #[cfg(feature = "webgl")] cx: &mut JSContext) {
+    fn queue_document_completion(&self, cx: &mut JSContext) {
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
