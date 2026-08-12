@@ -161,45 +161,41 @@ impl SourceSet {
         for child in &elements {
             // Step 5.1. If child is el:
             if *child == DomRoot::from_ref(el) {
-                // Step 5.1.1: Let default source be the empty string.
-                // Step 5.1.2: Let srcset be the empty string.
-                // Step 5.1.3: Let sizes be the empty string.
-                let default_source: String;
-                let srcset: String;
-                let sizes: String;
-
-                if el.is::<HTMLImageElement>() {
+                let (default_source, srcset, sizes) = if el.is::<HTMLImageElement>() {
                     // Step 5.1.4: If el is an img element that has a srcset attribute, then
                     // set srcset to that attribute's value.
-                    srcset = el
+                    let srcset = el
                         .get_attribute_string_value(&local_name!("srcset"))
                         .unwrap_or_default();
                     // Step 5.1.6: If el is an img element that has a sizes attribute, then set sizes to that attribute's value.
-                    sizes = el
+                    let sizes = el
                         .get_attribute_string_value(&local_name!("sizes"))
                         .unwrap_or_default();
                     // Step 5.1.8: If el is an img element that has a src attribute, then set default source to that attribute's value.
-                    default_source = el
+                    let default_source = el
                         .get_attribute_string_value(&local_name!("src"))
                         .unwrap_or_default();
+                    (default_source, srcset, sizes)
                 } else if el.is::<HTMLLinkElement>() {
                     // Step 5.1.5: Otherwise, if el is a link element that has an imagesrcset attribute, then set srcset to that attribute's value.
-                    srcset = el
+                    let srcset = el
                         .get_attribute_string_value(&local_name!("imagesrcset"))
                         .unwrap_or_default();
                     // Step 5.1.7: Otherwise, if el is a link element that has an imagesizes attribute, then set sizes to that attribute's value.
-                    sizes = el
+                    let sizes = el
                         .get_attribute_string_value(&local_name!("imagesizes"))
                         .unwrap_or_default();
                     // Step 5.1.9: Otherwise, if el is a link element that has an href attribute, then set default source to that attribute's value.
-                    default_source = el
+                    let default_source = el
                         .get_attribute_string_value(&local_name!("href"))
                         .unwrap_or_default();
+                    (default_source, srcset, sizes)
                 } else {
-                    default_source = String::new();
-                    srcset = String::new();
-                    sizes = String::new();
-                }
+                    // Step 5.1.1: Let default source be the empty string.
+                    // Step 5.1.2: Let srcset be the empty string.
+                    // Step 5.1.3: Let sizes be the empty string.
+                    (String::new(), String::new(), String::new())
+                };
 
                 // Step 5.1.10. Set el's source set to the result of creating a source set given
                 // default source, srcset, sizes, and img.
