@@ -341,8 +341,6 @@ impl VirtualMethods for HTMLLinkElement {
                 }
             },
             local_name!("imagesrcset") => {
-                // https://html.spec.whatwg.org/multipage/#attr-link-href
-                // > If both the href and imagesrcset attributes are absent, then the element does not define a link.
                 self.source_set
                     .borrow_mut()
                     .update_source_set(self.upcast::<Element>());
