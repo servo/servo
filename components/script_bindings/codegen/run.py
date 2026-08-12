@@ -123,6 +123,7 @@ def filter_conditional_blocks(contents: str) -> str:
 
     for line in contents.splitlines(keepends=True):
         if match := CONDITIONAL_BLOCK_START_PATTERN.fullmatch(line):
+            # Cargo exposes enabled features as CARGO_FEATURE_* to build scripts.
             enabled.append(enabled[-1] and bool(os.environ.get(match.group(1))))
             continue
         if CONDITIONAL_BLOCK_END_PATTERN.fullmatch(line):
