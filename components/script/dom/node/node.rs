@@ -1370,7 +1370,7 @@ impl Node {
         options.composed = true;
         if new_parent.GetRootNode(&options) != node.GetRootNode(&options) {
             return Err(Error::HierarchyRequest(Some(
-                "The `new_parent` node's shadow root is not the same as the `node`'s shadow root"
+                "The `newParent` node's shadow root is not the same as the `node`'s shadow root"
                     .into(),
             )));
         }
@@ -1413,7 +1413,7 @@ impl Node {
             NodeTypeId::Document(_) |
             NodeTypeId::Attr => {
                 return Err(Error::HierarchyRequest(Some(
-                    "To move `node` into a `newParent`, it must be either an Element or CharacterData node".into(),
+                    "To move `node` into a `newParent`, it must be an Element".into(),
                 )));
             },
         }
@@ -1425,7 +1425,7 @@ impl Node {
             // either newParent has an element child
             if new_parent.child_elements().next().is_some() {
                 return Err(Error::HierarchyRequest(Some(
-                    "`newParent` document node cannot have any children".into(),
+                    "`newParent` document cannot have an element child".into(),
                 )));
             }
 
@@ -1921,9 +1921,7 @@ impl Node {
         I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
         if index < -1 {
-            return Err(Error::IndexSize(Some(
-                "Index cannot be less than -1".into(),
-            )));
+            return Err(Error::IndexSize(Some("Index is out of bounds".into())));
         }
 
         let tr = new_child(cx);
@@ -1965,9 +1963,7 @@ impl Node {
     {
         let element = match index {
             index if index < -1 => {
-                return Err(Error::IndexSize(Some(
-                    "Index cannot be less than -1".into(),
-                )));
+                return Err(Error::IndexSize(Some("Index is out of bounds".into())));
             },
             -1 => {
                 let last_child = self.upcast::<Node>().GetLastChild();
