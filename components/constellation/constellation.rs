@@ -157,6 +157,7 @@ use servo_bluetooth_traits::BluetoothRequest;
 use servo_canvas::canvas_paint_thread::CanvasPaintThread;
 use servo_canvas_traits::ConstellationCanvasMsg;
 use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::WebGLThreads;
 use servo_config::{opts, pref};
 use servo_constellation_traits::{

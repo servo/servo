@@ -7,20 +7,26 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+#[cfg(feature = "webgl")]
 use js::error::throw_type_error;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
+#[cfg(feature = "webgl")]
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_proto};
+#[cfg(feature = "webgl")]
+use script_bindings::reflector::DomObject;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::weakref::WeakRef;
 use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use servo_constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
+#[cfg(feature = "webgl")]
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
@@ -29,6 +35,7 @@ use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
 #[cfg(feature = "webgl")]
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
+#[cfg(feature = "webgl")]
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};

@@ -130,7 +130,13 @@ impl ServiceWorkerRegistration {
             .and_then(|window| window.webgl_chan_value());
         let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
-        let init = prepare_workerscope_init(global, None, Some(worker_id), #[cfg(feature = "webgl")] webgl_chan);
+        let init = prepare_workerscope_init(
+            global,
+            None,
+            Some(worker_id),
+            #[cfg(feature = "webgl")]
+            webgl_chan,
+        );
         let browsing_context_id = global
             .downcast::<Window>()
             .map(|w: &Window| w.window_proxy().browsing_context_id())

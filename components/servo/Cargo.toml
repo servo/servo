@@ -85,7 +85,11 @@ webgl_backtrace = [
 ]
 webgl = [
     "dep:webgl",
+    "paint/webgl",
     "script/webgl",
+    "script_traits/webgl",
+    "servo-constellation/webgl",
+    "servo-constellation-traits/webgl",
 ]
 webgpu = [
     "dep:webgpu",

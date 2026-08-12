@@ -16,6 +16,7 @@ use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::trace::RootedTraceableBox;
+#[cfg(feature = "webgl")]
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_base::id::{ImageDataId, ImageDataIndex};
 use servo_constellation_traits::SerializableImageData;
@@ -216,6 +217,7 @@ impl ImageData {
     }
 
     #[expect(unsafe_code)]
+    #[cfg(feature = "webgl")]
     pub(crate) fn to_shared_memory(&self, no_gc: &NoGC) -> GenericSharedMemory {
         // This is safe because we copy the slice content
         GenericSharedMemory::from_bytes(unsafe { self.as_slice(no_gc) })

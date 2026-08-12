@@ -20,6 +20,7 @@ gamepad = ["embedder_traits/gamepad"]
 tracing = ["dep:tracing", "servo-canvas/tracing"]
 vello = ["servo-canvas/vello"]
 webgpu = ["dep:webgpu", "dep:webgpu_traits", "script_traits/webgpu"]
+webgl = []
 
 [lints.clippy]
 unwrap_used = "deny"

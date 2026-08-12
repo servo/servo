@@ -9,15 +9,18 @@ use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::NoGC;
+#[cfg(feature = "webgl")]
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
+#[cfg(feature = "webgl")]
 use script_bindings::reflector::DomObject;
 use script_bindings::weakref::WeakRef;
 use servo_base::Epoch;
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use servo_constellation_traits::BlobImpl;
 #[cfg(feature = "webgpu")]
@@ -28,6 +31,7 @@ use style::attr::AttrValue;
 use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, RenderingContext};
+#[cfg(feature = "webgl")]
 use crate::conversions::Convert;
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
@@ -37,6 +41,7 @@ use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMeth
 #[cfg(feature = "webgl")]
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
+#[cfg(feature = "webgl")]
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
