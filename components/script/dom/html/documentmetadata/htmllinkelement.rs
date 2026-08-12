@@ -1192,6 +1192,18 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     // https://html.spec.whatwg.org/multipage/#dom-link-type
     make_setter!(SetType, "type");
 
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesrcset
+    make_url_getter!(ImageSrcset, "imagesrcset");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesrcset
+    make_url_setter!(SetImageSrcset, "imagesrcset");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesizes
+    make_getter!(ImageSizes, "imagesizes");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesizes
+    make_setter!(SetImageSizes, "imagesizes");
+
     // https://html.spec.whatwg.org/multipage/#dom-link-disabled
     make_bool_getter!(Disabled, "disabled");
 
