@@ -344,7 +344,7 @@ impl VirtualMethods for HTMLLinkElement {
                     self.fetch_and_process_modulepreload(cx);
                 }
             },
-            local_name!("imagesrcset") | local_name!("imagesizes") => {
+            local_name!("imagesrcset") => {
                 // https://html.spec.whatwg.org/multipage/#attr-link-href
                 // > If both the href and imagesrcset attributes are absent, then the element does not define a link.
                 if is_removal && !self.upcast::<Element>().has_attribute(&local_name!("href")) {
@@ -357,6 +357,16 @@ impl VirtualMethods for HTMLLinkElement {
                 self.source_set
                     .borrow_mut()
                     .update_source_set(self.upcast::<Element>());
+            },
+            local_name!("imagesizes") => {
+                if self
+                    .upcast::<Element>()
+                    .has_attribute(&local_name!("imagesrcset"))
+                {
+                    self.source_set
+                        .borrow_mut()
+                        .update_source_set(self.upcast::<Element>());
+                }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
                 self.handle_favicon_url(&attr.value());
@@ -463,38 +473,40 @@ impl VirtualMethods for HTMLLinkElement {
             s.bind_to_tree(cx, context);
         }
 
-        if context.tree_connected &&
-            let Some(href) = self
-                .upcast::<Element>()
-                .get_attribute_string_value(&local_name!("href"))
-        {
+        let element = self.upcast::<Element>();
+        let href = element.get_attribute_string_value(&local_name!("href"));
+        let imagesrcset = element.get_attribute_string_value(&local_name!("imagesrcset"));
+
+        if context.tree_connected && (href.is_some() || imagesrcset.is_some()) {
             let relations = self.relations.get();
             // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
             // > When the external resource link's link element becomes browsing-context connected.
-            if relations.contains(LinkRelations::STYLESHEET) {
-                self.handle_stylesheet_url(cx);
-            }
+            if let Some(href) = href {
+                if relations.contains(LinkRelations::STYLESHEET) {
+                    self.handle_stylesheet_url(cx);
+                }
 
-            if relations.contains(LinkRelations::ICON) {
-                self.handle_favicon_url(&href);
-            }
+                if relations.contains(LinkRelations::ICON) {
+                    self.handle_favicon_url(&href);
+                }
 
-            if relations.contains(LinkRelations::PREFETCH) {
-                self.fetch_and_process_prefetch_link(&href);
+                if relations.contains(LinkRelations::PREFETCH) {
+                    self.fetch_and_process_prefetch_link(&href);
+                }
+
+                // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
+                if relations.contains(LinkRelations::MODULE_PRELOAD) {
+                    let link = DomRoot::from_ref(self);
+                    self.owner_document().add_delayed_task(
+                        task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
+                            link.fetch_and_process_modulepreload(cx);
+                        }),
+                    );
+                }
             }
 
             if relations.contains(LinkRelations::PRELOAD) {
                 self.handle_preload_url();
-            }
-
-            // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
-            if relations.contains(LinkRelations::MODULE_PRELOAD) {
-                let link = DomRoot::from_ref(self);
-                self.owner_document().add_delayed_task(
-                    task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
-                        link.fetch_and_process_modulepreload(cx);
-                    }),
-                );
             }
         }
     }
