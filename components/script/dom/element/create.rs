@@ -103,8 +103,8 @@ use crate::dom::svg::svgstopelement::SVGStopElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
 use crate::dom::svg::svgsymbolelement::SVGSymbolElement;
 use crate::dom::svg::svguseelement::SVGUseElement;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
-use crate::script_thread::ScriptThread;
 
 fn create_svg_element(
     cx: &mut JSContext,

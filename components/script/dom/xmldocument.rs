@@ -15,7 +15,6 @@ use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
 
-use crate::document_loader::DocumentLoader;
 use crate::dom::animations::documenttimeline::DocumentTimeline;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, NamedPropertyValue,
@@ -29,6 +28,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::location::Location;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
+use crate::event_loop::document_loader::DocumentLoader;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]

@@ -22,7 +22,7 @@ use crate::dom::bindings::trace::NoTrace;
 use crate::dom::from_untrusted_node_address;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
-use crate::script_thread::with_script_thread;
+use crate::event_loop::script_thread::with_script_thread;
 
 #[derive(Clone, Default, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]

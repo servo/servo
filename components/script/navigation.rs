@@ -43,9 +43,9 @@ use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::FetchCanceller;
 use crate::messaging::MainThreadScriptMsg;
-use crate::script_thread::ScriptThread;
 
 #[derive(Clone)]
 pub struct NavigationListener {

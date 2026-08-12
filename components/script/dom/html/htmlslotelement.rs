@@ -11,7 +11,6 @@ use js::gc::RootedVec;
 use js::rust::HandleObject;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId};
 
-use crate::ScriptThread;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::{
     AssignedNodesOptions, HTMLSlotElementMethods,
 };
@@ -34,6 +33,7 @@ use crate::dom::node::{
     UnbindContext,
 };
 use crate::dom::{FlatTreeParent, NodeFlags};
+use crate::event_loop::script_thread::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#the-slot-element>
 #[dom_struct]

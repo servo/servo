@@ -36,7 +36,6 @@ use servo_base::id::{BrowsingContextId, PipelineId};
 use webdriver::error::ErrorStatus;
 
 use crate::DomTypeHolder;
-use crate::document_collection::DocumentCollection;
 use crate::dom::attr::is_boolean_attribute;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
@@ -91,8 +90,9 @@ use crate::dom::types::ShadowRoot;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
+use crate::event_loop::document_collection::DocumentCollection;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
-use crate::script_thread::ScriptThread;
 
 /// <https://w3c.github.io/webdriver/#dfn-is-stale>
 fn is_stale(element: &Element) -> bool {

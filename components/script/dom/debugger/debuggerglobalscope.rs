@@ -51,9 +51,9 @@ use crate::dom::types::{
 };
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
+use crate::event_loop::script_thread::with_script_thread;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
-use crate::script_thread::with_script_thread;
 
 #[dom_struct]
 /// Global scope for interacting with the devtools Debugger API.

@@ -44,7 +44,6 @@ use style::context::QuirksMode as ServoQuirksMode;
 use tendril::stream::LossyDecoder;
 use tendril::{ByteTendril, TendrilSink};
 
-use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::SuppressObserver;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
@@ -90,11 +89,12 @@ use crate::dom::security::xframeoptions::check_a_navigation_response_adherence_t
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};
+use crate::event_loop::document_loader::{DocumentLoader, LoadType};
+use crate::event_loop::script_thread::ScriptThread;
 use crate::navigation::determine_the_origin;
 use crate::network_listener::FetchResponseListener;
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
-use crate::script_thread::ScriptThread;
 
 mod async_html;
 pub(crate) mod encoding;

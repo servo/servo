@@ -27,7 +27,6 @@ use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use stylo_atoms::Atom;
 
-use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
@@ -49,12 +48,13 @@ use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, UnbindContext}
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::windowproxy::WindowProxy;
+use crate::event_loop::document_loader::{LoadBlocker, LoadType};
+use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
+use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::navigation::{
     determine_creation_sandboxing_flags, determine_iframe_element_referrer_policy,
 };
 use crate::network_listener::ResourceTimingListener;
-use crate::script_thread::{ScriptThread, with_script_thread};
-use crate::script_window_proxies::ScriptWindowProxies;
 
 #[derive(PartialEq)]
 enum PipelineType {

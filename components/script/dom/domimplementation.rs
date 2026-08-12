@@ -9,7 +9,6 @@ use script_bindings::error::Error;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_traits::DocumentActivity;
 
-use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, ElementCreationOptions,
@@ -28,6 +27,7 @@ use crate::dom::node::Node;
 use crate::dom::text::Text;
 use crate::dom::types::Element;
 use crate::dom::xmldocument::XMLDocument;
+use crate::event_loop::document_loader::DocumentLoader;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]

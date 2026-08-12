@@ -83,9 +83,9 @@ use crate::dom::radionodelist::RadioNodeList;
 use crate::dom::submitevent::SubmitEvent;
 use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
 use crate::dom::window::Window;
+use crate::event_loop::script_thread::ScriptThread;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
 use crate::navigation::navigate;
-use crate::script_thread::ScriptThread;
 
 /// <https://html.spec.whatwg.org/multipage/#the-form-element>
 #[dom_struct]
