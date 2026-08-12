@@ -23,12 +23,16 @@ default = ["bundled", "clipboard", "js_jit"]
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["clipboard", "webgpu", "webxr"]
+default_web_features = ["brotli-compression-stream", "clipboard", "webgpu", "webxr"]
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
 
 # Individual features below this line.
 background_hang_monitor = ["servo-background-hang-monitor/sampler"]
+
+# Allow brotli to be used for compression and decompression in TransportStream JavaScript API
+brotli-compression-stream = ["script/brotli-compression-stream"]
+
 # This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
 # which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
 baked-in-resources = ["dep:servo-default-resources"]

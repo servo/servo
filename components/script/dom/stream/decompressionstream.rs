@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::io::{self, Write};
 use std::ptr;
 
+#[cfg(feature = "brotli-compression-stream")]
 use brotli::DecompressorWriter as BrotliDecoder;
 use dom_struct::dom_struct;
 use flate2::write::{DeflateDecoder, GzDecoder, ZlibDecoder};
@@ -22,7 +23,9 @@ use crate::dom::bindings::codegen::Bindings::DecompressionStreamBinding::Decompr
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::stream::compressionstream::{BROTLI_BUFFER_SIZE, convert_chunk_to_vec};
+#[cfg(feature = "brotli-compression-stream")]
+use crate::dom::stream::compressionstream::BROTLI_BUFFER_SIZE;
+use crate::dom::stream::compressionstream::convert_chunk_to_vec;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{
     GlobalScope, ReadableStream, TransformStream, TransformStreamDefaultController, WritableStream,
@@ -48,28 +51,29 @@ impl DecompressionStream {
     fn new_inherited(
         transform: &TransformStream,
         format: CompressionFormat,
-    ) -> DecompressionStream {
-        DecompressionStream {
+    ) -> Fallible<DecompressionStream> {
+        Ok(DecompressionStream {
             reflector_: Reflector::new(),
             transform: Dom::from_ref(transform),
             format,
-            context: RefCell::new(DecompressionContext::new(format)),
-        }
+            context: RefCell::new(DecompressionContext::new(format)?),
+        })
     }
 
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // reflect will only be called on the box which is fine
     fn new_with_proto(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<SafeHandleObject>,
         transform: &TransformStream,
         format: CompressionFormat,
-    ) -> DomRoot<DecompressionStream> {
-        reflect_dom_object_with_proto(
+    ) -> Fallible<DomRoot<DecompressionStream>> {
+        Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(DecompressionStream::new_inherited(transform, format)),
+            Box::new(DecompressionStream::new_inherited(transform, format)?),
             global,
             proto,
-        )
+        ))
     }
 }
 
@@ -88,7 +92,7 @@ impl DecompressionStreamMethods<crate::DomTypeHolder> for DecompressionStream {
         // Step 5. Set this’s transform to a new TransformStream.
         let transform = TransformStream::new_with_proto(cx, global, None);
         let decompression_stream =
-            DecompressionStream::new_with_proto(cx, global, proto, &transform, format);
+            DecompressionStream::new_with_proto(cx, global, proto, &transform, format)?;
 
         // Step 3. Let transformAlgorithm be an algorithm which takes a chunk argument and runs the
         // decompress and enqueue a chunk algorithm with this and chunk.
@@ -218,6 +222,7 @@ pub(crate) fn decompress_flush_and_enqueue(
 
 /// An enum grouping decoders of differenct compression algorithms.
 enum Decoder {
+    #[cfg(feature = "brotli-compression-stream")]
     Brotli(Box<BrotliDecoder<Vec<u8>>>),
     Deflate(ZlibDecoder<Vec<u8>>),
     DeflateRaw(DeflateDecoder<Vec<u8>>),
@@ -225,9 +230,10 @@ enum Decoder {
 }
 
 impl MallocSizeOf for Decoder {
-    #[expect(unsafe_code)]
+    #[cfg_attr(feature = "brotli-compression-stream", expect(unsafe_code))]
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
+            #[cfg(feature = "brotli-compression-stream")]
             Decoder::Brotli(decoder) => unsafe { ops.malloc_size_of(&**decoder) },
             Decoder::Deflate(decoder) => decoder.size_of(ops),
             Decoder::DeflateRaw(decoder) => decoder.size_of(ops),
@@ -245,25 +251,31 @@ struct DecompressionContext {
 }
 
 impl DecompressionContext {
-    fn new(format: CompressionFormat) -> DecompressionContext {
+    fn new(format: CompressionFormat) -> Fallible<DecompressionContext> {
         let decoder = match format {
+            #[cfg(feature = "brotli-compression-stream")]
             CompressionFormat::Brotli => {
                 Decoder::Brotli(Box::new(BrotliDecoder::new(Vec::new(), BROTLI_BUFFER_SIZE)))
+            },
+            #[cfg(not(feature = "brotli-compression-stream"))]
+            CompressionFormat::Brotli => {
+                return Err(Error::NotSupported(Some("Brotli not supported".into())));
             },
             CompressionFormat::Deflate => Decoder::Deflate(ZlibDecoder::new(Vec::new())),
             CompressionFormat::Deflate_raw => Decoder::DeflateRaw(DeflateDecoder::new(Vec::new())),
             CompressionFormat::Gzip => Decoder::Gzip(GzDecoder::new(Vec::new())),
         };
-        DecompressionContext {
+        Ok(DecompressionContext {
             decoder,
             is_ended: false,
-        }
+        })
     }
 
     fn decompress(&mut self, mut chunk: &[u8]) -> Result<Vec<u8>, io::Error> {
         let mut result = Vec::new();
 
         match &mut self.decoder {
+            #[cfg(feature = "brotli-compression-stream")]
             Decoder::Brotli(decoder) => {
                 while !chunk.is_empty() {
                     let written = decoder.write(chunk)?;
@@ -321,6 +333,7 @@ impl DecompressionContext {
         let mut result = Vec::new();
 
         match &mut self.decoder {
+            #[cfg(feature = "brotli-compression-stream")]
             Decoder::Brotli(decoder) => {
                 if decoder.close().is_ok() {
                     self.is_ended = true;
