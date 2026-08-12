@@ -1236,6 +1236,7 @@ fn create_constellation(
         webxr_registry: Some(paint.webxr_main_thread_registry()),
         #[cfg(not(feature = "webxr"))]
         webxr_registry: None,
+        #[cfg(feature = "webgl")]
         webgl_threads: Some(paint.webgl_threads()),
         webrender_external_image_id_manager: paint.webrender_external_image_id_manager(),
         #[cfg(feature = "webgpu")]

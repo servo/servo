@@ -36,6 +36,7 @@ use script_bindings::trace::CustomTraceable;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineId, PipelineNamespace};
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_constellation_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
@@ -103,7 +104,7 @@ pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
     devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
-    webgl_chan: Option<WebGLChan>,
+    #[cfg(feature = "webgl")] webgl_chan: Option<WebGLChan>,
 ) -> WorkerGlobalScopeInit {
     // An AnimationFrameProvider provider is considered supported if any of the following are true:
     // - provider is a Window.
@@ -132,6 +133,7 @@ pub(crate) fn prepare_workerscope_init(
         origin: global.origin().immutable().clone(),
         inherited_secure_context: Some(global.is_secure_context()),
         unminify_js: global.unminify_js(),
+        #[cfg(feature = "webgl")]
         webgl_chan,
     }
 }

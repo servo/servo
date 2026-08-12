@@ -414,6 +414,7 @@ pub struct InitialScriptState {
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A channel to the WebGL thread used in this pipeline.
+    #[cfg(feature = "webgl")]
     pub webgl_chan: Option<WebGLPipeline>,
     /// The XR device registry
     pub webxr_registry: Option<webxr_api::Registry>,

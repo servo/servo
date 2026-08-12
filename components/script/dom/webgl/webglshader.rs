@@ -18,18 +18,21 @@ use servo_canvas_traits::webgl::{
     GLLimits, GlType, WebGLCommand, WebGLError, WebGLResult, WebGLSLVersion, WebGLShaderId,
     WebGLVersion, webgl_channel,
 };
+#[cfg(feature = "webgl")]
+use {
+    crate::dom::webgl::extensions::WebGLExtensions,
+    crate::dom::webgl::extensions::extfragdepth::EXTFragDepth,
+    crate::dom::webgl::extensions::extshadertexturelod::EXTShaderTextureLod,
+    crate::dom::webgl::extensions::oesstandardderivatives::OESStandardDerivatives,
+    crate::dom::webgl::webglobject::WebGLObject,
+    crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext},
+    crate::dom::webglrenderingcontext::capture_webgl_backtrace,
+};
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::webgl::extensions::WebGLExtensions;
-use crate::dom::webgl::extensions::extfragdepth::EXTFragDepth;
-use crate::dom::webgl::extensions::extshadertexturelod::EXTShaderTextureLod;
-use crate::dom::webgl::extensions::oesstandardderivatives::OESStandardDerivatives;
-use crate::dom::webgl::webglobject::WebGLObject;
-use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use crate::dom::webglrenderingcontext::capture_webgl_backtrace;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum ShaderCompilationStatus {

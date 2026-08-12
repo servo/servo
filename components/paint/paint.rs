@@ -20,9 +20,9 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
+use log::debug;
 #[cfg(feature = "webgl")]
 use log::warn;
-use log::debug;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::{
     PaintMessage, PaintProxy, PainterSurfmanDetails, PainterSurfmanDetailsMap,

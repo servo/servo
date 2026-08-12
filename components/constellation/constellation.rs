@@ -465,6 +465,7 @@ pub struct Constellation<STF, SWF> {
     phantom: PhantomData<(STF, SWF)>,
 
     /// Entry point to create and get channels to a WebGLThread.
+    #[cfg(feature = "webgl")]
     pub(crate) webgl_threads: Option<WebGLThreads>,
 
     /// The XR device registry
@@ -580,6 +581,7 @@ pub struct InitialConstellationState {
     pub webrender_external_image_id_manager: WebRenderExternalImageIdManager,
 
     /// Entry point to create and get channels to a WebGLThread.
+    #[cfg(feature = "webgl")]
     pub webgl_threads: Option<WebGLThreads>,
 
     /// The XR device registry
@@ -733,6 +735,7 @@ where
                         warn!("Randomly closing pipelines using seed {random_pipeline_closure_seed:?}.");
                         (rng, probability)
                     }),
+                    #[cfg(feature = "webgl")]
                     webgl_threads: state.webgl_threads,
                     webxr_registry: state.webxr_registry,
                     canvas: OnceCell::new(),

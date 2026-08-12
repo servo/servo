@@ -773,6 +773,7 @@ macro_rules! window_event_handlers(
     );
 );
 
+#[cfg(feature = "webgl")]
 macro_rules! handle_potential_webgl_error {
     ($context:expr, $call:expr, $return_on_error:expr) => {
         match $call {

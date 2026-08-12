@@ -14,14 +14,12 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::node::{Node, NodeTraits};
 #[cfg(feature = "webgpu")]
 use crate::dom::types::GPUCanvasContext;
-#[cfg(feature = "webgl")]
-use crate::dom::types::{
-    WebGL2RenderingContext, WebGLRenderingContext,
-};
 use crate::dom::types::{
     CanvasRenderingContext2D, HTMLCanvasElement, ImageBitmapRenderingContext, OffscreenCanvas,
     OffscreenCanvasRenderingContext2D,
 };
+#[cfg(feature = "webgl")]
+use crate::dom::types::{WebGL2RenderingContext, WebGLRenderingContext};
 
 /// Non rooted variant of [`crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas`]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]

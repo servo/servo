@@ -34,6 +34,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     BlobCallback, HTMLCanvasElementMethods, RenderingContext as RootedRenderingContext,
 };
 use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
+#[cfg(feature = "webgl")]
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::conversions::ConversionResult;
@@ -359,6 +360,7 @@ impl HTMLCanvasElement {
             })
     }
 
+    #[cfg(feature = "webgl")]
     #[expect(unsafe_code)]
     fn get_gl_attributes(
         cx: &mut js::context::JSContext,
@@ -418,7 +420,9 @@ impl HTMLCanvasElement {
             RenderingContext::Placeholder(..) => false,
             RenderingContext::Context2d(context) => context.update_rendering(epoch),
             RenderingContext::BitmapRenderer(context) => context.update_rendering(epoch),
+            #[cfg(feature = "webgl")]
             RenderingContext::WebGL(context) => context.update_rendering(epoch),
+            #[cfg(feature = "webgl")]
             RenderingContext::WebGL2(context) => context.base_context().update_rendering(epoch),
             #[cfg(feature = "webgpu")]
             RenderingContext::WebGPU(context) => context.update_rendering(epoch),
@@ -501,9 +505,11 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             "bitmaprenderer" => self
                 .get_or_init_bitmaprenderer_context(cx)
                 .map(RootedRenderingContext::ImageBitmapRenderingContext),
+            #[cfg(feature = "webgl")]
             "webgl" | "experimental-webgl" => self
                 .get_or_init_webgl_context(cx, options)
                 .map(RootedRenderingContext::WebGLRenderingContext),
+            #[cfg(feature = "webgl")]
             "webgl2" | "experimental-webgl2" => self
                 .get_or_init_webgl2_context(cx, options)
                 .map(RootedRenderingContext::WebGL2RenderingContext),
@@ -727,6 +733,7 @@ impl VirtualMethods for HTMLCanvasElement {
     }
 }
 
+#[cfg(feature = "webgl")]
 impl Convert<GLContextAttributes> for WebGLContextAttributes {
     fn convert(self) -> GLContextAttributes {
         GLContextAttributes {
