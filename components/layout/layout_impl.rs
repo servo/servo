@@ -912,7 +912,9 @@ impl LayoutThread {
         reflow_request: &mut ReflowRequest,
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
-        if !self.needs_accessibility_update() {
+        if reflow_request.reflow_goal != ReflowGoal::UpdateTheRendering ||
+            !self.needs_accessibility_update()
+        {
             return false;
         }
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
