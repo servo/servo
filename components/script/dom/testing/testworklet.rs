@@ -88,7 +88,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         let lookup_task = move |_cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
             let test_worklet_global_scope = global_scope
                 .downcast::<TestWorkletGlobalScope>()
-                .expect("Could not downcast &WorkletGlobalScope to &TestWorkletGlobalScope.");
+                .expect("TestWorklet's task should be run only on TestWorkletGlobalScope");
             let value = test_worklet_global_scope.lookup_value(key);
             let _ = sender.send(value);
         };

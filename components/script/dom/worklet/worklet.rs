@@ -363,9 +363,9 @@ impl StatelessWorkletThreadPool {
             primary_sender,
             hot_backup_sender,
             cold_backup_sender,
-            control_sender_0: WorkletThread::spawn(primary_role, init.clone(), 0),
-            control_sender_1: WorkletThread::spawn(hot_backup_role, init.clone(), 1),
-            control_sender_2: WorkletThread::spawn(cold_backup_role, init, 2),
+            control_sender_0: StatelessWorkletThread::spawn(primary_role, init.clone(), 0),
+            control_sender_1: StatelessWorkletThread::spawn(hot_backup_role, init.clone(), 1),
+            control_sender_2: StatelessWorkletThread::spawn(cold_backup_role, init, 2),
         }
     }
 }
@@ -508,7 +508,7 @@ struct WorkletThreadInit {
 
 /// A thread for executing worklets.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-struct WorkletThread {
+struct StatelessWorkletThread {
     /// Which role the thread is currently playing
     role: WorkletThreadRole,
 
@@ -541,14 +541,14 @@ struct WorkletThread {
 }
 
 #[expect(unsafe_code)]
-unsafe impl JSTraceable for WorkletThread {
+unsafe impl JSTraceable for StatelessWorkletThread {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         debug!("Tracing worklet thread.");
         unsafe { self.global_scopes.trace(trc) };
     }
 }
 
-impl WorkletThread {
+impl StatelessWorkletThread {
     #[allow(unsafe_code)]
     /// Spawn a new worklet thread, returning the channel to send it control messages.
     fn spawn(
@@ -568,7 +568,7 @@ impl WorkletThread {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
                 let runtime = Runtime::new(None);
                 let mut cx = unsafe { runtime.cx() };
-                let mut thread = RootedTraceableBox::new(WorkletThread {
+                let mut thread = RootedTraceableBox::new(StatelessWorkletThread {
                     role,
                     control_receiver,
                     control_sender: control_sender_clone,
