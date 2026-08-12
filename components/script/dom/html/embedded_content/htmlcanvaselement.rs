@@ -59,7 +59,9 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::values::UNSIGNED_LONG_MAX;
+#[cfg(feature = "webgl")]
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
+#[cfg(feature = "webgl")]
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpucanvascontext::GPUCanvasContext;
@@ -206,7 +208,9 @@ impl HTMLCanvasElement {
             RenderingContext::Placeholder(..) => None,
             RenderingContext::Context2d(..) => get_image_key(),
             RenderingContext::BitmapRenderer(..) => get_image_key(),
+            #[cfg(feature = "webgl")]
             RenderingContext::WebGL(..) => get_image_key(),
+            #[cfg(feature = "webgl")]
             RenderingContext::WebGL2(..) => get_image_key(),
             #[cfg(feature = "webgpu")]
             RenderingContext::WebGPU(..) => get_image_key(),
@@ -267,6 +271,7 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
+    #[cfg(feature = "webgl")]
     fn get_or_init_webgl_context(
         &self,
         cx: &mut js::context::JSContext,
@@ -291,6 +296,7 @@ impl HTMLCanvasElement {
         Some(context)
     }
 
+    #[cfg(feature = "webgl")]
     fn get_or_init_webgl2_context(
         &self,
         cx: &mut js::context::JSContext,

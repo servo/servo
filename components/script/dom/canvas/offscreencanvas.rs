@@ -26,6 +26,7 @@ use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
     OffscreenRenderingContext as RootedOffscreenRenderingContext, OffscreenRenderingContextId,
 };
+#[cfg(feature = "webgl")]
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::conversions::ConversionResult;
@@ -43,7 +44,9 @@ use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::imagebitmaprenderingcontext::ImageBitmapRenderingContext;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use crate::dom::promise::Promise;
+#[cfg(feature = "webgl")]
 use crate::dom::types::{WebGLRenderingContext, Window};
+#[cfg(feature = "webgl")]
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
 
 /// <https://html.spec.whatwg.org/multipage/#offscreencanvas>
@@ -101,6 +104,7 @@ impl OffscreenCanvas {
         )
     }
 
+    #[cfg(feature = "webgl")]
     #[expect(unsafe_code)]
     fn get_gl_attributes(
         cx: &mut js::context::JSContext,
@@ -201,6 +205,7 @@ impl OffscreenCanvas {
         Some(context)
     }
 
+    #[cfg(feature = "webgl")]
     // <https://html.spec.whatwg.org/multipage/#offscreen-context-type-webgl>
     pub(crate) fn get_or_init_webgl_context(
         &self,
@@ -236,6 +241,7 @@ impl OffscreenCanvas {
             })
     }
 
+    #[cfg(feature = "webgl")]
     // <https://html.spec.whatwg.org/multipage/#offscreen-context-type-webgl>
     fn get_or_init_webgl2_context(
         &self,
@@ -404,15 +410,19 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
             OffscreenRenderingContextId::Bitmaprenderer => Ok(self
                 .get_or_init_bitmaprenderer_context(cx)
                 .map(RootedOffscreenRenderingContext::ImageBitmapRenderingContext)),
+            #[cfg(feature = "webgl")]
             OffscreenRenderingContextId::Webgl => Ok(self
                 .get_or_init_webgl_context(cx, options)
                 .map(RootedOffscreenRenderingContext::WebGLRenderingContext)),
+            #[cfg(feature = "webgl")]
             OffscreenRenderingContextId::Experimental_webgl => Ok(self
                 .get_or_init_webgl_context(cx, options)
                 .map(RootedOffscreenRenderingContext::WebGLRenderingContext)),
+            #[cfg(feature = "webgl")]
             OffscreenRenderingContextId::Webgl2 => Ok(self
                 .get_or_init_webgl2_context(cx, options)
                 .map(RootedOffscreenRenderingContext::WebGL2RenderingContext)),
+            #[cfg(feature = "webgl")]
             OffscreenRenderingContextId::Experimental_webgl2 => Ok(self
                 .get_or_init_webgl2_context(cx, options)
                 .map(RootedOffscreenRenderingContext::WebGL2RenderingContext)),

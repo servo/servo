@@ -73,6 +73,7 @@ gamepad = []
 testbinding = []
 tracing = ["dep:tracing"]
 webgpu = []
+webgl = []
 webxr = ["webxr-api"]
 
 [lints.rust]

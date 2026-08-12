@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
 use std::rc::Rc;
+#[cfg(feature = "webgl")]
 use std::thread::JoinHandle;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -19,7 +20,9 @@ use embedder_traits::{
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
-use log::{debug, warn};
+#[cfg(feature = "webgl")]
+use log::warn;
+use log::debug;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::{
     PaintMessage, PaintProxy, PainterSurfmanDetails, PainterSurfmanDetailsMap,
@@ -32,14 +35,19 @@ use profile_traits::path;
 use profile_traits::time::{self as profile_time};
 use servo_base::generic_channel::{self, GenericSender, RoutedReceiver};
 use servo_base::id::{PainterId, PipelineId, WebViewId};
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use servo_config::pref;
 use servo_constellation_traits::EmbedderToConstellationMessage;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
+#[cfg(feature = "webgl")]
 use surfman::Device;
+#[cfg(feature = "webgl")]
 use surfman::chains::SwapChains;
+#[cfg(feature = "webgl")]
 use webgl::WebGLComm;
+#[cfg(feature = "webgl")]
 use webgl::webgl_thread::WebGLContextBusyMap;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
@@ -115,15 +123,19 @@ pub struct Paint {
     /// A [`HashMap`] of `WebGLContextId` to a usage count. This count indicates when
     /// WebRender is still rendering the context. This is used to ensure properly clean
     /// up of all Surfman `Surface`s.
+    #[cfg(feature = "webgl")]
     pub(crate) busy_webgl_contexts_map: WebGLContextBusyMap,
 
     /// The [`WebGLThreads`] for this renderer.
+    #[cfg(feature = "webgl")]
     webgl_threads: WebGLThreads,
 
     /// A [`JoinHandle`] for joining the WebGL thread once the exit message is sent.
+    #[cfg(feature = "webgl")]
     webgl_join_handle: Cell<Option<JoinHandle<()>>>,
 
     /// The shared [`SwapChains`] used by [`WebGLThreads`] for this renderer.
+    #[cfg(feature = "webgl")]
     pub(crate) swap_chains: SwapChains<WebGLContextId, Device>,
 
     /// The channel on which messages can be sent to the time profiler.
@@ -173,26 +185,30 @@ impl Paint {
 
         let webrender_external_image_id_manager = WebRenderExternalImageIdManager::default();
         let painter_surfman_details_map = PainterSurfmanDetailsMap::default();
-        let WebGLComm {
-            webgl_threads,
-            swap_chains,
-            busy_webgl_context_map,
-            #[cfg(feature = "webxr")]
-            webxr_layer_grand_manager,
-            join_handle: webgl_join_handle,
-        } = WebGLComm::new(
-            state.paint_proxy.cross_process_paint_api.clone(),
-            webrender_external_image_id_manager.clone(),
-            painter_surfman_details_map.clone(),
-        );
 
-        // Create the WebXR main thread
-        #[cfg(feature = "webxr")]
-        let webxr_main_thread = webxr::MainThreadRegistry::new(
-            state.event_loop_waker.clone(),
-            webxr_layer_grand_manager,
-        )
-        .expect("Failed to create WebXR device registry");
+        #[cfg(feature = "webgl")]
+        {
+            let WebGLComm {
+                webgl_threads,
+                swap_chains,
+                busy_webgl_context_map,
+                #[cfg(feature = "webxr")]
+                webxr_layer_grand_manager,
+                join_handle: webgl_join_handle,
+            } = WebGLComm::new(
+                state.paint_proxy.cross_process_paint_api.clone(),
+                webrender_external_image_id_manager.clone(),
+                painter_surfman_details_map.clone(),
+            );
+
+            // Create the WebXR main thread
+            #[cfg(feature = "webxr")]
+            let webxr_main_thread = webxr::MainThreadRegistry::new(
+                state.event_loop_waker.clone(),
+                webxr_layer_grand_manager,
+            )
+            .expect("Failed to create WebXR device registry");
+        }
 
         Rc::new(RefCell::new(Paint {
             painters: Default::default(),
@@ -202,12 +218,16 @@ impl Paint {
             paint_receiver: state.receiver,
             embedder_to_constellation_sender: state.embedder_to_constellation_sender.clone(),
             webrender_external_image_id_manager,
+            #[cfg(feature = "webgl")]
             webgl_threads,
+            #[cfg(feature = "webgl")]
             webgl_join_handle: Cell::new(Some(webgl_join_handle)),
+            #[cfg(feature = "webgl")]
             swap_chains,
             time_profiler_chan: state.time_profiler_chan,
             _mem_profiler_registration: registration,
             painter_surfman_details_map,
+            #[cfg(feature = "webgl")]
             busy_webgl_contexts_map: busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_main_thread: RefCell::new(webxr_main_thread),
@@ -262,6 +282,7 @@ impl Paint {
         // devices after `clear_painter_resources` is called.
         self.painter_surfman_details_map.remove(painter_id);
 
+        #[cfg(feature = "webgl")]
         if !self.webgl_threads.clear_painter_resources(painter_id) {
             warn!("Could not clear {painter_id:?} resources in WebGLThread");
         }
@@ -306,6 +327,7 @@ impl Paint {
         self.painter(painter_id).rendering_context.size2d()
     }
 
+    #[cfg(feature = "webgl")]
     pub fn webgl_threads(&self) -> WebGLThreads {
         self.webgl_threads.clone()
     }
@@ -347,11 +369,14 @@ impl Paint {
         // another thread from finishing (i.e. SetFrameTree).
         while self.paint_receiver.try_recv().is_ok() {}
 
-        self.webgl_threads.exit();
-        if let Some(webgl_join_handle) = self.webgl_join_handle.take() &&
-            webgl_join_handle.join().is_err()
+        #[cfg(feature = "webgl")]
         {
-            warn!("Could not join WebGLThread.");
+            self.webgl_threads.exit();
+            if let Some(webgl_join_handle) = self.webgl_join_handle.take() &&
+                webgl_join_handle.join().is_err()
+            {
+                warn!("Could not join WebGLThread.");
+            }
         }
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.

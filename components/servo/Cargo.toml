@@ -79,6 +79,10 @@ webgl_backtrace = [
     "webgl/webgl_backtrace",
     "servo-canvas-traits/webgl_backtrace",
 ]
+webgl = [
+    "dep:webgl",
+    "script/webgl",
+]
 webgpu = [
     "dep:webgpu",
     "script/webgpu",
@@ -87,6 +91,7 @@ webgpu = [
     "servo-constellation-traits/webgpu",
 ]
 webxr = [
+    "webgl",
     "dep:webxr",
     "dep:webxr-api",
     "paint/webxr",
@@ -150,7 +155,7 @@ surfman = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
-webgl = { workspace = true, default-features = false }
+webgl = { workspace = true, default-features = false, optional = true }
 webgpu = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

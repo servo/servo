@@ -29,6 +29,7 @@ mod render_notifier;
 mod screenshot;
 mod touch;
 mod web_content_animation;
+#[cfg(feature = "webgl")]
 mod webrender_external_images;
 mod webview_renderer;
 

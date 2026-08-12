@@ -28,6 +28,7 @@ profilemozjs = ['js/profilemozjs']
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
+webgl = ["script_bindings/webgl"]
 webgpu = [
     "dep:script_webgpu",
     "dep:webgpu_traits",

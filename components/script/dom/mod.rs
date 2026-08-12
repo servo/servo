@@ -337,8 +337,11 @@ pub(crate) mod values;
 pub(crate) mod visualviewport;
 pub(crate) mod wakelock;
 pub(crate) use self::wakelock::*;
+#[cfg(feature = "webgl")]
 pub(crate) mod webgl;
+#[cfg(feature = "webgl")]
 pub(crate) use self::webgl::extensions::ext::*;
+#[cfg(feature = "webgl")]
 pub(crate) use self::webgl::*;
 #[cfg(feature = "webxr")]
 mod webxr;
