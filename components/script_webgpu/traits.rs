@@ -10,7 +10,6 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use script_bindings::error::Fallible;
 use servo_base::generic_channel::GenericCallback;
-use servo_constellation_traits::ScriptToConstellationChan;
 use webgpu_traits::{
     Mapping, WebGPU, WebGPUAdapterResponse, WebGPUDevice, WebGPUDeviceResponse,
     WebGPUExternalTexture, WebGPUQuerySet, WebGPUSampler, WebGPUShaderModule, WebGPUTexture,
@@ -41,7 +40,6 @@ pub trait WebGPUPromiseTrait<D: DomTypes> {
 
 pub trait WebGPUGlobalTrait {
     fn global_wgpu_id_hub(&self) -> Arc<IdentityHub>;
-    fn script_to_constellation_chan(&self) -> ScriptToConstellationChan;
 }
 
 pub trait GPUDeviceTrait<D: DomTypes> {

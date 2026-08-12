@@ -233,7 +233,7 @@ where
         // Step 1
         let promise = self.pending_map.safe_borrow_mut(cx).take();
         if let Some(promise) = promise {
-            promise.reject_error(cx, Error::Abort(Some("Could not remove Promise".into())));
+            promise.reject_error(cx, Error::Abort(Some("No pending map".into())));
         }
         // Step 2
         let mut mapping = RootedTraceableBox::new(self.mapping.safe_borrow_mut(cx).take());
@@ -296,7 +296,7 @@ where
         if self.pending_map.borrow().is_some() {
             promise.reject_error(
                 cx,
-                Error::Operation(Some("Could not find pending promise".into())),
+                Error::Operation(Some("There is already an active map".into())),
             );
             return promise;
         }
@@ -359,9 +359,7 @@ where
             .safe_borrow_mut(cx)
             .take()
             .map(RootedTraceableBox::new)
-            .ok_or(Error::Operation(Some(
-                "Could not get Buffer Mapping because it is not active".into(),
-            )))?;
+            .ok_or(Error::Operation(Some("No active buffer map".into())))?;
 
         let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
@@ -386,7 +384,7 @@ where
             .map(|view| view.array_buffer())
             .map_err(|()| {
                 Error::Operation(Some(
-                    "Could not construct DataView for Mapped Buffer".into(),
+                    "Mapped range overlaps with others or is out of bounds.".into(),
                 ))
             });
 

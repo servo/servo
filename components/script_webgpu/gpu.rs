@@ -15,7 +15,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUMethods, GPUPowerPreference, GPURequestAdapterOptions, GPUTextureFormat, GPUWrap,
 };
 use script_bindings::dom::MutNullableDom;
-use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use servo_constellation_traits::ScriptToConstellationMessage;

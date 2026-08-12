@@ -6,7 +6,6 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use script_webgpu::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
-use servo_constellation_traits::ScriptToConstellationChan;
 use webgpu_traits::Mapping;
 use wgpu_core::resource::BufferAccessError;
 
@@ -147,9 +146,5 @@ impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
 impl WebGPUGlobalTrait for GlobalScope {
     fn global_wgpu_id_hub(&self) -> Arc<script_webgpu::identityhub::IdentityHub> {
         self.wgpu_id_hub()
-    }
-
-    fn script_to_constellation_chan(&self) -> ScriptToConstellationChan {
-        self.script_to_constellation_chan()
     }
 }

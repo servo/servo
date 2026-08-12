@@ -13,6 +13,7 @@ use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
 use servo_base::id::PipelineId;
+use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::DomTypes;
@@ -85,6 +86,8 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     fn is_secure_context(&self) -> bool;
 
     fn pipeline_id(&self) -> PipelineId;
+
+    fn script_to_constellation_chan(&self) -> ScriptToConstellationChan;
 }
 
 pub trait PromiseHelpers<D: DomTypes> {

@@ -3656,6 +3656,10 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
     fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id()
     }
+
+    fn script_to_constellation_chan(&self) -> ScriptToConstellationChan {
+        self.script_to_constellation_chan()
+    }
 }
 
 impl OwnerWindow<DomTypeHolder> for GlobalScope {}
