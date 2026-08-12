@@ -511,7 +511,7 @@ pub struct IFrameLoadInfoWithData {
     /// The initial viewport size for this iframe.
     pub viewport_details: ViewportDetails,
     /// The [`Theme`] to use within this iframe.
-    pub theme: Theme,
+    pub embedder_theme: Theme,
 }
 
 /// Resources required by workerglobalscopes

@@ -6,11 +6,13 @@ use std::str::FromStr;
 
 use content_security_policy::{Policy, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
+use embedder_traits::Theme;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use paint_api::viewport_description::ViewportDescription;
+use script_bindings::dom::UnrootedDom;
 use servo_config::pref;
 use style::str::HTML_SPACE_CHARACTERS;
 
@@ -24,6 +26,7 @@ use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlheadelement::HTMLHeadElement;
+use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 
@@ -152,6 +155,47 @@ impl HTMLMetaElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#meta-color-scheme>
+    fn obtain_page_supported_color_schemes(&self, cx: &mut JSContext) {
+        let doc = self.owner_document();
+        // Step 1. Let candidate elements be the list of all meta elements
+        // that meet the following criteria, in tree order:
+        let new_theme = doc
+            .upcast::<Node>()
+            // Do not traverse shadow trees for optimization, which also implies:
+            // > the element is in a document tree;
+            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
+            .filter_map(UnrootedDom::downcast::<HTMLMetaElement>)
+            .filter_map(|meta| {
+                let element = UnrootedDom::upcast::<Element>(meta);
+
+                // > the element has a content attribute.
+                element
+                    .get_attribute_string_value(&local_name!("content"))
+                    .filter(|_| {
+                        // > the element has a name attribute,
+                        // > whose value is an ASCII case-insensitive match for color-scheme; and
+                        element.get_name().is_color_scheme()
+                    })
+            })
+            // Step 2. For each element in candidate elements:
+            .find_map(|content| {
+                // Step 2.1. Let parsed be the result of parsing a list of
+                // component values given the value of element's content attribute.
+                // Step 2.2. If parsed is a valid CSS 'color-scheme' property value,
+                // then return parsed.
+                // TODO: Allow for more different themes than the ones that embedders can set
+                match content.to_ascii_lowercase().as_str() {
+                    "dark" => Some(Theme::Dark),
+                    "light" => Some(Theme::Light),
+                    // Step 3. Return null.
+                    _ => None,
+                }
+            });
+
+        doc.set_theme(new_theme);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
     fn apply_csp_list(&self) {
         // Step 1. If the meta element is not a child of a head element, return.
@@ -244,6 +288,19 @@ impl VirtualMethods for HTMLMetaElement {
 
         if context.tree_connected {
             self.process_attributes(cx);
+
+            // Optimization: only if this meta element has a color scheme we should update.
+            // Otherwise we would traverse the whole DOM for any meta element, which are
+            // commonly used for information for crawlers.
+            if self.upcast::<Element>().get_name().is_color_scheme() {
+                // https://html.spec.whatwg.org/multipage/#meta-color-scheme
+                // > If any meta elements are inserted into the document or removed from the document,
+                // > or existing meta elements have their name or content attributes changed,
+                // > user agents must re-run the above algorithm.
+                //
+                // When the element is inserted
+                self.obtain_page_supported_color_schemes(cx);
+            }
         }
     }
 
@@ -258,6 +315,27 @@ impl VirtualMethods for HTMLMetaElement {
         }
 
         self.process_referrer_attribute();
+
+        // Optimization: only if this meta element either did or does now specify a color-scheme.
+        // Or if the content of a meta element is changed that specifies a color-scheme
+        // Otherwise we would traverse the whole DOM for any meta element, which are
+        // commonly used for information for crawlers.
+        let affects_color_scheme = if *attr.local_name() == local_name!("name") {
+            mutation.old_value(attr).is_color_scheme() || mutation.new_value(attr).is_color_scheme()
+        } else {
+            self.upcast::<Element>().get_name().is_color_scheme() &&
+                *attr.local_name() == local_name!("content")
+        };
+
+        if affects_color_scheme {
+            // https://html.spec.whatwg.org/multipage/#meta-color-scheme
+            // > If any meta elements are inserted into the document or removed from the document,
+            // > or existing meta elements have their name or content attributes changed,
+            // > user agents must re-run the above algorithm.
+            //
+            // When the content attribute has changed
+            self.obtain_page_supported_color_schemes(cx);
+        }
     }
 
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
@@ -267,6 +345,33 @@ impl VirtualMethods for HTMLMetaElement {
 
         if context.tree_connected {
             self.process_referrer_attribute();
+
+            // Optimization: only if this meta element has a color scheme we should update.
+            // Otherwise we would traverse the whole DOM for any meta element, which are
+            // commonly used for information for crawlers.
+            if self.upcast::<Element>().get_name().is_color_scheme() {
+                // https://html.spec.whatwg.org/multipage/#meta-color-scheme
+                // > If any meta elements are inserted into the document or removed from the document,
+                // > or existing meta elements have their name or content attributes changed,
+                // > user agents must re-run the above algorithm.
+                //
+                // When the element is removed
+                self.obtain_page_supported_color_schemes(cx);
+            }
         }
+    }
+}
+
+/// Trait to make it easier to make sure all callers lowercase to ASCII
+/// before comparing to the `color-scheme` value.
+/// Otherwise it is easy to miss one usage and compare case-sensitively.
+trait IsColorSchemeValue {
+    fn is_color_scheme(&self) -> bool;
+}
+
+impl<T: AsRef<str>> IsColorSchemeValue for Option<T> {
+    fn is_color_scheme(&self) -> bool {
+        self.as_ref()
+            .is_some_and(|name| name.as_ref().eq_ignore_ascii_case("color-scheme"))
     }
 }
