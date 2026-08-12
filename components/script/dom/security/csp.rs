@@ -523,10 +523,7 @@ fn parse_and_potentially_append_to_csp_list(
 ) -> Option<CspList> {
     let mut csp_list = old_csp_list;
     for header in csp_header_iter {
-        // This silently ignores the CSP if it contains invalid Unicode.
-        // We should probably report an error somewhere.
-        let new_csp_list = header
-            .to_str()
+        let new_csp_list = str::from_utf8(header.as_bytes())
             .ok()
             .map(|value| CspList::parse(value, PolicySource::Header, disposition));
         csp_list = csp_list.concatenate(new_csp_list);
