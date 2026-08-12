@@ -3663,7 +3663,7 @@ impl Window {
             .unwrap();
     }
 
-    #[cfg(feature = "webxr")]
+    #[cfg(all(feature = "webgl", feature = "webxr"))]
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         self.navigator
             .get()
@@ -3672,7 +3672,7 @@ impl Window {
             .is_some_and(|xr| xr.pending_or_active_session())
     }
 
-    #[cfg(not(feature = "webxr"))]
+    #[cfg(all(feature = "webgl", not(feature = "webxr")))]
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         false
     }

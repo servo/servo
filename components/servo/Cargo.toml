@@ -23,11 +23,7 @@ default = ["bundled", "clipboard", "js_jit"]
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-<<<<<<< HEAD
 default_web_features = ["brotli-compression-stream", "clipboard", "webgpu", "webxr"]
-=======
-default_web_features = ["clipboard", "webgpu"] # , "webxr"
->>>>>>> ae9a00ce520 (wip: more feature guards after bindgen fix (address warnings))
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
 

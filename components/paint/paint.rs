@@ -185,30 +185,27 @@ impl Paint {
 
         let webrender_external_image_id_manager = WebRenderExternalImageIdManager::default();
         let painter_surfman_details_map = PainterSurfmanDetailsMap::default();
-
         #[cfg(feature = "webgl")]
-        {
-            let WebGLComm {
-                webgl_threads,
-                swap_chains,
-                busy_webgl_context_map,
-                #[cfg(feature = "webxr")]
-                webxr_layer_grand_manager,
-                join_handle: webgl_join_handle,
-            } = WebGLComm::new(
-                state.paint_proxy.cross_process_paint_api.clone(),
-                webrender_external_image_id_manager.clone(),
-                painter_surfman_details_map.clone(),
-            );
-
-            // Create the WebXR main thread
+        let WebGLComm {
+            webgl_threads,
+            swap_chains,
+            busy_webgl_context_map,
             #[cfg(feature = "webxr")]
-            let webxr_main_thread = webxr::MainThreadRegistry::new(
-                state.event_loop_waker.clone(),
-                webxr_layer_grand_manager,
-            )
-            .expect("Failed to create WebXR device registry");
-        }
+            webxr_layer_grand_manager,
+            join_handle: webgl_join_handle,
+        } = WebGLComm::new(
+            state.paint_proxy.cross_process_paint_api.clone(),
+            webrender_external_image_id_manager.clone(),
+            painter_surfman_details_map.clone(),
+        );
+
+        // Create the WebXR main thread.
+        #[cfg(feature = "webxr")]
+        let webxr_main_thread = webxr::MainThreadRegistry::new(
+            state.event_loop_waker.clone(),
+            webxr_layer_grand_manager,
+        )
+        .expect("Failed to create WebXR device registry");
 
         Rc::new(RefCell::new(Paint {
             painters: Default::default(),
