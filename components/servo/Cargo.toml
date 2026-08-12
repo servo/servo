@@ -96,6 +96,7 @@ webgpu = [
 ]
 webxr = [
     "webgl",
+    "gamepad",
     "dep:webxr",
     "dep:webxr-api",
     "paint/webxr",

@@ -16,8 +16,9 @@ path = "lib.rs"
 [features]
 default = []
 tracing = ["dep:tracing"]
+webgl = ["dep:webgl"]
 webgpu = ["dep:webgpu"]
-webxr = ["dep:webxr", "dep:webxr-api"]
+webxr = ["webgl", "dep:webxr", "dep:webxr-api"]
 
 [lints.clippy]
 unwrap_used = "deny"

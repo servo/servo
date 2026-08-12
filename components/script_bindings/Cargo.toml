@@ -74,7 +74,7 @@ testbinding = []
 tracing = ["dep:tracing"]
 webgpu = []
 webgl = []
-webxr = ["webxr-api"]
+webxr = ["gamepad", "webgl", "webxr-api"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
