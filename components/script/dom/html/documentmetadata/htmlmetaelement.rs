@@ -155,7 +155,7 @@ impl HTMLMetaElement {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/semantics.html#meta-color-scheme>
+    /// <https://html.spec.whatwg.org/multipage/#meta-color-scheme>
     fn obtain_page_supported_color_schemes(&self, cx: &mut JSContext) {
         let doc = self.owner_document();
         // Step 1. Let candidate elements be the list of all meta elements
