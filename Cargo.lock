@@ -8731,6 +8731,7 @@ dependencies = [
  "servo_arc",
  "sha2 0.11.0",
  "smallvec",
+ "tempfile",
  "time",
  "tokio",
  "tokio-rustls",

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::VecDeque;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -51,7 +52,7 @@ struct DiskCacheInner {
 #[derive(MallocSizeOf)]
 /// A struct representing the disk cache.
 pub(crate) struct DiskCache {
-    path: String,
+    path: PathBuf,
     max_size: usize,
     // the non constant data.
     inner: TokioMutex<DiskCacheInner>,
@@ -79,6 +80,30 @@ impl Iden for DiskCacheTable {
     }
 }
 
+/// Get the storage path out of `network_http_disk_cache` preference and `temporary_storage` option.
+fn storage_dir() -> Option<PathBuf> {
+    let disk_storage_path = pref!(network_http_disk_cache);
+    match (
+        servo_config::opts::get().temporary_storage,
+        disk_storage_path.is_empty(),
+    ) {
+        (false, false) => None,
+        (true, true) => {
+            let tmp_dir = tempfile::tempdir().unwrap();
+            let mut path = tmp_dir.path().to_path_buf();
+            path.set_file_name("cache.sqlite3");
+            Some(path)
+        },
+        (true, false) => {
+            error!(
+                "Temporary storage cannot be set with explicit disk storage path. Disabling http_disk_cache"
+            );
+            None
+        },
+        (false, true) => Some(disk_storage_path.into()),
+    }
+}
+
 impl DiskCache {
     /// Creates a new [`DiskCache`] if the preference if set.
     /// Creates the sqlite table if it does not exist and starts the db connection.
@@ -86,11 +111,12 @@ impl DiskCache {
     pub(crate) fn new(
         cache_assignment: HttpCacheAssignment,
     ) -> (Option<Arc<DiskCache>>, MemoryCacheLifecycle) {
-        let disk_cache_path = pref!(network_http_disk_cache);
         // For private browsing we currently do not want to store any disk cache.
-        if disk_cache_path.is_empty() || cache_assignment == HttpCacheAssignment::Private {
-            (None, MemoryCacheLifecycle::empty())
-        } else {
+        let disk_cache_path = storage_dir();
+
+        if let Some(disk_cache_path) = disk_cache_path &&
+            cache_assignment != HttpCacheAssignment::Private
+        {
             let Ok(max_disk_cache_size) = pref!(network_http_disk_cache_size).try_into() else {
                 return (None, MemoryCacheLifecycle::empty());
             };
@@ -160,6 +186,8 @@ impl DiskCache {
                     disk_cache: Some(disk_cache_data),
                 },
             )
+        } else {
+            (None, MemoryCacheLifecycle::empty())
         }
     }
 

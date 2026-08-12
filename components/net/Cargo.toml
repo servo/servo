@@ -80,6 +80,7 @@ sea-query = { workspace = true }
 sea-query-rusqlite = { workspace = true }
 sha2 = { workspace = true }
 smallvec = { workspace = true }
+tempfile = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, features = ["fs", "macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }
