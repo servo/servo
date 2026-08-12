@@ -29,6 +29,7 @@ testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
 webgl = [
+    "dep:mozangle",
     "script_bindings/webgl",
     "script_traits/webgl",
     "servo-constellation-traits/webgl",
@@ -191,4 +192,4 @@ xpath = { workspace = true }
 zeroize = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
-mozangle = { workspace = true }
+mozangle = { workspace = true, optional = true }
