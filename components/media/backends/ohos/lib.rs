@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Sender};
@@ -16,6 +17,9 @@ use servo_media::{
     Backend, BackendInit, BackendMsg, ClientContextId, MediaInstance, MediaInstanceError,
     SupportsMediaType,
 };
+use servo_media_audio::sink::AudioSinkError;
+use servo_media_streams::device_monitor::{MediaDeviceInfo, MediaDeviceMonitor};
+use servo_media_streams::{MediaOutput, MediaSocket};
 
 use crate::player::OhosAvPlayer;
 use crate::registry_scanner::OHOS_REGISTRY_SCANNER;
@@ -111,7 +115,7 @@ impl Backend for OhosBackend {
         // TODO: Choose different Player Impl depends on stream_type
         match stream_type {
             StreamType::Stream => {
-                todo!("Stream Type currently not supported!")
+                warn!("Stream Type currently not supported!");
             },
             StreamType::Seekable => (),
         }
@@ -136,15 +140,18 @@ impl Backend for OhosBackend {
     }
 
     fn create_audiostream(&self) -> servo_media_streams::MediaStreamId {
-        todo!()
+        warn!("OhosBackend: create_audiostream not supported");
+        servo_media_streams::MediaStreamId::new()
     }
 
     fn create_videostream(&self) -> servo_media_streams::MediaStreamId {
-        todo!()
+        warn!("OhosBackend: create_videostream not supported");
+        servo_media_streams::MediaStreamId::new()
     }
 
     fn create_stream_output(&self) -> Box<dyn servo_media_streams::MediaOutput> {
-        todo!()
+        warn!("OhosBackend: create_stream_output not supported");
+        Box::new(OhosMediaOutput)
     }
 
     fn create_stream_and_socket(
@@ -154,21 +161,27 @@ impl Backend for OhosBackend {
         Box<dyn servo_media_streams::MediaSocket>,
         servo_media_streams::MediaStreamId,
     ) {
-        todo!()
+        warn!("OhosBackend: create_stream_and_socket not supported");
+        (
+            Box::new(OhosMediaSocket),
+            servo_media_streams::MediaStreamId::new(),
+        )
     }
 
     fn create_audioinput_stream(
         &self,
         _set: servo_media_streams::capture::MediaTrackConstraintSet,
     ) -> Option<servo_media_streams::MediaStreamId> {
-        todo!()
+        warn!("OhosBackend: create_audioinput_stream not supported");
+        None
     }
 
     fn create_videoinput_stream(
         &self,
         _set: servo_media_streams::capture::MediaTrackConstraintSet,
     ) -> Option<servo_media_streams::MediaStreamId> {
-        todo!()
+        warn!("OhosBackend: create_videoinput_stream not supported");
+        None
     }
 
     fn create_audio_context(
@@ -179,7 +192,10 @@ impl Backend for OhosBackend {
         std::sync::Arc<std::sync::Mutex<servo_media_audio::context::AudioContext>>,
         servo_media_audio::sink::AudioSinkError,
     > {
-        todo!()
+        warn!("OhosBackend: create_audio_context not supported");
+        Err(AudioSinkError::Backend(
+            "AudioContext not supported on OHOS".to_owned(),
+        ))
     }
 
     fn create_webrtc(
@@ -214,7 +230,8 @@ impl Backend for OhosBackend {
     fn get_device_monitor(
         &self,
     ) -> Box<dyn servo_media_streams::device_monitor::MediaDeviceMonitor> {
-        todo!()
+        warn!("OhosBackend: get_device_monitor not supported");
+        Box::new(OhosDeviceMonitor)
     }
 
     fn mute(&self, id: &ClientContextId, val: bool) {
@@ -233,5 +250,29 @@ impl Backend for OhosBackend {
             id,
             &(move |instance: &dyn MediaInstance| instance.suspend()),
         );
+    }
+}
+
+struct OhosMediaOutput;
+
+impl MediaOutput for OhosMediaOutput {
+    fn add_stream(&mut self, _stream: &servo_media_streams::MediaStreamId) {
+        warn!("OhosBackend: add_stream not supported");
+    }
+}
+
+struct OhosMediaSocket;
+
+impl MediaSocket for OhosMediaSocket {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+struct OhosDeviceMonitor;
+
+impl MediaDeviceMonitor for OhosDeviceMonitor {
+    fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
+        Some(vec![])
     }
 }
