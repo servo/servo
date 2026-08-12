@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::CString;
 use std::ptr;
 
 use ohos_image_kit_sys::native_image::common::{Image_String, ImageResult as OhosImageResult};
@@ -45,9 +44,9 @@ impl<W: std::io::Write> ServoImageEncoder<W> for OhosImageEncoder {
             }
 
             let mime_type = match image_type {
-                EncodedImageType::Png => CString::new("image/png").map_err(|_| ())?,
-                EncodedImageType::Jpeg => CString::new("image/jpg").map_err(|_| ())?,
-                EncodedImageType::Webp => CString::new("image/webp").map_err(|_| ())?,
+                EncodedImageType::Png => c"image/png",
+                EncodedImageType::Jpeg => c"image/jpg",
+                EncodedImageType::Webp => c"image/webp",
             };
 
             // this should be read only
