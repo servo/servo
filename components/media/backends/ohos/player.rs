@@ -524,7 +524,8 @@ impl Player for OhosAvPlayer {
     }
 
     fn can_resume(&self) -> bool {
-        todo!()
+        warn!("OhosAvPlayer: can_resume not fully supported");
+        true
     }
 
     fn paused(&self) -> bool {
