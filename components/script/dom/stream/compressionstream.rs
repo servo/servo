@@ -250,7 +250,7 @@ impl CompressionContext {
             ))),
             #[cfg(not(feature = "brotli-compression-stream"))]
             CompressionFormat::Brotli => {
-                return Err(Error::Operation(Some("Brotli not supported".into())));
+                return Err(Error::NotSupported(Some("Brotli not supported".into())));
             },
             CompressionFormat::Deflate => {
                 Encoder::Deflate(ZlibEncoder::new(Vec::new(), Compression::default()))
