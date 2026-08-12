@@ -69,7 +69,7 @@ impl CompressionStream {
             context: RefCell::new(CompressionContext::new(format)?),
         })
     }
-
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // reflect will only be called on the box which is fine
     fn new_with_proto(
         cx: &mut JSContext,
         global: &GlobalScope,
