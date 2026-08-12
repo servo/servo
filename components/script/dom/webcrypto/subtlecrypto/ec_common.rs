@@ -281,6 +281,8 @@ pub(crate) fn import_key(
             // normalizedAlgorithm, throw a DataError.
             // Step 2.12. If the public key value is not a valid point on the Elliptic Curve
             // identified by the namedCurve member of normalizedAlgorithm throw a DataError.
+            //
+            // NOTE: The new CryptoKey in Step 2.10.5 is created in Step 2.13 - 2.17.
             let handle = match normalized_algorithm.named_curve.as_str() {
                 NAMED_CURVE_P256 => Handle::P256PublicKey(
                     PublicKey::<NistP256>::from_public_key_der(key_data).map_err(|_| {
@@ -332,7 +334,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 handle,
             )
         },
@@ -408,6 +410,8 @@ pub(crate) fn import_key(
             // normalizedAlgorithm, throw a DataError.
             // Step 2.12. If the private key value is not a valid point on the Elliptic Curve
             // identified by the namedCurve member of normalizedAlgorithm throw a DataError.
+            //
+            // NOTE: The new CryptoKey in Step 2.10.4 is created in Step 2.13 - 2.17.
             let handle = match normalized_algorithm.named_curve.as_str() {
                 NAMED_CURVE_P256 => Handle::P256PrivateKey(
                     SecretKey::<NistP256>::from_pkcs8_der(key_data).map_err(|_| {
@@ -459,7 +463,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 handle,
             )
         },
@@ -748,7 +752,7 @@ pub(crate) fn import_key(
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 handle,
             )
         },
@@ -854,7 +858,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 handle,
             )
         },

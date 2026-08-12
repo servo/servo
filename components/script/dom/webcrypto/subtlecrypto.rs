@@ -1018,7 +1018,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 18. Set the [[extractable]] internal slot of result to extractable.
                 // Step 19. Set the [[usages]] internal slot of result to the normalized value of
                 // usages.
-                // NOTE: Done by normalized_derived_key_algorithm_import.import_key in Step 16.
+                // NOTE: Done by the importKey operation in Step 16.
 
                 // Step 20. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.
@@ -1242,10 +1242,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 }
 
                 // Step 11. Set the [[extractable]] internal slot of result to extractable.
-                result.set_extractable(extractable);
-
-                // Step 12. Set the [[usages]] internal slot of result to the normalized value of usages.
-                result.set_usages(cx, &key_usages);
+                // Step 12. Set the [[usages]] internal slot of result to the normalized value of
+                // usages.
+                // NOTE: Done by the importKey operation in Step 9.
 
                 // Step 13. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.
@@ -1687,7 +1686,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 18. Set the [[extractable]] internal slot of result to extractable.
                 // Step 19. Set the [[usages]] internal slot of result to the normalized value of
                 // usages.
-                // NOTE: Done by normalized_algorithm.import_key in Step 16.
+                // NOTE: Done by the importKey operation in Step 16.
 
                 // Step 20. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.
@@ -1803,6 +1802,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 14. Set the [[extractable]] internal slot of sharedKey to extractable.
                 // Step 15. Set the [[usages]] internal slot of sharedKey to the normalized value
                 // of usages.
+                // NOTE: Step 14 and 15 are done by the importKey operation in Step 13.
                 let encapsulated_shared_key = match &encapsulated_bits.shared_key {
                     Some(shared_key) => shared_key,
                     None => {
@@ -2046,6 +2046,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 15. Set the [[extractable]] internal slot of sharedKey to extractable.
                 // Step 16. Set the [[usages]] internal slot of sharedKey to the normalized value
                 // of usages.
+                // NOTE: Step 15 and 16 are done by the importKey operation in Step 14.
                 let shared_key_result = normalized_shared_key_algorithm.import_key(
                     cx,
                     &subtle.global(),
@@ -2061,7 +2062,6 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         return;
                     },
                 };
-
 
                 // Step 17. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.

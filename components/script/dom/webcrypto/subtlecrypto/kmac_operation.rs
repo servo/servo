@@ -388,7 +388,7 @@ pub(crate) fn import_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::KmacKey(data),
     );
 

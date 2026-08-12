@@ -266,7 +266,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 Handle::Ed448PublicKey(public_key),
             )
         },
@@ -314,7 +314,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 Handle::Ed448PrivateKey(curve_private_key),
             )
         },
@@ -464,7 +464,7 @@ pub(crate) fn import_key(
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 handle,
             )
         },
@@ -510,7 +510,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 Handle::Ed448PublicKey(public_key),
             )
         },

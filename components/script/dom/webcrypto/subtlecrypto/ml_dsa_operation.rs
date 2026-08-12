@@ -360,7 +360,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 public_key,
             )
         },
@@ -451,7 +451,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 ml_dsa_private_key,
             )
         },
@@ -511,7 +511,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 public_key,
             )
         },
@@ -578,7 +578,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 private_key,
             )
         },
@@ -816,7 +816,7 @@ pub(crate) fn import_key(
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 key_handle,
             )
         },

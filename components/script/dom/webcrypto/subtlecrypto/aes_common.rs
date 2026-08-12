@@ -511,7 +511,7 @@ pub(crate) fn import_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         handle,
     );
 
