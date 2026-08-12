@@ -4,6 +4,9 @@
 
 // https://w3c.github.io/webcrypto/#subtlecrypto-interface
 
+// skip-unless CARGO_FEATURE_WEBCRYPTO
+
+
 // enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
 
 [SecureContext,Exposed=(Window,Worker),Pref="dom_crypto_subtle_enabled"]

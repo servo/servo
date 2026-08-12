@@ -64,6 +64,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+#[cfg(feature = "webcrypto")]
 use crate::dom::crypto::Crypto;
 use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
@@ -307,6 +308,7 @@ pub(crate) struct WorkerGlobalScope {
     runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
     navigator: MutNullableDom<WorkerNavigator>,
+    #[cfg(feature = "webcrypto")]
     crypto: MutNullableDom<Crypto>,
     #[no_trace]
     /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
@@ -426,6 +428,7 @@ impl WorkerGlobalScope {
             runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
+            #[cfg(feature = "webcrypto")]
             crypto: Default::default(),
             policy_container: Default::default(),
             devtools_receiver,
@@ -892,6 +895,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dfn-Crypto>
+    #[cfg(feature = "webcrypto")]
     fn Crypto(&self, cx: &mut JSContext) -> DomRoot<Crypto> {
         self.crypto
             .or_init(|| Crypto::new(cx, self.upcast::<GlobalScope>()))

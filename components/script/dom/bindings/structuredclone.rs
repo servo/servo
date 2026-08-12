@@ -48,6 +48,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::{Serializable, StorageKey};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
+#[cfg(feature = "webcrypto")]
 use crate::dom::cryptokey::CryptoKey;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -156,7 +157,10 @@ fn reader_for_type(
         SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => read_object::<QuotaExceededError>,
         SerializableInterface::ImageData => read_object::<ImageData>,
+        #[cfg(feature = "webcrypto")]
         SerializableInterface::CryptoKey => read_object::<CryptoKey>,
+        #[cfg(not(feature = "webcrypto"))]
+        SerializableInterface::CryptoKey => todo!("PANIC"),
     }
 }
 
@@ -315,7 +319,10 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => try_serialize::<QuotaExceededError>,
         SerializableInterface::ImageData => try_serialize::<ImageData>,
+        #[cfg(feature = "webcrypto")]
         SerializableInterface::CryptoKey => try_serialize::<CryptoKey>,
+        #[cfg(not(feature = "webcrypto"))]
+        SerializableInterface::CryptoKey => unreachable!("WebCrypto disabled"),
     }
 }
 

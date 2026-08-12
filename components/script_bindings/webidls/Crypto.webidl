@@ -7,6 +7,8 @@
  *
  */
 
+// skip-unless CARGO_FEATURE_WEBCRYPTO
+
 partial interface mixin WindowOrWorkerGlobalScope {
   [SameObject] readonly attribute Crypto crypto;
 };
