@@ -475,9 +475,10 @@ impl VirtualMethods for HTMLLinkElement {
 
         let element = self.upcast::<Element>();
         let href = element.get_attribute_string_value(&local_name!("href"));
-        let imagesrcset = element.get_attribute_string_value(&local_name!("imagesrcset"));
 
-        if context.tree_connected && (href.is_some() || imagesrcset.is_some()) {
+        if context.tree_connected &&
+            (href.is_some() || element.has_attribute(&local_name!("imagesrcset")))
+        {
             let relations = self.relations.get();
             // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
             // > When the external resource link's link element becomes browsing-context connected.
