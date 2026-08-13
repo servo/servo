@@ -21,6 +21,7 @@ test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_t
 tracing = ["dep:tracing"]
 
 [dependencies]
+aws-lc-rs = { workspace = true }
 async-compression = { workspace = true, features = ["brotli", "gzip", "tokio", "zlib", "zstd"] }
 async-recursion = { workspace = true }
 async-tungstenite = { workspace = true }
@@ -78,7 +79,6 @@ servo-url = { workspace = true }
 servo_arc = { workspace = true }
 sea-query = { workspace = true }
 sea-query-rusqlite = { workspace = true }
-sha2 = { workspace = true }
 smallvec = { workspace = true }
 tempfile = { workspace = true }
 time = { workspace = true }
