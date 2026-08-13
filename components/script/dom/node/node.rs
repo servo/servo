@@ -686,7 +686,7 @@ impl Node {
         )
     }
 
-    fn add_pending_accessibility_damage(&self, damage: AccessibilityDamage) {
+    pub(crate) fn add_pending_accessibility_damage(&self, damage: AccessibilityDamage) {
         if !self.owner_doc().accessibility_active() {
             return;
         }
@@ -916,7 +916,7 @@ impl Node {
                     .dirty(no_gc, NodeDamage::ContentOrHeritage);
 
                 if damage == NodeDamage::Other {
-                    self.add_pending_accessibility_damage(AccessibilityDamage::Text);
+                    self.add_pending_accessibility_damage(AccessibilityDamage::Node);
                 }
             },
             NodeTypeId::Element(_) => self.downcast::<Element>().unwrap().restyle(no_gc, damage),

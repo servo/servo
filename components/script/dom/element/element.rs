@@ -25,7 +25,10 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::JSVal;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
-use layout_api::{LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData, with_layout_state};
+use layout_api::{
+    AccessibilityDamage, LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData,
+    with_layout_state,
+};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
@@ -4229,7 +4232,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://w3c.github.io/aria/#ref-for-dom-ariamixin-role-1>
     fn SetRole(&self, cx: &mut JSContext, value: Option<DOMString>) {
-        self.set_nullable_string_attribute(cx, &local_name!("role"), value);
+        self.set_nullable_tokenlist_attribute(cx, &local_name!("role"), value);
     }
 
     fn GetAriaAtomic(&self) -> Option<DOMString> {
@@ -4786,6 +4789,10 @@ impl VirtualMethods for Element {
                 }
                 slottable.assign_a_slot(cx);
             },
+            local_name!("role") => {
+                self.upcast::<Node>()
+                    .add_pending_accessibility_damage(AccessibilityDamage::Node);
+            },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
                 // the relevant super-classes.
@@ -4834,7 +4841,7 @@ impl VirtualMethods for Element {
         match *name {
             local_name!("id") => AttrValue::Atom(value.into()),
             local_name!("name") => AttrValue::Atom(value.into()),
-            local_name!("class") | local_name!("part") => {
+            local_name!("class") | local_name!("part") | local_name!("role") => {
                 AttrValue::from_serialized_tokenlist(value.into())
             },
             local_name!("exportparts") => AttrValue::from_shadow_parts(value.into()),
