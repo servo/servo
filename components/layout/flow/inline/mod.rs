@@ -73,6 +73,7 @@ mod full_width;
 pub mod inline_box;
 pub mod line;
 mod line_breaker;
+mod mathml_italics;
 mod shaping_queue;
 mod small_kana;
 pub mod text_run;
