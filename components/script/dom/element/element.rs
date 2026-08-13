@@ -4,7 +4,6 @@
 
 //! Element nodes.
 
-use std::borrow::Cow;
 use std::cell::{Cell, LazyCell};
 use std::default::Default;
 use std::rc::Rc;
@@ -2921,6 +2920,16 @@ impl Element {
             }
         }
     }
+
+    /// An element's qualified name is its local name if its namespace prefix is null;
+    /// otherwise its namespace prefix, followed by ":", followed by its local name.
+    /// <https://dom.spec.whatwg.org/#concept-element-qualified-name>
+    pub(crate) fn qualified_name(&self) -> String {
+        match &*self.prefix.borrow() {
+            Some(prefix) => format!("{}:{}", prefix, &*self.local_name),
+            None => String::from(&*self.local_name),
+        }
+    }
 }
 
 impl ElementMethods<crate::DomTypeHolder> for Element {
@@ -2942,11 +2951,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-tagname>
     fn TagName(&self) -> DOMString {
+        // The tagName getter steps are to return this's HTML-uppercased qualified name.
+        //
+        // An element's HTML-uppercased qualified name is the return value of these steps:
         let name = self.tag_name.or_init(|| {
-            let qualified_name = match *self.prefix.borrow() {
-                Some(ref prefix) => Cow::Owned(format!("{}:{}", &**prefix, &*self.local_name)),
-                None => Cow::Borrowed(&*self.local_name),
-            };
+            // 1. Let qualifiedName be this's qualified name.
+            let qualified_name = self.qualified_name();
+            // 2. If this is in the HTML namespace and its node document is an HTML document,
+            //    then return qualifiedName in ASCII uppercase.
+            // 3. Return qualifiedName.
             if self.html_element_in_html_document() {
                 LocalName::from(qualified_name.to_ascii_uppercase())
             } else {
