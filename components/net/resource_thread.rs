@@ -90,8 +90,7 @@ fn load_root_cert_store_from_file(file_path: String) -> io::Result<Vec<Certifica
 /// Returns a tuple of (public, private) senders to the new threads.
 #[expect(clippy::too_many_arguments)]
 pub fn new_resource_threads(
-    #[cfg(feature = "devtools")]
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -132,8 +131,7 @@ pub fn new_resource_threads(
 /// Create a CoreResourceThread
 #[expect(clippy::too_many_arguments)]
 pub fn new_core_resource_thread(
-    #[cfg(feature = "devtools")]
-    devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<Sender<DevtoolsControlMsg>>,
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -727,8 +725,7 @@ pub struct CoreResourceManager {
 
 impl CoreResourceManager {
     pub fn new(
-        #[cfg(feature = "devtools")]
-        devtools_sender: Option<Sender<DevtoolsControlMsg>>,
+        #[cfg(feature = "devtools")] devtools_sender: Option<Sender<DevtoolsControlMsg>>,
         _profiler_chan: ProfilerChan,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
         ca_certificates: CACertificates<'static>,
