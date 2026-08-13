@@ -102,16 +102,25 @@ impl<const RATE: usize> TurboShake<RATE> {
 
     fn hash(mut self, message: &[u8], result: &mut [u8]) {
         // Digest message
+        //
+        // Reference implementation from RustCrypto:
+        // <https://docs.rs/turboshake/0.7.1/src/turboshake/lib.rs.html#60-64>
         self.keccak.with_p1600::<ROUNDS>(|p1600| {
             self.cursor.absorb_u64_le(&mut self.state, p1600, message);
         });
 
         // Finalize
+        //
+        // Reference implementation from RustCrypto:
+        // <https://docs.rs/turboshake/0.7.1/src/turboshake/lib.rs.html#67-91>
         let position = self.cursor.pos();
         self.state[position / 8] ^= (self.domain_separation as u64) << (8 * (position % 8));
         self.state[RATE / 8 - 1] ^= 1 << 63;
 
         // Read result
+        //
+        // Reference implementation from RustCrypto:
+        // <https://docs.rs/turboshake/0.7.1/src/turboshake/lib.rs.html#161-165>
         self.cursor = Default::default();
         self.keccak.with_p1600::<ROUNDS>(|p1600| {
             self.cursor
