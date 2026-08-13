@@ -82,7 +82,11 @@ pub(crate) struct EnqueuedPromiseCallback {
 
 impl MicrotaskRunnable for EnqueuedPromiseCallback {
     fn handler(&self, cx: &mut JSContext) {
-        let _guard = ScriptThread::user_interacting_guard();
+        let _maybe_user_interacting_guard = if self.is_user_interacting {
+            Some(ScriptThread::user_interacting_guard())
+        } else {
+            None
+        };
         let mut realm = enter_auto_realm(cx, &*self.global);
         let cx = &mut realm;
         let _ = self
