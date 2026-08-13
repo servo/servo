@@ -161,6 +161,7 @@ impl Document {
             "forecolor" => CommandName::ForeColor,
             "forwarddelete" => CommandName::ForwardDelete,
             "hilitecolor" => CommandName::HiliteColor,
+            "indent" => CommandName::Indent,
             "inserthorizontalrule" => CommandName::InsertHorizontalRule,
             "insertimage" => CommandName::InsertImage,
             "insertparagraph" => CommandName::InsertParagraph,
