@@ -5,6 +5,7 @@
 pub(crate) use self::worklet::*;
 pub(crate) mod paintsize;
 pub(crate) mod paintworkletglobalscope;
+pub(crate) mod statelessworklet;
 #[allow(clippy::module_inception, reason = "The interface name is Worklet")]
 pub(crate) mod worklet;
 pub(crate) mod workletglobalscope;

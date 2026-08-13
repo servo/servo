@@ -11,19 +11,14 @@
 //! a backup thread, not on the primary worklet thread.
 
 use std::cell::{self, Cell, RefCell, RefMut};
-use std::cmp::max;
-use std::collections::hash_map;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
-use std::thread;
 
 use crossbeam_channel::{Receiver, SendError, Sender, unbounded};
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{GCReason, JSGCParamKey, JSTracer};
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::{JS_GC, JS_GetGCParameter};
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, Origin, PreloadedResources, RequestClient};
@@ -31,8 +26,7 @@ use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use style::thread_state::{self, ThreadState};
-use swapper::{Swapper, swapper};
+use swapper::Swapper;
 use uuid::Uuid;
 
 use crate::conversions::Convert;
@@ -44,7 +38,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::bindings::trace::{JSTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 #[cfg(feature = "testbinding")]
@@ -62,7 +56,7 @@ use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 // Magic numbers
 const WORKLET_THREAD_POOL_SIZE: u32 = 3;
-const MIN_GC_THRESHOLD: u32 = 1_000_000;
+pub(crate) const MIN_GC_THRESHOLD: u32 = 1_000_000;
 
 type LazyCellWithBoxedInitializer<T> = cell::LazyCell<T, Box<dyn FnOnce() -> T>>;
 
@@ -268,181 +262,11 @@ pub trait WorkletThreadPool: JSTraceable {
     fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask);
 }
 
-/// Worklets execute in a dedicated thread pool.
-///
-/// The goal is to ensure that there is a primary worklet thread,
-/// which is able to responsively execute worklet code. In particular,
-/// worklet execution should not be delayed by GC, or by script
-/// loading.
-///
-/// To achieve this, we implement a three-thread pool, with the
-/// threads cycling between three thread roles:
-///
-///  * The primary worklet thread is the one available to execute
-///    worklet code.
-///
-///  * The hot backup thread may peform GC, but otherwise is expected
-///    to take over the primary role.
-///
-///  * The cold backup thread may peform script loading and other
-///    long-running tasks.
-///
-/// In the implementation, we use two kinds of messages:
-///
-///  * Data messages are expected to be processed quickly, and include
-///    the worklet tasks to be performed by the primary thread, as
-///    well as requests to change role or quit execution.
-///
-///  * Control messages are expected to be processed more slowly, and
-///    include script loading.
-///
-/// Data messages are targeted at a role, for example, task execution
-/// is expected to be performed by whichever thread is currently
-/// primary. Control messages are targeted at a thread, for example
-/// adding a module is performed in every thread, even if they change roles
-/// in the middle of module loading.
-///
-/// The thread pool lives in the script thread, and is initialized
-/// when a worklet adds a module. It is dropped when the script thread
-/// is dropped, and asks each of the worklet threads to quit.
-///
-/// Layout can end up blocking on the primary worklet thread
-/// (e.g. when invoking a paint callback), so it is important to avoid
-/// deadlock by making sure the primary worklet thread doesn't end up
-/// blocking waiting on layout. In particular, since the constellation
-/// can block waiting on layout, this means the primary worklet thread
-/// can't block waiting on the constellation. In general, the primary
-/// worklet thread shouldn't perform any blocking operations. If a worklet
-/// thread needs to do anything blocking, it should send a control
-/// message, to make sure that the blocking operation is performed
-/// by a backup thread, not by the primary thread.
-
-#[derive(Clone, JSTraceable)]
-pub(crate) struct StatelessWorkletThreadPool {
-    // Channels to send data messages to the three roles.
-    #[no_trace]
-    primary_sender: Sender<WorkletData>,
-    #[no_trace]
-    hot_backup_sender: Sender<WorkletData>,
-    #[no_trace]
-    cold_backup_sender: Sender<WorkletData>,
-    // Channels to send control messages to the three threads.
-    #[no_trace]
-    control_sender_0: Sender<WorkletControl>,
-    #[no_trace]
-    control_sender_1: Sender<WorkletControl>,
-    #[no_trace]
-    control_sender_2: Sender<WorkletControl>,
-}
-
-impl Drop for StatelessWorkletThreadPool {
-    fn drop(&mut self) {
-        let _ = self.cold_backup_sender.send(WorkletData::Quit);
-        let _ = self.hot_backup_sender.send(WorkletData::Quit);
-        let _ = self.primary_sender.send(WorkletData::Quit);
-    }
-}
-
-impl StatelessWorkletThreadPool {
-    /// Create a new thread pool and spawn the threads.
-    /// When the thread pool is dropped, the threads will be asked to quit.
-    pub(crate) fn spawn(global_init: WorkletGlobalScopeInit) -> StatelessWorkletThreadPool {
-        let primary_role = WorkletThreadRole::new(false, false);
-        let hot_backup_role = WorkletThreadRole::new(true, false);
-        let cold_backup_role = WorkletThreadRole::new(false, true);
-        let primary_sender = primary_role.sender.clone();
-        let hot_backup_sender = hot_backup_role.sender.clone();
-        let cold_backup_sender = cold_backup_role.sender.clone();
-        let init = WorkletThreadInit {
-            primary_sender: primary_sender.clone(),
-            hot_backup_sender: hot_backup_sender.clone(),
-            cold_backup_sender: cold_backup_sender.clone(),
-            global_init,
-        };
-        StatelessWorkletThreadPool {
-            primary_sender,
-            hot_backup_sender,
-            cold_backup_sender,
-            control_sender_0: StatelessWorkletThread::spawn(primary_role, init.clone(), 0),
-            control_sender_1: StatelessWorkletThread::spawn(hot_backup_role, init.clone(), 1),
-            control_sender_2: StatelessWorkletThread::spawn(cold_backup_role, init, 2),
-        }
-    }
-}
-
-impl WorkletThreadPool for StatelessWorkletThreadPool {
-    /// Loads a worklet module into every worklet thread.
-    /// If all of the threads load successfully, the promise is resolved.
-    /// If any of the threads fails to load, the promise is rejected.
-    /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
-    #[allow(clippy::too_many_arguments)]
-    fn fetch_and_invoke_a_worklet_script(
-        &self,
-        pipeline_id: PipelineId,
-        worklet_id: WorkletId,
-        global_type: WorkletGlobalScopeType,
-        origin: ImmutableOrigin,
-        base_url: ServoUrl,
-        script_url: ServoUrl,
-        policy_container: PolicyContainer,
-        credentials: RequestCredentials,
-        pending_tasks_struct: PendingTasksStruct,
-        promise: &Rc<Promise>,
-        inherited_secure_context: Option<bool>,
-    ) {
-        // Send each thread a control message asking it to load the script.
-        for sender in &[
-            &self.control_sender_0,
-            &self.control_sender_1,
-            &self.control_sender_2,
-        ] {
-            let _ = sender.send(WorkletControl::FetchAndInvokeAWorkletScript {
-                pipeline_id,
-                worklet_id,
-                global_type,
-                origin: origin.clone(),
-                base_url: base_url.clone(),
-                script_url: script_url.clone(),
-                policy_container: policy_container.clone(),
-                credentials,
-                pending_tasks_struct: pending_tasks_struct.clone(),
-                promise: TrustedPromise::new(promise.clone()),
-                inherited_secure_context,
-            });
-        }
-        self.wake_threads();
-    }
-
-    fn exit_worklet(&self, worklet_id: WorkletId) {
-        for sender in &[
-            &self.control_sender_0,
-            &self.control_sender_1,
-            &self.control_sender_2,
-        ] {
-            let _ = sender.send(WorkletControl::ExitWorklet(worklet_id));
-        }
-        self.wake_threads();
-    }
-
-    fn wake_threads(&self) {
-        // If any of the threads are blocked waiting on data, wake them up.
-        let _ = self.cold_backup_sender.send(WorkletData::WakeUp);
-        let _ = self.hot_backup_sender.send(WorkletData::WakeUp);
-        let _ = self.primary_sender.send(WorkletData::WakeUp);
-    }
-
-    /// Send a `WorkletTask` to the "Primary Worklet Thread" to execute.
-    fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask) {
-        let msg = WorkletData::Task(worklet_id, worklet_task);
-        let _ = self.primary_sender.send(msg);
-    }
-}
-
 // A boxed closure sent to the "Primary Worklet Thread" to execute Worklet tasks.
-type WorkletTask = Box<dyn FnOnce(&mut JSContext, &WorkletGlobalScope) + Send>;
+pub(crate) type WorkletTask = Box<dyn FnOnce(&mut JSContext, &WorkletGlobalScope) + Send>;
 
 /// The data messages sent to worklet threads
-enum WorkletData {
+pub(crate) enum WorkletData {
     Task(WorkletId, WorkletTask),
     StartSwapRoles(Sender<WorkletData>),
     FinishSwapRoles(Swapper<WorkletThreadRole>),
@@ -475,7 +299,7 @@ pub(crate) enum WorkletControl {
 /// ownership using Rust's types, and use atomic swapping to exchange
 /// them between worklet threads. This ensures that each thread pool has
 /// exactly one primary, one hot backup and one cold backup.
-struct WorkletThreadRole {
+pub(crate) struct WorkletThreadRole {
     receiver: Receiver<WorkletData>,
     sender: Sender<WorkletData>,
     is_hot_backup: bool,
@@ -483,7 +307,7 @@ struct WorkletThreadRole {
 }
 
 impl WorkletThreadRole {
-    fn new(is_hot_backup: bool, is_cold_backup: bool) -> WorkletThreadRole {
+    pub(crate) fn new(is_hot_backup: bool, is_cold_backup: bool) -> WorkletThreadRole {
         let (sender, receiver) = unbounded();
         WorkletThreadRole {
             sender,
@@ -492,256 +316,75 @@ impl WorkletThreadRole {
             is_cold_backup,
         }
     }
+
+    pub(crate) fn sender(&self) -> Sender<WorkletData> {
+        self.sender.clone()
+    }
+
+    pub(crate) fn receiver(&self) -> Receiver<WorkletData> {
+        self.receiver.clone()
+    }
+
+    pub(crate) fn is_hot_backup(&self) -> bool {
+        self.is_hot_backup
+    }
+
+    pub(crate) fn is_cold_backup(&self) -> bool {
+        self.is_cold_backup
+    }
 }
 
-/// Data to initialize a worklet thread.
-#[derive(Clone)]
-struct WorkletThreadInit {
-    /// Senders
-    primary_sender: Sender<WorkletData>,
-    hot_backup_sender: Sender<WorkletData>,
-    cold_backup_sender: Sender<WorkletData>,
-
+/// WorkletThread contains the common Worklet infrastructure used by both the Stateless and
+/// Stateful Worklets
+/// <https://html.spec.whatwg.org/multipage/#worklets-worklet>
+pub(crate) struct WorkletThread {
     /// Data for initializing new worklet global scopes
-    global_init: WorkletGlobalScopeInit,
-}
+    pub(crate) global_init: WorkletGlobalScopeInit,
 
-/// A thread for executing worklets.
-#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-struct StatelessWorkletThread {
-    /// Which role the thread is currently playing
-    role: WorkletThreadRole,
+    /// The global scopes created by this thread
+    pub(crate) global_scopes: FxHashMap<WorkletId, Dom<WorkletGlobalScope>>,
 
     /// The thread's receiver for control messages
     control_receiver: Receiver<WorkletControl>,
     /// The sender for sending control messages to this thread's event loop
-    control_sender: Sender<WorkletControl>,
-
-    /// Senders
-    primary_sender: Sender<WorkletData>,
-    hot_backup_sender: Sender<WorkletData>,
-    cold_backup_sender: Sender<WorkletData>,
-
-    /// Data for initializing new worklet global scopes
-    global_init: WorkletGlobalScopeInit,
-
-    /// The global scopes created by this thread
-    global_scopes: FxHashMap<WorkletId, Dom<WorkletGlobalScope>>,
+    pub(crate) control_sender: Sender<WorkletControl>,
 
     /// A one-place buffer for control messages
-    control_buffer: Option<WorkletControl>,
+    pub(crate) control_buffer: Option<WorkletControl>,
 
     /// A flag that is set when a `WorkletThread` begins shutting down.
-    closing: Arc<AtomicBool>,
+    pub(crate) closing: Arc<AtomicBool>,
 
     /// The JS runtime
     runtime: Runtime,
-    should_gc: bool,
-    gc_threshold: u32,
+    pub(crate) should_gc: bool,
+    pub(crate) gc_threshold: u32,
 }
 
-#[expect(unsafe_code)]
-unsafe impl JSTraceable for StatelessWorkletThread {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        debug!("Tracing worklet thread.");
-        unsafe { self.global_scopes.trace(trc) };
-    }
-}
-
-impl StatelessWorkletThread {
-    #[allow(unsafe_code)]
-    /// Spawn a new worklet thread, returning the channel to send it control messages.
-    fn spawn(
-        role: WorkletThreadRole,
-        init: WorkletThreadInit,
-        thread_index: u8,
-    ) -> Sender<WorkletControl> {
-        let (control_sender, control_receiver) = unbounded();
-        let control_sender_clone = control_sender.clone();
-        let _ = thread::Builder::new()
-            .name(format!("Worklet#{thread_index}"))
-            .spawn(move || {
-                // TODO: add a new IN_WORKLET thread state?
-                // TODO: set interrupt handler?
-                // TODO: configure the JS runtime (e.g. discourage GC, encourage agressive JIT)
-                debug!("Initializing worklet thread.");
-                thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
-                let runtime = Runtime::new(None);
-                let mut cx = unsafe { runtime.cx() };
-                let mut thread = RootedTraceableBox::new(StatelessWorkletThread {
-                    role,
-                    control_receiver,
-                    control_sender: control_sender_clone,
-                    primary_sender: init.primary_sender,
-                    hot_backup_sender: init.hot_backup_sender,
-                    cold_backup_sender: init.cold_backup_sender,
-                    global_init: init.global_init,
-                    global_scopes: FxHashMap::default(),
-                    control_buffer: None,
-                    runtime,
-                    should_gc: false,
-                    closing: Arc::new(AtomicBool::new(false)),
-                    gc_threshold: MIN_GC_THRESHOLD,
-                });
-                thread.run(&mut cx);
-            })
-            .expect("Couldn't start worklet thread");
-        control_sender
-    }
-
-    /// The main event loop for a worklet thread
-    fn run(&mut self, cx: &mut JSContext) {
-        loop {
-            // The handler for data messages
-            let message = self.role.receiver.recv().unwrap();
-            match message {
-                // The whole point of this thread pool is to perform tasks!
-                WorkletData::Task(id, task) => {
-                    self.perform_a_worklet_task(cx, id, task);
-                },
-                // To start swapping roles, get ready to perform an atomic swap,
-                // and block waiting for the other end to finish it.
-                // NOTE: the cold backup can block on the primary or the hot backup;
-                //       the hot backup can block on the primary;
-                //       the primary can block on nothing;
-                //       this total ordering on thread roles is what guarantees deadlock-freedom.
-                WorkletData::StartSwapRoles(sender) => {
-                    let (our_swapper, their_swapper) = swapper();
-                    match sender.send(WorkletData::FinishSwapRoles(their_swapper)) {
-                        Ok(_) => {},
-                        Err(_) => {
-                            // This might happen if the script thread shuts down while
-                            // waiting for the worklet to finish.
-                            return;
-                        },
-                    };
-                    let _ = our_swapper.swap(&mut self.role);
-                },
-                // To finish swapping roles, perform the atomic swap.
-                // The other end should have already started the swap, so this shouldn't block.
-                WorkletData::FinishSwapRoles(swapper) => {
-                    let _ = swapper.swap(&mut self.role);
-                },
-                // Wake up! There may be control messages to process.
-                WorkletData::WakeUp => {},
-                // Quit!
-                WorkletData::Quit => {
-                    return;
-                },
-            }
-
-            // Only process control messages if we're the cold backup,
-            // otherwise if there are outstanding control messages,
-            // try to become the cold backup.
-            if self.role.is_cold_backup {
-                if let Some(control) = self.control_buffer.take() {
-                    self.process_control(control, cx);
-                }
-                while let Ok(control) = self.control_receiver.try_recv() {
-                    self.process_control(control, cx);
-                }
-
-                for worklet_global_scope in self.global_scopes.values() {
-                    worklet_global_scope.perform_a_microtask_checkpoint(cx);
-                }
-
-                self.gc(cx);
-            } else if self.control_buffer.is_none() &&
-                let Ok(control) = self.control_receiver.try_recv()
-            {
-                self.control_buffer = Some(control);
-                let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
-                let _ = self.cold_backup_sender.send(msg);
-            }
-            // If we are tight on memory, and we're a backup then perform a gc.
-            // If we are tight on memory, and we're the primary then try to become the hot backup.
-            // Hopefully this happens soon!
-            if self.current_memory_usage() > self.gc_threshold {
-                if self.role.is_hot_backup || self.role.is_cold_backup {
-                    self.should_gc = false;
-                    self.gc(cx);
-                } else if !self.should_gc {
-                    self.should_gc = true;
-                    let msg = WorkletData::StartSwapRoles(self.role.sender.clone());
-                    let _ = self.hot_backup_sender.send(msg);
-                }
-            }
-        }
-    }
-
-    /// The current memory usage of the thread
-    #[expect(unsafe_code)]
-    fn current_memory_usage(&self) -> u32 {
-        unsafe { JS_GetGCParameter(self.runtime.cx_no_gc(), JSGCParamKey::JSGC_BYTES) }
-    }
-
-    /// Perform a GC.
-    #[expect(unsafe_code)]
-    fn gc(&mut self, cx: &mut JSContext) {
-        debug!(
-            "BEGIN GC (usage = {}, threshold = {}).",
-            self.current_memory_usage(),
-            self.gc_threshold
-        );
-        unsafe { JS_GC(cx, GCReason::API) };
-        self.gc_threshold = max(MIN_GC_THRESHOLD, self.current_memory_usage() * 2);
-        debug!(
-            "END GC (usage = {}, threshold = {}).",
-            self.current_memory_usage(),
-            self.gc_threshold
-        );
-    }
-
-    /// Get the worklet global scope for a given worklet.
-    /// Creates the worklet global scope if it doesn't exist.
-    #[expect(clippy::too_many_arguments)]
-    fn get_worklet_global_scope(
-        &mut self,
-        cx: &mut JSContext,
-        pipeline_id: PipelineId,
-        worklet_id: WorkletId,
-        inherited_secure_context: Option<bool>,
-        global_type: WorkletGlobalScopeType,
-        base_url: ServoUrl,
-        microtask_queue: Rc<MicrotaskQueue>,
-    ) -> DomRoot<WorkletGlobalScope> {
-        match self.global_scopes.entry(worklet_id) {
-            hash_map::Entry::Occupied(entry) => DomRoot::from_ref(entry.get()),
-
-            // Step 6.1. If workletInstance's global scopes is empty:
-            hash_map::Entry::Vacant(entry) => {
-                debug!("Creating new worklet global scope.");
-
-                // Step 6.1.1. Create a worklet global scope given workletInstance.
-                let executor = WorkletExecutor {
-                    worklet_id,
-                    primary_sender: self.primary_sender.clone(),
-                    hot_backup_sender: self.hot_backup_sender.clone(),
-                    cold_backup_sender: self.cold_backup_sender.clone(),
-                    control_sender: self.control_sender.clone(),
-                };
-
-                let result = WorkletGlobalScope::new(
-                    global_type,
-                    pipeline_id,
-                    base_url,
-                    inherited_secure_context,
-                    executor,
-                    &self.global_init,
-                    cx,
-                    self.closing.clone(),
-                    microtask_queue,
-                );
-                entry.insert(Dom::from_ref(&*result));
-                result
-            },
+impl WorkletThread {
+    pub(crate) fn new(
+        global_init: WorkletGlobalScopeInit,
+        control_receiver: Receiver<WorkletControl>,
+        control_sender: Sender<WorkletControl>,
+        runtime: Runtime,
+    ) -> Self {
+        WorkletThread {
+            global_init,
+            global_scopes: FxHashMap::default(),
+            control_receiver,
+            control_sender,
+            control_buffer: None,
+            closing: Arc::new(AtomicBool::new(false)),
+            runtime,
+            should_gc: false,
+            gc_threshold: MIN_GC_THRESHOLD,
         }
     }
 
     /// Fetch and invoke a worklet script.
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet-script-graph>
     #[allow(clippy::too_many_arguments)]
-    fn fetch_and_invoke_a_worklet_script(
+    pub(crate) fn fetch_and_invoke_a_worklet_script(
         &self,
         global_scope: &WorkletGlobalScope,
         pipeline_id: PipelineId,
@@ -869,68 +512,16 @@ impl StatelessWorkletThread {
         );
     }
 
-    /// Execute a `WorkletTask`.
-    fn perform_a_worklet_task(
-        &self,
-        cx: &mut JSContext,
-        worklet_id: WorkletId,
-        worklet_task: WorkletTask,
-    ) {
-        match self.global_scopes.get(&worklet_id) {
-            Some(global) => worklet_task(cx, global),
-            None => warn!("No such worklet as {:?}.", worklet_id),
-        }
+    pub(crate) fn control_receiver(&self) -> Receiver<WorkletControl> {
+        self.control_receiver.clone()
     }
 
-    /// Process a control message.
-    fn process_control(&mut self, control: WorkletControl, cx: &mut js::context::JSContext) {
-        match control {
-            WorkletControl::ExitWorklet(worklet_id) => {
-                self.global_scopes.remove(&worklet_id);
-            },
-            WorkletControl::FetchAndInvokeAWorkletScript {
-                pipeline_id,
-                worklet_id,
-                global_type,
-                origin,
-                base_url,
-                script_url,
-                policy_container,
-                credentials,
-                pending_tasks_struct,
-                promise,
-                inherited_secure_context,
-            } => {
-                // A worklet global scope is created here as part of the AddModule specs.
-                // <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule>
-                // 6.1.3. Wait for all steps of the creation process(es) — including those taking place within the worklet agents — to complete, before moving on.
-                let global = self.get_worklet_global_scope(
-                    cx,
-                    pipeline_id,
-                    worklet_id,
-                    inherited_secure_context,
-                    global_type,
-                    base_url,
-                    self.runtime.microtask_queue.clone(),
-                );
-                self.fetch_and_invoke_a_worklet_script(
-                    &global,
-                    pipeline_id,
-                    origin,
-                    script_url,
-                    policy_container,
-                    credentials,
-                    pending_tasks_struct,
-                    promise,
-                    cx,
-                )
-            },
-            WorkletControl::Common(script_msg) => {
-                if let CommonScriptMsg::Task(_, task, _, _) = script_msg {
-                    task.run_box(cx);
-                }
-            },
-        }
+    pub(crate) fn runtime_cx_no_gc(&self) -> &JSContext {
+        self.runtime.cx_no_gc()
+    }
+
+    pub(crate) fn microtask_queue(&self) -> Rc<MicrotaskQueue> {
+        self.runtime.microtask_queue.clone()
     }
 }
 
@@ -982,6 +573,22 @@ pub(crate) struct WorkletExecutor {
 }
 
 impl WorkletExecutor {
+    pub(crate) fn new(
+        worklet_id: WorkletId,
+        primary_sender: Sender<WorkletData>,
+        hot_backup_sender: Sender<WorkletData>,
+        cold_backup_sender: Sender<WorkletData>,
+        control_sender: Sender<WorkletControl>,
+    ) -> Self {
+        WorkletExecutor {
+            worklet_id,
+            primary_sender: primary_sender,
+            hot_backup_sender: hot_backup_sender,
+            cold_backup_sender: cold_backup_sender,
+            control_sender: control_sender,
+        }
+    }
+
     /// If any of the threads are blocked waiting on data, wake them up.
     pub(crate) fn wake_threads(&self) -> Result<(), SendError<()>> {
         self.cold_backup_sender

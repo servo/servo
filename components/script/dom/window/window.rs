@@ -105,7 +105,6 @@ use time::Duration as TimeDuration;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint};
 
-use crate::dom::StatelessWorkletThreadPool;
 use crate::dom::bindings::codegen::Bindings::AnimationFrameProviderBinding::FrameRequestCallback;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState, NamedPropertyValue,
@@ -179,6 +178,7 @@ use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::selection::Selection;
 use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::statelessworklet::StatelessWorkletThreadPool;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;

@@ -340,7 +340,10 @@ impl PaintWorkletGlobalScope {
 
                 let speculatively_draw_a_paint_image_task =
                     move |cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
-                        let paint_worklet_global_scope = global_scope.downcast::<PaintWorkletGlobalScope>().expect("PaintWorklet's task should be run only on PaintWorkletGlobalScope");
+                        let paint_worklet_global_scope =
+                            global_scope.downcast::<PaintWorkletGlobalScope>().expect(
+                                "PaintWorklet's task should be run only on PaintWorkletGlobalScope",
+                            );
 
                         let should_speculate = (*paint_worklet_global_scope.cached_name.borrow() !=
                             name) ||
@@ -396,7 +399,10 @@ impl PaintWorkletGlobalScope {
 
                 let draw_a_paint_image_task =
                     move |cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
-                        let paint_worklet_global_scope = global_scope.downcast::<PaintWorkletGlobalScope>().expect("PaintWorklet's task should be run only on PaintWorkletGlobalScope");
+                        let paint_worklet_global_scope =
+                            global_scope.downcast::<PaintWorkletGlobalScope>().expect(
+                                "PaintWorklet's task should be run only on PaintWorkletGlobalScope",
+                            );
 
                         let cache_hit = (*paint_worklet_global_scope.cached_name.borrow() == name) &&
                             (paint_worklet_global_scope.cached_size.get() == size) &&
