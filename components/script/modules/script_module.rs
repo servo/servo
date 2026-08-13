@@ -763,7 +763,7 @@ impl FetchResponseListener for ModuleContext {
                 if let Some(window) = global.downcast::<Window>() &&
                     let Some(script_souce) = window.local_script_source()
                 {
-                    substitute_with_local_script(script_souce, &mut source_text, final_url.clone());
+                    substitute_with_local_script(script_souce, &mut source_text, &final_url);
                 }
 
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
