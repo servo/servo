@@ -206,10 +206,14 @@ impl PaintWorkletGlobalScope {
                         &arguments,
                     );
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
-                        *self.cached_name.borrow_mut() = name;
-                        *self.cached_properties.borrow_mut() = properties;
-                        *self.cached_arguments.borrow_mut() = arguments;
-                        *self.cached_result.borrow_mut() = result;
+                        self.set_cached_paint_image(
+                            name,
+                            size,
+                            device_pixel_ratio,
+                            properties,
+                            arguments,
+                            result,
+                        );
                     }
                 }
             },
