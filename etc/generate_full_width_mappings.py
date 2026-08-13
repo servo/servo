@@ -27,25 +27,39 @@ Generate the mapping for [`text-transform: full-width`]
 """
 
 from urllib.request import urlopen
+import re
 
-response = urlopen("https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt")
+readme_url = "https://www.unicode.org/Public/UCD/latest/ReadMe.txt"
+data_url = "https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt"
+
+response = urlopen(readme_url)
 assert response.status == 200
+body = response.read().decode("utf-8")
+version = re.search(r"Version ([\d.]+)", body).group(1)
+
+response = urlopen(data_url)
+assert response.status == 200
+body = response.read().decode("utf-8")
 
 print(
-    """
+    f"""
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Generated file, do not edit directly. Update it with:
+//! Generated from <{data_url}> version {version}
+//!
+//! Do not edit directly. Update it with:
+//!
 //! ```sh
 //! etc/generate_full_width_mappings.py > components/layout/flow/inline/full_width.rs
 //! ```
 
-pub(crate) static FULL_WIDTH_MAPPINGS: phf::Map<char, char> = phf::phf_map! {
+/// <https://drafts.csswg.org/css-text-4/#full-width>
+pub(crate) static FULL_WIDTH_MAPPINGS: phf::Map<char, char> = phf::phf_map! {{
 """.strip()
 )
-for line in response.read().decode("utf-8").splitlines():
+for line in body.splitlines():
     line = line.strip()
     if not line:
         continue
@@ -55,9 +69,15 @@ for line in response.read().decode("utf-8").splitlines():
     decomposition_type = next(decomposition)
     decomposition_mapping = next(decomposition, None)
     if decomposition_type == "<wide>":
-        assert len(decomposition_mapping) == 4, repr(decomposition_mapping)
-        print(f"    '\\u{{{decomposition_mapping}}}' => '\\u{{{code_point}}}',")
+        key = decomposition_mapping
+        value = code_point
     elif decomposition_type == "<narrow>":
-        assert len(decomposition_mapping) == 4, repr(decomposition_mapping)
-        print(f"    '\\u{{{code_point}}}' => '\\u{{{decomposition_mapping}}}',")
+        key = code_point
+        value = decomposition_mapping
+    else:
+        continue
+    assert len(key) == 4, line
+    assert len(value) == 4, line
+    char = lambda hex: chr(int(hex, 16))
+    print(f"    '\\u{{{key}}}' => '\\u{{{value}}}', // '{char(key)}' → '{char(value)}'")
 print("};")
