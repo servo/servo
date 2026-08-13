@@ -51,13 +51,13 @@ for line in response.read().decode("utf-8").splitlines():
         continue
     fields = line.split(";")
     code_point = fields[0]
-    decomposition = fields[5]
-    if decomposition.startswith("<wide>"):
-        mapping = decomposition[len("<wide> ") :]
-        assert len(mapping) == 4, mapping
-        print(f"    '\\u{{{mapping}}}' => '\\u{{{code_point}}}',")
-    elif decomposition.startswith("<narrow>"):
-        mapping = decomposition[len("<narrow> ") :]
-        assert len(mapping) == 4, mapping
-        print(f"    '\\u{{{code_point}}}' => '\\u{{{mapping}}}',")
+    decomposition = iter(fields[5].split(" ", 1))
+    decomposition_type = next(decomposition)
+    decomposition_mapping = next(decomposition, None)
+    if decomposition_type == "<wide>":
+        assert len(decomposition_mapping) == 4, repr(decomposition_mapping)
+        print(f"    '\\u{{{decomposition_mapping}}}' => '\\u{{{code_point}}}',")
+    elif decomposition_type == "<narrow>":
+        assert len(decomposition_mapping) == 4, repr(decomposition_mapping)
+        print(f"    '\\u{{{code_point}}}' => '\\u{{{decomposition_mapping}}}',")
 print("};")
