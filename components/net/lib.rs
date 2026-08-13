@@ -9,6 +9,7 @@ pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
 mod decoder;
+#[cfg(feature = "devtools")]
 mod devtools;
 mod disk_cache;
 pub mod embedder;
