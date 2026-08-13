@@ -17,6 +17,7 @@ test = false
 doctest = false
 
 [features]
+devtools = ["dep:devtools_traits"]
 test-util = ["hyper-util/server-graceful", "dep:servo-default-resources", "net_traits/test-util"]
 tracing = ["dep:tracing"]
 
@@ -32,7 +33,7 @@ content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
-devtools_traits = { workspace = true }
+devtools_traits = { workspace = true, optional = true }
 embedder_traits = { workspace = true }
 fst = { workspace = true }
 fonts = { workspace = true }

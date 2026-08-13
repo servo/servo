@@ -92,6 +92,7 @@ pub(crate) fn send_response_to_devtools(
         body_data,
         response.cache_state,
         request,
+        #[cfg(feature = "devtools")]
         context.devtools_chan.clone(),
     );
 }
