@@ -50,12 +50,7 @@ pub struct BlobBuf {
 /// Parse URL as Blob URL scheme's definition
 ///
 /// <https://w3c.github.io/FileAPI/#url-intro>
-///
-/// FIXME: This function should never be used to obtain the origin of a blob url, because
-/// it doesn't consider [blob URL entries].
-///
-/// [blob URL entries]: https://url.spec.whatwg.org/#concept-url-blob-entry
-pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'static str> {
+pub fn parse_blob_url(url: &ServoUrl) -> Result<Uuid, &'static str> {
     if url.query().is_some() {
         return Err("URL should not contain a query");
     }
@@ -64,16 +59,7 @@ pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'stati
         return Err("Failed to split origin from uuid");
     };
 
-    // See https://url.spec.whatwg.org/#origin - "blob" case
-    let origin = Url::parse(url.path())
-        .ok()
-        .filter(|url| matches!(url.scheme(), "http" | "https" | "file"))
-        .map(|url| ImmutableOrigin::new(&url))
-        .unwrap_or(ImmutableOrigin::new_opaque());
-
-    let id = Uuid::from_str(uuid).map_err(|_| "Failed to parse UUID from path segment")?;
-
-    Ok((id, origin))
+    Uuid::from_str(uuid).map_err(|_| "Failed to parse UUID from path segment")
 }
 
 /// This type upholds the variant that if the URL is a valid `blob` URL, then it has
@@ -97,12 +83,32 @@ impl UrlWithBlobClaim {
         self.token.as_ref().map(|guard| guard.token.file_id)
     }
 
+    /// <https://url.spec.whatwg.org/#concept-url-origin>
     pub fn origin(&self) -> ImmutableOrigin {
-        if let Some(guard) = self.token.as_ref() {
-            return guard.token.origin.clone();
-        }
+        // > The origin of a URL url is the origin returned by running these steps,
+        // > switching on url’s scheme:
+        let url = &self.url;
+        if url.scheme() == "blob" {
+            // Step 1. If url’s blob URL entry is non-null,
+            // then return url’s blob URL entry’s environment’s origin.
+            if let Some(guard) = self.token.as_ref() {
+                return guard.token.origin.clone();
+            }
 
-        self.url.origin()
+            // Step 2. Let pathURL be the result of parsing the result of URL path serializing url.
+            Url::parse(url.path())
+                .ok()
+                // Step 4. If pathURL’s scheme is "http", "https", or "file",
+                // then return pathURL’s origin.
+                .filter(|url| matches!(url.scheme(), "http" | "https" | "file"))
+                .map(|url| ImmutableOrigin::new(&url))
+                // Step 3. If pathURL is failure, then return a new opaque origin.
+                // Step 5. Return a new opaque origin.
+                .unwrap_or(ImmutableOrigin::new_opaque())
+        } else {
+            // > Return the tuple origin (url’s scheme, url’s host, url’s port, null).
+            url.origin()
+        }
     }
 
     /// Constructs a [UrlWithBlobClaim] for URLs that are not `blob` URLs
@@ -274,13 +280,13 @@ impl<'a> BlobResolver<'a> {
         if url.scheme() != "blob" {
             return None;
         }
-        let (file_id, origin) = parse_blob_url(url)
+        let file_id = parse_blob_url(url)
             .inspect_err(|error| log::warn!("Failed to acquire token for {url}: {error}"))
             .ok()?;
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.resource_threads
             .send(CoreResourceMsg::ToFileManager(
-                FileManagerThreadMsg::GetTokenForFile(file_id, origin, sender),
+                FileManagerThreadMsg::GetTokenForFile(file_id, sender),
             ))
             .ok()?;
         let reply = receiver.recv().ok()?;

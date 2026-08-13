@@ -21,7 +21,7 @@ use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{HitTestFlags, ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
@@ -758,10 +758,14 @@ impl DocumentEventHandler {
         // Send mousemove event. Routed to the capture target when capture is active.
         mouse_event.upcast::<Event>().fire(cx, &pointer_target);
 
-        self.update_current_hover_target_and_status(Some(new_target));
+        self.update_current_hover_target_and_status(cx.no_gc(), Some(new_target));
     }
 
-    fn update_current_hover_target_and_status(&self, new_hover_target: Option<DomRoot<Element>>) {
+    fn update_current_hover_target_and_status(
+        &self,
+        no_gc: &NoGC,
+        new_hover_target: Option<DomRoot<Element>>,
+    ) {
         let current_hover_target = self.current_hover_target.get();
         if current_hover_target == new_hover_target {
             return;
@@ -779,7 +783,7 @@ impl DocumentEventHandler {
                 .find_map(DomRoot::downcast::<HTMLAnchorElement>)
         {
             let status = anchor
-                .full_href_url_for_user_interface()
+                .full_href_url_for_user_interface(no_gc)
                 .map(|url| url.to_string());
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
@@ -1221,7 +1225,7 @@ impl DocumentEventHandler {
             self.window
                 .Document()
                 .embedder_controls()
-                .show_context_menu(hit_test_result);
+                .show_context_menu(cx.no_gc(), hit_test_result);
         };
     }
 

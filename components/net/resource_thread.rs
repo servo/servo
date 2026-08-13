@@ -809,7 +809,7 @@ impl CoreResourceManager {
             "blob" => {
                 if let Some(token) = request.current_url_with_blob_claim().token() {
                     (FileTokenCheck::Required(token.token), Some(token.file_id))
-                } else if let Ok((id, _)) = parse_blob_url(&url) {
+                } else if let Ok(id) = parse_blob_url(&url) {
                     // See https://github.com/servo/servo/issues/25226
                     log::warn!(
                         "Failed to claim blob URL entry of valid blob URL before passing it to `net`. This causes race conditions."

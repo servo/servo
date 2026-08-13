@@ -10,10 +10,10 @@ use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use script_bindings::cell::DomRefCell;
-use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
@@ -269,7 +269,7 @@ pub(crate) struct HTMLAreaElement {
     #[no_trace]
     relations: Cell<LinkRelations>,
     #[no_trace]
-    url: DomRefCell<Option<ServoUrl>>,
+    url: DomRefCell<Option<UrlWithBlobClaim>>,
 }
 
 impl HTMLAreaElement {
@@ -323,7 +323,7 @@ impl HTMLAreaElement {
 }
 
 impl HyperlinkElement for HTMLAreaElement {
-    fn get_url(&self) -> &DomRefCell<Option<ServoUrl>> {
+    fn get_url(&self) -> &DomRefCell<Option<UrlWithBlobClaim>> {
         &self.url
     }
 }
@@ -353,6 +353,12 @@ impl VirtualMethods for HTMLAreaElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
 
+        self.attribute_mutated_for_hyperlinks(cx.no_gc(), attr, mutation);
+
+        // https://html.spec.whatwg.org/multipage/#introduction-2
+        // > Similarly, for a and area elements with an href attribute and a rel attribute,
+        // > links must be created for the keywords of the rel attribute
+        // > as defined for those keywords in the link types section.
         match *attr.local_name() {
             local_name!("href") => self
                 .upcast::<Element>()
@@ -407,23 +413,21 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
-    fn Href(&self) -> USVString {
-        self.get_href()
+    fn Href(&self, no_gc: &NoGC) -> USVString {
+        self.get_href(no_gc)
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
-    fn SetHref(&self, cx: &mut JSContext, value: USVString) {
-        self.set_href(cx, value);
-    }
+    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
+    make_url_setter!(SetHref, "href");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin>
-    fn Origin(&self) -> USVString {
-        self.get_origin()
+    fn Origin(&self, no_gc: &NoGC) -> USVString {
+        self.get_origin(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
-    fn Protocol(&self) -> USVString {
-        self.get_protocol()
+    fn Protocol(&self, no_gc: &NoGC) -> USVString {
+        self.get_protocol(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
@@ -432,8 +436,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
-    fn Password(&self) -> USVString {
-        self.get_password()
+    fn Password(&self, no_gc: &NoGC) -> USVString {
+        self.get_password(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
@@ -442,8 +446,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
-    fn Hash(&self) -> USVString {
-        self.get_hash()
+    fn Hash(&self, no_gc: &NoGC) -> USVString {
+        self.get_hash(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
@@ -452,8 +456,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
-    fn Host(&self) -> USVString {
-        self.get_host()
+    fn Host(&self, no_gc: &NoGC) -> USVString {
+        self.get_host(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
@@ -462,8 +466,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
-    fn Hostname(&self) -> USVString {
-        self.get_hostname()
+    fn Hostname(&self, no_gc: &NoGC) -> USVString {
+        self.get_hostname(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
@@ -472,8 +476,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
-    fn Port(&self) -> USVString {
-        self.get_port()
+    fn Port(&self, no_gc: &NoGC) -> USVString {
+        self.get_port(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
@@ -482,8 +486,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
-    fn Pathname(&self) -> USVString {
-        self.get_pathname()
+    fn Pathname(&self, no_gc: &NoGC) -> USVString {
+        self.get_pathname(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
@@ -492,8 +496,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
-    fn Search(&self) -> USVString {
-        self.get_search()
+    fn Search(&self, no_gc: &NoGC) -> USVString {
+        self.get_search(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
@@ -502,8 +506,8 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
-    fn Username(&self) -> USVString {
-        self.get_username()
+    fn Username(&self, no_gc: &NoGC) -> USVString {
+        self.get_username(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>

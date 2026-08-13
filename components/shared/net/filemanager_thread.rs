@@ -168,7 +168,7 @@ pub enum FileManagerThreadMsg {
         GenericSender<Result<(), BlobURLStoreError>>,
     ),
 
-    GetTokenForFile(Uuid, ImmutableOrigin, GenericSender<GetTokenForFileReply>),
+    GetTokenForFile(Uuid, GenericSender<GetTokenForFileReply>),
     RevokeTokenForFile(Uuid, Uuid),
 }
 

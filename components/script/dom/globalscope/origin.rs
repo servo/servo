@@ -75,7 +75,7 @@ impl Origin {
 
         // <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:extract-an-origin>
         if let Ok(anchor_obj) = root_from_handlevalue::<HTMLAnchorElement>(cx, value) {
-            anchor_obj.reinitialize_url();
+            anchor_obj.reinitialize_url(cx.no_gc());
             if let Some(ref url) = *anchor_obj.get_url().borrow() {
                 return Some(url.origin());
             }
@@ -84,7 +84,7 @@ impl Origin {
 
         // <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:extract-an-origin>
         if let Ok(area_obj) = root_from_handlevalue::<HTMLAreaElement>(cx, value) {
-            area_obj.reinitialize_url();
+            area_obj.reinitialize_url(cx.no_gc());
             if let Some(ref url) = *area_obj.get_url().borrow() {
                 return Some(url.origin());
             }
