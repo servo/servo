@@ -11,6 +11,7 @@ use std::time::{Duration, SystemTime};
 
 use async_recursion::async_recursion;
 use content_security_policy::percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
+#[cfg(feature = "devtools")]
 use devtools_traits::ChromeToDevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
@@ -82,6 +83,7 @@ use crate::connector::{
 use crate::cookie::ServoCookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
+#[cfg(feature = "devtools")]
 use crate::devtools::{
     prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
 };
@@ -559,6 +561,7 @@ async fn obtain_response(
         };
 
         obtain_response_setup_router_callback(
+            #[cfg(feature = "devtools")]
             devtools_bytes.clone(),
             chunk_requester,
             sink,
@@ -712,6 +715,7 @@ async fn obtain_response(
 
 /// Setup the callback mechanism to forward chunks from the request received to the `chunk_requester`.
 fn obtain_response_setup_router_callback(
+    #[cfg(feature = "devtools")]
     devtools_bytes: StdArc<Mutex<Vec<u8>>>,
     chunk_requester: StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     sink: BodySink,
@@ -789,6 +793,7 @@ fn obtain_response_setup_router_callback(
                 },
             };
 
+            #[cfg(feature = "devtools")]
             devtools_bytes.lock().extend_from_slice(&bytes);
 
             // Step 5.1.2.2, transmit chunk over the network,
@@ -2295,6 +2300,7 @@ async fn http_network_fetch(
     let (done_sender, done_receiver) = unbounded_channel();
     *done_chan = Some((done_sender.clone(), done_receiver));
 
+    #[cfg(feature = "devtools")]
     let devtools_sender = context.devtools_chan.clone();
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
@@ -2304,6 +2310,7 @@ async fn http_network_fetch(
     *res_body.lock() = ResponseBody::Receiving(vec![]);
     let res_body2 = res_body.clone();
 
+    #[cfg(feature = "devtools")]
     if let Some(ref sender) = devtools_sender &&
         let Some(m) = msg
     {
@@ -2320,6 +2327,7 @@ async fn http_network_fetch(
 
     let status = response.status.clone();
     let headers = response.headers.clone();
+    #[cfg(feature = "devtools")]
     let devtools_chan = context.devtools_chan.clone();
 
     if let Some(possible_length) = res
@@ -2359,6 +2367,7 @@ async fn http_network_fetch(
                 };
                 let devtools_response_body = completed_body.clone();
                 *body = ResponseBody::Done(completed_body);
+                #[cfg(feature = "devtools")]
                 send_response_values_to_devtools(
                     Some(headers),
                     status,

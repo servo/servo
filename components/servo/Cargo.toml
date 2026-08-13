@@ -48,6 +48,15 @@ bundled_freetype = ["fonts/bundled_freetype"]
 clipboard = ["dep:arboard", "dep:ohos-pasteboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
+devtools = [
+    "dep:devtools",
+    "dep:devtools_traits",
+    # "net/devtools",
+    # "script/devtools",
+    # "servo-constellation/devtools",
+    # "script_traits/devtools",
+    # "servo-constellation-traits/devtools",
+]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 gamepad = [
     "script/gamepad",
@@ -112,8 +121,8 @@ accesskit = { workspace = true }
 bitflags = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools = { workspace = true }
-devtools_traits = { workspace = true }
+devtools = { workspace = true, optional = true }
+devtools_traits = { workspace = true, optional = true }
 dpi = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }
