@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use seq_macro::seq;
-use turboshake::digest::{ExtendableOutput, Update};
-use turboshake::{CTurboShake128, CTurboShake256};
+use keccak::{Keccak, State1600};
+use sponge_cursor::SpongeCursor;
 
 use crate::dom::bindings::error::Error;
 use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleTurboShakeParams};
@@ -51,24 +50,12 @@ pub(crate) fn digest(
     let mut result = vec![0u8; output_length as usize / 8];
     match normalized_algorithm.name {
         CryptoAlgorithm::TurboShake128 => {
-            seq!(DS in 0x01..=0x7f {
-                match domain_separation {
-                    #(
-                        DS => hash_message::<CTurboShake128<DS>>(message, &mut result),
-                    )*
-                    _ => unreachable!("Step 4 guarantees domainSeparation lies in 0x01..=0x7f"),
-                }
-            });
+            let hasher = TurboShake::<168>::new(domain_separation)?;
+            hasher.hash(message, &mut result);
         },
         CryptoAlgorithm::TurboShake256 => {
-            seq!(DS in 0x01..=0x7f {
-                match domain_separation {
-                    #(
-                        DS => hash_message::<CTurboShake256<DS>>(message, &mut result),
-                    )*
-                    _ => unreachable!("Step 4 guarantees domainSeparation lies in 0x01..=0x7f"),
-                }
-            });
+            let hasher = TurboShake::<136>::new(domain_separation)?;
+            hasher.hash(message, &mut result);
         },
         algorithm_name => {
             return Err(Error::NotSupported(Some(format!(
@@ -82,8 +69,62 @@ pub(crate) fn digest(
     Ok(result)
 }
 
-fn hash_message<T: ExtendableOutput + Update + Default>(message: &[u8], result: &mut [u8]) {
-    let mut hasher = T::default();
-    hasher.update(message);
-    hasher.finalize_xof_into(result);
+/// Keccak rounds for TurboSHAKE
+const ROUNDS: usize = 12;
+
+/// TurboSHAKE hasher. RATE must be either 168 for TurboSHAKE128 or 136 for TurboSHAKE256.
+struct TurboShake<const RATE: usize> {
+    state: State1600,
+    cursor: SpongeCursor<RATE>,
+    keccak: Keccak,
+    domain_separation: u8,
+}
+
+impl<const RATE: usize> TurboShake<RATE> {
+    fn new(domain_separation: u8) -> Result<TurboShake<RATE>, Error> {
+        if RATE != 168 && RATE != 136 {
+            return Err(Error::NotSupported(Some(
+                "Invalid sponge cursor rate for TurboSHAKE".into(),
+            )));
+        }
+        if domain_separation == 0x00 || domain_separation > 0x7f {
+            return Err(Error::NotSupported(Some(
+                "Invalid TurboSHAKE domain separation".into(),
+            )));
+        }
+        Ok(TurboShake {
+            state: Default::default(),
+            cursor: Default::default(),
+            keccak: Default::default(),
+            domain_separation,
+        })
+    }
+
+    fn hash(mut self, message: &[u8], result: &mut [u8]) {
+        // Digest message
+        //
+        // Reference implementation from RustCrypto:
+        // <https://docs.rs/turboshake/0.7.1/src/turboshake/lib.rs.html#60-64>
+        self.keccak.with_p1600::<ROUNDS>(|p1600| {
+            self.cursor.absorb_u64_le(&mut self.state, p1600, message);
+        });
+
+        // Finalize
+        //
+        // Reference implementation from RustCrypto:
+        // <https://docs.rs/turboshake/0.7.1/src/turboshake/lib.rs.html#67-91>
+        let position = self.cursor.pos();
+        self.state[position / 8] ^= (self.domain_separation as u64) << (8 * (position % 8));
+        self.state[RATE / 8 - 1] ^= 1 << 63;
+
+        // Read result
+        //
+        // Reference implementation from RustCrypto:
+        // <https://docs.rs/turboshake/0.7.1/src/turboshake/lib.rs.html#161-165>
+        self.cursor = Default::default();
+        self.keccak.with_p1600::<ROUNDS>(|p1600| {
+            self.cursor
+                .squeeze_read_u64_le(&mut self.state, p1600, result);
+        });
+    }
 }

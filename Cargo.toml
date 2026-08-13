@@ -143,6 +143,7 @@ itertools = "0.15"
 jni = "0.22"
 js = { package = "mozjs", version = "=0.21.3", default-features = false, features = ["intl", "libz-sys"] }
 k12 = "0.5"
+keccak = "0.2"
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.13.1", features = ["euclid"] }
 libc = "0.2"
@@ -220,7 +221,6 @@ rustls-platform-verifier = "0.7.0"
 sea-query = { version = "1.0.1", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = "0.8.0"
 selectors = { git = "https://github.com/servo/stylo", rev = "f6d1d525db9a7fb1aa0842926458e63faa4f44c7" }
-seq-macro = "0.3.6"
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
@@ -234,6 +234,7 @@ signal-hook-registry = "1.4.8"
 skrifa = "0.44.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 speexdsp-resampler = "0.1.0"
+sponge-cursor = "0.1"
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
 stylo = { git = "https://github.com/servo/stylo", rev = "f6d1d525db9a7fb1aa0842926458e63faa4f44c7" }
@@ -262,7 +263,6 @@ tracing = "0.1.44"
 tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.23"
 tungstenite = "0.30"
-turboshake = "0.7"
 unicode-bidi = "0.3.18"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
