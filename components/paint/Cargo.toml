@@ -16,8 +16,9 @@ path = "lib.rs"
 [features]
 default = []
 tracing = ["dep:tracing"]
+webgl = ["dep:webgl"]
 webgpu = ["dep:webgpu"]
-webxr = ["dep:webxr", "dep:webxr-api"]
+webxr = ["webgl", "dep:webxr", "dep:webxr-api"]
 
 [lints.clippy]
 unwrap_used = "deny"
@@ -50,7 +51,7 @@ stylo_traits = { workspace = true }
 surfman = { workspace = true }
 timers = { workspace = true }
 tracing = { workspace = true, optional = true }
-webgl = { workspace = true }
+webgl = { workspace = true, optional = true }
 webgpu = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

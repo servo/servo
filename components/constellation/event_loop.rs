@@ -103,6 +103,7 @@ impl EventLoop {
             constellation_to_script_receiver: script_port,
             pipeline_namespace_id: constellation.next_pipeline_namespace_id(),
             cross_process_paint_api: constellation.paint_proxy.cross_process_paint_api.clone(),
+            #[cfg(feature = "webgl")]
             webgl_chan: constellation
                 .webgl_threads
                 .as_ref()

@@ -17,6 +17,8 @@ SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
 SCRIPT_BINDINGS_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
 
 FILTER_PATTERN = re.compile("// skip-unless ([A-Z_]+)\n")
+CONDITIONAL_BLOCK_START_PATTERN = re.compile(r"\s*// skip-unless ([A-Z_]+) begin\n")
+CONDITIONAL_BLOCK_END_PATTERN = re.compile(r"\s*// skip-unless ([A-Z_]+) end\n")
 
 if TYPE_CHECKING:
     from configuration import Configuration
@@ -51,6 +53,7 @@ def main() -> None:
                 if not os.environ.get(env_var):
                     continue
 
+            contents = filter_conditional_blocks(contents)
             parser.parse(contents, filename)
 
     add_css_properties_attributes(css_properties_json, parser)
@@ -111,6 +114,26 @@ def make_dir(path: str)-> str:
     if not os.path.exists(path):
         os.makedirs(path)
     return path
+
+
+def filter_conditional_blocks(contents: str) -> str:
+    """Remove `skip-unless` blocks whose Cargo feature is disabled."""
+    enabled = [True]
+    filtered_contents = []
+
+    for line in contents.splitlines(keepends=True):
+        if match := CONDITIONAL_BLOCK_START_PATTERN.fullmatch(line):
+            # Cargo exposes enabled features as CARGO_FEATURE_* to build scripts.
+            enabled.append(enabled[-1] and bool(os.environ.get(match.group(1))))
+            continue
+        if CONDITIONAL_BLOCK_END_PATTERN.fullmatch(line):
+            enabled.pop()
+            continue
+        if enabled[-1]:
+            filtered_contents.append(line)
+
+    assert len(enabled) == 1, "Unterminated skip-unless block"
+    return "".join(filtered_contents)
 
 
 def generate(config: Configuration, name: str, filename: str) -> None:

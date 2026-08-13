@@ -28,6 +28,12 @@ profilemozjs = ['js/profilemozjs']
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
+webgl = [
+    "dep:mozangle",
+    "script_bindings/webgl",
+    "script_traits/webgl",
+    "servo-constellation-traits/webgl",
+]
 webgpu = [
     "dep:script_webgpu",
     "dep:webgpu_traits",
@@ -36,7 +42,7 @@ webgpu = [
     "script_bindings/webgpu",
     "script_traits/webgpu",
 ]
-webxr = ["gamepad", "webxr-api", "script_bindings/webxr"]
+webxr = ["webgl", "gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
@@ -186,4 +192,4 @@ xpath = { workspace = true }
 zeroize = { workspace = true }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
-mozangle = { workspace = true }
+mozangle = { workspace = true, optional = true }

@@ -5,8 +5,10 @@
 // https://html.spec.whatwg.org/multipage/#htmlcanvaselement
 typedef (CanvasRenderingContext2D
   or ImageBitmapRenderingContext
+  // skip-unless CARGO_FEATURE_WEBGL begin
   or WebGLRenderingContext
   or WebGL2RenderingContext
+  // skip-unless CARGO_FEATURE_WEBGL end
   or GPUCanvasContext) RenderingContext;
 
 [Exposed=Window]

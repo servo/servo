@@ -70,6 +70,7 @@ tracing-hitrace = ["tracing", "dep:hitrace"]
 tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
 vello = ["servo/vello"]
 webgl_backtrace = ["servo/webgl_backtrace"]
+webgl = ["servo/webgl"]
 webgpu = ["servo/webgpu"]
 webxr = ["servo/webxr"]
 

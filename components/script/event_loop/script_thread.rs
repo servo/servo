@@ -87,6 +87,7 @@ use servo_base::id::{
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_base::{Epoch, generic_channel};
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::opts::{self, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
@@ -334,6 +335,7 @@ pub struct ScriptThread {
 
     /// A handle to the WebGL thread
     #[no_trace]
+    #[cfg(feature = "webgl")]
     webgl_chan: Option<WebGLPipeline>,
 
     /// The WebXR device registry
@@ -984,6 +986,7 @@ impl ScriptThread {
                     closed_pipelines: DomRefCell::new(FxHashSet::default()),
                     mutation_observers: Default::default(),
                     system_font_service: Arc::new(state.system_font_service.to_proxy()),
+                    #[cfg(feature = "webgl")]
                     webgl_chan: state.webgl_chan,
                     #[cfg(feature = "webxr")]
                     webxr_registry: state.webxr_registry,
@@ -3501,6 +3504,7 @@ impl ScriptThread {
             // is another nested iframe in a frame).
             final_url.clone(),
             incomplete.navigation_start,
+            #[cfg(feature = "webgl")]
             self.webgl_chan.as_ref().map(|chan| chan.channel()),
             #[cfg(feature = "webxr")]
             self.webxr_registry.clone(),

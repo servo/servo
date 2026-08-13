@@ -59,7 +59,7 @@ js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 native-bluetooth = ["servo-bluetooth/native-bluetooth"]
-no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
+no-wgl = ["dep:mozangle", "mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
 profilemozjs = ["script/profilemozjs"]
 testbinding = ["script/testbinding"]
 tracing = [
@@ -79,6 +79,14 @@ webgl_backtrace = [
     "webgl/webgl_backtrace",
     "servo-canvas-traits/webgl_backtrace",
 ]
+webgl = [
+    "dep:webgl",
+    "paint/webgl",
+    "script/webgl",
+    "script_traits/webgl",
+    "servo-constellation/webgl",
+    "servo-constellation-traits/webgl",
+]
 webgpu = [
     "dep:webgpu",
     "script/webgpu",
@@ -87,6 +95,8 @@ webgpu = [
     "servo-constellation-traits/webgpu",
 ]
 webxr = [
+    "webgl",
+    "gamepad",
     "dep:webxr",
     "dep:webxr-api",
     "paint/webxr",
@@ -115,7 +125,7 @@ layout = { workspace = true }
 layout_api = { workspace = true }
 log = { workspace = true }
 media = { workspace = true }
-mozangle = { workspace = true }
+mozangle = { workspace = true, optional = true }
 net = { workspace = true }
 net_traits = { workspace = true }
 paint = { workspace = true }
@@ -150,7 +160,7 @@ surfman = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
-webgl = { workspace = true, default-features = false }
+webgl = { workspace = true, default-features = false, optional = true }
 webgpu = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

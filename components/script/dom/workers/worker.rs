@@ -240,11 +240,17 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             }
         }
 
+        #[cfg(feature = "webgl")]
         let webgl_chan = global
             .downcast::<Window>()
             .and_then(|window| window.webgl_chan_value());
-        let init =
-            prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id), webgl_chan);
+        let init = prepare_workerscope_init(
+            global,
+            Some(devtools_sender),
+            Some(worker_id),
+            #[cfg(feature = "webgl")]
+            webgl_chan,
+        );
         let animation_frame_provider_supported = global
             .downcast::<DedicatedWorkerGlobalScope>()
             .map(|worker| worker.animation_frame_provider_supported_flag())

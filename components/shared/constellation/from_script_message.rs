@@ -36,6 +36,7 @@ use servo_base::id::{
     ServiceWorkerRegistrationId, WebViewId,
 };
 use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -546,6 +547,7 @@ pub struct WorkerGlobalScopeInit {
     /// Unminify Javascript.
     pub unminify_js: bool,
     /// Handle for communicating messages to the WebGL thread, if available.
+    #[cfg(feature = "webgl")]
     pub webgl_chan: Option<WebGLChan>,
 }
 

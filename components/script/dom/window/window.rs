@@ -81,6 +81,7 @@ use servo_base::generic_channel::{self, GenericCallback, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_config::pref;
 use servo_constellation_traits::{
@@ -392,6 +393,7 @@ pub(crate) struct Window {
 
     /// A handle for communicating messages to the WebGL thread, if available.
     #[no_trace]
+    #[cfg(feature = "webgl")]
     webgl_chan: Option<WebGLChan>,
 
     #[ignore_malloc_size_of = "defined in webxr"]
@@ -687,11 +689,13 @@ impl Window {
         &self.error_reporter
     }
 
+    #[cfg(feature = "webgl")]
     pub(crate) fn webgl_chan(&self) -> Option<WebGLChan> {
         self.webgl_chan.clone()
     }
 
     // TODO: rename the function to webgl_chan after the existing `webgl_chan` function is removed.
+    #[cfg(feature = "webgl")]
     pub(crate) fn webgl_chan_value(&self) -> Option<WebGLChan> {
         self.webgl_chan.clone()
     }
@@ -3668,7 +3672,7 @@ impl Window {
             .is_some_and(|xr| xr.pending_or_active_session())
     }
 
-    #[cfg(not(feature = "webxr"))]
+    #[cfg(all(feature = "webgl", not(feature = "webxr")))]
     pub(crate) fn in_immersive_xr_session(&self) -> bool {
         false
     }
@@ -3879,7 +3883,7 @@ impl Window {
         creation_url: ServoUrl,
         top_level_creation_url: ServoUrl,
         navigation_start: CrossProcessInstant,
-        webgl_chan: Option<WebGLChan>,
+        #[cfg(feature = "webgl")] webgl_chan: Option<WebGLChan>,
         #[cfg(feature = "webxr")] webxr_registry: Option<webxr_api::Registry>,
         paint_api: CrossProcessPaintApi,
         unminify_js: bool,
@@ -3951,6 +3955,7 @@ impl Window {
             media_query_lists: DOMTracker::new(),
             #[cfg(feature = "bluetooth")]
             test_runner: Default::default(),
+            #[cfg(feature = "webgl")]
             webgl_chan,
             #[cfg(feature = "webxr")]
             webxr_registry,
