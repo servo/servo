@@ -5,6 +5,10 @@
 use std::fmt::Debug;
 use std::path::PathBuf;
 use std::thread;
+use std::collections::HashMap;
+
+use net_traits::request::Request;
+use net_traits::response::Response;
 
 use log::error;
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
@@ -20,9 +24,19 @@ trait CacheStorageEngine {
     fn has_cache(&mut self, cache_name: &str) -> Result<bool, CacheStorageError<Self::Error>>;
 }
 
-pub struct DummyCacheStorageEngine;
+/// <https://w3c.github.io/ServiceWorker/#dfn-request-response-list>
+pub struct RequestResponseList {
+    /// A list of tuples consisting of a request (a request) and a response (a response)
+    pub list: Vec<(Request, Response)>,
+}
 
-impl CacheStorageEngine for DummyCacheStorageEngine {
+pub struct MemCacheStorageEngine {
+
+    /// <https://w3c.github.io/ServiceWorker/#dfn-name-to-cache-map>
+    name_to_cache_map: HashMap<String, RequestResponseList>,
+}
+
+impl CacheStorageEngine for MemCacheStorageEngine {
     type Error = ();
 
     /// <https://w3c.github.io/ServiceWorker/#cache-storage-has>
@@ -67,8 +81,15 @@ impl CacheStorageThreadFactory for CacheStorageThreadHandle {
             .spawn(move || {
                 // Keep temp_dir alive while the thread runs.
                 let _ = temp_dir;
-                let engine = DummyCacheStorageEngine;
-                CacheStorageThread::new(sender_clone, generic_receiver, engine).start();
+                let engine = MemCacheStorageEngine {
+                    name_to_cache_map: Default::default(),
+                };
+                let mut cache_storage_thread = CacheStorageThread::new(
+                    sender_clone,
+                    generic_receiver,
+                    engine,
+                );
+                cache_storage_thread.start();
             })
             .expect("Thread spawning failed");
 
