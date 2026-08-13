@@ -78,6 +78,7 @@ for line in body.splitlines():
         continue
     assert len(key) == 4, line
     assert len(value) == 4, line
-    char = lambda hex: chr(int(hex, 16))
-    print(f"    '\\u{{{key}}}' => '\\u{{{value}}}', // '{char(key)}' → '{char(value)}'")
+    key_chr = chr(int(key, 16))
+    value_chr = chr(int(value, 16))
+    print(f"    '\\u{{{key}}}' => '\\u{{{value}}}', // '{key_chr}' → '{value_chr}'")
 print("};")
