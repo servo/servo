@@ -221,7 +221,6 @@ rustls-platform-verifier = "0.7.0"
 sea-query = { version = "1.0.1", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = "0.8.0"
 selectors = { git = "https://github.com/servo/stylo", rev = "cc499a88513045823fc66c2b67492271023d98b2" }
-seq-macro = "0.3.6"
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
