@@ -145,11 +145,14 @@ impl PaintWorkletGlobalScope {
                 arguments,
                 sender,
             ) => {
-                let cache_hit = (*self.cached_name.borrow() == name) &&
-                    (self.cached_size.get() == size) &&
-                    (self.cached_device_pixel_ratio.get() == device_pixel_ratio) &&
-                    (*self.cached_properties.borrow() == properties) &&
-                    (*self.cached_arguments.borrow() == arguments);
+                let cache_hit = self.has_cached_paint_image(
+                    &name,
+                    size,
+                    device_pixel_ratio,
+                    &properties,
+                    &arguments,
+                );
+
                 let result = if cache_hit {
                     debug!("Cache hit on paint worklet {}!", name);
                     self.cached_result.borrow().clone()
@@ -169,12 +172,14 @@ impl PaintWorkletGlobalScope {
                         &arguments,
                     );
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
-                        *self.cached_name.borrow_mut() = name;
-                        self.cached_size.set(size);
-                        self.cached_device_pixel_ratio.set(device_pixel_ratio);
-                        *self.cached_properties.borrow_mut() = properties;
-                        *self.cached_arguments.borrow_mut() = arguments;
-                        *self.cached_result.borrow_mut() = result.clone();
+                        self.set_cached_paint_image(
+                            name,
+                            size,
+                            device_pixel_ratio,
+                            properties,
+                            arguments,
+                            result.clone(),
+                        );
                     }
                     result
                 };
@@ -201,14 +206,50 @@ impl PaintWorkletGlobalScope {
                         &arguments,
                     );
                     if (result.image_key.is_some()) && (result.missing_image_urls.is_empty()) {
-                        *self.cached_name.borrow_mut() = name;
-                        *self.cached_properties.borrow_mut() = properties;
-                        *self.cached_arguments.borrow_mut() = arguments;
-                        *self.cached_result.borrow_mut() = result;
+                        self.set_cached_paint_image(
+                            name,
+                            size,
+                            device_pixel_ratio,
+                            properties,
+                            arguments,
+                            result,
+                        );
                     }
                 }
             },
         }
+    }
+
+    fn has_cached_paint_image(
+        &self,
+        name: &Atom,
+        size: Size2D<f32, CSSPixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
+        properties: &[(Atom, String)],
+        arguments: &[String],
+    ) -> bool {
+        (&*self.cached_name.borrow() == name) &&
+            (self.cached_size.get() == size) &&
+            (self.cached_device_pixel_ratio.get() == device_pixel_ratio) &&
+            (*self.cached_properties.borrow() == properties) &&
+            (*self.cached_arguments.borrow() == arguments)
+    }
+
+    fn set_cached_paint_image(
+        &self,
+        name: Atom,
+        size: Size2D<f32, CSSPixel>,
+        device_pixel_ratio: Scale<f32, CSSPixel, DevicePixel>,
+        properties: Vec<(Atom, String)>,
+        arguments: Vec<String>,
+        result: DrawAPaintImageResult,
+    ) {
+        *self.cached_name.borrow_mut() = name;
+        self.cached_size.set(size);
+        self.cached_device_pixel_ratio.set(device_pixel_ratio);
+        *self.cached_properties.borrow_mut() = properties;
+        *self.cached_arguments.borrow_mut() = arguments;
+        *self.cached_result.borrow_mut() = result;
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
