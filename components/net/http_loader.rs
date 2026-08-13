@@ -655,7 +655,7 @@ async fn obtain_response(
             let send_end = CrossProcessInstant::now();
 
             // TODO(#21271) response_start: immediately after receiving first byte of response
-
+            #[cfg(feature = "devtools")]
             let msg = if let Some(request_id) = request_id {
                 if let Some(pipeline_id) = pipeline_id {
                     if let Some(browsing_context_id) = browsing_context_id {
@@ -691,7 +691,10 @@ async fn obtain_response(
 
             future::ready(Ok((
                 Decoder::detect(res.map(|r| r.boxed()), is_secure_scheme),
+                #[cfg(feature = "devtools")]
                 msg,
+                #[cfg(not(feature = "devtools"))]
+                ()
             )))
         })
         .map_err(move |error| {

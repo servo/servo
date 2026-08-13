@@ -872,8 +872,8 @@ pub async fn main_fetch(
     // Send Response to Devtools
     #[cfg(feature = "devtools")]
     {
-    send_response_to_devtools(request, context, &response, None);
-    send_security_info_to_devtools(request, context, &response);
+        send_response_to_devtools(request, context, &response, None);
+        send_security_info_to_devtools(request, context, &response);
     }
 
     // Step 23.
