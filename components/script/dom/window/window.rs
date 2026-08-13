@@ -144,8 +144,6 @@ use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
 use crate::dom::cookiestore::CookieStore;
-#[cfg(feature = "webcrypto")]
-use crate::dom::crypto::Crypto;
 use crate::dom::csp::GlobalCspReporting;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
@@ -299,7 +297,7 @@ pub(crate) struct Window {
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
     #[cfg(feature = "webcrypto")]
-    crypto: MutNullableDom<Crypto>,
+    crypto: MutNullableDom<crate::dom::crypto::Crypto>,
     #[no_trace]
     image_cache_sender: Sender<ImageCacheResponseMessage>,
     window_proxy: MutNullableDom<WindowProxy>,
@@ -1583,9 +1581,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto>
     #[cfg(feature = "webcrypto")]
-    fn Crypto(&self, cx: &mut JSContext) -> DomRoot<Crypto> {
+    fn Crypto(&self, cx: &mut JSContext) -> DomRoot<crate::dom::crypto::Crypto> {
         self.crypto
-            .or_init(|| Crypto::new(cx, self.as_global_scope()))
+            .or_init(|| crate::dom::crypto::Crypto::new(cx, self.as_global_scope()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-frameelement>
