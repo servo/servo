@@ -7622,12 +7622,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
 
 [[package]]
-name = "seq-macro"
-version = "0.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bc711410fbe7399f390ca1c3b60ad0f53f80e95c5eb935e52268a0e2cd49acc"
-
-[[package]]
 name = "serde"
 version = "1.0.228"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8979,6 +8973,7 @@ dependencies = [
  "ipc-channel",
  "itertools 0.15.0",
  "k12",
+ "keccak",
  "keyboard-types",
  "libc",
  "log",
@@ -9008,7 +9003,6 @@ dependencies = [
  "rsa",
  "rustc-hash 2.1.3",
  "selectors",
- "seq-macro",
  "serde",
  "serde_json",
  "servo-background-hang-monitor-api",
@@ -9051,6 +9045,7 @@ dependencies = [
  "sha2 0.11.0",
  "sha3 0.12.0",
  "smallvec",
+ "sponge-cursor",
  "strum",
  "stylo",
  "stylo_atoms",
@@ -9062,7 +9057,6 @@ dependencies = [
  "tendril",
  "time",
  "tracing",
- "turboshake",
  "unicode-bidi",
  "unicode-script",
  "url",
@@ -10723,17 +10717,6 @@ dependencies = [
  "rustls-pki-types",
  "sha1 0.11.0",
  "thiserror 2.0.18",
-]
-
-[[package]]
-name = "turboshake"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f892c6904b0bd5a9241eac848347abcbbbd2b9f3892bad23ac3e6efab8d6f06a"
-dependencies = [
- "digest 0.11.3",
- "keccak",
- "sponge-cursor",
 ]
 
 [[package]]
