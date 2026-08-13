@@ -171,8 +171,8 @@ impl Painter {
             let image_handler = Box::new(WebGLExternalImages::new(
                 paint.webgl_threads(),
                 rendering_context.clone(),
-                paint.swap_chains.clone(),
-                paint.busy_webgl_contexts_map.clone(),
+                paint.webgl_paint.swap_chains.clone(),
+                paint.webgl_paint.busy_webgl_contexts_map.clone(),
             ));
             external_image_handlers.set_handler(image_handler, WebRenderImageHandlerType::WebGl);
         }
