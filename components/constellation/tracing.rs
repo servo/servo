@@ -153,6 +153,7 @@ mod from_script {
                 Self::ChangeWorkerAnimationFrameProviderState(..) => {
                     target!("ChangeWorkerAnimationFrameProviderState")
                 },
+                Self::UpdatePlaceholderCanvas(..) => target!("UpdatePlaceholderCanvas"),
                 Self::CreateCanvasPaintThread(..) => target!("CreateCanvasPaintThread"),
                 Self::FocusAncestorBrowsingContextsForFocusingSteps(..) => {
                     target!("FocusAncestorBrowsingContextsForFocusingSteps")

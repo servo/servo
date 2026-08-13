@@ -1775,6 +1775,27 @@ where
                 worker_id,
                 active,
             ),
+            ScriptToConstellationMessage::UpdatePlaceholderCanvas(
+                pipeline_id,
+                placeholder_id,
+                width,
+                height,
+                bitmap,
+                origin_clean,
+            ) => {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    let _ = pipeline
+                        .event_loop
+                        .send(ScriptThreadMessage::UpdatePlaceholderCanvas(
+                            pipeline_id,
+                            placeholder_id,
+                            width,
+                            height,
+                            bitmap,
+                            origin_clean,
+                        ));
+                }
+            },
             // Ask the embedder for permission to load a new page.
             ScriptToConstellationMessage::LoadUrl(
                 load_data,

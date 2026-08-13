@@ -124,6 +124,13 @@ impl CanvasRenderingContext2D {
         }
         self.canvas_state.update_rendering(Some(canvas_epoch))
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    pub(crate) fn update_offscreen_rendering(&self) -> bool {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        self.canvas_state.update_rendering(None)
+    }
 }
 
 impl CanvasContext for CanvasRenderingContext2D {

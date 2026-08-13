@@ -444,6 +444,8 @@ namespace_id! {ImageBitmapId, ImageBitmapIndex, "ImageBitmap"}
 
 namespace_id! {OffscreenCanvasId, OffscreenCanvasIndex, "OffscreenCanvas"}
 
+namespace_id! {PlaceholderCanvasId, PlaceholderCanvasIndex, "PlaceholderCanvas"}
+
 namespace_id! {CookieStoreId, CookieStoreIndex, "CookieStore"}
 
 namespace_id! {ImageDataId, ImageDataIndex, "ImageData"}

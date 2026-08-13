@@ -24,6 +24,7 @@ use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, InsecureRequestsPolicy, Referrer, RequestBody};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use paint_api::CrossProcessPaintApi;
+use pixels::SharedSnapshot;
 use profile_traits::mem::MemoryReportResult;
 use profile_traits::{mem, time as profile_time};
 use rustc_hash::FxHashMap;
@@ -32,7 +33,7 @@ use servo_base::Epoch;
 use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender, SendResult};
 use servo_base::id::{
     BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
-    MessagePortRouterId, PipelineId, ScriptEventLoopId, ServiceWorkerId,
+    MessagePortRouterId, PipelineId, PlaceholderCanvasId, ScriptEventLoopId, ServiceWorkerId,
     ServiceWorkerRegistrationId, WebViewId,
 };
 use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
@@ -689,6 +690,15 @@ pub enum ScriptToConstellationMessage {
     UnregisterWorkerAnimationFrameProvider(WorkerId),
     /// Indicates whether a dedicated worker has pending animation frame callbacks.
     ChangeWorkerAnimationFrameProviderState(WorkerId, bool),
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    UpdatePlaceholderCanvas(
+        PipelineId,
+        PlaceholderCanvasId,
+        u64,
+        u64,
+        Option<SharedSnapshot>,
+        bool,
+    ),
     /// Requests that a new 2D canvas thread be created. (This is done in the constellation because
     /// 2D canvases may use the GPU and we don't want to give untrusted content access to the GPU.)
     CreateCanvasPaintThread(

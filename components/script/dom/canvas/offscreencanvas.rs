@@ -14,7 +14,6 @@ use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
-#[cfg(feature = "webgl")]
 use script_bindings::inheritance::Castable;
 #[cfg(feature = "webgl")]
 use script_bindings::reflector::DomObject;
@@ -23,17 +22,22 @@ use script_bindings::weakref::WeakRef;
 use servo_base::id::{OffscreenCanvasId, OffscreenCanvasIndex};
 #[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
-use servo_constellation_traits::{BlobImpl, TransferableOffscreenCanvas};
+use servo_constellation_traits::{
+    BlobImpl, ScriptToConstellationMessage, TransferableOffscreenCanvas,
+    TransferablePlaceholderCanvas,
+};
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext};
 #[cfg(feature = "webgl")]
 use crate::conversions::Convert;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::OffscreenCanvasBinding::{
     ImageEncodeOptions, OffscreenCanvasMethods,
     OffscreenRenderingContext as RootedOffscreenRenderingContext, OffscreenRenderingContextId,
 };
 #[cfg(feature = "webgl")]
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 #[cfg(feature = "webgl")]
 use crate::dom::bindings::conversions::ConversionResult;
@@ -41,6 +45,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
@@ -49,12 +54,15 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::imagebitmaprenderingcontext::ImageBitmapRenderingContext;
+use crate::dom::node::Node;
 use crate::dom::offscreencanvasrenderingcontext2d::OffscreenCanvasRenderingContext2D;
 use crate::dom::promise::Promise;
 #[cfg(feature = "webgl")]
-use crate::dom::types::{WebGLRenderingContext, Window};
+use crate::dom::types::WebGLRenderingContext;
+use crate::dom::types::Window;
 #[cfg(feature = "webgl")]
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
+use crate::dom::workers::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 
 /// <https://html.spec.whatwg.org/multipage/#offscreencanvas>
 #[dom_struct]
@@ -71,13 +79,25 @@ pub(crate) struct OffscreenCanvas {
 
     /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
     placeholder: Option<WeakRef<HTMLCanvasElement>>,
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    #[no_trace]
+    transferable_placeholder: Cell<Option<TransferablePlaceholderCanvas>>,
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-lang>
+    inherited_language: DomRefCell<DOMString>,
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-direction>
+    inherited_direction: DomRefCell<DOMString>,
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    placeholder_update_pending: Cell<bool>,
 }
 
 impl OffscreenCanvas {
     pub(crate) fn new_inherited(
         width: u64,
         height: u64,
+        inherited_language: DOMString,
+        inherited_direction: DOMString,
         placeholder: Option<WeakRef<HTMLCanvasElement>>,
+        transferable_placeholder: Option<TransferablePlaceholderCanvas>,
     ) -> OffscreenCanvas {
         OffscreenCanvas {
             eventtarget: EventTarget::new_inherited(),
@@ -85,20 +105,35 @@ impl OffscreenCanvas {
             height: Cell::new(height),
             context: DomRefCell::new(None),
             placeholder,
+            transferable_placeholder: Cell::new(transferable_placeholder),
+            inherited_language: DomRefCell::new(inherited_language),
+            inherited_direction: DomRefCell::new(inherited_direction),
+            placeholder_update_pending: Cell::new(false),
         }
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         width: u64,
         height: u64,
+        inherited_language: DOMString,
+        inherited_direction: DOMString,
         placeholder: Option<WeakRef<HTMLCanvasElement>>,
+        transferable_placeholder: Option<TransferablePlaceholderCanvas>,
     ) -> DomRoot<OffscreenCanvas> {
         reflect_dom_object_with_proto(
             cx,
-            Box::new(OffscreenCanvas::new_inherited(width, height, placeholder)),
+            Box::new(OffscreenCanvas::new_inherited(
+                width,
+                height,
+                inherited_language,
+                inherited_direction,
+                placeholder,
+                transferable_placeholder,
+            )),
             global,
             proto,
         )
@@ -291,6 +326,73 @@ impl OffscreenCanvas {
             .as_ref()
             .and_then(|placeholder| placeholder.root())
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-lang>
+    pub(crate) fn set_inherited_language(&self, language: DOMString) {
+        *self.inherited_language.borrow_mut() = language;
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-direction>
+    pub(crate) fn set_inherited_direction(&self, direction: DOMString) {
+        *self.inherited_direction.borrow_mut() = direction;
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    pub(crate) fn request_placeholder_update(&self) {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        if self.transferable_placeholder.get().is_none() ||
+            self.placeholder_update_pending.replace(true)
+        {
+            return;
+        }
+        if let Some(worker) = self.global().downcast::<DedicatedWorkerGlobalScope>() {
+            worker.request_offscreen_canvas_update(self);
+        } else if let Some(window) = self.global().downcast::<Window>() {
+            window.Document().request_offscreen_canvas_update(self);
+        } else {
+            self.update_the_rendering();
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    pub(crate) fn update_the_rendering(&self) {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        self.placeholder_update_pending.set(false);
+        let Some(placeholder) = self.transferable_placeholder.get() else {
+            return;
+        };
+        let (bitmap, origin_clean) = match self.context.borrow().as_ref() {
+            Some(OffscreenRenderingContext::Context2d(context)) => {
+                context.update_rendering();
+                (context.get_image_data(), context.origin_is_clean())
+            },
+            Some(OffscreenRenderingContext::BitmapRenderer(context)) => {
+                (context.get_image_data(), context.origin_is_clean())
+            },
+            #[cfg(feature = "webgl")]
+            Some(OffscreenRenderingContext::WebGL(context)) => {
+                (context.get_image_data(), context.origin_is_clean())
+            },
+            #[cfg(feature = "webgl")]
+            Some(OffscreenRenderingContext::WebGL2(context)) => {
+                (context.get_image_data(), context.origin_is_clean())
+            },
+            Some(OffscreenRenderingContext::Detached) => return,
+            None => (Some(Snapshot::cleared(self.get_size())), true),
+        };
+        let _ = self.global().script_to_constellation_chan().send(
+            ScriptToConstellationMessage::UpdatePlaceholderCanvas(
+                placeholder.pipeline_id,
+                placeholder.id,
+                self.width.get(),
+                self.height.get(),
+                bitmap.map(|bitmap| bitmap.to_shared()),
+                origin_clean,
+            ),
+        );
+    }
 }
 
 impl Transferable for OffscreenCanvas {
@@ -316,32 +418,34 @@ impl Transferable for OffscreenCanvas {
             return Err(Error::InvalidState(None));
         }
 
-        // TODO(#37882): Allow to transfer with a placeholder canvas element.
-        if self.placeholder.is_some() {
-            return Err(Error::InvalidState(None));
-        }
-
         // Step 2. Set value's context mode to detached.
         *self.context.safe_borrow_mut(cx.no_gc()) = Some(OffscreenRenderingContext::Detached);
 
         // Step 3. Let width and height be the dimensions of value's bitmap.
-        // Step 5. Unset value's bitmap.
-        let width = self.width.replace(0);
-        let height = self.height.replace(0);
+        let width = self.width.get();
+        let height = self.height.get();
 
-        // TODO(#37918) Step 4. Let language and direction be the values of
+        // Step 4. Let language and direction be the values of
         // value's inherited language and inherited direction.
+        let inherited_language = self.inherited_language.borrow().to_string();
+        let inherited_direction = self.inherited_direction.borrow().to_string();
 
-        // Step 6. Set dataHolder.[[Width]] to width and dataHolder.[[Height]]
-        // to height.
+        // Step 5. Unset value's bitmap.
+        self.width.set(0);
+        self.height.set(0);
 
-        // TODO(#37918) Step 7. Set dataHolder.[[Language]] to language and
-        // dataHolder.[[Direction]] to direction.
-
-        // TODO(#37882) Step 8. Set dataHolder.[[PlaceholderCanvas]] to be a
-        // weak reference to value's placeholder canvas element, if value has
-        // one, or null if it does not.
-        let transferred = TransferableOffscreenCanvas { width, height };
+        let transferred = TransferableOffscreenCanvas {
+            // Step 6. Set dataHolder.[[Width]] to width and dataHolder.[[Height]] to height.
+            width,
+            height,
+            // Step 7. Set dataHolder.[[Language]] to language and dataHolder.[[Direction]] to
+            // direction.
+            inherited_language,
+            inherited_direction,
+            // Step 8. Set dataHolder.[[PlaceholderCanvas]] to be a weak reference to value's
+            // placeholder canvas element, if value has one, or null if it does not.
+            placeholder: self.transferable_placeholder.take(),
+        };
 
         Ok((OffscreenCanvasId::new(), transferred))
     }
@@ -353,26 +457,26 @@ impl Transferable for OffscreenCanvas {
         _: OffscreenCanvasId,
         transferred: TransferableOffscreenCanvas,
     ) -> Result<DomRoot<Self>, ()> {
-        // Step 1. Initialize value's bitmap to a rectangular array of
-        // transparent black pixels with width given by dataHolder.[[Width]] and
-        // height given by dataHolder.[[Height]].
-
-        // TODO(#37918) Step 2. Set value's inherited language to
-        // dataHolder.[[Language]] and its inherited direction to
-        // dataHolder.[[Direction]].
-
-        // TODO(#37882) Step 3. If dataHolder.[[PlaceholderCanvas]] is not null,
-        // set value's placeholder canvas element to
-        // dataHolder.[[PlaceholderCanvas]] (while maintaining the weak
-        // reference semantics).
-        Ok(OffscreenCanvas::new(
+        // Step 1. Initialize value's bitmap to a rectangular array of transparent black pixels
+        // with width given by dataHolder.[[Width]] and height given by dataHolder.[[Height]].
+        // Step 2. Set value's inherited language to dataHolder.[[Language]] and its inherited
+        // direction to dataHolder.[[Direction]].
+        // Step 3. If dataHolder.[[PlaceholderCanvas]] is not null, set value's placeholder canvas
+        // element to dataHolder.[[PlaceholderCanvas]] (while maintaining the weak reference
+        // semantics).
+        let canvas = OffscreenCanvas::new(
             cx,
             owner,
             None,
             transferred.width,
             transferred.height,
+            transferred.inherited_language.into(),
+            transferred.inherited_direction.into(),
             None,
-        ))
+            transferred.placeholder,
+        );
+        canvas.request_placeholder_update();
+        Ok(canvas)
     }
 
     fn serialized_storage<'a>(
@@ -394,7 +498,47 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         width: u64,
         height: u64,
     ) -> Fallible<DomRoot<OffscreenCanvas>> {
-        Ok(OffscreenCanvas::new(cx, global, proto, width, height, None))
+        // Step 1. Initialize the bitmap of this to a rectangular array of transparent black pixels
+        // of the dimensions specified by width and height.
+        // Step 2. Initialize the width of this to width.
+        // Step 3. Initialize the height of this to height.
+        // Step 4. Set this's inherited language to explicitly unknown.
+        // Step 5. Set this's inherited direction to "ltr".
+        let canvas = OffscreenCanvas::new(
+            cx,
+            global,
+            proto,
+            width,
+            height,
+            DOMString::new(),
+            "ltr".into(),
+            None,
+            None,
+        );
+
+        // Step 6. Let global be the relevant global object of this.
+        // Step 7. If global is a Window object:
+        if let Some(window) = global.downcast::<Window>() {
+            // Step 7.1. Let element be the document element of global's associated Document.
+            let element = window.Document().GetDocumentElement();
+
+            // Step 7.2. If element is not null:
+            if let Some(element) = element {
+                // Step 7.2.1. Set the inherited language of this to element's language.
+                canvas.set_inherited_language(
+                    element
+                        .upcast::<Node>()
+                        .get_lang()
+                        .unwrap_or_default()
+                        .into(),
+                );
+
+                // Step 7.2.2. Set the inherited direction of this to element's directionality.
+                canvas.set_inherited_direction(element.directionality().into());
+            }
+        }
+
+        Ok(canvas)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-getcontext>
@@ -442,16 +586,16 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>
-    fn SetWidth(&self, cx: &mut js::context::JSContext, value: u64) {
+    fn SetWidth(&self, _cx: &mut js::context::JSContext, value: u64) {
         self.width.set(value);
 
         if let Some(canvas_context) = self.context() {
             canvas_context.resize();
         }
-
-        if let Some(canvas) = self.placeholder() {
-            canvas.set_natural_width(cx, value as _)
-        }
+        // If an OffscreenCanvas object whose dimensions were changed has a placeholder canvas
+        // element, then the placeholder canvas element's natural size will only be updated during
+        // the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        self.request_placeholder_update();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height>
@@ -460,16 +604,16 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height>
-    fn SetHeight(&self, cx: &mut js::context::JSContext, value: u64) {
+    fn SetHeight(&self, _cx: &mut js::context::JSContext, value: u64) {
         self.height.set(value);
 
         if let Some(canvas_context) = self.context() {
             canvas_context.resize();
         }
-
-        if let Some(canvas) = self.placeholder() {
-            canvas.set_natural_height(cx, value as _)
-        }
+        // If an OffscreenCanvas object whose dimensions were changed has a placeholder canvas
+        // element, then the placeholder canvas element's natural size will only be updated during
+        // the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        self.request_placeholder_update();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-transfertoimagebitmap>
@@ -507,6 +651,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         if let Some(canvas_context) = self.context() {
             canvas_context.reset_bitmap();
         }
+        self.request_placeholder_update();
 
         // Step 5. Return image.
         Ok(image_bitmap)
