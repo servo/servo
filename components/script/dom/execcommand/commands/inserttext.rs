@@ -44,7 +44,7 @@ pub(crate) fn execute_insert_text_command(
     }
 
     // Step 3. If value's length is greater than one:
-    if value.len() > 1 {
+    if value.str().chars().nth(1).is_some() {
         // Step 3.1. For each code unit el in value, take the action for the insertText command, with value equal to el.
         for el in value.str().chars() {
             execute_insert_text_command(cx, document, selection, DOMString::from(el.to_string()));
