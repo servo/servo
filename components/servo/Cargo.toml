@@ -76,7 +76,7 @@ tracing = [
 vello = ["servo-constellation/vello"]
 
 # Enable WebCrypto Web Platform Features
-webcrypto = ["script/webcrypto"]
+webcrypto = ["servo-constellation-traits/webcrypto", "script/webcrypto"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "webgl/webgl_backtrace",

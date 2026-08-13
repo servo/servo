@@ -95,6 +95,7 @@ pub(super) enum StructuredCloneTags {
     DomMatrix = 0xFFFF8012,
     DomMatrixReadOnly = 0xFFFF8013,
     ImageData = 0xFFFF8014,
+    #[cfg(feature = "webcrypto")]
     CryptoKey = 0xFFFF8015,
     Max = 0xFFFFFFFF,
 }
@@ -116,6 +117,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
             SerializableInterface::QuotaExceededError => StructuredCloneTags::QuotaExceededError,
             SerializableInterface::ImageData => StructuredCloneTags::ImageData,
+            #[cfg(feature = "webcrypto")]
             SerializableInterface::CryptoKey => StructuredCloneTags::CryptoKey,
         }
     }
@@ -159,8 +161,6 @@ fn reader_for_type(
         SerializableInterface::ImageData => read_object::<ImageData>,
         #[cfg(feature = "webcrypto")]
         SerializableInterface::CryptoKey => read_object::<CryptoKey>,
-        #[cfg(not(feature = "webcrypto"))]
-        SerializableInterface::CryptoKey => todo!("PANIC"),
     }
 }
 
@@ -321,8 +321,6 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::ImageData => try_serialize::<ImageData>,
         #[cfg(feature = "webcrypto")]
         SerializableInterface::CryptoKey => try_serialize::<CryptoKey>,
-        #[cfg(not(feature = "webcrypto"))]
-        SerializableInterface::CryptoKey => unreachable!("WebCrypto disabled"),
     }
 }
 
