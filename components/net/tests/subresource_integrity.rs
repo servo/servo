@@ -3,31 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use net::subresource_integrity::{
-    SriEntry, get_prioritized_hash_function, get_strongest_metadata, is_response_integrity_valid,
-    parsed_metadata,
+    Algorithm, SriEntry, get_strongest_metadata, is_response_integrity_valid, parsed_metadata,
 };
 use net_traits::response::{Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 
 #[test]
-fn test_get_prioritized_hash_function() {
-    let mut algorithm = get_prioritized_hash_function("sha256", "sha256");
-    assert_eq!(algorithm, None);
-
-    algorithm = get_prioritized_hash_function("sha256", "sha384");
-    assert_eq!(algorithm.unwrap(), "sha384");
-
-    algorithm = get_prioritized_hash_function("sha384", "sha512");
-    assert_eq!(algorithm.unwrap(), "sha512");
-}
-
-#[test]
 fn test_parsed_metadata_without_options() {
     let integrity_metadata = "sha384-Hash1";
     let ref parsed_metadata: SriEntry = parsed_metadata(integrity_metadata)[0];
 
-    assert_eq!(parsed_metadata.alg, "sha384");
+    assert_eq!(parsed_metadata.algorithm, Algorithm::Sha384);
     assert_eq!(parsed_metadata.val, "Hash1");
     assert!(parsed_metadata.opt.is_none());
 }
@@ -37,7 +24,7 @@ fn test_parsed_metadata_with_options() {
     let integrity_metadata = "sha384-Hash1?opt=23";
     let ref parsed_metadata: SriEntry = parsed_metadata(integrity_metadata)[0];
 
-    assert_eq!(parsed_metadata.alg, "sha384");
+    assert_eq!(parsed_metadata.algorithm, Algorithm::Sha384);
     assert_eq!(parsed_metadata.val, "Hash1");
     assert!(parsed_metadata.opt.is_some());
 }
@@ -57,7 +44,7 @@ fn test_get_strongest_metadata_two_same_algorithm() {
 
     let strong_metadata: Vec<SriEntry> = get_strongest_metadata(parsed_metadata_list);
     assert_eq!(strong_metadata.len(), 2);
-    assert_eq!(strong_metadata[0].alg, strong_metadata[1].alg);
+    assert_eq!(strong_metadata[0].algorithm, strong_metadata[1].algorithm);
 }
 
 #[test]
@@ -67,7 +54,7 @@ fn test_get_strongest_metadata_different_algorithm() {
 
     let strong_metadata: Vec<SriEntry> = get_strongest_metadata(parsed_metadata_list);
     assert_eq!(strong_metadata.len(), 1);
-    assert_eq!(strong_metadata[0].alg, "sha512");
+    assert_eq!(strong_metadata[0].algorithm, Algorithm::Sha512);
 }
 
 #[test]
