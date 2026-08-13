@@ -946,6 +946,7 @@ impl Servo {
         );
         let mem_profiler_chan = profile_mem::Profiler::create();
 
+        #[cfg(feature = "devtools")]
         let devtools_sender = if pref!(devtools_server_enabled) {
             Some(devtools::start_server(
                 embedder_proxy.clone(),
@@ -984,6 +985,7 @@ impl Servo {
         let protocols = Arc::new(protocols);
         let (public_resource_threads, private_resource_threads, async_runtime) =
             new_resource_threads(
+                #[cfg(feature = "devtools")]
                 devtools_sender.clone(),
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),

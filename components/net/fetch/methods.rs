@@ -10,7 +10,9 @@ use base64::Engine as _;
 use base64::engine::general_purpose;
 use bytes::Bytes;
 use content_security_policy as csp;
+#[cfg(feature = "devtools")]
 use crossbeam_channel::Sender;
+#[cfg(feature = "devtools")]
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
 use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
@@ -47,6 +49,7 @@ use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
 
 use crate::connector::CACertificates;
+#[cfg(feature = "devtools")]
 use crate::devtools::{
     send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
 };
@@ -100,6 +103,7 @@ pub type SharedInflightKeepAliveRecords =
 pub struct FetchContext {
     pub state: Arc<HttpState>,
     pub user_agent: String,
+    #[cfg(feature = "devtools")]
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub file_token: FileTokenCheck,
@@ -408,6 +412,7 @@ pub async fn main_fetch(
 ) -> Response {
     // Step 1: Let request be fetchParam's request.
     let request = &mut fetch_params.request;
+    #[cfg(feature = "devtools")]
     send_early_httprequest_to_devtools(request, context);
     // Step 2: Let response be null.
     let mut response = None;
@@ -865,8 +870,11 @@ pub async fn main_fetch(
     // Step 22.
     target.process_response(request, &response);
     // Send Response to Devtools
+    #[cfg(feature = "devtools")]
+    {
     send_response_to_devtools(request, context, &response, None);
     send_security_info_to_devtools(request, context, &response);
+    }
 
     // Step 23.
     if !response_loaded {
@@ -878,6 +886,7 @@ pub async fn main_fetch(
     // Send Response to Devtools
     // This is done after process_response_eof to ensure that the body is fully
     // processed before sending the response to Devtools.
+    #[cfg(feature = "devtools")]
     send_response_to_devtools(request, context, &response, None);
 
     context
@@ -899,6 +908,7 @@ async fn wait_for_response(
     context: &FetchContext,
 ) {
     if let Some(ref mut ch) = *done_chan {
+        #[cfg(feature = "devtools")]
         let mut devtools_body = context.devtools_chan.as_ref().map(|_| Vec::new());
         loop {
             match ch.1.recv().await {
@@ -906,6 +916,7 @@ async fn wait_for_response(
                     target.process_response_length_hint(request, length);
                 },
                 Some(Data::Payload(bytes)) => {
+                    #[cfg(feature = "devtools")]
                     if let Some(body) = devtools_body.as_mut() {
                         body.extend(&bytes);
                     }
@@ -920,6 +931,7 @@ async fn wait_for_response(
                     break;
                 },
                 Some(Data::Done) => {
+                    #[cfg(feature = "devtools")]
                     send_response_to_devtools(request, context, response, devtools_body);
                     break;
                 },
@@ -940,6 +952,7 @@ async fn wait_for_response(
                 // obtained synchronously via scheme_fetch for data/file/about/etc
                 // We should still send the body across as a chunk
                 target.process_response_chunk(request, Bytes::copy_from_slice(vec));
+                #[cfg(feature = "devtools")]
                 if context.devtools_chan.is_some() {
                     // Now that we've replayed the entire cached body,
                     // notify the DevTools server with the full Response.
