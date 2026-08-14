@@ -63,6 +63,8 @@ use crate::dom::types::UserActivation;
 use crate::dom::wakelock::WakeLock;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
+#[cfg(feature = "webnn")]
+use crate::dom::webnn::ml::ML;
 use crate::dom::window::Window;
 #[cfg(feature = "webxr")]
 use crate::dom::xrsystem::XRSystem;
@@ -132,6 +134,8 @@ pub(crate) struct Navigator {
     storage: MutNullableDom<StorageManager>,
     #[cfg(feature = "webgpu")]
     gpu: MutNullableDom<GPU>,
+    #[cfg(feature = "webnn")]
+    ml: MutNullableDom<ML>,
     /// <https://www.w3.org/TR/gamepad/#dfn-hasgamepadgesture>
     #[cfg(feature = "gamepad")]
     has_gamepad_gesture: Cell<bool>,
@@ -161,6 +165,8 @@ impl Navigator {
             storage: Default::default(),
             #[cfg(feature = "webgpu")]
             gpu: Default::default(),
+            #[cfg(feature = "webnn")]
+            ml: Default::default(),
             #[cfg(feature = "gamepad")]
             has_gamepad_gesture: Cell::new(false),
             servo_internals: Default::default(),
@@ -498,10 +504,16 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         })
     }
 
-    // https://gpuweb.github.io/gpuweb/#dom-navigator-gpu
+    /// <https://gpuweb.github.io/gpuweb/#dom-navigator-gpu>
     #[cfg(feature = "webgpu")]
     fn Gpu(&self, cx: &mut JSContext) -> DomRoot<GPU> {
         self.gpu.or_init(|| GPU::new(cx, &self.global()))
+    }
+
+    /// <https://www.w3.org/TR/webnn/#api-navigatorml>
+    #[cfg(feature = "webnn")]
+    fn Ml(&self, cx: &mut JSContext) -> DomRoot<ML> {
+        self.ml.or_init(|| ML::new(cx, &self.global()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-hardwareconcurrency>
