@@ -5,6 +5,7 @@
 use std::vec::IntoIter;
 
 use app_units::Au;
+use euclid::Rect;
 use fonts::FontRef;
 use layout_api::LayoutNode;
 use malloc_size_of_derive::MallocSizeOf;
@@ -15,6 +16,7 @@ use style::computed_values::alignment_baseline::T as AlignmentBaseline;
 use style::computed_values::baseline_source::T as BaselineSource;
 use style::computed_values::box_decoration_break::T as BoxDecorationBreak;
 use style::context::SharedStyleContext;
+use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
 use style::values::computed::{BaselineShift, LengthPercentage};
 
@@ -26,7 +28,8 @@ use crate::ContainingBlock;
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::NodeAndStyleInfo;
-use crate::fragment_tree::BaseFragmentInfo;
+use crate::fragment_tree::{BaseFragmentInfo, Fragment};
+use crate::geom::{SyncPhysicalRectAu, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::style_ext::{ComputedValuesExt, LayoutStyle, PaddingBorderMargin};
 
@@ -79,6 +82,95 @@ impl InlineBox {
         self.base.repair_style(new_style);
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
         *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
+    }
+
+    // For the painting of backgrounds and borders on fragmented boxes, each box needs to know what part of the
+    // unfragmented whole it is. This determines that for this inline box's fragments.
+    pub(crate) fn assign_fragmentation_info(&self) {
+        if self.base.style.get_border().box_decoration_break != BoxDecorationBreak::Slice {
+            return;
+        }
+
+        let fragments = self.base.fragments.borrow();
+        let box_fragments: Vec<_> = fragments
+            .iter()
+            .filter_map(|fragment| {
+                if let Fragment::Box(box_fragment) = fragment {
+                    Some(box_fragment)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if box_fragments.len() <= 1 {
+            return;
+        }
+
+        let writing_mode = self.base.style.writing_mode;
+        let mut total_inline_size = Au::zero();
+        for fragment in &box_fragments {
+            total_inline_size += fragment.base.rect().size.to_logical(writing_mode).inline;
+        }
+
+        let mut current_inline_offset = Au::zero();
+        for fragment in &box_fragments {
+            let fragment_inline_size = fragment.base.rect().size.to_logical(writing_mode).inline;
+
+            let mut origin = fragment.base.rect().origin;
+            if writing_mode.is_horizontal() {
+                fragment.set_is_fragmented_along_left_edge(true);
+                fragment.set_is_fragmented_along_right_edge(true);
+                if writing_mode.is_bidi_ltr() {
+                    origin.x -= current_inline_offset;
+                } else {
+                    origin.x += current_inline_offset;
+                    origin.x -= total_inline_size - fragment_inline_size;
+                }
+            } else {
+                fragment.set_is_fragmented_along_top_edge(true);
+                fragment.set_is_fragmented_along_bottom_edge(true);
+                if writing_mode.is_bidi_ltr() {
+                    origin.y -= current_inline_offset;
+                } else {
+                    origin.x += current_inline_offset;
+                    origin.x -= total_inline_size - fragment_inline_size;
+                }
+            }
+            fragment.set_unfragmented_rect(SyncPhysicalRectAu::new(Rect::new(
+                origin,
+                LogicalSize::new(
+                    writing_mode,
+                    total_inline_size,
+                    fragment.base.rect().size.to_logical(writing_mode).block,
+                )
+                .to_physical(writing_mode)
+                .cast_unit(),
+            )));
+
+            current_inline_offset += fragment_inline_size;
+        }
+        // Fix up the fragmentation at the very beginning and end
+        if let Some(first_fragment) = box_fragments.first() &&
+            let Some(last_fragment) = box_fragments.last()
+        {
+            if writing_mode.is_horizontal() {
+                if writing_mode.is_bidi_ltr() {
+                    first_fragment.set_is_fragmented_along_left_edge(false);
+                    last_fragment.set_is_fragmented_along_right_edge(false);
+                } else {
+                    first_fragment.set_is_fragmented_along_right_edge(false);
+                    last_fragment.set_is_fragmented_along_left_edge(false);
+                }
+            } else {
+                if writing_mode.is_bidi_ltr() {
+                    first_fragment.set_is_fragmented_along_top_edge(false);
+                    last_fragment.set_is_fragmented_along_bottom_edge(false);
+                } else {
+                    first_fragment.set_is_fragmented_along_bottom_edge(false);
+                    last_fragment.set_is_fragmented_along_top_edge(false);
+                }
+            }
+        }
     }
 }
 
