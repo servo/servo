@@ -174,7 +174,7 @@ type QuickCachePlaceholderGuard<'a> = PlaceholderGuard<
 >;
 
 /// Is this state assigned to the private or public side.
-#[derive(Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum HttpCacheAssignment {
     /// Public Cache State, possibly stored to disk.
     Public,
@@ -187,10 +187,14 @@ pub enum HttpCacheAssignment {
 /// by the number of entries per given url. We evict currently a whole url.
 /// The cache makes extensive use of `Arc::unwrap_or_clone or` and `Arc::into_inner`
 /// to modify the cached entries. This is ok because `CachedResource` are cheap to clone
+///
+/// If the [`DiskCache`] is enabled, evicted elements will first land in the DiskCache. We check the DiskCache for a
+/// cache hit per request.
 pub struct HttpCache {
     /// cached responses.
     entries: QuickCache,
     disk_cache: Option<std::sync::Arc<DiskCache>>,
+    cache_assignment: HttpCacheAssignment,
 }
 
 impl MallocSizeOf for HttpCache {
@@ -208,11 +212,11 @@ impl MallocSizeOf for HttpCache {
 
 impl HttpCache {
     /// Create a new HttpCache with [`HttpCacheAssignment`]
-    pub fn new(assignment: HttpCacheAssignment) -> Self {
+    pub fn new(cache_assignment: HttpCacheAssignment) -> Self {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
-        let (disk_cache, lifecycle) = DiskCache::new(assignment);
+        let (disk_cache, lifecycle) = DiskCache::new(cache_assignment.clone());
         let memory_cache = Cache::with(
             size,
             size as u64,
@@ -224,6 +228,24 @@ impl HttpCache {
         Self {
             entries: memory_cache,
             disk_cache,
+            cache_assignment,
+        }
+    }
+
+    /// Stores all entries from the memory cache to the disk cache.
+    /// This should be only used for shutdown as it leaves the relationship between the memory and disk cache
+    pub async fn shutdown(&self) {
+        log::error!(
+            "DISK CACHE IS {:?}, assignment {:?}",
+            self.disk_cache.is_some(),
+            self.cache_assignment
+        );
+        if let Some(disk_cache) = &self.disk_cache &&
+            self.cache_assignment == HttpCacheAssignment::Public
+        {
+            for (key, entry) in self.entries.iter() {
+                let _ = disk_cache.store(key, entry).await;
+            }
         }
     }
 }
