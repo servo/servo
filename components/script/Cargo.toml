@@ -20,7 +20,12 @@ bluetooth = ['servo-bluetooth-traits', 'script_bindings/bluetooth']
 brotli-compression-stream = ["dep:brotli"]
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
-devtools = ["dep:devtools_traits", "script_bindings/devtools"]
+devtools = [
+    "dep:devtools_traits",
+    "script_bindings/devtools",
+    "script_traits/devtools",
+    "servo-constellation-traits/devtools",
+]
 gamepad = ["script_bindings/gamepad", "embedder_traits/gamepad"]
 jitspew = ['js/jitspew']
 js_backtrace = []
