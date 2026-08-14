@@ -16,7 +16,7 @@ path = "lib.rs"
 [features]
 default = []
 bluetooth = ["servo-bluetooth-traits"]
-devtools = ["dep:devtools_traits"]
+devtools = ["dep:devtools_traits", "script_traits/devtools"]
 gamepad = ["embedder_traits/gamepad"]
 tracing = ["dep:tracing", "servo-canvas/tracing"]
 vello = ["servo-canvas/vello"]
