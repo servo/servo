@@ -140,7 +140,7 @@ fn test_create_webview_http_custom_host() {
         .url(custom_url.clone().into_url())
         .build();
 
-    servo_test.spin(move || !delegate.load_status_changed.get());
+    servo_test.spin(move || !delegate.load_status_changed.get() || !delegate.url_changed.get()));
 
     let _ = server.close();
 
