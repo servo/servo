@@ -109,6 +109,9 @@ impl Console {
         messages: Vec<HandleValue>,
         include_stacktrace: IncludeStackTrace,
     ) {
+        #[cfg(feature = "devtools")]
+        let devtools_arguments: Vec<DebuggerValue>;
+
         // If the first argument is a string, apply sprintf-style substitutions per the
         // WHATWG Console spec formatter. The result is a single formatted string followed
         // by any arguments that were not consumed by a substitution specifier.
@@ -135,33 +138,40 @@ impl Console {
             };
 
             #[cfg(feature = "devtools")]
-            let devtools_arguments = arguments;
-
-            #[cfg(feature = "devtools")]
-            Console::send_to_devtools(
-                global,
-                Self::build_message(cx, level.clone(), devtools_arguments, None),
-            );
+            {
+                devtools_arguments = arguments;
+            }
 
             embedder_msg.into()
         } else {
             #[cfg(feature = "devtools")]
-            let arguments = messages
+            let arguments: Vec<DebuggerValue> = messages
                 .iter()
                 .map(|msg| console_argument_from_handle_value(cx, *msg, &mut Vec::new()))
                 .collect();
 
             #[cfg(feature = "devtools")]
-            let stacktrace =
-                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
-            #[cfg(feature = "devtools")]
-            Console::send_to_devtools(
-                global,
-                Self::build_message(cx, level.clone(), arguments, stacktrace),
-            );
+            {
+                devtools_arguments = arguments;
+            }
 
             stringify_handle_values(cx, &messages)
         };
+
+        #[cfg(feature = "devtools")]
+        {
+            let stacktrace =
+                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
+            Console::send_to_devtools(
+                global,
+                Self::build_message(
+                    cx,
+                    level.clone(),
+                    devtools_arguments,
+                    stacktrace,
+                ),
+            );
+        }
 
         #[cfg(not(feature = "devtools"))]
         let _ = include_stacktrace;
