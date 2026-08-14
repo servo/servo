@@ -133,13 +133,12 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         match task_queue.take_tasks_and_recv(&FxHashSet::default()) {
             Err(_) => {
                 #[cfg(feature = "devtools")]
-                match devtools_receiver.try_recv() {
-                    Ok(message) => sequential.push(T::from_devtools_msg(message.unwrap())),
-                    Err(_) => break,
+                if let Ok(message) = devtools_receiver.try_recv() {
+                    sequential.push(T::from_devtools_msg(message.unwrap()));
+                    continue;
                 }
 
-                #[cfg(not(feature = "devtools"))]
-                ()
+                break;
             },
             Ok(ev) => sequential.push(T::from_worker_msg(ev)),
         }
