@@ -773,8 +773,9 @@ impl GlobalScope {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
-        #[cfg(feature = "devtools")]
-        devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        #[cfg(feature = "devtools")] devtools_chan: Option<
+            GenericCallback<ScriptToDevtoolsControlMsg>,
+        >,
         mem_profiler_chan: profile_mem::ProfilerChan,
         time_profiler_chan: profile_time::ProfilerChan,
         script_to_constellation_sender: ScriptToConstellationSender,
@@ -2521,7 +2522,7 @@ impl GlobalScope {
         } else if let Some(window) = self.downcast::<Window>() {
             window.pipeline_id()
         } else {
-            #[cfg(feature = "debugger")]
+            #[cfg(feature = "devtools")]
             if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
                 return debugger.pipeline_id();
             }
@@ -2577,7 +2578,7 @@ impl GlobalScope {
         } else {
             #[cfg(feature = "devtools")]
             if let Some(debugger) = self.downcast::<DebuggerGlobalScope>() {
-                debugger.origin()
+                return debugger.origin();
             }
             unreachable!("Unexpected origin check against global")
         }

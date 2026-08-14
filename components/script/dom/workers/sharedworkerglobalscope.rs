@@ -246,8 +246,9 @@ impl SharedWorkerGlobalScope {
         worker_url: ServoUrl,
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
+            DevtoolScriptControlMsg,
+        >,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
@@ -258,8 +259,7 @@ impl SharedWorkerGlobalScope {
         control_receiver: Receiver<SharedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
-        #[cfg(feature = "devtools")]
-        debugger_global: &DebuggerGlobalScope,
+        #[cfg(feature = "devtools")] debugger_global: &DebuggerGlobalScope,
         storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
@@ -312,8 +312,9 @@ impl SharedWorkerGlobalScope {
         worker_url: ServoUrl,
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
+            DevtoolScriptControlMsg,
+        >,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
@@ -324,8 +325,7 @@ impl SharedWorkerGlobalScope {
         control_receiver: Receiver<SharedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
-        #[cfg(feature = "devtools")]
-        debugger_global: &DebuggerGlobalScope,
+        #[cfg(feature = "devtools")] debugger_global: &DebuggerGlobalScope,
         storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
@@ -379,8 +379,9 @@ impl SharedWorkerGlobalScope {
         worker_url: UrlWithBlobClaim,
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: GenericReceiver<
+            DevtoolScriptControlMsg,
+        >,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
         worker_load_origin: WorkerScriptLoadOrigin,
@@ -448,29 +449,29 @@ impl SharedWorkerGlobalScope {
                 let mut cx = unsafe { runtime.cx() };
                 let cx = &mut cx;
                 #[cfg(feature = "devtools")]
-                {
-                    let debugger_global = DebuggerGlobalScope::new(
-                        pipeline_id,
-                        init.to_devtools_sender.clone(),
-                        init.from_devtools_sender
-                            .clone()
-                            .expect("Guaranteed by SharedWorker::Constructor"),
-                        init.mem_profiler_chan.clone(),
-                        init.time_profiler_chan.clone(),
-                        init.script_to_constellation_chan.clone(),
-                        init.script_to_embedder_chan.clone(),
-                        init.resource_threads.clone(),
-                        init.storage_threads.clone(),
-                        #[cfg(feature = "webgpu")]
-                        gpu_id_hub.clone(),
-                        cx,
-                    );
-                    debugger_global.execute(cx);
+                let debugger_global = DebuggerGlobalScope::new(
+                    pipeline_id,
+                    init.to_devtools_sender.clone(),
+                    init.from_devtools_sender
+                        .clone()
+                        .expect("Guaranteed by SharedWorker::Constructor"),
+                    init.mem_profiler_chan.clone(),
+                    init.time_profiler_chan.clone(),
+                    init.script_to_constellation_chan.clone(),
+                    init.script_to_embedder_chan.clone(),
+                    init.resource_threads.clone(),
+                    init.storage_threads.clone(),
+                    #[cfg(feature = "webgpu")]
+                    gpu_id_hub.clone(),
+                    cx,
+                );
+                #[cfg(feature = "devtools")]
+                debugger_global.execute(cx);
+                #[cfg(feature = "devtools")]
+                let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
+                #[cfg(feature = "devtools")]
+                let devtools_enabled = init.to_devtools_sender.is_some();
 
-                    let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
-
-                    let devtools_enabled = init.to_devtools_sender.is_some();
-                }
                 // Step 3. Let origin be a unique opaque origin if worker global scope's url's scheme is "data"; otherwise outside settings's origin.
                 if worker_url.scheme() == "data" {
                     if is_secure_context {

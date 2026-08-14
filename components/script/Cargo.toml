@@ -20,7 +20,7 @@ bluetooth = ['servo-bluetooth-traits', 'script_bindings/bluetooth']
 brotli-compression-stream = ["dep:brotli"]
 crown = ['js/crown']
 debugmozjs = ['js/debugmozjs']
-devtools = ["dep:devtools_traits"]
+devtools = ["dep:devtools_traits", "script_bindings/devtools"]
 gamepad = ["script_bindings/gamepad", "embedder_traits/gamepad"]
 jitspew = ['js/jitspew']
 js_backtrace = []
@@ -112,7 +112,7 @@ ctr = { workspace = true, optional = true }
 ctutils = { workspace = true, optional = true }
 data-url = { workspace = true }
 deny_public_fields = { workspace = true }
-devtools_traits = { workspace = true, optional = true}
+devtools_traits = { workspace = true, optional = true }
 dom_struct = { workspace = true }
 ecdsa = { workspace = true, optional = true }
 ed25519-dalek = { workspace = true, optional = true }

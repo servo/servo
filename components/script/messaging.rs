@@ -496,12 +496,12 @@ impl ScriptThreadReceivers {
             } else {
                 #[cfg(feature = "devtools")]
                 if index == devtools_index {
-                    MixedMessage::FromDevtools(
+                    return MixedMessage::FromDevtools(
                         operation
                             .recv(&self.devtools_server_receiver)
                             .unwrap()
                             .unwrap(),
-                    )
+                    );
                 }
 
                 #[cfg(feature = "webgpu")]

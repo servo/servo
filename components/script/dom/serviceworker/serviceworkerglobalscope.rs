@@ -242,8 +242,9 @@ impl ServiceWorkerGlobalScope {
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
+            DevtoolScriptControlMsg,
+        >,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -286,8 +287,9 @@ impl ServiceWorkerGlobalScope {
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
+            DevtoolScriptControlMsg,
+        >,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -297,8 +299,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
-        #[cfg(feature = "devtools")]
-        debugger_global: &DebuggerGlobalScope,
+        #[cfg(feature = "devtools")] debugger_global: &DebuggerGlobalScope,
         worker_id: ServiceWorkerId,
         cx: &mut JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
@@ -338,8 +339,7 @@ impl ServiceWorkerGlobalScope {
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
-        #[cfg(feature = "devtools")]
-        devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
         swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,

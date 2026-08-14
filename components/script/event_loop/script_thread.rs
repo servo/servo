@@ -166,7 +166,6 @@ use crate::runtime::script_runtime::{
 };
 use crate::tasks::task_queue::TaskQueue;
 use crate::webdriver_handlers::jsval_to_webdriver;
-use crate::{devtools, webdriver_handlers};
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
@@ -863,11 +862,11 @@ impl ScriptThread {
 
         // Ask the router to proxy IPC messages from the devtools to us.
         #[cfg(feature = "devtools")]
-        {
-            let devtools_server_sender = state.devtools_server_sender;
-            let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
-            let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
-        }
+        let devtools_server_sender = state.devtools_server_sender;
+        #[cfg(feature = "devtools")]
+        let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
+        #[cfg(feature = "devtools")]
+        let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
 
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
 

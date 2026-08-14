@@ -33,10 +33,9 @@ use serde::de::{Error, Visitor};
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
+pub use servo_base::id::WorkerId;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::ServoUrl;
-
-pub use servo_base::id::WorkerId;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.

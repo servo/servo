@@ -67,7 +67,6 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         .animation_frame_tick_receiver()
         .unwrap_or(&animation_frame_tick_never);
 
-
     #[cfg(feature = "devtools")]
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => match msg {
@@ -134,7 +133,7 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         match task_queue.take_tasks_and_recv(&FxHashSet::default()) {
             Err(_) => {
                 #[cfg(feature = "devtools")]
-                    match devtools_receiver.try_recv() {
+                match devtools_receiver.try_recv() {
                     Ok(message) => sequential.push(T::from_devtools_msg(message.unwrap())),
                     Err(_) => break,
                 }

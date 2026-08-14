@@ -4,7 +4,7 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-use servo_base::id::WorkerId;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::request::Referrer;
@@ -12,7 +12,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::reflector::reflect_dom_object;
-use servo_base::id::ServiceWorkerRegistrationId;
+use servo_base::id::{ServiceWorkerRegistrationId, WorkerId};
 use servo_constellation_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use uuid::Uuid;

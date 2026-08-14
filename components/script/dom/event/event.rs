@@ -1274,8 +1274,7 @@ fn invoke(
     segment_index_in_path: usize,
     event: &Event,
     phase: ListenerPhase,
-    #[cfg(feature = "devtools")]
-    timeline_window: Option<&Window>,
+    #[cfg(feature = "devtools")] timeline_window: Option<&Window>,
     legacy_output_did_listeners_throw: Option<&Cell<bool>>,
 ) {
     // Step 1. Set event’s target to the shadow-adjusted target of the last struct in event’s path,
@@ -1364,8 +1363,7 @@ fn inner_invoke(
     listeners: &EventListeners,
     phase: ListenerPhase,
     invocation_target_in_shadow_tree: bool,
-    #[cfg(feature = "devtools")]
-    timeline_window: Option<&Window>,
+    #[cfg(feature = "devtools")] timeline_window: Option<&Window>,
     legacy_output_did_listeners_throw: Option<&Cell<bool>>,
 ) -> bool {
     // Step 1. Let found be false.
