@@ -235,17 +235,14 @@ impl HttpCache {
     /// Stores all entries from the memory cache to the disk cache.
     /// This should be only used for shutdown as it leaves the relationship between the memory and disk cache
     pub async fn shutdown(&self) {
-        log::error!(
-            "DISK CACHE IS {:?}, assignment {:?}",
-            self.disk_cache.is_some(),
-            self.cache_assignment
-        );
         if let Some(disk_cache) = &self.disk_cache &&
             self.cache_assignment == HttpCacheAssignment::Public
         {
             for (key, entry) in self.entries.iter() {
                 let _ = disk_cache.store(key, entry).await;
             }
+        } else {
+            log::debug!("No disk cache enabled. Not saving memory cache.");
         }
     }
 }
