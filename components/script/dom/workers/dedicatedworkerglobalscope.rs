@@ -315,8 +315,9 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
+            DevtoolScriptControlMsg,
+        >,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -376,8 +377,9 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
+            DevtoolScriptControlMsg,
+        >,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -392,8 +394,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
-        #[cfg(feature = "devtools")]
-        debugger_global: &DebuggerGlobalScope,
+        #[cfg(feature = "devtools")] debugger_global: &DebuggerGlobalScope,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -440,8 +441,9 @@ impl DedicatedWorkerGlobalScope {
         mut init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
         worker_url: UrlWithBlobClaim,
-        #[cfg(feature = "devtools")]
-        from_devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] from_devtools_receiver: GenericReceiver<
+            DevtoolScriptControlMsg,
+        >,
         worker: TrustedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
