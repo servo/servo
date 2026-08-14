@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use bitflags::bitflags;
+#[cfg(feature = "devtools")]
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::InputEventResult;
@@ -599,6 +600,7 @@ impl Event {
                     .and_then(|activatable| activatable.legacy_pre_activation_behavior(cx));
             }
 
+            #[cfg(feature = "devtools")]
             let timeline_window = DomRoot::downcast::<Window>(target.global())
                 .filter(|window| window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent));
 
@@ -640,6 +642,7 @@ impl Event {
                     target_indices[index],
                     self,
                     ListenerPhase::Capturing,
+                    #[cfg(feature = "devtools")]
                     timeline_window.as_deref(),
                     legacy_output_did_listeners_throw,
                 )
@@ -670,6 +673,7 @@ impl Event {
                     target_indices[index],
                     self,
                     ListenerPhase::Bubbling,
+                    #[cfg(feature = "devtools")]
                     timeline_window.as_deref(),
                     legacy_output_did_listeners_throw,
                 );
@@ -1314,6 +1318,7 @@ fn invoke(
     resolved_target_index: usize,
     event: &Event,
     phase: ListenerPhase,
+    #[cfg(feature = "devtools")]
     timeline_window: Option<&Window>,
     legacy_output_did_listeners_throw: Option<&Cell<bool>>,
 ) {
@@ -1352,6 +1357,7 @@ fn invoke(
         &listeners,
         phase,
         invocation_target_in_shadow_tree,
+        #[cfg(feature = "devtools")]
         timeline_window,
         legacy_output_did_listeners_throw,
     );
@@ -1382,6 +1388,7 @@ fn invoke(
             &listeners,
             phase,
             invocation_target_in_shadow_tree,
+            #[cfg(feature = "devtools")]
             timeline_window,
             legacy_output_did_listeners_throw,
         );
@@ -1398,6 +1405,7 @@ fn inner_invoke(
     listeners: &EventListeners,
     phase: ListenerPhase,
     invocation_target_in_shadow_tree: bool,
+    #[cfg(feature = "devtools")]
     timeline_window: Option<&Window>,
     legacy_output_did_listeners_throw: Option<&Cell<bool>>,
 ) -> bool {
@@ -1465,6 +1473,7 @@ fn inner_invoke(
         //     Step 2.10.1 Report exception for listener’s callback’s corresponding JavaScript object’s
         //     associated realm’s global object.
         //     Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
+        #[cfg(feature = "devtools")]
         let marker = TimelineMarker::start("DOMEvent".to_owned());
         if compiled_listener
             .call_or_handle_event(cx, &event_target, event, ExceptionHandling::Report)
@@ -1473,6 +1482,7 @@ fn inner_invoke(
         {
             flag.set(true);
         }
+        #[cfg(feature = "devtools")]
         if let Some(window) = timeline_window {
             window.emit_timeline_marker(marker.end());
         }
