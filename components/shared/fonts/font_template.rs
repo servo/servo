@@ -273,9 +273,9 @@ impl FontTemplate {
 
 pub trait FontTemplateRefMethods {
     /// Get the descriptor.
-    fn descriptor(&self) -> FontTemplateDescriptor;
+    fn descriptor(&self) -> AtomicRef<'_, FontTemplateDescriptor>;
     /// Get the [`FontIdentifier`] for this template.
-    fn identifier(&self) -> FontIdentifier;
+    fn identifier(&self) -> AtomicRef<'_, FontIdentifier>;
     /// Returns true if the given descriptor matches the one in this [`FontTemplate`].
     fn matches_font_descriptor(&self, descriptor_to_match: &FontDescriptor) -> bool;
     /// Calculate the distance from this [`FontTemplate`]s descriptor and return it
@@ -290,12 +290,16 @@ pub trait FontTemplateRefMethods {
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
-    fn descriptor(&self) -> FontTemplateDescriptor {
-        self.borrow().descriptor.clone()
+    fn descriptor(&self) -> AtomicRef<'_, FontTemplateDescriptor> {
+        AtomicRef::map(self.borrow(), |font_template_ref| {
+            &font_template_ref.descriptor
+        })
     }
 
-    fn identifier(&self) -> FontIdentifier {
-        self.borrow().identifier.clone()
+    fn identifier(&self) -> AtomicRef<'_, FontIdentifier> {
+        AtomicRef::map(self.borrow(), |font_template_ref| {
+            &font_template_ref.identifier
+        })
     }
 
     fn matches_font_descriptor(&self, descriptor_to_match: &FontDescriptor) -> bool {

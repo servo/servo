@@ -280,7 +280,7 @@ impl FontContext {
             };
 
         let cache_key = FontCacheKey {
-            font_identifier: font_template.identifier(),
+            font_identifier: font_template.identifier().to_owned(),
             font_descriptor: font_descriptor.clone(),
         };
 
@@ -374,9 +374,10 @@ impl FontContext {
         font: &Font,
         painter_id: PainterId,
     ) -> FontInstanceKey {
-        match font.template.identifier() {
+        let font_template_identifier = font.template.identifier();
+        match &*font_template_identifier {
             FontIdentifier::Local(_) => self.system_font_service_proxy.get_system_font_instance(
-                font.template.identifier(),
+                font.template.identifier().to_owned(),
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
                 font.variations().to_owned(),

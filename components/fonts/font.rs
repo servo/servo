@@ -364,7 +364,7 @@ impl Font {
     }
 
     /// A unique identifier for the font, allowing comparison.
-    pub fn identifier(&self) -> FontIdentifier {
+    pub fn identifier(&self) -> AtomicRef<'_, FontIdentifier> {
         self.template.identifier()
     }
 
@@ -395,7 +395,7 @@ impl Font {
             return Ok(data_and_index);
         }
 
-        let FontIdentifier::Local(local_font_identifier) = self.identifier() else {
+        let FontIdentifier::Local(local_font_identifier) = &*self.identifier() else {
             unreachable!("All web fonts should already have initialized data");
         };
         let Some(data_and_index) = local_font_identifier.font_data_and_index() else {
