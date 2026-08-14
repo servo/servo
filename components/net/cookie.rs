@@ -11,6 +11,7 @@ use std::time::SystemTime;
 
 use cookie::Cookie;
 use log::{Level, debug, log_enabled};
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
 use nom::branch::alt;
@@ -26,7 +27,7 @@ use time::{Date, Duration, Month, OffsetDateTime, Time};
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct ServoCookie {
     #[serde(
         deserialize_with = "hyper_serde::deserialize",

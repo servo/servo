@@ -133,6 +133,16 @@ impl HttpState {
                 kind: ReportKind::ExplicitJemallocHeapSize,
                 size: self.hsts_list.read().size_of(ops),
             },
+            Report {
+                path: path!["auth cache", suffix],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.auth_cache.read().size_of(ops),
+            },
+            Report {
+                path: path!["cookie storage", suffix],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.cookie_jar.read().size_of(ops),
+            },
         ]
     }
 

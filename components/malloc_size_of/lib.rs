@@ -54,6 +54,7 @@ use std::ops::{Range, RangeInclusive};
 use std::rc::Rc;
 use std::sync::{Arc, OnceLock};
 
+use cookie::Cookie;
 use resvg::usvg::fontdb::Source;
 use resvg::usvg::{self, tiny_skia_path};
 use style::properties::ComputedValues;
@@ -1167,6 +1168,14 @@ impl MallocSizeOf for http::HeaderMap {
         self.iter()
             .map(|entry| entry.0.size_of(ops) + entry.1.size_of(ops))
             .sum()
+    }
+}
+
+impl<'a> MallocSizeOf for Cookie<'a> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // While the cookie storage can be more efficient by using the same striing it is unlikely that the values have this property.
+        // We take the string that is probably allocated in cookie an allocate it here to get the correct heap size.
+        self.value().to_owned().size_of(ops)
     }
 }
 
