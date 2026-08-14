@@ -15,6 +15,26 @@ use webrender_api::units::{LayoutRect, LayoutSize};
 use crate::fragment_tree::Tag;
 use crate::query::transform_f32_rectangle;
 
+/// <https://w3c.github.io/paint-timing/#pending-image-record>
+/// Different struct from spec, but Fulfulling the same purpose.
+struct PendingImageRecord {
+    /// The image element this record belongs to.
+    /// for <https://w3c.github.io/paint-timing/#pending-image-record-element>
+    tag: Option<Tag>,
+    /// The image rect (adjusted for object-fit/object-position).
+    bounds: LayoutRect,
+    /// The element's content box.
+    clip_rect: LayoutRect,
+    /// Cumulative transform to root space, computed at collection time.
+    transform: FastLayoutTransform,
+    /// The image URL. `None` for background images.
+    url: Option<ServoUrl>,
+    /// Intrinsic width, used for upscaling normalization.
+    natural_width: Option<Au>,
+    /// Intrinsic height, used for upscaling normalization.
+    natural_height: Option<Au>,
+}
+
 pub(crate) struct PaintTimingHandler {
     /// The rect of viewport.
     viewport_rect: LayoutRect,
@@ -29,8 +49,10 @@ pub(crate) struct PaintTimingHandler {
     /// Flag to indicate if there is an update to LCP candidate.
     /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     lcp_candidate_updated: bool,
-    /// The set of nodes that have been reported as LCP candidates.
-    reported_lcp_nodes: HashSet<OpaqueNode>,
+    /// The set of image nodes that have been reported as LCP candidates.
+    reported_image_nodes: HashSet<OpaqueNode>,
+    /// <https://w3c.github.io/paint-timing/#paintedImages>
+    painted_images: Vec<PendingImageRecord>,
 }
 
 impl PaintTimingHandler {
@@ -42,8 +64,36 @@ impl PaintTimingHandler {
             lcp_candidate: None,
             lcp_candidate_updated: false,
             viewport_rect: LayoutRect::from_size(viewport_size),
-            reported_lcp_nodes: HashSet::new(),
+            reported_image_nodes: HashSet::new(),
+            painted_images: Vec::new(),
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn append_image_record(
+        &mut self,
+        tag: Option<Tag>,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        transform: FastLayoutTransform,
+        url: Option<ServoUrl>,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
+    ) {
+        if let Some(node) = tag.map(|tag| tag.node) &&
+            !self.reported_image_nodes.insert(node)
+        {
+            return;
+        }
+        self.painted_images.push(PendingImageRecord {
+            tag,
+            bounds,
+            clip_rect,
+            transform,
+            url,
+            natural_width,
+            natural_height,
+        });
     }
 
     // Returns true if has non-zero width and height values.
@@ -152,78 +202,83 @@ impl PaintTimingHandler {
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#compute-a-new-largest-contentful-paint-candidate>
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn compute_new_lcp_candidate(
-        &mut self,
-        tag: Option<Tag>,
-        bounds: LayoutRect,
-        clip_rect: LayoutRect,
-        transform: FastLayoutTransform,
-        url: Option<ServoUrl>,
-        natural_width: Option<Au>,
-        natural_height: Option<Au>,
-    ) {
-        // From <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>:
-        // Each pending image record in paintedImages and text element in
-        // paintedTextNodes will only be reported exactly once, from mark paint
-        // timing, for the first paint where the element is considered
-        // paintable (i.e. has opacity and visibility) and contentful
-        // (i.e. image resource or blocking fonts are sufficiently loaded).
-        if let Some(node) = tag.map(|tag| tag.node) &&
-            !self.reported_lcp_nodes.insert(node)
-        {
-            return;
+    pub(crate) fn compute_new_lcp_candidate(&mut self) {
+        // Step 1. Let currentSize be currentCandidate’s size if
+        // currentCandidate is not null or 0 otherwise.
+        // Step 2. Let largestSize be currentSize.
+        let mut largest_size = self.lcp_size;
+        // let mut best: Option<(Tag, Option<ServoUrl>, f32)> = None;
+
+        // Step 3. Let newCandidate be null.
+        let mut new_candidate = None;
+        let mut new_candidate_tag = None;
+
+        // Step 4. For each record of paintedImages:
+        for record in std::mem::take(&mut self.painted_images) {
+            // Step 4.1. Let imageElement be record’s element.
+
+            // TODO Step 4.2. If imageElement is not exposed for paint timing,
+            // given document, continue.
+            // Step 4.3. Let intersectionRect be the value returned by the
+            // intersection rect algorithm using imageElement as the target
+            // and viewport as the root.
+            let intersection_rect =
+                transform_f32_rectangle(record.clip_rect.to_rect(), record.transform)
+                    .unwrap_or_default()
+                    .intersection(&self.viewport_rect.to_rect())
+                    .map(|rect| rect.to_box2d())
+                    .unwrap_or_default();
+
+            // Step 4.4. Let result be the effective visual size of imageElement
+            // given intersectionRect and record's request.
+            let result = self.effective_visual_size(
+                record.bounds,
+                record.clip_rect,
+                intersection_rect,
+                record.transform,
+                record.natural_width,
+                record.natural_height,
+            );
+
+            // Step 4.5. If result is null, continue.
+            let Some(result) = result else {
+                continue;
+            };
+            // Step 4.6. If result's size is less than or equal to
+            // largestSize, continue.
+            if result <= largest_size {
+                continue;
+            }
+
+            // Step 4.7. Set largestSize to result’s size.
+            largest_size = result;
+
+            // Step 4.8. Set newCandidate to be a new largest contentful paint candidate ...
+            let uuid = self.lcp_next_uuid;
+            self.lcp_next_uuid += 1;
+            new_candidate = Some(LCPCandidate::new(
+                LCPCandidateID(uuid),
+                result as usize,
+                record.url,
+            ));
+            new_candidate_tag = record.tag;
         }
 
-        // Step 4.1. Let imageElement be record’s element.
-        // TODO Step 4.2. If imageElement is not exposed for paint timing, given
-        // document, continue.
-        // Note: We are only dealing with images for now.
+        // TODO Step 5. For each textNode of paintedTextNodes,
 
-        // Step 4.3. Let intersectionRect be the value returned by the intersection rect
-        // algorithm using imageElement as the target and viewport as the root.
-        let intersection_rect = transform_f32_rectangle(clip_rect.to_rect(), transform)
-            .unwrap_or_default()
-            .intersection(&self.viewport_rect.to_rect())
-            .map(|rect| rect.to_box2d())
-            .unwrap_or_default();
-
-        // Step 4.4. Let result be the effective visual size of imageElement
-        // given intersectionRect and record’s request.
-        let result = self.effective_visual_size(
-            bounds,
-            clip_rect,
-            intersection_rect,
-            transform,
-            natural_width,
-            natural_height,
-        );
-
-        // Step 4.5. If result is null, continue.
-        let Some(result) = result else {
-            return;
-        };
-
-        // Step 4.6. If result’s size is less than or equal to largestSize, continue.
-        if result <= self.lcp_size {
-            return;
+        // Step 6. If newCandidate is not null and currentSize is greater than 0:
+        // TODO Step 6.1. If newCandidate’s width minus currentCandidate’s
+        // width is less than or equal to 3, and newCandidate’s height minus
+        // currentCandidate’s height is less than or equal to 3, return null.
+        if new_candidate.is_some() {
+            self.lcp_size = largest_size;
+            self.lcp_candidate = new_candidate;
+            self.lcp_node = new_candidate_tag.map(|tag| tag.node);
+            self.lcp_candidate_updated = true;
         }
 
-        // Step 4.7. Set largestSize to result’s size.
-        self.lcp_size = result;
-
-        let uuid = self.lcp_next_uuid;
-        self.lcp_next_uuid += 1;
-        self.lcp_node = tag.map(|tag| tag.node);
-
-        // Step 4.8. Set newCandidate to be a new largest contentful paint candidate ...
-        self.lcp_candidate = Some(LCPCandidate::new(
-            LCPCandidateID(uuid),
-            self.lcp_size as usize,
-            url,
-        ));
-
-        self.lcp_candidate_updated = true;
+        // Step 7. Return newCandidate.
+        // Note: We use flag lcp_candidate_updated for updating, needs revisit
     }
 
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {
