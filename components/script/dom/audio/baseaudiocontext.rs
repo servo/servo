@@ -16,6 +16,7 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
+use script_bindings::codegen::GenericBindings::PeriodicWaveBinding::PeriodicWaveMethods;
 use servo_base::id::PipelineId;
 use servo_media::audio::context::{
     AudioContext, AudioContextOptions, OfflineAudioContextOptions, ProcessingState,
@@ -59,6 +60,9 @@ use crate::dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use crate::dom::bindings::codegen::Bindings::IIRFilterNodeBinding::IIRFilterOptions;
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
+use crate::dom::bindings::codegen::Bindings::PeriodicWaveBinding::{
+    PeriodicWaveConstraints, PeriodicWaveOptions,
+};
 use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerOptions;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -70,6 +74,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::promise::Promise;
+use crate::dom::types::PeriodicWave;
 
 pub(crate) enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),
@@ -365,6 +370,28 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner>
     fn CreatePanner(&self, cx: &mut JSContext) -> Fallible<DomRoot<PannerNode>> {
         PannerNode::new(cx, self.global().as_window(), self, &PannerOptions::empty())
+    }
+
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createperiodicwave>
+    fn CreatePeriodicWave(
+        &self,
+        cx: &mut JSContext,
+        real: Vec<Finite<f32>>,
+        imag: Vec<Finite<f32>>,
+        constraints: &PeriodicWaveConstraints,
+    ) -> Fallible<DomRoot<PeriodicWave>> {
+        // options is a new object of type PeriodicWaveOptions.
+        let mut options = PeriodicWaveOptions::empty();
+        let mut constraints_copy = PeriodicWaveConstraints::empty();
+        // Set the disableNormalization attribute on options to the value of the
+        // disableNormalization attribute of the constraints attribute passed to the factory method.
+        constraints_copy.disableNormalization = constraints.disableNormalization;
+        // Respectively set the real and imag parameters passed to this factory method to the attributes
+        // of the same name on options.
+        options.real = Some(real);
+        options.imag = Some(imag);
+        options.parent = constraints_copy;
+        PeriodicWave::Constructor(cx, self.global().as_window(), None, self, &options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createanalyser>
