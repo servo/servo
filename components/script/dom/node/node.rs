@@ -15,6 +15,7 @@ use std::{cmp, fmt, iter};
 
 use app_units::Au;
 use bitflags::bitflags;
+#[cfg(feature = "devtools")]
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use embedder_traits::{MouseButton, UntrustedNodeAddress};
@@ -43,6 +44,7 @@ use script_bindings::reflector::{
 };
 use script_traits::{DocumentActivity, MouseButtons};
 use servo_base::id::PipelineId;
+#[cfg(feature = "devtools")]
 use servo_config::pref;
 use smallvec::SmallVec;
 use style::Atom;
@@ -53,11 +55,12 @@ use style::selector_parser::PseudoElement;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
-
+#[cfg(feature = "devtools")]
 use crate::conversions::Convert;
 use crate::dom::ChildrenMutation;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+#[cfg(feature = "devtools")]
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -1836,6 +1839,7 @@ impl Node {
             .to_string()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn summarize(&self, cx: &mut JSContext) -> NodeInfo {
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();

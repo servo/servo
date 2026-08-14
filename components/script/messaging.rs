@@ -9,6 +9,7 @@ use std::option::Option;
 use std::result::Result;
 
 use crossbeam_channel::{Receiver, Select, SelectedOperation, SendError, Sender};
+#[cfg(feature = "devtools")]
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, ScriptToEmbedderChan};
 use net_traits::FetchResponseMsg;
@@ -45,6 +46,7 @@ use crate::tasks::task_source::TaskSourceName;
 pub(crate) enum MixedMessage {
     FromConstellation(ScriptThreadMessage),
     FromScript(MainThreadScriptMsg),
+    #[cfg(feature = "devtools")]
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResponseMessage),
     #[cfg(feature = "webgpu")]
@@ -91,6 +93,7 @@ impl MixedMessage {
                     child: _,
                 } => Some(*id),
                 ScriptThreadMessage::DispatchStorageEvent(id, ..) => Some(*id),
+                #[cfg(feature = "devtools")]
                 ScriptThreadMessage::ReportCSSError(id, ..) => Some(*id),
                 ScriptThreadMessage::Reload(id, ..) => Some(*id),
                 ScriptThreadMessage::PaintMetric(id, ..) => Some(*id),
@@ -139,7 +142,9 @@ impl MixedMessage {
                     Some(response.pipeline_id)
                 },
             },
-            MixedMessage::FromDevtools(_) | MixedMessage::TimerFired => None,
+            #[cfg(feature = "devtools")]
+            MixedMessage::FromDevtools(_) => None,
+            MixedMessage::TimerFired => None,
             #[cfg(feature = "webgpu")]
             MixedMessage::FromWebGPUServer(..) => None,
         }
@@ -413,9 +418,11 @@ pub(crate) struct ScriptThreadSenders {
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
+    #[cfg(feature = "devtools")]
     pub(crate) devtools_server_sender: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
 
     #[no_trace]
+    #[cfg(feature = "devtools")]
     pub(crate) devtools_client_to_script_thread_sender: GenericSender<DevtoolScriptControlMsg>,
 }
 
@@ -432,6 +439,7 @@ pub(crate) struct ScriptThreadReceivers {
     /// For receiving commands from an optional devtools server. Will be ignored if no such server
     /// exists. When devtools are not active this will be [`crossbeam_channel::never()`].
     #[no_trace]
+    #[cfg(feature = "devtools")]
     pub(crate) devtools_server_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
 
     /// Receiver to receive commands from optional WebGPU server. When there is no active
@@ -455,6 +463,7 @@ impl ScriptThreadReceivers {
         let task_recv = task_queue.select();
         let task_index = select.recv(task_recv);
         let constellation_index = select.recv(&self.constellation_receiver);
+        #[cfg(feature = "devtools")]
         let devtools_index = select.recv(&self.devtools_server_receiver);
         let image_cache_index = select.recv(&self.image_cache_receiver);
 
@@ -479,16 +488,19 @@ impl ScriptThreadReceivers {
                         .unwrap()
                         .unwrap(),
                 )
-            } else if index == devtools_index {
-                MixedMessage::FromDevtools(
-                    operation
-                        .recv(&self.devtools_server_receiver)
-                        .unwrap()
-                        .unwrap(),
-                )
             } else if index == image_cache_index {
                 MixedMessage::FromImageCache(operation.recv(&self.image_cache_receiver).unwrap())
             } else {
+                #[cfg(feature = "devtools")]
+                if index == devtools_index {
+                    MixedMessage::FromDevtools(
+                        operation
+                            .recv(&self.devtools_server_receiver)
+                            .unwrap()
+                            .unwrap(),
+                    )
+                }
+
                 #[cfg(feature = "webgpu")]
                 {
                     debug_assert_eq!(index, webgpu_index);
@@ -532,6 +544,7 @@ impl ScriptThreadReceivers {
         if let Ok(message) = task_queue.take_tasks_and_recv(fully_active) {
             return MixedMessage::FromScript(message).into();
         }
+        #[cfg(feature = "devtools")]
         if let Ok(message) = self.devtools_server_receiver.try_recv() {
             return MixedMessage::FromDevtools(message.unwrap()).into();
         }

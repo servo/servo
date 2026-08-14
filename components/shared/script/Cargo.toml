@@ -16,13 +16,14 @@ path = "lib.rs"
 [features]
 bluetooth = ["servo-bluetooth-traits"]
 webgl = []
+devtools = ["dep:devtools_traits"]
 webgpu = ["dep:webgpu_traits"]
 
 [dependencies]
 accesskit = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools_traits = { workspace = true }
+devtools_traits = { workspace = true, optional = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }

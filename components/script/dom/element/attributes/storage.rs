@@ -5,6 +5,7 @@
 use std::cell::Ref;
 use std::ops::Deref;
 
+#[cfg(feature = "devtools")]
 use devtools_traits::AttrInfo;
 use html5ever::{LocalName, Namespace, Prefix};
 use js::context::JSContext;
@@ -145,6 +146,7 @@ impl<'a> AttrRef<'a> {
     }
 
     /// Returns a summary for devtools.
+    #[cfg(feature = "devtools")]
     pub(crate) fn summarize(&self) -> AttrInfo {
         AttrInfo {
             namespace: (**self.namespace()).to_owned(),

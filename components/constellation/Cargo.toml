@@ -16,6 +16,7 @@ path = "lib.rs"
 [features]
 default = []
 bluetooth = ["servo-bluetooth-traits"]
+devtools = ["dep:devtools_traits"]
 gamepad = ["embedder_traits/gamepad"]
 tracing = ["dep:tracing", "servo-canvas/tracing"]
 vello = ["servo-canvas/vello"]
@@ -32,7 +33,7 @@ backtrace = { workspace = true }
 base64 = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools_traits = { workspace = true }
+devtools_traits = { workspace = true , optional = true}
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }

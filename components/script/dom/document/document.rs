@@ -19,6 +19,7 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use content_security_policy::{CspList, Policy as CspPolicy, PolicyDisposition};
 use cookie::Cookie;
 use data_url::mime::Mime;
+#[cfg(feature = "devtools")]
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{
@@ -1466,6 +1467,7 @@ impl Document {
                     self.window.pipeline_id(),
                     title.clone(),
                 ));
+            #[cfg(feature = "devtools")]
             if let Some(chan) = self.window.as_global_scope().devtools_chan() {
                 let _ = chan.send(ScriptToDevtoolsControlMsg::TitleChanged(
                     self.window.pipeline_id(),
@@ -6872,6 +6874,7 @@ fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum AnimationFrameCallback {
+    #[cfg(feature = "devtools")]
     DevtoolsFramerateTick {
         actor_name: String,
     },
@@ -6884,6 +6887,7 @@ pub(crate) enum AnimationFrameCallback {
 impl AnimationFrameCallback {
     fn call(&self, cx: &mut JSContext, document: &Document, now: f64) {
         match *self {
+            #[cfg(feature = "devtools")]
             AnimationFrameCallback::DevtoolsFramerateTick { ref actor_name } => {
                 let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name.clone(), now);
                 let devtools_sender = document.window().as_global_scope().devtools_chan().unwrap();

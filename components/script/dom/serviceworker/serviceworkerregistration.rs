@@ -4,8 +4,7 @@
 
 use std::cell::Cell;
 use std::rc::Rc;
-
-use devtools_traits::WorkerId;
+use servo_base::id::WorkerId;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::request::Referrer;
@@ -140,9 +139,11 @@ impl ServiceWorkerRegistration {
             .downcast::<Window>()
             .and_then(|window| window.webgl_chan_value());
         let worker_id = WorkerId(Uuid::new_v4());
+        #[cfg(feature = "devtools")]
         let devtools_chan = global.devtools_chan().cloned();
         let init = prepare_workerscope_init(
             global,
+            #[cfg(feature = "devtools")]
             None,
             Some(worker_id),
             #[cfg(feature = "webgl")]
@@ -159,7 +160,9 @@ impl ServiceWorkerRegistration {
             script_url,
             init,
             worker_load_origin,
+            #[cfg(feature = "devtools")]
             devtools_chan,
+            #[cfg(feature = "devtools")]
             worker_id,
             browsing_context_id,
             webview_id,
