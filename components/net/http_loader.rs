@@ -644,14 +644,14 @@ async fn obtain_response(
         .timing
         .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
-    #[cfg(feature = "devtools")]
-    {
-        let request_id = request_id.map(|v| v.to_owned());
-        let pipeline_id = *pipeline_id;
-        let closure_url = url.clone();
-        let method = method.clone();
-        let send_start = CrossProcessInstant::now();
-    }
+    // #[cfg(feature = "devtools")]
+    // {
+    let request_id = request_id.map(|v| v.to_owned());
+    let pipeline_id = *pipeline_id;
+    let closure_url = url.clone();
+    let method = method.clone();
+    let send_start = CrossProcessInstant::now();
+    // }
 
     let host = request.uri().host().unwrap_or("").to_owned();
     let override_manager = context.state.override_manager.clone();
@@ -736,8 +736,7 @@ async fn obtain_response(
 
 /// Setup the callback mechanism to forward chunks from the request received to the `chunk_requester`.
 fn obtain_response_setup_router_callback(
-    #[cfg(feature = "devtools")]
-    devtools_bytes: StdArc<Mutex<Vec<u8>>>,
+    #[cfg(feature = "devtools")] devtools_bytes: StdArc<Mutex<Vec<u8>>>,
     chunk_requester: StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     sink: BodySink,
     fetch_terminated: UnboundedSender<bool>,

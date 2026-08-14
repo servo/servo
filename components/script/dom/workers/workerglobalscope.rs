@@ -110,8 +110,7 @@ use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 /// <https://html.spec.whatwg.org/multipage/#animation-frames>
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
-    #[cfg(feature = "devtools")]
-    devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
+    #[cfg(feature = "devtools")] devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
     #[cfg(feature = "webgl")] webgl_chan: Option<WebGLChan>,
 ) -> WorkerGlobalScopeInit {
@@ -400,8 +399,7 @@ impl WorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
-        #[cfg(feature = "devtools")]
-        devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        #[cfg(feature = "devtools")] devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,

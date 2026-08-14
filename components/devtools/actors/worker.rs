@@ -5,8 +5,8 @@
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::DevtoolScriptControlMsg;
+use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
