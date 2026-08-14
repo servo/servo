@@ -1159,9 +1159,10 @@ impl ParserContext {
         // Step 1. Let document be the result of creating and initializing a Document
         // object given "html", type, and navigationParams.
         self.initialize_document_object(&parser.document);
+
         // Step 8. Act as if the user agent had stopped parsing document.
         self.is_synthesized_document = true;
-        parser.last_chunk_received.set(true);
+
         // Step 3. Populate with html/head/body given document.
         let page = "<html><body></body></html>".into();
         parser.push_string_input_chunk(page);
@@ -1239,8 +1240,8 @@ impl ParserContext {
         self.is_synthesized_document = true;
         parser.document.mark_as_internal();
         parser.push_string_input_chunk(page);
+
         // Step 7. Act as if the user agent had stopped parsing document.
-        parser.last_chunk_received.set(true);
         parser.parse_sync(cx);
     }
 
