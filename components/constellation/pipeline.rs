@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use devtools_traits::WorkerId;
+use servo_base::id::WorkerId;
 use embedder_traits::{AnimationState, FocusSequenceNumber};
 use layout_api::ScriptThreadFactory;
 use log::{debug, error, warn};
