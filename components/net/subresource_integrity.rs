@@ -12,38 +12,88 @@ use net_traits::response::{Response, ResponseBody, ResponseType};
 use parking_lot::MutexGuard;
 use regex::Regex;
 
-const SUPPORTED_ALGORITHM: &[&str] = &["sha256", "sha384", "sha512"];
-pub type StaticCharVec = &'static [char];
+type StaticCharVec = &'static [char];
 /// A "space character" according to:
 ///
 /// <https://html.spec.whatwg.org/multipage/#space-character>
-pub static HTML_SPACE_CHARACTERS: StaticCharVec =
+static HTML_SPACE_CHARACTERS: StaticCharVec =
     &['\u{0020}', '\u{0009}', '\u{000a}', '\u{000c}', '\u{000d}'];
-#[derive(Clone)]
-pub struct SriEntry {
-    pub alg: String,
-    pub val: String,
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+/// The algorithm used. The order is specified <https://w3c.github.io/webappsec-subresource-integrity>
+pub enum Algorithm {
+    Sha256 = 1,
+    Sha384 = 2,
+    Sha512 = 3,
+}
+
+impl TryFrom<&str> for Algorithm {
+    /// Any error means that it is unsuported.
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "sha256" => Ok(Algorithm::Sha256),
+            "sha384" => Ok(Algorithm::Sha384),
+            "sha512" => Ok(Algorithm::Sha512),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SriEntry<'a> {
+    pub algorithm: Algorithm,
+    pub val: &'a str,
     // TODO : Current version of spec does not define any option.
     // Can be refactored into appropriate datastructure when future
     // spec has more details.
     pub opt: Option<String>,
 }
 
-impl SriEntry {
-    pub fn new(alg: &str, val: &str, opt: Option<String>) -> SriEntry {
+impl<'a> SriEntry<'a> {
+    pub fn new(algorithm: Algorithm, val: &'a str, opt: Option<String>) -> SriEntry<'a> {
         SriEntry {
-            alg: alg.to_owned(),
-            val: val.to_owned(),
+            algorithm,
+            val,
             opt,
         }
     }
 }
 
+static BASE64_GRAMMAR: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[A-Za-z0-9+/_-]+={0,2}$").unwrap());
+
+fn parse_token<'a>(token: &'a str) -> Option<SriEntry<'a>> {
+    // Step 2.1. Let expression-and-options be the result of splitting item on U+003F (?).
+    let mut expression_and_option = token.split('?');
+
+    // Step 2.2. Let algorithm-expression be expression-and-options[0].
+    let algorithm_expression = expression_and_option.next()?;
+
+    // Step 2.4. Let algorithm-and-value be the result of splitting algorithm-expression on U+002D (-).
+    let mut algorithm_and_value = algorithm_expression.split('-');
+
+    // Step 2.5. Let algorithm be algorithm-and-value[0].
+    let algorithm = algorithm_and_value.next()?;
+
+    // Step 2.6. If algorithm is not a valid SRI hash algorithm token, then continue.
+    let algorithm = algorithm.try_into().ok()?;
+
+    // Step 2.3. Let base64-value be the empty string.
+    // Step 2.7. If algorithm-and-value[1] exists, set base64-value to algorithm-and-value[1].
+    let digest = algorithm_and_value
+        .next()
+        // check if digest follows the base64 grammar defined by CSP spec
+        .filter(|value| BASE64_GRAMMAR.is_match(value))?;
+
+    let opt = expression_and_option.next().map(|opt| (*opt).to_owned());
+    Some(SriEntry::new(algorithm, digest, opt))
+}
+
 /// <https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata>
-pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
+pub fn parsed_metadata<'a>(integrity_metadata: &'a str) -> Vec<SriEntry<'a>> {
     // https://w3c.github.io/webappsec-csp/#grammardef-base64-value
-    static BASE64_GRAMMAR: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"^[A-Za-z0-9+/_-]+={0,2}$").unwrap());
 
     // Step 1. Let result be the empty set.
     let mut result = vec![];
@@ -51,81 +101,37 @@ pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
     // Step 2. For each item returned by splitting metadata on spaces:
     let tokens = split_html_space_chars(integrity_metadata);
     for token in tokens {
-        // Step 2.1. Let expression-and-options be the result of splitting item on U+003F (?).
-        let expression_and_option: Vec<&str> = token.split('?').collect();
-
-        // Step 2.2. Let algorithm-expression be expression-and-options[0].
-        let algorithm_expression = expression_and_option[0];
-
-        // Step 2.4. Let algorithm-and-value be the result of splitting algorithm-expression on U+002D (-).
-        let algorithm_and_value: Vec<&str> = algorithm_expression.split('-').collect();
-
-        // Step 2.5. Let algorithm be algorithm-and-value[0].
-        let algorithm = algorithm_and_value[0];
-
-        // Step 2.6. If algorithm is not a valid SRI hash algorithm token, then continue.
-        if !SUPPORTED_ALGORITHM.contains(&algorithm) {
-            continue;
-        }
-
-        // Step 2.3. Let base64-value be the empty string.
-        // Step 2.7. If algorithm-and-value[1] exists, set base64-value to algorithm-and-value[1].
-        let Some(digest) = algorithm_and_value
-            .get(1)
-            // check if digest follows the base64 grammar defined by CSP spec
-            .filter(|value| BASE64_GRAMMAR.is_match(value))
-        else {
-            continue;
-        };
-
-        let opt = expression_and_option.get(1).map(|opt| (*opt).to_owned());
-
         // Step 2.8. Let metadata be the ordered map «["alg" → algorithm, "val" → base64-value]».
         // Step 2.9. Append metadata to result.
-        result.push(SriEntry::new(algorithm, digest, opt));
+        let Some(sri) = parse_token(token) else {
+            continue;
+        };
+        result.push(sri);
     }
 
     result
 }
 
-/// <https://w3c.github.io/webappsec-subresource-integrity/#getprioritizedhashfunction>
-pub fn get_prioritized_hash_function(
-    hash_func_left: &str,
-    hash_func_right: &str,
-) -> Option<String> {
-    let left_priority = SUPPORTED_ALGORITHM
-        .iter()
-        .position(|s| *s == hash_func_left)
-        .unwrap();
-    let right_priority = SUPPORTED_ALGORITHM
-        .iter()
-        .position(|s| *s == hash_func_right)
-        .unwrap();
-
-    if left_priority == right_priority {
-        return None;
-    }
-    if left_priority > right_priority {
-        Some(hash_func_left.to_owned())
-    } else {
-        Some(hash_func_right.to_owned())
-    }
-}
-
 /// <https://w3c.github.io/webappsec-subresource-integrity/#get-the-strongest-metadata>
-pub fn get_strongest_metadata(integrity_metadata_list: Vec<SriEntry>) -> Vec<SriEntry> {
+pub fn get_strongest_metadata<'a>(integrity_metadata_list: Vec<SriEntry<'a>>) -> Vec<SriEntry<'a>> {
     let mut result: Vec<SriEntry> = vec![integrity_metadata_list[0].clone()];
-    let mut current_algorithm = result[0].alg.clone();
+    let mut current_algorithm = result[0].algorithm;
 
-    for integrity_metadata in &integrity_metadata_list[1..] {
-        let prioritized_hash =
-            get_prioritized_hash_function(&integrity_metadata.alg, &current_algorithm);
+    for integrity_metadata in integrity_metadata_list.into_iter().skip(1) {
+        let prioritized_hash = if integrity_metadata.algorithm < current_algorithm {
+            Some(current_algorithm)
+        } else if integrity_metadata.algorithm > current_algorithm {
+            Some(integrity_metadata.algorithm)
+        } else {
+            None
+        };
+
         if prioritized_hash.is_none() {
-            result.push(integrity_metadata.clone());
+            result.push(integrity_metadata);
         } else if let Some(algorithm) = prioritized_hash &&
             algorithm != current_algorithm
         {
-            result = vec![integrity_metadata.clone()];
+            result = vec![integrity_metadata];
             current_algorithm = algorithm;
         }
     }
@@ -172,14 +178,12 @@ pub fn is_response_integrity_valid(integrity_metadata: &str, response: &Response
     let metadata: Vec<SriEntry> = get_strongest_metadata(parsed_metadata_list);
     for item in metadata {
         let body = response.body.lock();
-        let algorithm = item.alg;
         let digest = item.val;
 
-        let hashed = match &*algorithm {
-            "sha256" => apply_algorithm_to_response(body, &digest::SHA256),
-            "sha384" => apply_algorithm_to_response(body, &digest::SHA384),
-            "sha512" => apply_algorithm_to_response(body, &digest::SHA512),
-            _ => continue,
+        let hashed = match item.algorithm {
+            Algorithm::Sha256 => apply_algorithm_to_response(body, &digest::SHA256),
+            Algorithm::Sha384 => apply_algorithm_to_response(body, &digest::SHA384),
+            Algorithm::Sha512 => apply_algorithm_to_response(body, &digest::SHA512),
         };
 
         if hashed == digest {
