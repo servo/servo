@@ -8784,6 +8784,7 @@ dependencies = [
  "rustc-hash 2.1.3",
  "rustls-pki-types",
  "serde",
+ "serde_bytes",
  "servo-base",
  "servo-config",
  "servo-default-resources",
