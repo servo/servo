@@ -239,7 +239,9 @@ pub(crate) mod css;
 pub(crate) use self::css::*;
 pub(crate) mod datatransfer;
 pub(crate) use self::datatransfer::*;
+#[cfg(feature = "devtools")]
 pub(crate) mod debugger;
+#[cfg(feature = "devtools")]
 pub(crate) use self::debugger::*;
 pub(crate) mod document;
 pub(crate) use self::document::*;
