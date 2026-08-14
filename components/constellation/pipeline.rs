@@ -5,7 +5,6 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use servo_base::id::WorkerId;
 use embedder_traits::{AnimationState, FocusSequenceNumber};
 use layout_api::ScriptThreadFactory;
 use log::{debug, error, warn};
@@ -15,7 +14,7 @@ use script_traits::{
     DiscardBrowsingContext, DocumentActivity, NewPipelineInfo, ScriptThreadMessage,
 };
 use servo_base::generic_channel::SendError;
-use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId};
+use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId, WebViewId, WorkerId};
 use servo_constellation_traits::{LoadData, ServiceWorkerManagerFactory};
 use servo_url::ServoUrl;
 

@@ -73,6 +73,7 @@ harness = false
 
 [features]
 bluetooth = []
+devtools = []
 gamepad = []
 testbinding = []
 tracing = ["dep:tracing"]

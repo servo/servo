@@ -11,7 +11,6 @@
 
 use std::sync::Arc;
 
-#[cfg(feature = "devtools")]
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
