@@ -6,13 +6,13 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
-use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
+use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashSet;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_base::generic_channel::GenericSender;
-use servo_base::id::TEST_PIPELINE_ID;
+use servo_base::id::{TEST_PIPELINE_ID, WorkerId};
 use servo_url::ServoUrl;
 
 use crate::StreamId;

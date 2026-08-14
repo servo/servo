@@ -1011,6 +1011,7 @@ impl Servo {
             paint_proxy,
             time_profiler_chan,
             mem_profiler_chan,
+            #[cfg(feature = "devtools")]
             devtools_sender,
             protocols,
             public_resource_threads.clone(),
@@ -1219,6 +1220,7 @@ fn create_constellation(
     paint_proxy: PaintProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
+    #[cfg(feature = "devtools")]
     devtools_sender: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     protocols: Arc<ProtocolRegistry>,
     public_resource_threads: ResourceThreads,
@@ -1248,6 +1250,7 @@ fn create_constellation(
         paint_proxy,
         embedder_proxy,
         constellation_to_embedder_proxy,
+        #[cfg(feature = "devtools")]
         devtools_sender,
         #[cfg(feature = "bluetooth")]
         bluetooth_thread,
