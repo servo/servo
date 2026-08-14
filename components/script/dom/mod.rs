@@ -351,6 +351,10 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) mod gpucanvascontext;
+#[cfg(feature = "webnn")]
+pub(crate) mod webnn;
+#[cfg(feature = "webnn")]
+pub(crate) use self::webnn::*;
 #[cfg(feature = "webcrypto")]
 pub(crate) mod webcrypto;
 #[cfg(feature = "webcrypto")]
