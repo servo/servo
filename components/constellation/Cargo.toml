@@ -33,7 +33,7 @@ backtrace = { workspace = true }
 base64 = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools_traits = { workspace = true , optional = true}
+devtools_traits = { workspace = true, optional = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }

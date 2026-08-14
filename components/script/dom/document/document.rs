@@ -7191,9 +7191,7 @@ fn update_with_current_instant(marker: &Cell<Option<CrossProcessInstant>>) {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum AnimationFrameCallback {
     #[cfg(feature = "devtools")]
-    DevtoolsFramerateTick {
-        actor_name: String,
-    },
+    DevtoolsFramerateTick { actor_name: String },
     FrameRequestCallback {
         callback: TracedCallback<FrameRequestCallback>,
     },

@@ -51,11 +51,11 @@ debugmozjs = ["script/debugmozjs"]
 devtools = [
     "dep:devtools",
     "dep:devtools_traits",
-    # "net/devtools",
-    # "script/devtools",
-    # "servo-constellation/devtools",
-    # "script_traits/devtools",
-    # "servo-constellation-traits/devtools",
+    "net/devtools",
+    "script/devtools",
+    "servo-constellation/devtools",
+    "script_traits/devtools",
+    "servo-constellation-traits/devtools",
 ]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 gamepad = [
