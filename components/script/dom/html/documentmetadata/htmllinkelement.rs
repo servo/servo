@@ -58,6 +58,7 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
+use crate::dom::srcset::SourceSet;
 use crate::dom::types::{EventTarget, GlobalScope};
 use crate::links::LinkRelations;
 use crate::modules::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
@@ -110,6 +111,8 @@ pub(crate) struct HTMLLinkElement {
     previous_media_environment_matched: Cell<bool>,
     /// Line number this element was created on
     line_number: u64,
+    /// <https://html.spec.whatwg.org/multipage/#source-set>
+    source_set: DomRefCell<SourceSet>,
     /// <https://html.spec.whatwg.org/multipage/#dom-link-blocking>
     blocking: MutNullableDom<DOMTokenList>,
 }
@@ -135,6 +138,7 @@ impl HTMLLinkElement {
             previous_type_matched: Cell::new(true),
             previous_media_environment_matched: Cell::new(true),
             line_number: creator.return_line_number(),
+            source_set: DomRefCell::new(SourceSet::new()),
             blocking: Default::default(),
         }
     }
@@ -336,6 +340,21 @@ impl VirtualMethods for HTMLLinkElement {
                     self.fetch_and_process_modulepreload(cx);
                 }
             },
+            local_name!("imagesrcset") => {
+                self.source_set
+                    .borrow_mut()
+                    .update_source_set(self.upcast::<Element>());
+            },
+            local_name!("imagesizes") => {
+                if self
+                    .upcast::<Element>()
+                    .has_attribute(&local_name!("imagesrcset"))
+                {
+                    self.source_set
+                        .borrow_mut()
+                        .update_source_set(self.upcast::<Element>());
+                }
+            },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
                 self.handle_favicon_url(&attr.value());
             },
@@ -441,38 +460,41 @@ impl VirtualMethods for HTMLLinkElement {
             s.bind_to_tree(cx, context);
         }
 
+        let element = self.upcast::<Element>();
+        let href = element.get_attribute_string_value(&local_name!("href"));
+
         if context.tree_connected &&
-            let Some(href) = self
-                .upcast::<Element>()
-                .get_attribute_string_value(&local_name!("href"))
+            (href.is_some() || element.has_attribute(&local_name!("imagesrcset")))
         {
             let relations = self.relations.get();
             // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
             // > When the external resource link's link element becomes browsing-context connected.
-            if relations.contains(LinkRelations::STYLESHEET) {
-                self.handle_stylesheet_url(cx);
-            }
+            if let Some(href) = href {
+                if relations.contains(LinkRelations::STYLESHEET) {
+                    self.handle_stylesheet_url(cx);
+                }
 
-            if relations.contains(LinkRelations::ICON) {
-                self.handle_favicon_url(&href);
-            }
+                if relations.contains(LinkRelations::ICON) {
+                    self.handle_favicon_url(&href);
+                }
 
-            if relations.contains(LinkRelations::PREFETCH) {
-                self.fetch_and_process_prefetch_link(&href);
+                if relations.contains(LinkRelations::PREFETCH) {
+                    self.fetch_and_process_prefetch_link(&href);
+                }
+
+                // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
+                if relations.contains(LinkRelations::MODULE_PRELOAD) {
+                    let link = DomRoot::from_ref(self);
+                    self.owner_document().add_delayed_task(
+                        task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
+                            link.fetch_and_process_modulepreload(cx);
+                        }),
+                    );
+                }
             }
 
             if relations.contains(LinkRelations::PRELOAD) {
                 self.handle_preload_url();
-            }
-
-            // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
-            if relations.contains(LinkRelations::MODULE_PRELOAD) {
-                let link = DomRoot::from_ref(self);
-                self.owner_document().add_delayed_task(
-                    task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
-                        link.fetch_and_process_modulepreload(cx);
-                    }),
-                );
             }
         }
     }
@@ -514,7 +536,7 @@ impl HTMLLinkElement {
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
             policy_container: document.policy_container().to_owned(),
-            source_set: None, // FIXME
+            source_set: Some(self.source_set.borrow().clone()),
             origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),
             request_client: global.request_client(None),
@@ -891,7 +913,9 @@ impl HTMLLinkElement {
     /// and type matching destination steps of <https://html.spec.whatwg.org/multipage/#preload>
     fn handle_preload_url(&self) {
         // Step 1. Update the source set for el.
-        // TODO
+        self.source_set
+            .borrow_mut()
+            .update_source_set(self.upcast::<Element>());
         // Step 2. Let options be the result of creating link options from el.
         let mut options = self.processing_options();
         // Step 3. Let destination be the result of translating the keyword
@@ -1154,6 +1178,18 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-type
     make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesrcset
+    make_url_getter!(ImageSrcset, "imagesrcset");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesrcset
+    make_url_setter!(SetImageSrcset, "imagesrcset");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesizes
+    make_getter!(ImageSizes, "imagesizes");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-imagesizes
+    make_setter!(SetImageSizes, "imagesizes");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-disabled
     make_bool_getter!(Disabled, "disabled");
