@@ -46,7 +46,9 @@ pub enum TerminationReason {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
+    #[serde(with = "serde_bytes")]
     Receiving(Vec<u8>),
+    #[serde(with = "serde_bytes")]
     Done(Vec<u8>),
 }
 

@@ -44,6 +44,7 @@ resvg = { workspace = true }
 rustc-hash = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
+serde_bytes = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
