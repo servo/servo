@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
@@ -12,7 +11,6 @@ use js::jsapi::{Heap, JSObject, Value};
 use js::rust::MutableHandleObject;
 use malloc_size_of::MallocSizeOf;
 use rustc_hash::FxHashMap;
-use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
 use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHandle};
@@ -87,7 +85,7 @@ pub(crate) struct CryptoKey {
     key_type: KeyType,
 
     /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-extractable>
-    extractable: Cell<bool>,
+    extractable: bool,
 
     /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-algorithm>
     ///
@@ -103,7 +101,7 @@ pub(crate) struct CryptoKey {
     /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-usages>
     ///
     /// The contents of the [[usages]] internal slot shall be of type Sequence<KeyUsage>.
-    usages: DomRefCell<Vec<KeyUsage>>,
+    usages: Vec<KeyUsage>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-usages_cached>
     #[ignore_malloc_size_of = "Defined in mozjs"]
@@ -125,10 +123,10 @@ impl CryptoKey {
         CryptoKey {
             reflector_: Reflector::new(),
             key_type,
-            extractable: Cell::new(extractable),
+            extractable,
             algorithm,
             algorithm_cached: Heap::default(),
-            usages: DomRefCell::new(usages),
+            usages,
             usages_cached: Heap::default(),
             handle,
         }
@@ -176,8 +174,8 @@ impl CryptoKey {
         &self.algorithm
     }
 
-    pub(crate) fn usages(&self) -> Ref<'_, Vec<KeyUsage>> {
-        self.usages.borrow()
+    pub(crate) fn usages(&self) -> &[KeyUsage] {
+        &self.usages
     }
 
     pub(crate) fn handle(&self) -> &Handle {
@@ -196,7 +194,7 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     fn Extractable(&self) -> bool {
         // Reflects the [[extractable]] internal slot, which indicates whether or not the raw
         // keying material may be exported by the application.
-        self.extractable.get()
+        self.extractable
     }
 
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-algorithm>
@@ -228,11 +226,10 @@ impl Serializable for CryptoKey {
         // Step 5. Set serialized.[[Handle]] to the [[handle]] internal slot of value.
         let serialized = SerializableCryptoKey {
             key_type: self.key_type.as_str().into(),
-            extractable: self.extractable.get(),
+            extractable: self.extractable,
             algorithm: (&self.algorithm).into(),
             usages: self
                 .usages
-                .borrow()
                 .iter()
                 .map(|usage| usage.as_str().into())
                 .collect(),

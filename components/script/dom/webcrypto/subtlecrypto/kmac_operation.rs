@@ -450,7 +450,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
 
             // Step 4.6. Set the key_ops attribute of jwk to equal the usages attribute of key.
-            jwk.set_key_ops(&key.usages());
+            jwk.set_key_ops(key.usages());
 
             // Step 4.7. Set the ext attribute of jwk to equal the [[extractable]] internal slot of
             // key.
