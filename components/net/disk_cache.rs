@@ -87,7 +87,7 @@ fn storage_dir() -> Option<PathBuf> {
         servo_config::opts::get().temporary_storage,
         disk_storage_path.is_empty(),
     ) {
-        (false, false) => None,
+        (false, false) => Some(disk_storage_path.into()),
         (true, true) => {
             let tmp_dir = tempfile::tempdir().unwrap();
             let mut path = tmp_dir.path().to_path_buf();
@@ -100,7 +100,7 @@ fn storage_dir() -> Option<PathBuf> {
             );
             None
         },
-        (false, true) => Some(disk_storage_path.into()),
+        (false, true) => None,
     }
 }
 
@@ -115,7 +115,7 @@ impl DiskCache {
         let disk_cache_path = storage_dir();
 
         if let Some(disk_cache_path) = disk_cache_path &&
-            cache_assignment != HttpCacheAssignment::Private
+            cache_assignment == HttpCacheAssignment::Public
         {
             let Ok(max_disk_cache_size) = pref!(network_http_disk_cache_size).try_into() else {
                 return (None, MemoryCacheLifecycle::empty());
