@@ -54,8 +54,6 @@ devtools = [
     "net/devtools",
     "script/devtools",
     "servo-constellation/devtools",
-    "script_traits/devtools",
-    "servo-constellation-traits/devtools",
 ]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 gamepad = [
