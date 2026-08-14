@@ -164,12 +164,7 @@ impl Console {
                 (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
             Console::send_to_devtools(
                 global,
-                Self::build_message(
-                    cx,
-                    level.clone(),
-                    devtools_arguments,
-                    stacktrace,
-                ),
+                Self::build_message(cx, level.clone(), devtools_arguments, stacktrace),
             );
         }
 
