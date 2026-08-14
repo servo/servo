@@ -188,6 +188,7 @@ use crate::dom::types::{FontFace, ImageBitmap, SVGSVGElement, UIEvent};
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
+use crate::dom::window::layout_image::fetch_image_for_layout;
 use crate::dom::window::screen::Screen;
 use crate::dom::window::scrolling_box::{ScrollingBox, ScrollingBoxSource};
 use crate::dom::window::useractivation::UserActivationTimestamp;
@@ -196,7 +197,6 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
-use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::UserMicrotask;
 use crate::network_listener::{ResourceTimingListener, submit_timing};
