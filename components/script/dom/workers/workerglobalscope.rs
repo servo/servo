@@ -38,8 +38,7 @@ use script_bindings::root::rooted_heap_handle;
 use script_bindings::trace::CustomTraceable;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
-use servo_base::id::{WorkerId};
-use servo_base::id::{PipelineId, PipelineNamespace};
+use servo_base::id::{PipelineId, PipelineNamespace, WorkerId};
 #[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_constellation_traits::WorkerGlobalScopeInit;

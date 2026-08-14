@@ -134,26 +134,6 @@ def filter_conditional_blocks(contents: str) -> str:
     assert len(enabled) == 1, "Unterminated skip-unless block"
     return "".join(filtered_contents)
 
-def filter_conditional_blocks(contents: str) -> str:
-    """Remove `skip-unless` blocks whose Cargo feature is disabled."""
-    enabled = [True]
-    filtered_contents = []
-
-    for line in contents.splitlines(keepends=True):
-        if match := CONDITIONAL_BLOCK_START_PATTERN.fullmatch(line):
-            # Cargo exposes enabled features as CARGO_FEATURE_* to build scripts.
-            enabled.append(enabled[-1] and bool(os.environ.get(match.group(1))))
-            continue
-        if CONDITIONAL_BLOCK_END_PATTERN.fullmatch(line):
-            enabled.pop()
-            continue
-        if enabled[-1]:
-            filtered_contents.append(line)
-
-    assert len(enabled) == 1, "Unterminated skip-unless block"
-    return "".join(filtered_contents)
-
-
 def generate(config: Configuration, name: str, filename: str) -> None:
     from codegen import GlobalGenRoots
     root = getattr(GlobalGenRoots, name)(config)
