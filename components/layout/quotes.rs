@@ -370,10 +370,8 @@ fn quotes_data_for_lang(lang: &str) -> QuotesData {
         return DEFAULT_QUOTES;
     }
 
-    let quotes_map = &QUOTES_MAP;
-
     // Found an exact match for the requested lang.
-    if let Some(quotes_data) = quotes_map.get(lang) {
+    if let Some(quotes_data) = QUOTES_MAP.get(lang) {
         return *quotes_data;
     }
 
@@ -387,14 +385,14 @@ fn quotes_data_for_lang(lang: &str) -> QuotesData {
 
     let lang = locale.id.language.to_string();
 
-    if let Some(quotes_data) = quotes_map.get(lang.as_str()) {
+    if let Some(quotes_data) = QUOTES_MAP.get(lang.as_str()) {
         return *quotes_data;
     }
 
     if let Some(quotes_data) = locale
         .id
         .region
-        .and_then(|region| quotes_map.get(format!("{lang}-{region}").as_str()))
+        .and_then(|region| QUOTES_MAP.get(format!("{lang}-{region}").as_str()))
     {
         return *quotes_data;
     }
@@ -402,7 +400,7 @@ fn quotes_data_for_lang(lang: &str) -> QuotesData {
     if let Some(quotes_data) = locale
         .id
         .script
-        .and_then(|script| quotes_map.get(format!("{lang}-{script}").as_str()))
+        .and_then(|script| QUOTES_MAP.get(format!("{lang}-{script}").as_str()))
     {
         return *quotes_data;
     }
