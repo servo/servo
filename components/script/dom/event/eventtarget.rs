@@ -12,6 +12,7 @@ use std::rc::Rc;
 use std::sync::LazyLock;
 
 use deny_public_fields::DenyPublicFields;
+#[cfg(feature = "devtools")]
 use devtools_traits::EventListenerInfo;
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -1053,6 +1054,7 @@ impl EventTarget {
         CONTENT_EVENT_HANDLER_NAMES.contains(&name)
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn summarize_event_listeners_for_devtools(&self) -> Vec<EventListenerInfo> {
         let handlers = self.handlers.borrow();
         let mut listener_infos = Vec::with_capacity(handlers.0.len());

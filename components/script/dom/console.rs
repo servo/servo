@@ -6,35 +6,46 @@ use std::convert::TryFrom;
 use std::ptr::{self, NonNull};
 use std::slice;
 
+#[cfg(feature = "devtools")]
 use devtools_traits::{
     ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields, DebuggerValue, FunctionPreview,
     ObjectPreview, PropertyDescriptor as DevtoolsPropertyDescriptor, ScriptToDevtoolsControlMsg,
     StackFrame, get_time_stamp,
 };
+#[cfg(not(feature = "devtools"))]
+use embedder_traits::ConsoleLogLevel;
 use embedder_traits::EmbedderMsg;
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{self, ESClass, JS_GetFunctionArity, PropertyDescriptor, SavedFrameSelfHosted};
+use js::jsapi::{self, ESClass, PropertyDescriptor};
+#[cfg(feature = "devtools")]
+use js::jsapi::{JS_GetFunctionArity, SavedFrameSelfHosted};
 use js::jsval::{Int32Value, UndefinedValue};
+#[cfg(feature = "devtools")]
 use js::realm::CurrentRealm;
+#[cfg(feature = "devtools")]
 use js::rust::wrappers2::{
-    GetArrayLength, GetBuiltinClass, GetPropertyKeys, GetSavedFrameColumn,
-    GetSavedFrameFunctionDisplayName, GetSavedFrameLine, GetSavedFrameSource,
-    JS_ClearPendingException, JS_GetElement, JS_GetFunctionDisplayId, JS_GetFunctionId,
-    JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IdToValue, JS_Stringify,
-    JS_ValueToFunction, JS_ValueToSource, MapEntries, MapSize,
+    GetArrayLength, GetSavedFrameColumn, GetSavedFrameFunctionDisplayName, GetSavedFrameLine,
+    GetSavedFrameSource, JS_GetElement, JS_GetFunctionDisplayId, JS_GetFunctionId,
+    JS_ValueToFunction, MapEntries, MapSize,
 };
-use js::rust::{
-    CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
-    describe_scripted_caller, for_of,
+use js::rust::wrappers2::{
+    GetBuiltinClass, GetPropertyKeys, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById,
+    JS_GetPropertyById, JS_IdToValue, JS_Stringify, JS_ValueToSource,
 };
+#[cfg(feature = "devtools")]
+use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
+use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
 use script_bindings::conversions::get_dom_class;
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
+#[cfg(feature = "devtools")]
 use crate::dom::bindings::error::report_pending_exception;
+#[cfg(feature = "devtools")]
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+#[cfg(feature = "devtools")]
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 
 /// The maximum object depth logged by console methods.
@@ -47,6 +58,7 @@ const MAX_LOG_CHILDREN: usize = 15;
 pub(crate) struct Console;
 
 impl Console {
+    #[cfg(feature = "devtools")]
     fn build_message(
         cx: &mut JSContext,
         level: ConsoleLogLevel,
@@ -80,10 +92,14 @@ impl Console {
 
         Self::send_to_embedder(global, level.clone(), formatted_message);
 
+        #[cfg(feature = "devtools")]
         let console_message =
             Self::build_message(cx, level, vec![DebuggerValue::StringValue(message)], None);
-
+        #[cfg(feature = "devtools")]
         Self::send_to_devtools(global, console_message);
+
+        #[cfg(not(feature = "devtools"))]
+        let _ = cx;
     }
 
     fn method(
@@ -96,12 +112,14 @@ impl Console {
         // If the first argument is a string, apply sprintf-style substitutions per the
         // WHATWG Console spec formatter. The result is a single formatted string followed
         // by any arguments that were not consumed by a substitution specifier.
-        let (arguments, embedder_msg) = if !messages.is_empty() && messages[0].is_string() {
+        let embedder_msg = if !messages.is_empty() && messages[0].is_string() {
             let (formatted, consumed) = apply_sprintf_substitutions(cx, &messages);
             let remaining = &messages[consumed..];
 
+            #[cfg(feature = "devtools")]
             let mut arguments: Vec<DebuggerValue> =
                 vec![DebuggerValue::StringValue(formatted.clone())];
+            #[cfg(feature = "devtools")]
             for msg in remaining {
                 arguments.push(console_argument_from_handle_value(
                     cx,
@@ -116,19 +134,37 @@ impl Console {
                 format!("{formatted} {}", stringify_handle_values(cx, remaining))
             };
 
-            (arguments, embedder_msg.into())
+            #[cfg(feature = "devtools")]
+            let devtools_arguments = arguments;
+
+            #[cfg(feature = "devtools")]
+            Console::send_to_devtools(
+                global,
+                Self::build_message(cx, level.clone(), devtools_arguments, None),
+            );
+
+            embedder_msg.into()
         } else {
+            #[cfg(feature = "devtools")]
             let arguments = messages
                 .iter()
                 .map(|msg| console_argument_from_handle_value(cx, *msg, &mut Vec::new()))
                 .collect();
-            (arguments, stringify_handle_values(cx, &messages))
+
+            #[cfg(feature = "devtools")]
+            let stacktrace =
+                (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
+            #[cfg(feature = "devtools")]
+            Console::send_to_devtools(
+                global,
+                Self::build_message(cx, level.clone(), arguments, stacktrace),
+            );
+
+            stringify_handle_values(cx, &messages)
         };
 
-        let stacktrace = (include_stacktrace == IncludeStackTrace::Yes).then_some(get_js_stack(cx));
-        let console_message = Self::build_message(cx, level.clone(), arguments, stacktrace);
-
-        Console::send_to_devtools(global, console_message);
+        #[cfg(not(feature = "devtools"))]
+        let _ = include_stacktrace;
 
         let prefix = global.current_group_label().unwrap_or_default();
         let formatted_message = format!("{prefix}{embedder_msg}");
@@ -136,6 +172,7 @@ impl Console {
         Self::send_to_embedder(global, level, formatted_message);
     }
 
+    #[cfg(feature = "devtools")]
     fn send_to_devtools(global: &GlobalScope, message: ConsoleMessage) {
         if let Some(chan) = global.devtools_chan() {
             let worker_id = global
@@ -169,6 +206,7 @@ fn handle_value_to_string(cx: &mut JSContext, value: HandleValue) -> DOMString {
     }
 }
 
+#[cfg(feature = "devtools")]
 fn console_argument_from_handle_value(
     cx: &mut JSContext,
     handle_value: HandleValue,
@@ -235,6 +273,7 @@ fn console_argument_from_handle_value(
     }
 }
 
+#[cfg(feature = "devtools")]
 fn accessor_value_from_property_descriptor(descriptor: &PropertyDescriptor) -> DebuggerValue {
     // https://console.spec.whatwg.org/#printer
     // Objects with either generic JavaScript object formatting or optimally useful formatting applied.
@@ -250,6 +289,7 @@ fn accessor_value_from_property_descriptor(descriptor: &PropertyDescriptor) -> D
     DebuggerValue::StringValue(value.into())
 }
 
+#[cfg(feature = "devtools")]
 #[expect(unsafe_code)]
 fn console_map_object_from_handle_value(
     cx: &mut JSContext,
@@ -272,8 +312,8 @@ fn console_map_object_from_handle_value(
         rooted!(&in(cx) let mut value = UndefinedValue());
 
         // Each map entry is a [key, value] pair.
-        if !unsafe { JS_GetElement(cx, entry_object.handle(), 0, key.handle_mut()) } ||
-            !unsafe { JS_GetElement(cx, entry_object.handle(), 1, value.handle_mut()) }
+        if !unsafe { JS_GetElement(cx, entry_object.handle(), 0, key.handle_mut()) }
+            || !unsafe { JS_GetElement(cx, entry_object.handle(), 1, value.handle_mut()) }
         {
             return Err(().into());
         }
@@ -302,6 +342,7 @@ fn console_map_object_from_handle_value(
     ))
 }
 
+#[cfg(feature = "devtools")]
 #[expect(unsafe_code)]
 fn console_object_from_handle_value(
     cx: &mut JSContext,
@@ -313,10 +354,10 @@ fn console_object_from_handle_value(
     if !unsafe { GetBuiltinClass(cx, object.handle(), &mut object_class as *mut _) } {
         return None;
     }
-    if object_class != ESClass::Object &&
-        object_class != ESClass::Array &&
-        object_class != ESClass::Map &&
-        object_class != ESClass::Function
+    if object_class != ESClass::Object
+        && object_class != ESClass::Array
+        && object_class != ESClass::Map
+        && object_class != ESClass::Function
     {
         return None;
     }
@@ -363,8 +404,8 @@ fn console_object_from_handle_value(
 
         // https://console.spec.whatwg.org/#printer
         // Objects with either generic JavaScript object formatting or optimally useful formatting applied.
-        let is_accessor = (descriptor.hasGetter_() && !descriptor.getter_.is_null()) ||
-            (descriptor.hasSetter_() && !descriptor.setter_.is_null());
+        let is_accessor = (descriptor.hasGetter_() && !descriptor.getter_.is_null())
+            || (descriptor.hasSetter_() && !descriptor.setter_.is_null());
         let value = if is_accessor {
             accessor_value_from_property_descriptor(&descriptor)
         } else {
@@ -589,8 +630,8 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
         }
         parents.push(value_bits);
 
-        if value.is_object() &&
-            let Some(repr) = maybe_stringify_dom_object(cx, value)
+        if value.is_object()
+            && let Some(repr) = maybe_stringify_dom_object(cx, value)
         {
             return repr;
         }
@@ -771,6 +812,7 @@ fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMS
 
 /// An implementation of <https://console.spec.whatwg.org/#printer>.
 /// This produces a string version of the argument that is printed to the console.
+#[cfg(feature = "devtools")]
 fn stringify_debugger_value(value: &DebuggerValue) -> String {
     match value {
         DebuggerValue::VoidValue => "undefined".into(),
@@ -852,6 +894,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/clear>
     fn Clear(global: &GlobalScope) {
+        #[cfg(feature = "devtools")]
         if let Some(chan) = global.devtools_chan() {
             let worker_id = global
                 .downcast::<WorkerGlobalScope>()
@@ -862,6 +905,9 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
                 log::warn!("Error sending clear message to devtools: {error:?}");
             }
         }
+
+        #[cfg(not(feature = "devtools"))]
+        let _ = global;
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console>
@@ -926,19 +972,32 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         item: HandleValue,
         _options: Option<*mut jsapi::JSObject>,
     ) {
-        // Step 1. Let object be item with generic JavaScript object formatting applied.
-        let argument = console_argument_from_handle_value(cx, item, &mut Vec::new());
-        let prefix = global.current_group_label().unwrap_or_default();
-        // Step 2. Perform Printer("dir", « object », options).
-        Console::send_to_devtools(
-            global,
-            Self::build_message(cx, ConsoleLogLevel::Dir, vec![argument.clone()], None),
-        );
-        Self::send_to_embedder(
-            global,
-            ConsoleLogLevel::Dir,
-            format!("{prefix}{}", stringify_debugger_value(&argument)),
-        );
+        #[cfg(feature = "devtools")]
+        {
+            // Step 1. Let object be item with generic JavaScript object formatting applied.
+            let argument = console_argument_from_handle_value(cx, item, &mut Vec::new());
+            let prefix = global.current_group_label().unwrap_or_default();
+            // Step 2. Perform Printer("dir", « object », options).
+            Console::send_to_devtools(
+                global,
+                Self::build_message(cx, ConsoleLogLevel::Dir, vec![argument.clone()], None),
+            );
+            Self::send_to_embedder(
+                global,
+                ConsoleLogLevel::Dir,
+                format!("{prefix}{}", stringify_debugger_value(&argument)),
+            );
+        }
+
+        #[cfg(not(feature = "devtools"))]
+        {
+            let prefix = global.current_group_label().unwrap_or_default();
+            Self::send_to_embedder(
+                global,
+                ConsoleLogLevel::Dir,
+                format!("{prefix}{}", stringify_handle_value(cx, item)),
+            );
+        }
     }
 
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/assert>
@@ -1015,6 +1074,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 }
 
+#[cfg(feature = "devtools")]
 #[expect(unsafe_code)]
 fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
     const MAX_FRAME_COUNT: u32 = 128;

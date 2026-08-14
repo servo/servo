@@ -100,6 +100,12 @@ use crate::http_cache::{
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
 
+#[cfg(feature = "devtools")]
+type DevtoolsResponse = Option<ChromeToDevtoolsControlMsg>;
+
+#[cfg(not(feature = "devtools"))]
+type DevtoolsResponse = Option<()>;
+
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HttpCacheEntryState {
@@ -533,9 +539,13 @@ async fn obtain_response(
     context: &FetchContext,
     fetch_terminated: UnboundedSender<bool>,
     browsing_context_id: Option<BrowsingContextId>,
-) -> Result<(HyperResponse<Decoder>, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
+) -> Result<(HyperResponse<Decoder>, DevtoolsResponse), NetworkError> {
+    #[cfg(not(feature = "devtools"))]
+    let _ = (destination, is_xhr, browsing_context_id);
+
     let mut headers = request_headers.clone();
 
+    #[cfg(feature = "devtools")]
     let devtools_bytes = StdArc::new(Mutex::new(vec![]));
 
     // https://url.spec.whatwg.org/#percent-encoded-bytes
@@ -560,13 +570,16 @@ async fn obtain_response(
             (BodySink::Buffered(sender), BodyStream::Buffered(receiver))
         };
 
+        #[cfg(feature = "devtools")]
         obtain_response_setup_router_callback(
-            #[cfg(feature = "devtools")]
             devtools_bytes.clone(),
             chunk_requester,
             sink,
             fetch_terminated,
         )?;
+
+        #[cfg(not(feature = "devtools"))]
+        obtain_response_setup_router_callback(chunk_requester, sink, fetch_terminated)?;
 
         let body = match stream {
             BodyStream::Chunked(receiver) => {
@@ -631,14 +644,18 @@ async fn obtain_response(
         .timing
         .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
-    let request_id = request_id.map(|v| v.to_owned());
-    let pipeline_id = *pipeline_id;
-    let closure_url = url.clone();
-    let method = method.clone();
-    let send_start = CrossProcessInstant::now();
+    #[cfg(feature = "devtools")]
+    {
+        let request_id = request_id.map(|v| v.to_owned());
+        let pipeline_id = *pipeline_id;
+        let closure_url = url.clone();
+        let method = method.clone();
+        let send_start = CrossProcessInstant::now();
+    }
 
     let host = request.uri().host().unwrap_or("").to_owned();
     let override_manager = context.state.override_manager.clone();
+    #[cfg(feature = "devtools")]
     let headers = headers.clone();
     let is_secure_scheme = url.is_secure_scheme();
 
@@ -652,6 +669,7 @@ async fn obtain_response(
     let client_future = client
         .request(request)
         .and_then(move |res| {
+            #[cfg(feature = "devtools")]
             let send_end = CrossProcessInstant::now();
 
             // TODO(#21271) response_start: immediately after receiving first byte of response
@@ -694,7 +712,7 @@ async fn obtain_response(
                 #[cfg(feature = "devtools")]
                 msg,
                 #[cfg(not(feature = "devtools"))]
-                ()
+                None,
             )))
         })
         .map_err(move |error| {
@@ -2330,16 +2348,21 @@ async fn http_network_fetch(
     {
         send_request_to_devtools(m, sender);
     }
+    #[cfg(not(feature = "devtools"))]
+    let _ = msg;
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();
     let timing_ptr2 = context.timing.clone();
     let timing_ptr3 = context.timing.clone();
-    let devtools_request = request.clone();
-    let url1 = devtools_request.url();
+    let url1 = request.url();
     let url2 = url1.clone();
 
+    #[cfg(feature = "devtools")]
+    let devtools_request = request.clone();
+    #[cfg(feature = "devtools")]
     let status = response.status.clone();
+    #[cfg(feature = "devtools")]
     let headers = response.headers.clone();
     #[cfg(feature = "devtools")]
     let devtools_chan = context.devtools_chan.clone();
@@ -2383,6 +2406,7 @@ async fn http_network_fetch(
                 completed_body.shrink_to_fit();
                 // If devtools is disabled avoid cloning, since the result would
                 // be unused anyway.
+                #[cfg(feature = "devtools")]
                 let devtools_response_body =
                     devtools_chan.is_some().then(|| completed_body.clone());
                 *body = ResponseBody::Done(completed_body);

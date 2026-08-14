@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crossbeam_channel::{Receiver, select};
+#[cfg(feature = "devtools")]
 use devtools_traits::DevtoolScriptControlMsg;
 use rustc_hash::FxHashSet;
 use script_bindings::reflector::DomObject;
@@ -29,6 +30,7 @@ pub(crate) trait WorkerEventLoopMethods {
     ) -> Option<AutoWorkerReset<'_>>;
     fn from_control_msg(msg: Self::ControlMsg) -> Self::Event;
     fn from_worker_msg(msg: Self::WorkerMsg) -> Self::Event;
+    #[cfg(feature = "devtools")]
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> Self::Event;
     fn from_timer_msg() -> Self::Event;
     fn from_animation_frame_tick_msg(_msg: WorkerAnimationFrameTick) -> Option<Self::Event> {
@@ -55,13 +57,18 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
     let scope = worker_scope.upcast::<WorkerGlobalScope>();
     let task_queue = worker_scope.task_queue();
 
+    #[cfg(feature = "devtools")]
     let devtools_never = crossbeam_channel::never();
+    #[cfg(feature = "devtools")]
     let devtools_receiver = scope.devtools_receiver().unwrap_or(&devtools_never);
+
     let animation_frame_tick_never = crossbeam_channel::never();
     let animation_frame_tick_receiver = worker_scope
         .animation_frame_tick_receiver()
         .unwrap_or(&animation_frame_tick_never);
 
+
+    #[cfg(feature = "devtools")]
     let event = select! {
         recv(worker_scope.control_receiver()) -> msg => match msg {
             Ok(msg) => Some(T::from_control_msg(msg)),
@@ -76,6 +83,26 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         },
         recv(devtools_receiver) -> msg => match msg {
             Ok(msg) => msg.ok().map(T::from_devtools_msg),
+            Err(_) => None,
+        },
+        recv(animation_frame_tick_receiver) -> msg => match msg {
+            Ok(Ok(msg)) => T::from_animation_frame_tick_msg(msg),
+            Ok(Err(_)) | Err(_) => None,
+        },
+        recv(scope.timer_scheduler().wait_channel()) -> _ => Some(T::from_timer_msg()),
+    };
+
+    #[cfg(not(feature = "devtools"))]
+    let event = select! {
+        recv(worker_scope.control_receiver()) -> msg => match msg {
+            Ok(msg) => Some(T::from_control_msg(msg)),
+            Err(_) => None,
+        },
+        recv(task_queue.select()) -> msg => match msg {
+            Ok(msg) => {
+                task_queue.take_tasks(msg, &FxHashSet::default());
+                task_queue.recv().ok().map(T::from_worker_msg)
+            },
             Err(_) => None,
         },
         recv(animation_frame_tick_receiver) -> msg => match msg {
@@ -105,9 +132,15 @@ pub(crate) fn run_worker_event_loop<T, WorkerMsg, Event>(
         // Batch all events that are ready.
         // The task queue will throttle non-priority tasks if necessary.
         match task_queue.take_tasks_and_recv(&FxHashSet::default()) {
-            Err(_) => match devtools_receiver.try_recv() {
-                Ok(message) => sequential.push(T::from_devtools_msg(message.unwrap())),
-                Err(_) => break,
+            Err(_) => {
+                #[cfg(feature = "devtools")]
+                    match devtools_receiver.try_recv() {
+                    Ok(message) => sequential.push(T::from_devtools_msg(message.unwrap())),
+                    Err(_) => break,
+                }
+
+                #[cfg(not(feature = "devtools"))]
+                ()
             },
             Ok(ev) => sequential.push(T::from_worker_msg(ev)),
         }

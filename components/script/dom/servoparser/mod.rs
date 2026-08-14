@@ -11,6 +11,7 @@ use base64::Engine as _;
 use base64::engine::general_purpose;
 use bytes::Bytes;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
+#[cfg(feature = "devtools")]
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
@@ -164,6 +165,7 @@ pub(crate) struct ServoParser {
     prefetch_input: BufferQueue,
     // The whole input as a string, if needed for the devtools Sources panel.
     // TODO: use a faster type for concatenating strings?
+    #[cfg(feature = "devtools")]
     content_for_devtools: Option<DomRefCell<String>>,
 }
 
@@ -514,6 +516,7 @@ impl ServoParser {
         // Store the whole input for the devtools Sources panel, if the devtools server is running
         // and we are parsing for a document load (not just things like innerHTML).
         // TODO: check if a devtools client is actually connected and/or wants the sources?
+        #[cfg(feature = "devtools")]
         let content_for_devtools = (document.global().devtools_chan().is_some() &&
             document.has_browsing_context())
         .then_some(DomRefCell::new(String::new()));
@@ -540,6 +543,7 @@ impl ServoParser {
             )),
             prefetch_tokenizer: prefetch::Tokenizer::new(document),
             prefetch_input: BufferQueue::default(),
+            #[cfg(feature = "devtools")]
             content_for_devtools,
         }
     }
@@ -567,6 +571,7 @@ impl ServoParser {
     }
 
     fn push_tendril_input_chunk(&self, chunk: StrTendril) {
+        #[cfg(feature = "devtools")]
         if let Some(mut content_for_devtools) = self
             .content_for_devtools
             .as_ref()
@@ -775,6 +780,7 @@ impl ServoParser {
         self.document.finish_load(LoadType::PageSource(url), cx);
 
         // Send the source contents to devtools, if needed.
+        #[cfg(feature = "devtools")]
         if let Some(content_for_devtools) = self
             .content_for_devtools
             .as_ref()

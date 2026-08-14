@@ -12,7 +12,8 @@ use std::time::Duration;
 
 use bytes::{Bytes, BytesMut};
 use content_security_policy::CspList;
-use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
+#[cfg(feature = "devtools")]
+use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use fonts::FontContext;
@@ -37,8 +38,9 @@ use script_bindings::root::rooted_heap_handle;
 use script_bindings::trace::CustomTraceable;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
-use servo_base::id::{PipelineId, PipelineNamespace};
+use servo_base::id::{WorkerId};
 #[cfg(feature = "webgl")]
+use servo_base::id::{PipelineId, PipelineNamespace};
 use servo_canvas_traits::webgl::WebGLChan;
 use servo_constellation_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
@@ -70,6 +72,7 @@ use crate::dom::bindings::utils::define_all_exposed_interfaces;
 #[cfg(feature = "webcrypto")]
 use crate::dom::crypto::Crypto;
 use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
+#[cfg(feature = "devtools")]
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
@@ -110,6 +113,7 @@ use crate::tasks::task_manager::TaskManager;
 /// <https://html.spec.whatwg.org/multipage/#animation-frames>
 pub(crate) fn prepare_workerscope_init(
     global: &GlobalScope,
+    #[cfg(feature = "devtools")]
     devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
     worker_id: Option<WorkerId>,
     #[cfg(feature = "webgl")] webgl_chan: Option<WebGLChan>,
@@ -130,8 +134,10 @@ pub(crate) fn prepare_workerscope_init(
         resource_threads: global.resource_threads().clone(),
         storage_threads: global.storage_threads().clone(),
         mem_profiler_chan: global.mem_profiler_chan().clone(),
+        #[cfg(feature = "devtools")]
         to_devtools_sender: global.devtools_chan().cloned(),
         time_profiler_chan: global.time_profiler_chan().clone(),
+        #[cfg(feature = "devtools")]
         from_devtools_sender: devtools_sender,
         script_to_constellation_chan: global.script_to_constellation_chan().sender,
         script_to_embedder_chan: global.script_to_embedder_chan().clone(),
@@ -326,11 +332,13 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     /// A `Sender` for sending messages to devtools. This is unused but is stored here to
     /// keep the channel alive.
+    #[cfg(feature = "devtools")]
     _devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
 
     #[ignore_malloc_size_of = "Defined in base"]
     #[no_trace]
     /// A `Receiver` for receiving messages from devtools.
+    #[cfg(feature = "devtools")]
     devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
 
     #[no_trace]
@@ -394,6 +402,7 @@ impl WorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
+        #[cfg(feature = "devtools")]
         devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
@@ -404,6 +413,7 @@ impl WorkerGlobalScope {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
 
+        #[cfg(feature = "devtools")]
         let devtools_receiver = match init.from_devtools_sender {
             Some(..) => Some(devtools_receiver),
             None => None,
@@ -411,6 +421,7 @@ impl WorkerGlobalScope {
 
         Self {
             globalscope: GlobalScope::new_inherited(
+                #[cfg(feature = "devtools")]
                 init.to_devtools_sender,
                 init.mem_profiler_chan,
                 init.time_profiler_chan,
@@ -439,7 +450,9 @@ impl WorkerGlobalScope {
             #[cfg(feature = "webcrypto")]
             crypto: Default::default(),
             policy_container: Default::default(),
+            #[cfg(feature = "devtools")]
             devtools_receiver,
+            #[cfg(feature = "devtools")]
             _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
@@ -507,6 +520,7 @@ impl WorkerGlobalScope {
             .prepare_for_new_child()
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn devtools_receiver(&self) -> Option<&RoutedReceiver<DevtoolScriptControlMsg>> {
         self.devtools_receiver.as_ref()
     }
@@ -1161,6 +1175,7 @@ impl WorkerGlobalScope {
         }
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn init_debugger_global(
         &self,
         debugger_global: &DebuggerGlobalScope,
@@ -1178,6 +1193,7 @@ impl WorkerGlobalScope {
         self.debugger_global.set(*wrapped_global);
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn handle_devtools_message(&self, msg: DevtoolScriptControlMsg, cx: &mut JSContext) {
         match msg {
             DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},

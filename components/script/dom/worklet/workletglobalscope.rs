@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crossbeam_channel::Sender;
+#[cfg(feature = "devtools")]
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -132,6 +133,7 @@ impl WorkletGlobalScope {
 
         Self {
             globalscope: GlobalScope::new_inherited(
+                #[cfg(feature = "devtools")]
                 init.devtools_chan.clone(),
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
@@ -220,6 +222,7 @@ impl From<&Window> for WorkletGlobalScopeInit {
             storage_threads: global_scope.storage_threads().clone(),
             mem_profiler_chan: global_scope.mem_profiler_chan().clone(),
             time_profiler_chan: global_scope.time_profiler_chan().clone(),
+            #[cfg(feature = "devtools")]
             devtools_chan: global_scope.devtools_chan().cloned(),
             script_to_constellation_sender: global_scope.script_to_constellation_chan().sender,
             to_embedder_sender: global_scope.script_to_embedder_chan().clone(),
@@ -244,6 +247,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to the time profiler
     pub(crate) time_profiler_chan: time::ProfilerChan,
     /// Channel to devtools
+    #[cfg(feature = "devtools")]
     pub(crate) devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to the Embedder
     pub(crate) to_embedder_sender: ScriptToEmbedderChan,

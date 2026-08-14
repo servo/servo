@@ -14,6 +14,7 @@ use std::{fmt, mem};
 
 use app_units::Au;
 use cssparser::match_ignore_ascii_case;
+#[cfg(feature = "devtools")]
 use devtools_traits::{AttrInfo, DomMutation, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use euclid::Rect;
@@ -1871,6 +1872,7 @@ impl Element {
         &self.style_attribute
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn summarize(&self) -> Vec<AttrInfo> {
         self.attrs
             .borrow()
@@ -4805,7 +4807,9 @@ impl VirtualMethods for Element {
         node.rev_version(cx.no_gc());
 
         // Notify devtools that the DOM changed
+        #[cfg(feature = "devtools")]
         let window = self.owner_window();
+        #[cfg(feature = "devtools")]
         if window.live_devtools_updates() {
             let global = window.upcast::<GlobalScope>();
             if let Some(sender) = global.devtools_chan() {
