@@ -1656,6 +1656,7 @@ pub(crate) fn handle_get_text(
         .unwrap();
 }
 
+/// <https://w3c.github.io/webdriver/#dfn-get-element-tag-name>
 pub(crate) fn handle_get_name(
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -1665,7 +1666,7 @@ pub(crate) fn handle_get_name(
     reply
         .send(
             get_known_element(documents, pipeline, node_id)
-                .map(|element| String::from(element.TagName())),
+                .map(|element| element.qualified_name().into_owned()),
         )
         .unwrap();
 }
