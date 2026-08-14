@@ -24,6 +24,7 @@ default = ["bundled", "clipboard", "js_jit"]
 #
 # A convenience feature to enable all default web features servo has.
 default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webxr"]
+default_tooling = ["devtools"]
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
 
