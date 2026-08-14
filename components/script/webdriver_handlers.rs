@@ -1665,7 +1665,8 @@ pub(crate) fn handle_get_name(
 ) {
     reply
         .send(
-            get_known_element(documents, pipeline, node_id).map(|element| element.qualified_name()),
+            get_known_element(documents, pipeline, node_id)
+                .map(|element| element.qualified_name().into_owned()),
         )
         .unwrap();
 }

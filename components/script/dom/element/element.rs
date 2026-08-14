@@ -4,6 +4,7 @@
 
 //! Element nodes.
 
+use std::borrow::Cow;
 use std::cell::{Cell, LazyCell};
 use std::default::Default;
 use std::rc::Rc;
@@ -2924,10 +2925,10 @@ impl Element {
     /// An element's qualified name is its local name if its namespace prefix is null;
     /// otherwise its namespace prefix, followed by ":", followed by its local name.
     /// <https://dom.spec.whatwg.org/#concept-element-qualified-name>
-    pub(crate) fn qualified_name(&self) -> String {
+    pub(crate) fn qualified_name(&self) -> Cow<'_, str> {
         match &*self.prefix.borrow() {
-            Some(prefix) => format!("{}:{}", prefix, &*self.local_name),
-            None => String::from(&*self.local_name),
+            Some(prefix) => Cow::Owned(format!("{}:{}", prefix, &*self.local_name)),
+            None => Cow::Borrowed(&*self.local_name),
         }
     }
 }
