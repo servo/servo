@@ -981,10 +981,14 @@ impl WebView {
         // a device pixel — page zoom and pinch zoom — except the HiDPI scale factor, which is
         // deliberately left out: it is the embedder which scales device independent pixels to the
         // physical pixels AccessKit ultimately expects, and which translates this subtree to the
-        // WebView's position within its window. See `bounds_for_dom_node()` in
+        // WebView's position within its window. See `update_bounds_from_dom_node()` in
         // `components/layout/accessibility_tree.rs` for the full contract.
-        let device_pixels_per_css_pixel = self.device_pixels_per_css_pixel().get();
-        let css_pixels_per_device_independent_pixel =
+        // Compute the ratio from the WebView's current settings. `device_pixels_per_css_pixel()`
+        // reports the ratio the latest rendered display list was produced with, which lags behind
+        // the zoom/HiDPI change that triggered this call, since reflow is asynchronous.
+        let device_pixels_per_css_pixel =
+            self.page_zoom() * self.hidpi_scale_factor().get() * self.pinch_zoom();
+        let device_independent_pixels_per_css_pixel =
             device_pixels_per_css_pixel / self.hidpi_scale_factor().get();
         let size =
             self.size() / Scale::<f32, CSSPixel, DevicePixel>::new(device_pixels_per_css_pixel);
@@ -995,9 +999,9 @@ impl WebView {
             size.height as f64,
         ));
         // AccessKit asks that a node with an identity transform leave it unset.
-        if css_pixels_per_device_independent_pixel != 1.0 {
+        if device_independent_pixels_per_css_pixel != 1.0 {
             root_node.set_transform(AccesskitAffine::scale(
-                css_pixels_per_device_independent_pixel as f64,
+                device_independent_pixels_per_css_pixel as f64,
             ));
         }
         let graft_node_id = NodeId(1);
