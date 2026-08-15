@@ -13,6 +13,13 @@ on:
     types: [checks_requested]
   workflow_dispatch:
 
+# Every time a PR is pushed to, cancel any previous jobs. This
+# makes us behave nicer to github and get faster turnaround times
+# on PRs that are pushed to multiple times in rapid succession.
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
 jobs:
   decision:
     name: Generate Try Configuration
