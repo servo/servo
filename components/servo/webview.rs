@@ -488,6 +488,10 @@ impl WebView {
             .servo
             .paint()
             .set_hidpi_scale_factor(self.id(), new_scale_factor);
+
+        // The accessibility root node's bounds depend on the CSS viewport size, which changes
+        // with the HiDPI scale factor even though its transform deliberately excludes that scale.
+        self.send_accessibility_root_node();
     }
 
     /// Make this [`WebView`] visible within its [`RenderingContext`].
