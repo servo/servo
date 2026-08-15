@@ -1289,8 +1289,7 @@ impl ParserContext {
             .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 
-    pub(crate) fn finish_synchronous_load(&self, cx: &mut JSContext) {
-        let document = self.document.as_ref().expect("Must have a document").root();
+    fn finish_synchronous_load(&self, cx: &mut JSContext, document: &Document) {
         document.set_ready_state(cx, DocumentReadyState::Complete);
         document.set_current_parser(None);
         document.start_the_end_loading_phase();
@@ -1613,7 +1612,7 @@ impl FetchResponseListener for ParserContext {
         }
 
         if document.is_initial_about_blank() {
-            self.finish_synchronous_load(cx);
+            self.finish_synchronous_load(cx, &document);
         }
     }
 
@@ -2316,10 +2315,16 @@ fn populate_about_blank(cx: &mut JSContext, document: &Document) {
             None,
         )
     };
+    // Step 1. Let html be the result of creating an element given document, "html", and the HTML namespace.
     let html = create_html_element(local_name!("html"));
+    // Step 2. Let head be the result of creating an element given document, "head", and the HTML namespace.
     let head = create_html_element(local_name!("head"));
+    // Step 3. Let body be the result of creating an element given document, "body", and the HTML namespace.
     let body = create_html_element(local_name!("body"));
+    // Step 4. Append html to document.
     let _ = document.upcast::<Node>().AppendChild(cx, html.upcast());
+    // Step 5. Append head to html.
     let _ = html.upcast::<Node>().AppendChild(cx, head.upcast());
+    // Step 6. Append body to html.
     let _ = html.upcast::<Node>().AppendChild(cx, body.upcast());
 }

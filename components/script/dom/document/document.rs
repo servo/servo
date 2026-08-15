@@ -3806,7 +3806,9 @@ impl Document {
         let has_focus = window.parent_info().is_none();
         let has_browsing_context = has_browsing_context == HasBrowsingContext::Yes;
         let shared_style_locks = window.script_thread().shared_style_locks().clone();
-        // Step 15 of <https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context>
+        // <https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context>
+        // Step 15. Let document be a new Document, with:
+        // - mode: "quirks"
         let quirks_mode = if is_initial_about_blank {
             QuirksMode::Quirks
         } else {
