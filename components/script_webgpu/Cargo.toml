@@ -23,7 +23,7 @@ dom_struct = { workspace = true }
 js = { workspace = true }
 log = { workspace = true }
 jstraceable_derive = { workspace = true }
-script_bindings = { workspace = true }
+script_bindings = { workspace = true, features = ["webgpu"] }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 webgpu_traits = { workspace = true }
