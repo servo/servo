@@ -90,7 +90,7 @@ impl GlobalScope {
             let mut script_source = ScriptSource {
                 source,
                 external,
-                url: url.clone(),
+                url: &url,
             };
             unminify_js(&mut script_source, unminified_js_dir);
             transform_str_to_source_text(&script_source.source)

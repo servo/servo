@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 pub(crate) struct ScriptSource<'a> {
     pub source: Cow<'a, str>,
-    pub url: ServoUrl,
+    pub url: &'a ServoUrl,
     pub external: bool,
 }
 
@@ -115,7 +115,7 @@ pub(crate) fn unminify_js(script: &mut ScriptSource, unminified_js_dir: String) 
         }
     }
 
-    match create_output_file(unminified_js_dir, &script.url, Some(script.external)) {
+    match create_output_file(unminified_js_dir, script.url, Some(script.external)) {
         Ok(mut file) => file.write_all(script.source.as_bytes()).unwrap(),
         Err(why) => warn!("Could not store script {:?}", why),
     }

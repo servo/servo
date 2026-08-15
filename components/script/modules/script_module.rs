@@ -291,7 +291,7 @@ impl ModuleTree {
             let mut module_source = ScriptSource {
                 source,
                 external,
-                url: url.clone(),
+                url,
             };
             unminify_js(&mut module_source, unminified_js_dir);
             transform_str_to_source_text(&module_source.source)
