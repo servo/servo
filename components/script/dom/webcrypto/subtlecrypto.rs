@@ -2856,12 +2856,12 @@ where
 
 /// <https://w3c.github.io/webcrypto/#dfn-Algorithm>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleAlgorithm {
+struct Algorithm {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAlgorithm {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Algorithm {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -2869,24 +2869,24 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAlgorithm {
         _cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleAlgorithm {
+        Ok(Algorithm {
             name: algorithm_name,
         })
     }
 }
 
-impl TryFrom<SerializableAlgorithm> for SubtleAlgorithm {
+impl TryFrom<SerializableAlgorithm> for Algorithm {
     type Error = ();
 
     fn try_from(value: SerializableAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleAlgorithm {
+        Ok(Algorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
         })
     }
 }
 
-impl From<&SubtleAlgorithm> for SerializableAlgorithm {
-    fn from(value: &SubtleAlgorithm) -> Self {
+impl From<&Algorithm> for SerializableAlgorithm {
+    fn from(value: &Algorithm) -> Self {
         SerializableAlgorithm {
             name: value.name.as_str().into(),
         }
@@ -5056,12 +5056,12 @@ impl Operation for SignOperation {
 /// Normalized algorithm for the "sign" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum SignAlgorithm {
-    RsassaPkcs1V1_5(SubtleAlgorithm),
+    RsassaPkcs1V1_5(Algorithm),
     RsaPss(SubtleRsaPssParams),
     Ecdsa(SubtleEcdsaParams),
-    Ed25519(SubtleAlgorithm),
+    Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
-    Hmac(SubtleAlgorithm),
+    Hmac(Algorithm),
     MlDsa(SubtleContextParams),
     Kmac(SubtleKmacParams),
 }
@@ -5145,12 +5145,12 @@ impl Operation for VerifyOperation {
 /// Normalized algorithm for the "verify" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum VerifyAlgorithm {
-    RsassaPkcs1V1_5(SubtleAlgorithm),
+    RsassaPkcs1V1_5(Algorithm),
     RsaPss(SubtleRsaPssParams),
     Ecdsa(SubtleEcdsaParams),
-    Ed25519(SubtleAlgorithm),
+    Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
-    Hmac(SubtleAlgorithm),
+    Hmac(Algorithm),
     MlDsa(SubtleContextParams),
     Kmac(SubtleKmacParams),
 }
@@ -5247,8 +5247,8 @@ impl Operation for DigestOperation {
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 #[derive(Clone, MallocSizeOf)]
 enum DigestAlgorithm {
-    Sha(SubtleAlgorithm),
-    Sha3(SubtleAlgorithm),
+    Sha(Algorithm),
+    Sha3(Algorithm),
     CShake(SubtleCShakeParams),
     TurboShake(SubtleTurboShakeParams),
     KangarooTwelve(SubtleKangarooTwelveParams),
@@ -5454,7 +5454,7 @@ impl Operation for WrapKeyOperation {
 /// Normalized algorithm for the "wrapKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum WrapKeyAlgorithm {
-    AesKw(SubtleAlgorithm),
+    AesKw(Algorithm),
 }
 
 impl NormalizedAlgorithm for WrapKeyAlgorithm {
@@ -5499,7 +5499,7 @@ impl Operation for UnwrapKeyOperation {
 /// Normalized algorithm for the "unwrapKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum UnwrapKeyAlgorithm {
-    AesKw(SubtleAlgorithm),
+    AesKw(Algorithm),
 }
 
 impl NormalizedAlgorithm for UnwrapKeyAlgorithm {
@@ -5549,19 +5549,19 @@ enum GenerateKeyAlgorithm {
     RsaOaep(SubtleRsaHashedKeyGenParams),
     Ecdsa(SubtleEcKeyGenParams),
     Ecdh(SubtleEcKeyGenParams),
-    Ed25519(SubtleAlgorithm),
-    X25519(SubtleAlgorithm),
-    Ed448(SubtleAlgorithm),
-    X448(SubtleAlgorithm),
+    Ed25519(Algorithm),
+    X25519(Algorithm),
+    Ed448(Algorithm),
+    X448(Algorithm),
     AesCtr(SubtleAesKeyGenParams),
     AesCbc(SubtleAesKeyGenParams),
     AesGcm(SubtleAesKeyGenParams),
     AesKw(SubtleAesKeyGenParams),
     Hmac(SubtleHmacKeyGenParams),
-    MlKem(SubtleAlgorithm),
-    MlDsa(SubtleAlgorithm),
+    MlKem(Algorithm),
+    MlDsa(Algorithm),
     AesOcb(SubtleAesKeyGenParams),
-    ChaCha20Poly1305(SubtleAlgorithm),
+    ChaCha20Poly1305(Algorithm),
     Kmac(SubtleKmacKeyGenParams),
 }
 
@@ -5773,23 +5773,23 @@ enum ImportKeyAlgorithm {
     RsaOaep(SubtleRsaHashedImportParams),
     Ecdsa(SubtleEcKeyImportParams),
     Ecdh(SubtleEcKeyImportParams),
-    Ed25519(SubtleAlgorithm),
-    X25519(SubtleAlgorithm),
-    Ed448(SubtleAlgorithm),
-    X448(SubtleAlgorithm),
-    AesCtr(SubtleAlgorithm),
-    AesCbc(SubtleAlgorithm),
-    AesGcm(SubtleAlgorithm),
-    AesKw(SubtleAlgorithm),
+    Ed25519(Algorithm),
+    X25519(Algorithm),
+    Ed448(Algorithm),
+    X448(Algorithm),
+    AesCtr(Algorithm),
+    AesCbc(Algorithm),
+    AesGcm(Algorithm),
+    AesKw(Algorithm),
     Hmac(SubtleHmacImportParams),
-    Hkdf(SubtleAlgorithm),
-    Pbkdf2(SubtleAlgorithm),
-    MlKem(SubtleAlgorithm),
-    MlDsa(SubtleAlgorithm),
-    AesOcb(SubtleAlgorithm),
-    ChaCha20Poly1305(SubtleAlgorithm),
+    Hkdf(Algorithm),
+    Pbkdf2(Algorithm),
+    MlKem(Algorithm),
+    MlDsa(Algorithm),
+    AesOcb(Algorithm),
+    ChaCha20Poly1305(Algorithm),
     Kmac(SubtleKmacImportParams),
-    Argon2(SubtleAlgorithm),
+    Argon2(Algorithm),
 }
 
 impl NormalizedAlgorithm for ImportKeyAlgorithm {
@@ -6062,25 +6062,25 @@ impl Operation for ExportKeyOperation {
 /// Normalized algorithm for the "exportKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum ExportKeyAlgorithm {
-    RsassaPkcs1V1_5(SubtleAlgorithm),
-    RsaPss(SubtleAlgorithm),
-    RsaOaep(SubtleAlgorithm),
-    Ecdsa(SubtleAlgorithm),
-    Ecdh(SubtleAlgorithm),
-    Ed25519(SubtleAlgorithm),
-    X25519(SubtleAlgorithm),
-    Ed448(SubtleAlgorithm),
-    X448(SubtleAlgorithm),
-    AesCtr(SubtleAlgorithm),
-    AesCbc(SubtleAlgorithm),
-    AesGcm(SubtleAlgorithm),
-    AesKw(SubtleAlgorithm),
-    Hmac(SubtleAlgorithm),
-    MlKem(SubtleAlgorithm),
-    MlDsa(SubtleAlgorithm),
-    AesOcb(SubtleAlgorithm),
-    ChaCha20Poly1305(SubtleAlgorithm),
-    Kmac(SubtleAlgorithm),
+    RsassaPkcs1V1_5(Algorithm),
+    RsaPss(Algorithm),
+    RsaOaep(Algorithm),
+    Ecdsa(Algorithm),
+    Ecdh(Algorithm),
+    Ed25519(Algorithm),
+    X25519(Algorithm),
+    Ed448(Algorithm),
+    X448(Algorithm),
+    AesCtr(Algorithm),
+    AesCbc(Algorithm),
+    AesGcm(Algorithm),
+    AesKw(Algorithm),
+    Hmac(Algorithm),
+    MlKem(Algorithm),
+    MlDsa(Algorithm),
+    AesOcb(Algorithm),
+    ChaCha20Poly1305(Algorithm),
+    Kmac(Algorithm),
 }
 
 impl NormalizedAlgorithm for ExportKeyAlgorithm {
@@ -6226,12 +6226,12 @@ enum GetKeyLengthAlgorithm {
     AesGcm(SubtleAesDerivedKeyParams),
     AesKw(SubtleAesDerivedKeyParams),
     Hmac(SubtleHmacImportParams),
-    Hkdf(SubtleAlgorithm),
-    Pbkdf2(SubtleAlgorithm),
+    Hkdf(Algorithm),
+    Pbkdf2(Algorithm),
     AesOcb(SubtleAesDerivedKeyParams),
-    ChaCha20Poly1305(SubtleAlgorithm),
+    ChaCha20Poly1305(Algorithm),
     Kmac(SubtleKmacImportParams),
-    Argon2(SubtleAlgorithm),
+    Argon2(Algorithm),
 }
 
 impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
@@ -6338,7 +6338,7 @@ impl Operation for EncapsulateOperation {
 /// Normalized algorithm for the "encapsulate" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum EncapsulateAlgorithm {
-    MlKem(SubtleAlgorithm),
+    MlKem(Algorithm),
 }
 
 impl NormalizedAlgorithm for EncapsulateAlgorithm {
@@ -6385,7 +6385,7 @@ impl Operation for DecapsulateOperation {
 /// Normalized algorithm for the "decapsulate" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum DecapsulateAlgorithm {
-    MlKem(SubtleAlgorithm),
+    MlKem(Algorithm),
 }
 
 impl NormalizedAlgorithm for DecapsulateAlgorithm {
@@ -6434,17 +6434,17 @@ impl Operation for GetPublicKeyOperation {
 /// Normalized algorithm for the "getPublicKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum GetPublicKeyAlgorithm {
-    RsassaPkcs1v1_5(SubtleAlgorithm),
-    RsaPss(SubtleAlgorithm),
-    RsaOaep(SubtleAlgorithm),
-    Ecdsa(SubtleAlgorithm),
-    Ecdh(SubtleAlgorithm),
-    Ed25519(SubtleAlgorithm),
-    X25519(SubtleAlgorithm),
-    Ed448(SubtleAlgorithm),
-    X448(SubtleAlgorithm),
-    MlKem(SubtleAlgorithm),
-    MlDsa(SubtleAlgorithm),
+    RsassaPkcs1v1_5(Algorithm),
+    RsaPss(Algorithm),
+    RsaOaep(Algorithm),
+    Ecdsa(Algorithm),
+    Ecdh(Algorithm),
+    Ed25519(Algorithm),
+    X25519(Algorithm),
+    Ed448(Algorithm),
+    X448(Algorithm),
+    MlKem(Algorithm),
+    MlDsa(Algorithm),
 }
 
 impl NormalizedAlgorithm for GetPublicKeyAlgorithm {

@@ -20,13 +20,13 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAlgorithm, SubtleEncapsulatedBits, SubtleKeyAlgorithm,
+    Algorithm, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithmAndDerivatives, SubtleEncapsulatedBits, SubtleKeyAlgorithm,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-encapsulate>
 pub(crate) fn encapsulate(
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     key: &CryptoKey,
 ) -> Result<SubtleEncapsulatedBits, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
@@ -98,7 +98,7 @@ pub(crate) fn encapsulate(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-decapsulate>
 pub(crate) fn decapsulate(
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -175,7 +175,7 @@ pub(crate) fn decapsulate(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
@@ -289,7 +289,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,

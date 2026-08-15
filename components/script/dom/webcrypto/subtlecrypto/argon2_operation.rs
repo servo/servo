@@ -12,8 +12,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleArgon2Params,
-    SubtleKeyAlgorithm,
+    Algorithm, CryptoAlgorithm, KeyAlgorithmAndDerivatives, SubtleArgon2Params, SubtleKeyAlgorithm,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-derive-bits>
@@ -131,7 +130,7 @@ pub(crate) fn derive_bits(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
