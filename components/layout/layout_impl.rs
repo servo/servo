@@ -947,17 +947,8 @@ impl LayoutThread {
             return false;
         }
 
-        // Bounds go stale when geometry changes, even without any `AccessibilityDamage` from the
-        // DOM, so those cases must still reach `update_tree()` below, which refreshes bounds for
-        // the whole tree independently of `damage`. Scrolls request an accessibility update, so
-        // they are covered by `needs_accessibility_update()`; every other geometry change is
-        // committed by an "update the rendering" reflow, which roughly corresponds to a visual
-        // update.
-        let is_rendering_update =
-            matches!(reflow_request.reflow_goal, ReflowGoal::UpdateTheRendering);
-        if !self.needs_accessibility_update() && !is_rendering_update {
-            return false;
-        }
+        // Bounds can become stale without any `AccessibilityDamage` from the DOM. Every geometry
+        // change is committed by an "update the rendering" reflow, so refresh bounds on each one.
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
             return false;
@@ -974,18 +965,15 @@ impl LayoutThread {
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
-        // Skip bounds while `need_new_stacking_context_tree` is set: the tree predates the
-        // current fragment tree, so bounds resolved against it would be stale. Keyed off that
-        // flag rather than `reflow_goal` because damage drains on every reflow regardless of
-        // goal, and query reflows reaching this point have already rebuilt the tree.
         let stacking_context_tree = self.stacking_context_tree.borrow();
-        let accessibility_context = stacking_context_tree
-            .as_ref()
-            .filter(|_| !self.need_new_stacking_context_tree.get())
-            .map(|stacking_context_tree| AccessibilityContext {
-                layout_thread: self,
-                stacking_context_tree,
-            });
+        let Some(stacking_context_tree) = stacking_context_tree.as_ref() else {
+            return false;
+        };
+        debug_assert!(!self.need_new_stacking_context_tree.get());
+        let accessibility_context = AccessibilityContext {
+            layout_thread: self,
+            stacking_context_tree,
+        };
 
         let (tree_update, counters) = accessibility_tree.update_tree(
             root_element,

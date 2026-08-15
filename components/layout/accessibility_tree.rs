@@ -46,8 +46,7 @@ bitflags! {
 }
 
 /// Everything the accessibility tree needs from layout in order to compute node bounds during an
-/// update. Bounds can only be computed when the stacking context tree is up-to-date with the
-/// current fragment tree, so this may be unavailable for some updates.
+/// update.
 pub(super) struct AccessibilityContext<'a> {
     pub(super) layout_thread: &'a LayoutThread,
     pub(super) stacking_context_tree: &'a StackingContextTree,
@@ -207,7 +206,7 @@ impl AccessibilityTree {
         &mut self,
         root_dom_node: &ServoLayoutNode<'dom>,
         mut damage_from_dom: VecDeque<(ServoLayoutNode<'dom>, AccessibilityDamage)>,
-        context: Option<AccessibilityContext<'_>>,
+        context: AccessibilityContext<'_>,
         rooted_nodes: Option<FxHashSet<OpaqueNode>>,
     ) -> (Option<accesskit::TreeUpdate>, UpdateCounters) {
         let mut update = AccessibilityUpdate::new(rooted_nodes);
@@ -279,16 +278,12 @@ impl AccessibilityTree {
     fn refresh_bounds<'dom>(
         &self,
         root_dom_node: &ServoLayoutNode<'dom>,
-        context: Option<AccessibilityContext<'_>>,
+        context: AccessibilityContext<'_>,
         update: &mut AccessibilityUpdate,
     ) {
         // Bounds aren't tracked as `AccessibilityDamage` from the DOM: they can go stale from
-        // things that don't involve any DOM change at all, SUCH AS: scrolling, resizing, or
-        // zooming. So they are refreshed for the whole tree here, independent of the damage from
-        // the DOM, whenever layout is able to give us the context to compute them with.
-        let Some(context) = context else {
-            return;
-        };
+        // scrolling, resizing, or zooming without any DOM change. Refresh them for the whole tree
+        // independently of damage from the DOM.
         let Some(root_node) = self.root_node.clone() else {
             return;
         };
