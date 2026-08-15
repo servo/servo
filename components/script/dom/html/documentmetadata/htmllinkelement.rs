@@ -464,7 +464,8 @@ impl VirtualMethods for HTMLLinkElement {
         let href = element.get_attribute_string_value(&local_name!("href"));
 
         if context.tree_connected &&
-            (href.is_some() || element.has_attribute(&local_name!("imagesrcset")))
+            (href.as_ref().is_some_and(|x| !x.is_empty()) ||
+                element.has_attribute(&local_name!("imagesrcset")))
         {
             let relations = self.relations.get();
             // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
