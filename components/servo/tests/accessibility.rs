@@ -11,6 +11,7 @@ use std::rc::Rc;
 
 use accesskit::{NodeId, Rect, Role, TreeId, TreeUpdate};
 use accesskit_consumer::TreeChangeHandler;
+use euclid::Scale;
 use servo::{
     DiagnosticsLoggingOption, LoadStatus, Opts, Preferences, Scroll, WebViewBuilder, WebViewPoint,
     WebViewVector,
@@ -657,6 +658,28 @@ fn test_accessibility_bounds() {
     assert_rect_eq(
         div.bounding_box().expect("div should have a bounding box"),
         expected,
+    );
+}
+
+#[test]
+fn test_accessibility_webview_bounds_updated_after_hidpi_change() {
+    let (servo_test, delegate, webview, mut tree) =
+        build_webview_and_tree("data:text/html,<!DOCTYPE html>");
+
+    webview.set_hidpi_scale_factor(Scale::new(2.0));
+
+    for update in wait_for_min_updates(&servo_test, delegate, 1) {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+
+    let scroll_view =
+        find_first_matching_node(tree.state().root(), |node| node.role() == Role::ScrollView)
+            .expect("Tree should include a scroll view corresponding to the WebView");
+    assert_rect_eq(
+        scroll_view
+            .raw_bounds()
+            .expect("WebView node should have bounds"),
+        Rect::new(0.0, 0.0, TEST_VIEWPORT_SIZE / 2.0, TEST_VIEWPORT_SIZE / 2.0),
     );
 }
 
