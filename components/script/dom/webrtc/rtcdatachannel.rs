@@ -237,7 +237,7 @@ impl RTCDataChannel {
             self.upcast(),
             &global,
             message.handle(),
-            Some(&global.origin().immutable().ascii_serialization()),
+            Some(global.origin().immutable().ascii_serialization().as_ref()),
             None,
             vec![],
         );

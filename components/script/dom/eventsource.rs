@@ -416,7 +416,7 @@ impl FetchResponseListener for EventSourceContext {
                 if (mime.type_(), mime.subtype()) != (mime::TEXT, mime::EVENT_STREAM) {
                     return self.fail_the_connection();
                 }
-                self.origin = meta.final_url.origin().ascii_serialization();
+                self.origin = meta.final_url.origin().ascii_serialization().into_owned();
                 // Step 15.4 announce the connection and interpret res's body line by line.
                 self.announce_the_connection();
             },

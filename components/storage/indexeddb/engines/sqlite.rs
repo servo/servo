@@ -128,7 +128,7 @@ impl SqliteEngine {
             "INSERT INTO database (name, origin, version) VALUES (?, ?, ?)",
             params![
                 db_info.name.to_owned(),
-                db_info.origin.to_owned().ascii_serialization(),
+                db_info.origin.to_owned().ascii_serialization().into_owned(),
                 i64::from_ne_bytes(0_u64.to_ne_bytes())
             ],
         )?;

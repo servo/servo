@@ -1049,7 +1049,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             self.upcast::<GlobalScope>()
                 .origin()
                 .immutable()
-                .ascii_serialization(),
+                .ascii_serialization()
+                .into_owned(),
         )
     }
 

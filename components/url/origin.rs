@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::net::IpAddr;
 use std::rc::Rc;
@@ -193,8 +194,13 @@ impl ImmutableOrigin {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin>
-    pub fn ascii_serialization(&self) -> String {
-        self.clone().into_url_origin().ascii_serialization()
+    pub fn ascii_serialization(&self) -> Cow<'_, str> {
+        match self {
+            ImmutableOrigin::Opaque(_) => Cow::Borrowed("null"),
+            ImmutableOrigin::Tuple(..) => {
+                Cow::Owned(self.clone().into_url_origin().ascii_serialization())
+            },
+        }
     }
 }
 

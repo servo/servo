@@ -2287,7 +2287,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-origin>
     fn Origin(&self) -> USVString {
-        USVString(self.origin().immutable().ascii_serialization())
+        USVString(self.origin().immutable().ascii_serialization().into_owned())
     }
 
     /// <https://w3c.github.io/selection-api/#dom-window-getselection>
@@ -4084,7 +4084,7 @@ impl Window {
                     this.upcast(),
                     this.upcast(),
                     message_clone.handle(),
-                    Some(&source_origin.ascii_serialization()),
+                    Some(source_origin.ascii_serialization().as_ref()),
                     Some(&*source),
                     ports,
                 );

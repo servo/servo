@@ -202,10 +202,11 @@ impl CspReporting for Option<CspList> {
             if let Some(container_element) = window_proxy.frame_element() {
                 let container_document = container_element.owner_document();
                 let parent_origin = Url::parse(
-                    &container_document
+                    container_document
                         .origin()
                         .immutable()
-                        .ascii_serialization(),
+                        .ascii_serialization()
+                        .as_ref(),
                 )
                 .expect("Must always be able to parse document origin");
                 parent_navigable_origins.push(parent_origin);

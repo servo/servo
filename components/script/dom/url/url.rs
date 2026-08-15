@@ -105,7 +105,7 @@ impl URL {
         // Step 6. If serialized is "null", set it to an implementation-defined value.
         // Step 7. Append serialized to result.
         // N.B. We leave it as "null" right now.
-        result.push_str(&origin.ascii_serialization());
+        result.push_str(origin.ascii_serialization().as_ref());
 
         // Step 8. Append U+0024 SOLIDUS (/) to result.
         result.push('/');

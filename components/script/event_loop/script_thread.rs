@@ -2739,12 +2739,13 @@ impl ScriptThread {
         id: PipelineId,
         result_sender: GenericSender<Option<String>>,
     ) {
-        let _ = result_sender.send(
-            self.documents
-                .borrow()
-                .find_document(id)
-                .map(|document| document.origin().immutable().ascii_serialization()),
-        );
+        let _ = result_sender.send(self.documents.borrow().find_document(id).map(|document| {
+            document
+                .origin()
+                .immutable()
+                .ascii_serialization()
+                .into_owned()
+        }));
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm

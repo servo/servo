@@ -1493,12 +1493,10 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         password: "test".to_owned(),
     };
 
-    context
-        .state
-        .auth_cache
-        .write()
-        .entries
-        .insert(url.origin().clone().ascii_serialization(), auth_entry);
+    context.state.auth_cache.write().entries.insert(
+        url.origin().clone().ascii_serialization().into_owned(),
+        auth_entry,
+    );
 
     let response = fetch_with_context(request, &mut context);
 
@@ -1643,7 +1641,7 @@ fn test_origin_serialization_compatibility() {
         let url = Url::parse(url_string).unwrap();
         let origin = ImmutableOrigin::new(&url);
         let serialized = format!("{}", serialize_origin(&origin));
-        assert_eq!(serialized, origin.ascii_serialization());
+        assert_eq!(serialized, origin.ascii_serialization().as_ref());
     };
 
     ensure_serialiations_match("https://example.com");

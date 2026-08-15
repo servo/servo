@@ -648,7 +648,7 @@ impl TaskOnce for MessageReceivedTask {
             ws.upcast(),
             &global,
             message.handle(),
-            Some(&ws.origin().ascii_serialization()),
+            Some(ws.origin().ascii_serialization().as_ref()),
             None,
             vec![],
         );
