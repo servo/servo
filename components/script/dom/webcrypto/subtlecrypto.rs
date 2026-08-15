@@ -2895,12 +2895,12 @@ impl From<&Algorithm> for SerializableAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#dfn-KeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleKeyAlgorithm {
+pub(crate) struct KeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
     name: CryptoAlgorithm,
 }
 
-impl ToJSValConvertible for SubtleKeyAlgorithm {
+impl ToJSValConvertible for KeyAlgorithm {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -2914,18 +2914,18 @@ impl ToJSValConvertible for SubtleKeyAlgorithm {
     }
 }
 
-impl TryFrom<SerializableKeyAlgorithm> for SubtleKeyAlgorithm {
+impl TryFrom<SerializableKeyAlgorithm> for KeyAlgorithm {
     type Error = ();
 
     fn try_from(value: SerializableKeyAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleKeyAlgorithm {
+        Ok(KeyAlgorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
         })
     }
 }
 
-impl From<&SubtleKeyAlgorithm> for SerializableKeyAlgorithm {
-    fn from(value: &SubtleKeyAlgorithm) -> Self {
+impl From<&KeyAlgorithm> for SerializableKeyAlgorithm {
+    fn from(value: &KeyAlgorithm) -> Self {
         SerializableKeyAlgorithm {
             name: value.name.as_str().into(),
         }
@@ -3034,7 +3034,7 @@ impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
         .expect("Failed to set publicExponent property of RsaHashedKeyAlgorithm");
 
         rooted!(&in(cx) let mut hash_js = UndefinedValue());
-        let hash = SubtleKeyAlgorithm {
+        let hash = KeyAlgorithm {
             name: self.hash.name(),
         };
         hash.safe_to_jsval(cx, hash_js.handle_mut());
@@ -3571,7 +3571,7 @@ impl ToJSValConvertible for SubtleHmacKeyAlgorithm {
             .expect("Failed to set name property of HmacKeyAlgorithm");
 
         rooted!(&in(cx) let mut hash_js = UndefinedValue());
-        let hash = SubtleKeyAlgorithm {
+        let hash = KeyAlgorithm {
             name: self.hash.name(),
         };
         hash.safe_to_jsval(cx, hash_js.handle_mut());
@@ -4300,7 +4300,7 @@ impl ExportedKey {
 #[derive(Clone, MallocSizeOf)]
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
-    KeyAlgorithm(SubtleKeyAlgorithm),
+    KeyAlgorithm(KeyAlgorithm),
     RsaHashedKeyAlgorithm(SubtleRsaHashedKeyAlgorithm),
     EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),

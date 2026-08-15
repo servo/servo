@@ -12,7 +12,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    Algorithm, CryptoAlgorithm, KeyAlgorithmAndDerivatives, SubtleArgon2Params, SubtleKeyAlgorithm,
+    Algorithm, CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives, SubtleArgon2Params,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-derive-bits>
@@ -166,7 +166,7 @@ pub(crate) fn import_key(
     // Step 7. Let algorithm be a new KeyAlgorithm object.
     // Step 8. Set the name attribute of algorithm to the name member of normalizedAlgorithm.
     // Step 9. Set the [[algorithm]] internal slot of key to algorithm.
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: normalized_algorithm.name,
     };
     let key = CryptoKey::new(
