@@ -60,7 +60,7 @@ use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
 
-/// Calculate cumulative transform from root scroll node. Takes fragments (avoids recollecting).
+/// Calculate the cumulative transform from the root scroll node for `fragments`.
 fn root_transform_for_fragments(
     scroll_tree: &ScrollTree,
     fragments: &[Fragment],
@@ -98,7 +98,8 @@ pub(crate) fn process_box_area_request(
     area: BoxAreaType,
     exclude_transform_and_inline: bool,
 ) -> Option<Rect<Au, CSSPixel>> {
-    // Borrow fragments to avoid cloning (hot path for accessibility & getBoundingClientRect)
+    // Borrow fragments to avoid cloning on this hot path for accessibility and
+    // `getBoundingClientRect()`.
     node.with_fragments(|fragments| {
         let mut rects = fragments
             .iter()

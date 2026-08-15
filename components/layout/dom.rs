@@ -79,7 +79,7 @@ impl InnerDOMLayoutData {
             .unwrap_or_default()
     }
 
-    /// Run callback on fragments without cloning. None if node has no box.
+    /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
     fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T> {
         let self_box = self.self_box.borrow();
         let layout_box = self_box.as_ref()?;
@@ -365,7 +365,7 @@ pub(crate) trait NodeExt<'dom> {
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
 
-    /// Run callback on fragments without cloning. None if no box. Prefer over fragments_for_pseudo on hot paths.
+    /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
     fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T>;
     fn with_layout_box_base(&self, callback: impl FnMut(&LayoutBoxBase));
     fn with_layout_box_base_including_pseudos(&self, callback: impl FnMut(&LayoutBoxBase));

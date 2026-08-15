@@ -708,11 +708,11 @@ impl Layout for LayoutThread {
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
 
-        // Accessibility node bounds are relative to the viewport origin, so a scroll performed by
-        // the renderer makes every one of them stale without any reflow occuring. Asking
-        // for an accessibility update BOTH schedules a rendering update and STOPS that update's
-        // reflow from being skipped entirely, so that the bounds are recomputed against these new
-        // scroll offsets. See #47161 for a transform-based alternative to recomputing every node.
+        // Accessibility node bounds are relative to the viewport origin, so a renderer scroll
+        // makes every one of them stale without any reflow occurring. Requesting an accessibility
+        // update schedules a rendering update and prevents that update's reflow from being skipped,
+        // allowing the bounds to be recomputed against the new scroll offsets. See #47161 for a
+        // transform-based alternative to recomputing every node.
         if self.accessibility_active() {
             self.set_needs_accessibility_update();
         }
