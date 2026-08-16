@@ -85,7 +85,7 @@ impl StorageOrigins {
     /// Returns `true` if a new origin descriptor was created, or `false` if
     /// one already existed.
     fn ensure_origin_descriptor(&mut self, origin: &ImmutableOrigin) -> bool {
-        let origin = origin.ascii_serialization();
+        let origin = origin.ascii_serialization().into_owned();
         match self.origin_descriptors.entry(origin.clone()) {
             Entry::Occupied(_) => false,
             Entry::Vacant(entry) => {

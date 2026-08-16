@@ -1396,7 +1396,7 @@ impl GlobalScope {
                                 destination.upcast(),
                                 &global,
                                 message.handle(),
-                                Some(&origin.ascii_serialization()),
+                                Some(origin.ascii_serialization().as_ref()),
                                 None,
                                 ports,
                             );
@@ -1566,7 +1566,7 @@ impl GlobalScope {
                             message_event_target,
                             self,
                             message_clone.handle(),
-                            Some(&origin.ascii_serialization()),
+                            Some(origin.ascii_serialization().as_ref()),
                             None,
                             ports,
                         );

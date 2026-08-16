@@ -211,7 +211,7 @@ impl ServiceWorkerContainer {
                         self.upcast(),
                         &global,
                         message_val.handle(),
-                        Some(&origin.ascii_serialization()),
+                        Some(origin.ascii_serialization().as_ref()),
                         None,
                         ports,
                     );

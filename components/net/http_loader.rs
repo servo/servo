@@ -421,7 +421,11 @@ fn auth_from_cache(
     auth_cache: &RwLock<AuthCache>,
     origin: &ImmutableOrigin,
 ) -> Option<Authorization<Basic>> {
-    if let Some(auth_entry) = auth_cache.read().entries.get(&origin.ascii_serialization()) {
+    if let Some(auth_entry) = auth_cache
+        .read()
+        .entries
+        .get(origin.ascii_serialization().as_ref())
+    {
         let user_name = &auth_entry.user_name;
         let password = &auth_entry.password;
         Some(Authorization::basic(user_name, password))
@@ -1068,7 +1072,7 @@ fn tao_check(request: &Request, response: &Response) -> Result<(), ()> {
     // return success.
     if values
         .iter()
-        .any(|header_str| *header_str == request_origin.ascii_serialization())
+        .any(|header_str| *header_str == request_origin.ascii_serialization().as_ref())
     {
         return Ok(());
     }
@@ -1760,7 +1764,11 @@ async fn http_network_or_cache_fetch(
         };
         {
             let mut auth_cache = context.state.auth_cache.write();
-            let key = request.current_url().origin().ascii_serialization();
+            let key = request
+                .current_url()
+                .origin()
+                .ascii_serialization()
+                .into_owned();
             auth_cache.entries.insert(key, entry);
         }
 
