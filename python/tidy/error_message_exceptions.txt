@@ -73,9 +73,6 @@
 ./components/script/dom/intersectionobserver/intersectionobserver.rs 2
 ./components/script/dom/macros.rs 2
 ./components/script/dom/navigator/navigator.rs 3
-./components/script/dom/node/node.rs 37
-./components/script/dom/node/nodeiterator.rs 1
-./components/script/dom/node/treewalker.rs 1
 ./components/script/dom/performance/performanceobserver.rs 4
 ./components/script/dom/range/range.rs 20
 ./components/script/dom/selection.rs 14
