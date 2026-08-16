@@ -156,8 +156,6 @@ class Servo(
 
         fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean)
 
-        fun onRedrawing(redrawing: Boolean)
-
         fun onImeShow()
 
         fun onImeHide()
@@ -218,10 +216,6 @@ class Servo(
 
         override fun onHistoryChanged(canGoBack: Boolean, canGoForward: Boolean) {
             runCallback.inUIThread { client.onHistoryChanged(canGoBack, canGoForward) }
-        }
-
-        override fun onRedrawing(redrawing: Boolean) {
-            runCallback.inUIThread { client.onRedrawing(redrawing) }
         }
 
         override fun onMediaSessionMetadata(title: String, artist: String, album: String) {

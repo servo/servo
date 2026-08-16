@@ -299,9 +299,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         canGoForwardState.value = canGoForward
     }
 
-    override fun onRedrawing(redrawing: Boolean) {
-    }
-
     public override fun onPause() {
         servoView.onPause()
         super.onPause()
