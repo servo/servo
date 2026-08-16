@@ -55,6 +55,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
+use crate::dom::bindings::codegen::Bindings::MediaSourceBinding::EndOfStreamError;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
@@ -86,6 +87,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::media::mediasource::MediaSource;
 use crate::dom::mediaerror::MediaError;
 use crate::dom::mediafragmentparser::MediaFragmentParser;
 use crate::dom::medialist::MediaList;
@@ -611,6 +613,18 @@ pub(crate) struct HTMLMediaElement {
     media_controls_id: DomRefCell<Option<String>>,
     /// <https://html.spec.whatwg.org/multipage/#did-perform-automatic-track-selection>
     did_perform_automatic_track_selection: Cell<bool>,
+    /// The media source attached through a media source object URL, if any.
+    ///
+    /// <https://w3c.github.io/media-source/#dfn-attaching-to-a-media-element>
+    media_source: MutNullableDom<MediaSource>,
+    /// Media data appended to a source buffer that the media backend has not taken yet.
+    media_source_data: DomRefCell<VecDeque<Vec<u8>>>,
+    /// Whether the media backend is currently willing to accept appended media data. It
+    /// starts out unwilling, and toggles with the `NeedData` and `EnoughData` events.
+    media_source_accepts_data: Cell<bool>,
+    /// Whether the media source signalled the end of the stream while the media backend
+    /// still had appended data to consume.
+    media_source_end_of_stream: Cell<bool>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -695,6 +709,10 @@ impl HTMLMediaElement {
             current_fetch_context: RefCell::new(None),
             media_controls_id: DomRefCell::new(None),
             did_perform_automatic_track_selection: Default::default(),
+            media_source: Default::default(),
+            media_source_data: Default::default(),
+            media_source_accepts_data: Cell::new(false),
+            media_source_end_of_stream: Cell::new(false),
         }
     }
 
@@ -1165,7 +1183,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn load_from_src_object(&self, cx: &JSContext) {
+    fn load_from_src_object(&self, cx: &mut JSContext) {
         self.load_state.set(LoadState::LoadingFromSrcObject);
 
         // Step 9.object.1. Set the currentSrc attribute to the empty string.
@@ -1180,7 +1198,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn load_from_src_attribute(&self, cx: &JSContext, base_url: ServoUrl, src: &str) {
+    fn load_from_src_attribute(&self, cx: &mut JSContext, base_url: ServoUrl, src: &str) {
         self.load_state.set(LoadState::LoadingFromSrcAttribute);
 
         // Step 9.attribute.1. If the src attribute's value is the empty string, then end
@@ -1207,11 +1225,18 @@ impl HTMLMediaElement {
         // then the load failed.
         // Note that the resource fetch algorithm itself takes care
         // of the cleanup in case of failure itself.
-        self.resource_fetch_algorithm(cx, Resource::Url(url_record));
+        //
+        // A URL that resolves to an entry of the media source object URL store is
+        // attached instead of being fetched.
+        let resource = match self.global().media_source_for_url(url_record.as_str()) {
+            Some(media_source) => Resource::MediaSource(media_source),
+            None => Resource::Url(url_record),
+        };
+        self.resource_fetch_algorithm(cx, resource);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn load_from_source_child(&self, cx: &JSContext, source: &HTMLSourceElement) {
+    fn load_from_source_child(&self, cx: &mut JSContext, source: &HTMLSourceElement) {
         self.load_state.set(LoadState::LoadingFromSourceChild);
 
         // Step 9.children.1. Let pointer be a position defined by two adjacent nodes in the media
@@ -1428,6 +1453,15 @@ impl HTMLMediaElement {
     }
 
     fn fetch_request(&self, cx: &JSContext, offset: Option<u64>, seek_lock: Option<SeekLock>) {
+        // Media data that comes from a media source is appended by script rather than
+        // fetched, so there is no request to make and no byte range to serve.
+        if self.media_source.get().is_some() {
+            if let Some(seek_lock) = seek_lock {
+                seek_lock.unlock(/* successful seek */ false);
+            }
+            return;
+        }
+
         if self.resource_url.borrow().is_none() && self.blob_url.borrow().is_none() {
             error!("Missing request url");
             if let Some(seek_lock) = seek_lock {
@@ -1514,7 +1548,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-resource>
-    fn resource_fetch_algorithm(&self, cx: &JSContext, resource: Resource) {
+    fn resource_fetch_algorithm(&self, cx: &mut JSContext, resource: Resource) {
         if let Err(e) = self.create_media_player(&resource) {
             error!("Create media player error {:?}", e);
             self.resource_selection_algorithm_failure_steps(cx);
@@ -1576,6 +1610,29 @@ impl HTMLMediaElement {
 
                 // Steps 5.remote.2-5.remote.8
                 self.fetch_request(cx, None, None);
+            },
+            Resource::MediaSource(media_source) => {
+                // Step 5.local.1 of the resource fetch algorithm, as extended by Media
+                // Source Extensions: run the steps to attach to a media element.
+                if !media_source.attach(cx, self) {
+                    // Reaching this step means the media data cannot be fetched at all.
+                    self.queue_dedicated_media_source_failure_steps();
+                    return;
+                }
+
+                self.media_source.set(Some(&media_source));
+
+                // Script pushes the media data into the backend as it appends it, so the
+                // backend must neither ask for byte ranges nor expect a known input size.
+                if let Some(ref player) = *self.player.borrow() {
+                    let player = player.lock().unwrap();
+                    if let Err(error) = player.set_input_size(0) {
+                        warn!("Could not set the input size: {error:?}");
+                    }
+                    if let Err(error) = player.set_seekable(false) {
+                        warn!("Could not mark the stream as non seekable: {error:?}");
+                    }
+                }
             },
             Resource::Object => {
                 if let Some(ref src_object) = *self.src_object.borrow() {
@@ -1665,8 +1722,134 @@ impl HTMLMediaElement {
             }));
     }
 
-    fn in_error_state(&self) -> bool {
+    pub(crate) fn in_error_state(&self) -> bool {
         self.error.get().is_some()
+    }
+
+    /// <https://w3c.github.io/media-source/#dfn-detaching-from-a-media-element>
+    fn detach_media_source(&self) {
+        let Some(media_source) = self.media_source.take() else {
+            return;
+        };
+
+        media_source.detach();
+        self.media_source_data.borrow_mut().clear();
+        self.media_source_accepts_data.set(false);
+        self.media_source_end_of_stream.set(false);
+    }
+
+    /// Queues media data appended to one of the source buffers of the attached media
+    /// source, and hands over as much of it as the media backend is willing to take.
+    pub(crate) fn append_media_source_data(&self, data: Vec<u8>) {
+        self.media_source_data.borrow_mut().push_back(data);
+        self.drain_media_source_data();
+    }
+
+    /// Pushes queued media data into the media backend until it reports that it has
+    /// enough, at which point the rest waits for the next `NeedData` event.
+    fn drain_media_source_data(&self) {
+        if !self.media_source_accepts_data.get() {
+            return;
+        }
+
+        let Some(player) = self.player.borrow().clone() else {
+            return;
+        };
+
+        loop {
+            // The backend takes the buffer by value and drops it when it reports that it
+            // has enough data, so a chunk is only removed from the queue once it has been
+            // taken. The clone lives in a `let` statement of its own so that the borrow of
+            // the queue ends before the chunk is handed over.
+            let Some(data) = self.media_source_data.borrow().front().cloned() else {
+                break;
+            };
+
+            match player.lock().unwrap().push_data(data) {
+                Err(PlayerError::EnoughData) => {
+                    self.media_source_accepts_data.set(false);
+                    return;
+                },
+                result => {
+                    if let Err(error) = result {
+                        warn!("Could not push appended media data to the player: {error:?}");
+                    }
+                    self.media_source_data.borrow_mut().pop_front();
+                },
+            }
+        }
+
+        if self.media_source_end_of_stream.take() &&
+            let Err(error) = player.lock().unwrap().end_of_stream()
+        {
+            warn!("Could not signal the end of the stream to the player: {error:?}");
+        }
+    }
+
+    /// <https://w3c.github.io/media-source/#dfn-duration-change>
+    ///
+    /// Step 6 updates the media duration and runs the duration change algorithm of the
+    /// media element.
+    pub(crate) fn media_source_duration_changed(&self, duration: f64) {
+        if self.duration.get() == duration {
+            return;
+        }
+
+        self.duration.set(duration);
+        self.queue_media_element_task_to_fire_event(atom!("durationchange"));
+
+        // If the duration is changed such that the current playback position ends up being
+        // greater than the time of the end of the media resource, then the user agent must
+        // also seek to the time of the end of the media resource.
+        if self.current_playback_position.get() > duration {
+            self.seek(duration, /* approximate_for_speed */ false);
+        }
+    }
+
+    /// <https://w3c.github.io/media-source/#dfn-end-of-stream>
+    ///
+    /// Step 3.2 notifies the media element that it now has all of the media data.
+    pub(crate) fn media_source_end_of_stream(&self) {
+        self.media_source_end_of_stream.set(true);
+        self.drain_media_source_data();
+    }
+
+    /// <https://w3c.github.io/media-source/#dfn-end-of-stream>
+    ///
+    /// Steps 4 and 5 run the media data processing steps of the media element for a
+    /// network or a decode error.
+    pub(crate) fn media_source_error(&self, cx: &mut JSContext, error: EndOfStreamError) {
+        if self.ready_state.get() == ReadyState::HaveNothing {
+            // => "If the media data cannot be fetched at all, due to network errors,
+            // causing the user agent to give up trying to fetch the resource"
+            self.media_data_processing_failure_steps(cx);
+            return;
+        }
+
+        // => "If the media data is corrupted", and its network equivalent.
+        let error = match error {
+            EndOfStreamError::Network => MEDIA_ERR_NETWORK,
+            EndOfStreamError::Decode => MEDIA_ERR_DECODE,
+        };
+        self.media_data_processing_fatal_steps(error, cx);
+    }
+
+    /// <https://w3c.github.io/media-source/#dfn-initialization-segment-received>
+    ///
+    /// Step 7 sets the readyState attribute to HAVE_METADATA.
+    pub(crate) fn media_source_metadata_received(&self) {
+        if self.ready_state.get() == ReadyState::HaveNothing {
+            self.change_ready_state(ReadyState::HaveMetadata);
+        }
+    }
+
+    /// Called when an append or a range removal changed what the attached media source
+    /// reports as buffered.
+    pub(crate) fn media_source_buffered_changed(&self) {
+        // The media engine drives the ready state from the frames it manages to decode,
+        // but it cannot report having data for the current position before it has been
+        // handed any, so a first append is what lets playback leave HAVE_METADATA.
+        self.drain_media_source_data();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#potentially-playing>
@@ -1709,6 +1892,9 @@ impl HTMLMediaElement {
         // Step 2. Abort any already-running instance of the resource selection algorithm for this
         // element.
         self.generation_id.set(self.generation_id.get() + 1);
+
+        // <https://w3c.github.io/media-source/#dfn-detaching-from-a-media-element>
+        self.detach_media_source();
 
         self.load_state.set(LoadState::NotLoaded);
         *self.source_children_pointer.borrow_mut() = None;
@@ -2641,6 +2827,12 @@ impl HTMLMediaElement {
     }
 
     fn playback_duration_changed(&self, duration: Option<Duration>) {
+        // While a media source is attached its duration attribute is the media duration,
+        // so whatever the media engine derives from the appended bytes is ignored.
+        if self.media_source.get().is_some() {
+            return;
+        }
+
         let duration = duration.map_or(f64::INFINITY, |duration| duration.as_secs_f64());
 
         if self.duration.get() == duration {
@@ -2697,6 +2889,14 @@ impl HTMLMediaElement {
     }
 
     fn playback_need_data(&self) {
+        // When the media data comes from a media source, script decides when to append it
+        // and the media element only forwards what it has been given so far.
+        if self.media_source.get().is_some() {
+            self.media_source_accepts_data.set(true);
+            self.drain_media_source_data();
+            return;
+        }
+
         // The media engine signals that the source needs more data. If we already have a valid
         // fetch request, we do nothing. Otherwise, if we have no request and the previous request
         // was cancelled because we got an EnoughData event, we restart fetching where we left.
@@ -2735,6 +2935,12 @@ impl HTMLMediaElement {
     }
 
     fn playback_enough_data(&self) {
+        // Appended media data is kept until the media engine asks for more.
+        if self.media_source.get().is_some() {
+            self.media_source_accepts_data.set(false);
+            return;
+        }
+
         // The media engine signals that the source has enough data and asks us to stop pushing bytes
         // to avoid excessive buffer queueing, so we cancel the ongoing fetch request if we are able
         // to restart it from where we left. Otherwise, we continue the current fetch request,
@@ -2824,6 +3030,11 @@ impl HTMLMediaElement {
     }
 
     fn seekable(&self) -> TimeRangesContainer {
+        // <https://w3c.github.io/media-source/#htmlmediaelement-extensions>
+        if let Some(media_source) = self.media_source.get() {
+            return media_source.seekable();
+        }
+
         let mut seekable = TimeRangesContainer::default();
         if let Some(ref player) = *self.player.borrow() {
             let ranges = player.lock().unwrap().seekable();
@@ -3387,13 +3598,20 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-buffered>
     fn Buffered(&self, cx: &mut JSContext) -> DomRoot<TimeRanges> {
-        let mut buffered = TimeRangesContainer::default();
-        if let Some(ref player) = *self.player.borrow() {
-            let ranges = player.lock().unwrap().buffered();
-            for range in ranges {
-                let _ = buffered.add(range.start, range.end);
-            }
-        }
+        // <https://w3c.github.io/media-source/#htmlmediaelement-extensions>
+        let buffered = match self.media_source.get() {
+            Some(media_source) => media_source.media_element_buffered(),
+            None => {
+                let mut buffered = TimeRangesContainer::default();
+                if let Some(ref player) = *self.player.borrow() {
+                    let ranges = player.lock().unwrap().buffered();
+                    for range in ranges {
+                        let _ = buffered.add(range.start, range.end);
+                    }
+                }
+                buffered
+            },
+        };
         TimeRanges::new(cx, self.global().as_window(), buffered)
     }
 
@@ -3671,6 +3889,10 @@ impl MicrotaskRunnable for MediaElementMicrotask {
 enum Resource {
     Object,
     Url(ServoUrl),
+    /// A media source object URL, which is attached rather than fetched.
+    ///
+    /// <https://w3c.github.io/media-source/#dfn-attaching-to-a-media-element>
+    MediaSource(DomRoot<MediaSource>),
 }
 
 #[derive(Debug, MallocSizeOf, PartialEq)]

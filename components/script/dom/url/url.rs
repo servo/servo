@@ -27,6 +27,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::media::mediasource::MediaSource;
 use crate::dom::url::urlhelper::UrlHelper;
 use crate::dom::url::urlsearchparams::URLSearchParams;
 
@@ -202,11 +203,30 @@ impl URLMethods<crate::DomTypeHolder> for URL {
         DOMString::from(URL::unicode_serialization_blob_url(origin.immutable(), &id))
     }
 
+    /// <https://w3c.github.io/media-source/#dom-url-createobjecturl>
+    fn CreateObjectURL_(global: &GlobalScope, media_source: &MediaSource) -> DOMString {
+        // Step 1. Return the result of adding an entry to the blob URL store for
+        // mediaSource.
+        //
+        // A media source is bound to the thread that created it, so its entry is kept in
+        // the global rather than in the file manager that backs blob URLs.
+        let origin = global.origin();
+        let url = URL::unicode_serialization_blob_url(origin.immutable(), &Uuid::new_v4());
+
+        global.track_media_source_url(url.clone(), media_source);
+
+        DOMString::from(url)
+    }
+
     /// <https://w3c.github.io/FileAPI/#dfn-revokeObjectURL>
     fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
         // If the value provided for the url argument is not a Blob URL OR
         // if the value provided for the url argument does not have an entry in the Blob URL Store,
         // this method call does nothing. User agents may display a message on the error console.
+        if global.forget_media_source_url(&url.str()) {
+            return;
+        }
+
         let origin = global.origin().immutable().clone();
 
         if let Ok(url) = ServoUrl::parse(&url.str()) &&

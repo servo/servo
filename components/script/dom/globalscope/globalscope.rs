@@ -123,6 +123,7 @@ use crate::dom::globalscope::script_execution::{
     ErrorReporting, evaluate_script, fill_compile_options,
 };
 use crate::dom::idbfactory::IDBFactory;
+use crate::dom::media::mediasource::MediaSource;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -232,6 +233,14 @@ pub(crate) struct GlobalScope {
 
     /// The blobs managed by this global, if any.
     blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo, FxBuildHasher>>,
+
+    /// The media source object URLs created by this global, keyed by their serialization.
+    ///
+    /// A `MediaSource` never leaves the thread that created it, so unlike blob URLs these
+    /// entries cannot live in the file manager.
+    ///
+    /// <https://w3c.github.io/media-source/#dfn-media-source-object-url>
+    media_source_url_store: DomRefCell<HashMapTracedValues<String, Dom<MediaSource>>>,
 
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-registration-object-map>
     registration_map: DomRefCell<
@@ -790,6 +799,7 @@ impl GlobalScope {
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
             constellation_interest_counts: RefCell::new(HashMap::new()),
             blob_state: Default::default(),
+            media_source_url_store: Default::default(),
             eventtarget: EventTarget::new_inherited(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             indexeddb: Default::default(),
@@ -1845,6 +1855,29 @@ impl GlobalScope {
 
     fn track_blob_info(&self, blob_info: BlobInfo, blob_id: BlobId) {
         self.blob_state.borrow_mut().insert(blob_id, blob_info);
+    }
+
+    /// <https://w3c.github.io/media-source/#dom-url-createobjecturl>
+    pub(crate) fn track_media_source_url(&self, url: String, media_source: &MediaSource) {
+        self.media_source_url_store
+            .borrow_mut()
+            .insert(url, Dom::from_ref(media_source));
+    }
+
+    /// <https://w3c.github.io/media-source/#dfn-media-source-object-url>
+    pub(crate) fn media_source_for_url(&self, url: &str) -> Option<DomRoot<MediaSource>> {
+        self.media_source_url_store
+            .borrow()
+            .get(url)
+            .map(|media_source| DomRoot::from_ref(&**media_source))
+    }
+
+    /// <https://w3c.github.io/FileAPI/#dfn-revokeObjectURL>
+    pub(crate) fn forget_media_source_url(&self, url: &str) -> bool {
+        self.media_source_url_store
+            .borrow_mut()
+            .remove(url)
+            .is_some()
     }
 
     /// Start tracking a blob

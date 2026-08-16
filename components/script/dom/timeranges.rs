@@ -124,6 +124,72 @@ impl TimeRangesContainer {
 
         Ok(())
     }
+
+    /// Removes the `[start, end)` interval from the container, splitting the ranges that
+    /// only partially overlap it.
+    pub(crate) fn remove(&mut self, start: f64, end: f64) {
+        if start >= end {
+            return;
+        }
+
+        let mut ranges = Vec::with_capacity(self.ranges.len());
+        for range in self.ranges.drain(..) {
+            if range.end <= start || range.start >= end {
+                // Entirely outside of the removed interval.
+                ranges.push(range);
+                continue;
+            }
+            if range.start < start {
+                ranges.push(TimeRange {
+                    start: range.start,
+                    end: start,
+                });
+            }
+            if range.end > end {
+                ranges.push(TimeRange {
+                    start: end,
+                    end: range.end,
+                });
+            }
+        }
+        self.ranges = ranges;
+    }
+
+    /// Returns the ranges covered by both containers.
+    pub(crate) fn intersection(&self, other: &TimeRangesContainer) -> TimeRangesContainer {
+        let mut ranges = Vec::new();
+        for range in &self.ranges {
+            for other_range in &other.ranges {
+                let start = f64::max(range.start, other_range.start);
+                let end = f64::min(range.end, other_range.end);
+                if start < end {
+                    ranges.push(TimeRange { start, end });
+                }
+            }
+        }
+        // Both containers are sorted, so the intersection is produced in order.
+        TimeRangesContainer { ranges }
+    }
+
+    /// The start of the first range, if any.
+    pub(crate) fn start_time(&self) -> Option<f64> {
+        self.ranges.first().map(|range| range.start)
+    }
+
+    /// The end of the last range, if any.
+    pub(crate) fn end_time(&self) -> Option<f64> {
+        self.ranges.last().map(|range| range.end)
+    }
+
+    /// Moves the end of the last range to `end`, as required when a media source reaches
+    /// the `"ended"` ready state.
+    pub(crate) fn set_end_time(&mut self, end: f64) {
+        if let Some(range) = self.ranges.last_mut() &&
+            end > range.start
+        {
+            range.end = end;
+        }
+    }
 }
 
 #[dom_struct]

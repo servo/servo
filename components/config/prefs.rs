@@ -181,6 +181,8 @@ pub struct Preferences {
     pub dom_indexeddb_enabled: bool,
     // feature: IntersectionObserver | #35767 | Web/API/Intersection_Observer_API
     pub dom_intersection_observer_enabled: bool,
+    // feature: Media Source Extensions API | #44403 | Web/API/Media_Source_Extensions_API
+    pub dom_media_source_enabled: bool,
     pub dom_microdata_testing_enabled: bool,
     pub dom_uievent_which_enabled: bool,
     // feature: MutationObserver | #6633 | Web/API/MutationObserver
@@ -461,6 +463,7 @@ impl Preferences {
             dom_wakelock_enabled: false,
             dom_indexeddb_enabled: false,
             dom_intersection_observer_enabled: false,
+            dom_media_source_enabled: false,
             dom_microdata_testing_enabled: false,
             dom_uievent_which_enabled: true,
             dom_mutation_observer_enabled: true,
