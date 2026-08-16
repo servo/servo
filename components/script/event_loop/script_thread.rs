@@ -3646,6 +3646,9 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        if let Some(name) = incomplete.frame_name {
+            window_proxy.set_name(DOMString::from(name));
+        }
         if window_proxy.parent().is_some() {
             // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
             // The user agent must take this nested browsing context

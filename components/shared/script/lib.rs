@@ -83,6 +83,8 @@ pub struct NewPipelineInfo {
     pub embedder_theme: Theme,
     /// A snapshot of the navigation parameters of the target of this navigation.
     pub target_snapshot_params: TargetSnapshotParams,
+    /// Name of this iframe, if any
+    pub frame_name: Option<String>,
 }
 
 /// When a pipeline is closed, should its browsing context be discarded too?
