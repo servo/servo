@@ -22,6 +22,7 @@ use style_traits::CSSPixel;
 use surfman::{Adapter, Connection};
 use webrender_api::{DocumentId, FontVariation};
 
+pub mod container_timing_candidate;
 pub mod display_list;
 pub mod largest_contentful_paint_candidate;
 pub mod rendering_context;
@@ -47,6 +48,7 @@ use webrender_api::{
     PipelineId as WebRenderPipelineId,
 };
 
+use crate::container_timing_candidate::ContainerTimingRecord;
 use crate::largest_contentful_paint_candidate::LCPCandidate;
 use crate::viewport_description::ViewportDescription;
 
@@ -189,6 +191,10 @@ pub enum PaintMessage {
     SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
     /// Enable LCP calculation for the given WebView.
     EnableLCPCalculation(WebViewId),
+    /// A container timing candidate from layout.
+    SendContainerTimingCandidate(ContainerTimingRecord, WebViewId, PipelineId, Epoch),
+    /// Enable container timing calculation for the given WebView.
+    EnableContainerTimingCalculation(WebViewId),
 }
 
 impl Debug for PaintMessage {
@@ -363,6 +369,24 @@ impl CrossProcessPaintApi {
 
         if let Err(error) = display_list_data_sender.send(display_list_data) {
             warn!("Error sending display list: {error}");
+        }
+    }
+
+    /// Send a container timing candidate to `Paint`.
+    pub fn send_container_timing_candidate(
+        &self,
+        candidate: ContainerTimingRecord,
+        webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        epoch: Epoch,
+    ) {
+        if let Err(error) = self.0.send(PaintMessage::SendContainerTimingCandidate(
+            candidate,
+            webview_id,
+            pipeline_id,
+            epoch,
+        )) {
+            warn!("Error sending ContainerTimingCandidate: {error}");
         }
     }
 

@@ -5,8 +5,10 @@
 use std::collections::HashSet;
 
 use app_units::Au;
-use euclid::Rect;
+use euclid::{Box2D, Rect};
+use paint_api::container_timing_candidate::ContainerTimingRecord;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_geometry::FastLayoutTransform;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
@@ -31,6 +33,14 @@ pub(crate) struct PaintTimingHandler {
     lcp_candidate_updated: bool,
     /// The set of nodes that have been reported as LCP candidates.
     reported_lcp_nodes: HashSet<OpaqueNode>,
+    /// Container timing records accumulated so far, keyed by container root node.
+    /// These persist across display list builds
+    /// These only get removed when the attribute is removed from the container element.
+    container_timing_records: FxHashMap<OpaqueNode, ContainerTimingRecord>,
+    /// Container roots (keys into `container_timing_records`) touched since the last
+    /// time candidates were handed off to the paint thread. Cleared once compositing
+    /// has happened for the build that reported them.
+    dirty_containers: FxHashSet<OpaqueNode>,
 }
 
 impl PaintTimingHandler {
@@ -43,6 +53,8 @@ impl PaintTimingHandler {
             lcp_candidate_updated: false,
             viewport_rect: LayoutRect::from_size(viewport_size),
             reported_lcp_nodes: HashSet::new(),
+            container_timing_records: FxHashMap::default(),
+            dirty_containers: FxHashSet::default(),
         }
     }
 
@@ -226,6 +238,66 @@ impl PaintTimingHandler {
         self.lcp_candidate_updated = true;
     }
 
+    /// Record a container timing candidate for a painted text or image fragment.
+    /// Walks ancestors to find the container root.
+    pub(crate) fn update_container_timing(
+        &mut self,
+        node: OpaqueNode,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        transform: FastLayoutTransform,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
+    ) {
+        let Some(container_root) = get_container_root(node) else {
+            return;
+        };
+
+        let intersection_rect = transform_f32_rectangle(clip_rect.to_rect(), transform)
+            .unwrap_or_default()
+            .intersection(&self.viewport_rect.to_rect())
+            .map(|rect| rect.to_box2d())
+            .unwrap_or_default();
+
+        let result = self.effective_visual_size(
+            bounds,
+            clip_rect,
+            intersection_rect,
+            transform,
+            natural_width,
+            natural_height,
+        );
+
+        // If result is null, continue.
+        let Some(size) = result else {
+            return;
+        };
+
+        let record = self.get_or_create_record(container_root);
+        record.size += size;
+        record.intersection_rect = if record.intersection_rect.is_empty() {
+            intersection_rect
+        } else {
+            record.intersection_rect.union(&intersection_rect)
+        };
+
+        // now this container has been modified, mark it as dirty
+        self.dirty_containers.insert(container_root);
+    }
+
+    /// Returns the entry for `container_root`, creating a default one if absent.
+    fn get_or_create_record(&mut self, container_root: OpaqueNode) -> &mut ContainerTimingRecord {
+        self.container_timing_records
+            .entry(container_root)
+            .or_insert_with(|| {
+                let identifier =
+                    script::layout_dom::container_timing_identifier_for_root(container_root)
+                        .map(|id| id.to_string())
+                        .unwrap_or_default();
+                ContainerTimingRecord::new(container_root.id(), identifier, 0.0, Box2D::default())
+            })
+    }
+
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {
         self.lcp_candidate_updated
     }
@@ -241,4 +313,29 @@ impl PaintTimingHandler {
     pub(crate) fn lcp_node(&self) -> Option<OpaqueNode> {
         self.lcp_node
     }
+    /// Returns true if any container has been touched since the last compositing build
+    pub(crate) fn did_container_timing_update(&self) -> bool {
+        !self.dirty_containers.is_empty()
+    }
+
+    /// Returns the records for containers touched since the last reset.
+    pub(crate) fn take_container_timing_candidates(&self) -> Vec<ContainerTimingRecord> {
+        self.dirty_containers
+            .iter()
+            .filter_map(|container_root| self.container_timing_records.get(container_root))
+            .cloned()
+            .collect()
+    }
+
+    /// Clear the list once compositing has happened for the
+    /// build whose candidates were just handed off.
+    pub(crate) fn reset_container_timing_dirty(&mut self) {
+        self.dirty_containers.clear();
+    }
+}
+
+/// Walk DOM ancestors of `node` to find the nearest element with a `containertiming`
+/// attribute.
+fn get_container_root(node: OpaqueNode) -> Option<OpaqueNode> {
+    script::layout_dom::container_timing_root_for_node(node)
 }

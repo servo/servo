@@ -19,6 +19,7 @@ pub use crate::paint::{Paint, WebRenderDebugOption};
 #[macro_use]
 mod tracing;
 
+mod container_timing_calculator;
 mod largest_contentful_paint_calculator;
 mod paint;
 mod painter;
