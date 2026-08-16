@@ -108,10 +108,6 @@ pub(crate) struct HTMLIFrameElement {
     /// while script at this point(when the flag is set)
     /// expects those to run only for the navigated documented.
     pending_navigation: Cell<bool>,
-    /// Whether a load event was synchronously fired, for example when
-    /// an empty iframe is attached. In that case, we shouldn't fire a
-    /// subsequent asynchronous load event.
-    already_fired_synchronous_load_event: Cell<bool>,
     /// Initial name set by the content of the `name` attribute on the
     /// iframe. This is frozen in time, since it is only processed once
     /// on the initial creation of the iframe contents. If the iframe
@@ -161,14 +157,6 @@ impl HTMLIFrameElement {
         target_snapshot_params: TargetSnapshotParams,
         cx: &mut JSContext,
     ) {
-        // In case we fired a synchronous load event, but navigate away
-        // in the event listener of that event, then we should still
-        // fire a second asynchronous load event when that navigation
-        // finishes. Therefore, on any navigation (but not the initial
-        // about blank), we should always set this to false, regardless
-        // of whether we synchronously fired a load in the same microtask.
-        self.already_fired_synchronous_load_event.set(false);
-
         self.start_new_pipeline(
             cx,
             load_data,
@@ -476,8 +464,6 @@ impl HTMLIFrameElement {
 
         // Step 2.3. If url matches about:blank and initialInsertion is true, then:
         if url.matches_about_blank() && mode == ProcessingMode::FirstTime {
-            // We should **not** send a load event in `iframe_load_event_steps`.
-            self.already_fired_synchronous_load_event.set(true);
             // Step 2.3.1. Run the iframe load event steps given element.
             self.run_iframe_load_event_steps(cx);
             // Step 2.3.2. Return.
@@ -698,7 +684,6 @@ impl HTMLIFrameElement {
             current_navigation_was_lazy_loaded: Default::default(),
             lazy_load_resumption_steps: Default::default(),
             pending_navigation: Default::default(),
-            already_fired_synchronous_load_event: Default::default(),
             frozen_name: Default::default(),
         }
     }
@@ -803,10 +788,6 @@ impl HTMLIFrameElement {
             !self.pending_navigation.get()
         };
 
-        // If we already fired a synchronous load event, we shouldn't fire another
-        // one in this method.
-        let should_fire_event =
-            !self.already_fired_synchronous_load_event.replace(false) && should_fire_event;
         if should_fire_event {
             self.run_iframe_load_event_steps(cx);
         } else {
