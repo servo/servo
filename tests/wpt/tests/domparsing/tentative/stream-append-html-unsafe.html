@@ -96,8 +96,19 @@ promise_test(async t => {
     await writer.write("ABC");
     await writer.abort("abort-reason");
     await writer.write("DEF").catch(() => {});
-    assert_equals(placeholder.textContent, "start ABC");
+    assert_equals(placeholder.textContent, "start ");
 }, "Aborting streamAppendHTMLUnsafe()");
+
+promise_test(async t => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    window.did_eval_script = false;
+    const writer = element.streamAppendHTMLUnsafe({runScripts: true}).getWriter();
+    await writer.write("<script>window.did_eval_script = true;");
+    await writer.abort();
+    await new Promise(resolve => t.step_timeout(resolve, 0));
+    assert_false(window.did_eval_script);
+}, "streamAppendHTMLUnsafe should not execute unclosed scripts on abort");
 
 promise_test(async t => {
     const placeholder = document.createElement("div");

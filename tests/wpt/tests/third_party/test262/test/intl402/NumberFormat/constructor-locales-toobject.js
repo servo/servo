@@ -2,9 +2,9 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: >
-  Tests that Intl.NumberFormat contructor converts the locales argument
+  Tests that Intl.NumberFormat constructor converts the locales argument
   to an object using `ToObject` (7.1.13).
 info: |
   9.2.1 CanonicalizeLocaleList

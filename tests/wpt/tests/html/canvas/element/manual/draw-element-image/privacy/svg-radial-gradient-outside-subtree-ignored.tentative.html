@@ -1,0 +1,62 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use SVG resources from outside the subtree</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    a {
+      color: blue;
+    }
+    a:visited {
+      color: red;
+    }
+    canvas {
+      background-color: green;
+    }
+  </style>
+</head>
+<body>
+  <a href="">
+    <svg width="0" height="0">
+      <defs>
+        <radialGradient id="grad-outside">
+          <stop offset="0" stop-color="currentColor"/>
+          <stop offset="1" stop-color="currentColor"/>
+        </radialGradient>
+      </defs>
+    </svg>
+  </a>
+
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <div id="child">
+      <svg width="100" height="100">
+        <rect x="0" y="0" width="100" height="100" fill="url(#grad-outside)"/>
+      </svg>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+
+        var context = canvas.getContext("2d");
+
+        context.fillStyle = 'green';
+        context.fillRect(0, 0, 100, 100);
+
+        // Draw the element image
+        context.drawElementImage(child, 0, 0);
+
+        // The canvas should ignore the gradient and use transparent black.
+        let pixel = context.getImageData(50, 50, 1, 1).data;
+        assert_false(pixel[0] > 0, "The canvas should not use the gradient.");
+        assert_true(pixel[1] > 0, "The canvas should not use the gradient.");
+        assert_false(pixel[2] > 0, "The canvas should not use the gradient.");
+      });
+    };
+  </script>
+</body>
+</html>

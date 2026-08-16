@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      outline: 1px solid black;
+    }
+
+    .oof {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      background: red;
+    }
+  </style>
+</head>
+<body>
+  <!-- OOF items at block-end (bottom), matching fill-reverse static position -->
+  <div class="container">
+    <div class="oof" style="bottom: 0px; left: 0px;">1</div>
+    <div class="oof" style="bottom: 0px; left: 90px;">2</div>
+    <div class="oof" style="bottom: 0px; right: 0px;">3</div>
+  </div>
+</body>
+</html>

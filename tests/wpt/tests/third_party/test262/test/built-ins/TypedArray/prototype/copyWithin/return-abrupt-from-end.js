@@ -26,14 +26,14 @@ includes: [testTypedArray.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   var o1 = {
     valueOf: function() {
       throw new Test262Error();
     }
   };
-  var sample = new TA();
+  var sample = new TA(makeCtorArg(0));
   assert.throws(Test262Error, function() {
     sample.copyWithin(0, 0, o1);
   });
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

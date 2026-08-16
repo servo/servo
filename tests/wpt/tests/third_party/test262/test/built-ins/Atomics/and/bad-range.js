@@ -19,4 +19,4 @@ testWithTypedArrayConstructors(function(TA) {
       Atomics.and(view, IdxGen(view), 10);
     });
   });
-}, views);
+}, views, ["passthrough"]);

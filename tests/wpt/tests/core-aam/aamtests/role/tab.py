@@ -26,8 +26,11 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_PAGETAB
 #     # State: STATE_SYSTEM_SELECTED: if focus is inside tabpanel associated with aria-labelledby
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: TabItem
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: TabItem
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.TabItem

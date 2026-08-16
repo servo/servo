@@ -26,8 +26,8 @@ includes: [testTypedArray.js]
 features: [BigInt, TypedArray]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
-  var sample = new TA();
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(0));
   var called = false;
 
   var predicate = function() {
@@ -45,4 +45,4 @@ testWithBigIntTypedArrayConstructors(function(TA) {
     result, -1,
     "returns -1 on an empty instance"
   );
-}, null, ["passthrough"]);
+});

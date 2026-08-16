@@ -26,10 +26,16 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_LISTITEM
 #     # See also: aria-checked in the State and Property Mapping Tables
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: ListItem
-#     # Control Pattern: Invoke
-#     # See also: aria-checked in the State and Property Mapping Tables
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: ListItem
+    # Control Pattern: Invoke
+    # See also: aria-checked in the State and Property Mapping Tables
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.ListItem
+
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsInvokePatternAvailable)
+    # aria-checked is not mapped when undefined as in the HTML fragment above.

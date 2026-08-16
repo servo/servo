@@ -27,8 +27,8 @@ var obj2 = {
   }
 };
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA();
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(0));
 
   assert.throws(Test262Error, function() {
     sample.set(sample, obj1);
@@ -37,4 +37,4 @@ testWithTypedArrayConstructors(function(TA) {
   assert.throws(Test262Error, function() {
     sample.set(sample, obj2);
   }, "abrupt from toString");
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

@@ -78,4 +78,4 @@ testWithTypedArrayConstructors(function(TA) {
     Atomics.store(view, Idx, 37);
     assert.sameValue(Atomics.or(view, Idx, 0), 37, 'Atomics.or(view, Idx, 0) returns 37');
   });
-}, views);
+}, views, ["passthrough"]);

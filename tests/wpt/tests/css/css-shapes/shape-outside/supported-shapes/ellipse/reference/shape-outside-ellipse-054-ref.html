@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Reference File</title>
+        <link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+    </head>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+    body {
+        margin: 0;
+    }
+    .container {
+        font: 20px/1 Ahem, sans-serif;
+        width: 300px;
+        height: 200px;
+        overflow: hidden;
+        color: green;
+    }
+    .test-shape {
+        float: left;
+        width: 200px;
+        height: 200px;
+        shape-outside: ellipse(40px 60px at 100px 100px);
+    }
+    </style>
+    <body>
+        <p>The test passes if the green pattern below is identical to the reference.</p>
+        <div class="container" dir="ltr">
+            <div class="test-shape"></div>
+            X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X X
+        </div>
+    </body>
+</html>

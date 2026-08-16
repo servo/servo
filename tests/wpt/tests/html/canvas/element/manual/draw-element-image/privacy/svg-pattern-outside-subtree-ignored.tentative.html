@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not use SVG patterns outside the subtree</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+</head>
+<body>
+  <svg width="0" height="0">
+    <defs>
+      <pattern id="pattern" patternUnits="userSpaceOnUse" viewBox="0 0 100 100" width="100" height="100">
+        <image href="/images/red-100x100.png" x="0" y="0" width="100" height="100" preserveAspectRatio="none"/>
+      </pattern>
+    </defs>
+  </svg>
+
+  <canvas id="canvas" width="100" height="100" layoutsubtree>
+    <svg id=child width="100" height="100">
+      <rect x="0" y="0" width="100" height="100" fill="url(#pattern)"/>
+    </svg>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        const preloadImage = (url) => new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+          img.src = url;
+        });
+
+        const imageEl = document.querySelector('#pattern image');
+        await Promise.all([
+          preloadImage(imageEl.getAttribute('href')),
+        ]);
+
+        await waitForCanvasPaint(canvas);
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'green';
+        ctx.fillRect(0, 0, 100, 100);
+        ctx.drawElementImage(child, 0, 0);
+
+        // The canvas should ignore the gradient and use transparent black.
+        let pixel = ctx.getImageData(50, 50, 1, 1).data;
+        assert_false(pixel[0] > 0, "The canvas should not use the pattern.");
+        assert_true(pixel[1] > 0, "The canvas should not use the pattern.");
+        assert_false(pixel[2] > 0, "The canvas should not use the pattern.");
+      });
+    }
+  </script>
+</body>
+</html>

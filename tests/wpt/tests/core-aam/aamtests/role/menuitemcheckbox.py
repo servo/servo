@@ -27,10 +27,17 @@ def test_atspi(atspi, session, inline):
 #     # Role: IA2_ROLE_CHECK_MENU_ITEM
 #     # See also: aria-checked in the State and Property Mapping Tables
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: MenuItem
-#     # Control Pattern: Toggle
-#     # See also: aria-checked in the State and Property Mapping Tables
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: MenuItem
+    # Control Pattern: Toggle
+    # See also: aria-checked in the State and Property Mapping Tables
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.MenuItem
+
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsTogglePatternAvailable)
+    toggle_pattern = node.GetCurrentPattern(uia.PatternId.Toggle)
+    assert toggle_pattern and toggle_pattern.CurrentToggleState == 0

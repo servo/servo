@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: Chained streaming templates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="target"><?marker name="target"?>Original Target<?end></div>
+
+<script>
+class CustomElement extends HTMLElement {
+  constructor() {
+    super();
+    window.customElementRun = true;
+    window.ceOwnerDocument = this.ownerDocument;
+  }
+}
+customElements.define('custom-element', CustomElement);
+</script>
+
+<template for="target" id="outer">
+  <!-- This is the outer streaming template.
+       Its content goes into 'target' -->
+  <div id="inner-div"><?marker name="inner"?></div>
+  <template for="inner">
+    <!-- This is the inner streaming template.
+         Its scope will be the outer template element. -->
+    <custom-element id="ce"></custom-element>
+    <span id="streamed">Streamed</span>
+  </template>
+</template>
+
+<script>
+test(() => {
+  assert_true(window.customElementRun, "Custom element constructor should run");
+  assert_equals(window.ceOwnerDocument, document, "ownerDocument should be the main document");
+
+  const target = document.getElementById('target');
+  assert_not_equals(target, null);
+
+  // The inner template streams content into 'inner' marker, which is inside 'target'
+  const ce = document.getElementById('ce');
+  assert_not_equals(ce, null, "Custom element should be in the document");
+  assert_equals(ce.parentNode.id, 'inner-div', "Custom element should be appended to the inner div");
+
+  const streamed = document.getElementById('streamed');
+  assert_not_equals(streamed, null, "Span should be in the document");
+}, "Chained streaming templates and OwnerDocument");
+</script>
+</body>

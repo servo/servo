@@ -8,4 +8,4 @@ description: >
     null
 ---*/
 
-Object.freeze(null);
+assert.sameValue(Object.freeze(null), null);

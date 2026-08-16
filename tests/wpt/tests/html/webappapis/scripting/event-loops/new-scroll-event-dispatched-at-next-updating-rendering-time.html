@@ -29,88 +29,90 @@
   </div>
   "></iframe>
 <script>
-promise_test(async function() {
+promise_test(async function(t) {
   await new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
 
   const iframe = document.querySelector("iframe");
+
   const mql = iframe.contentWindow.matchMedia("(max-width: 300px)");
-  assert_true(mql.matches, "");
+  assert_true(mql.matches, "precondition");
 
-  // Set up a MQL change event listener to receive the event in between
-  // scroll and transitionrun events.
-  let timeOnMQLChange = null;
-  const mqlChangeEvent = new Promise(resolve => {
-    mql.addEventListener("change", () => {
-      timeOnMQLChange = performance.now();
-      resolve();
-    }, { once: true });
-  });
-  iframe.width = "400";
-
-  // There are two scroll containers, setup a scroll event listener for one
-  // of them.
   const scrollers = iframe.contentDocument.querySelectorAll(".scroller");
-  let timeOnScrollEventOnAnotherScroller = null;
+  let frameEvents = [];
+
+  // We set up listeners for various things: Both scrollers' scroll event,
+  // transitionrun, mediaquery change event, and also test raf.
+  // We trigger all these changes at once, and trigger the scroll for
+  // scrollers[1] on the scroll event of scroller[0], which should effectively
+  // push it to the next rendering update.
+  function recordFrameEvent(type) {
+    frameEvents.push(type);
+  }
+
+  mql.addEventListener("change", () => {
+    recordFrameEvent("mqlchange");
+  }, { once: true });
+
   scrollers[1].addEventListener("scroll", () => {
-    timeOnScrollEventOnAnotherScroller = performance.now();
+    recordFrameEvent("scroll1");
+  }, { once: true });
+
+  iframe.contentDocument.documentElement.addEventListener("transitionrun", () => {
+    recordFrameEvent("transitionrun");
   }, { once: true });
 
   // Setup another scroll event listener for the other scroll container.
-  const scrollEventPromise = new Promise(resolve => {
-    scrollers[0].addEventListener("scroll", resolve, { once: true });
-  });
-  // And scroll the scroller.
+  scrollers[0].addEventListener("scroll", e => {
+    recordFrameEvent("scroll0");
+    // Scroll the second scroller.
+    scrollers[1].scrollTop = 10;
+  }, { once: true });
+
+  // Now we trigger all those changes (except scroll1) at once. See below for
+  // the reasoning about the expected order.
+
+  // Trigger scroll0
   scrollers[0].scrollTop = 10;
 
-  // Await the scroll event.
-  await scrollEventPromise;
+  // Trigger mqlchange
+  iframe.width = "400";
 
-  const timeOnScrollEvent = performance.now();
-
-  // Scroll the other scroller.
-  scrollers[1].scrollTop = 10;
-
-  assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event is not dispatched with the scrollTop update");
-
-  // Trigger a CSS transition.
-  let timeOnTransitionRun = null;
-  const transitionrunEventPromise = new Promise(resolve => {
-    iframe.contentDocument.documentElement.addEventListener("transitionrun", () => {
-      timeOnTransitionRun = performance.now();
-      resolve();
-    }, { once: true });
-  });
+  // Trigger transitionrun
   iframe.contentDocument.documentElement.style.color = "blue";
   getComputedStyle(iframe.contentDocument.documentElement).color;
 
-  // Now it's time to receive the MQL change event.
-  await mqlChangeEvent;
-  assert_less_than_equal(timeOnScrollEvent, timeOnMQLChange,
-    "The MQL change event is dispatched after the first scroll event");
-  assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event is not dispatched right after the MQL change event");
+  // Trigger raf0 and then raf1, and wait after that.
+  await new Promise(resolve => {
+    iframe.contentWindow.requestAnimationFrame(() => {
+      recordFrameEvent("raf0");
+      t.step_timeout(() => {
+        recordFrameEvent("timeout0");
+      });
+      iframe.contentWindow.requestAnimationFrame(() => {
+        recordFrameEvent("raf1");
+        resolve();
+      });
+    });
+  });
 
-  // Await the transitionrun event.
-  await transitionrunEventPromise;
-
-  assert_less_than(timeOnScrollEvent, timeOnTransitionRun,
-    "The transitionrun event is dispatched after the first scroll event");
-  assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event is not dispatched right after the transitionrun event");
-
-  // Await a requestAnimationFrame callback.
-  await new Promise(resolve => requestAnimationFrame(resolve));
-
-  assert_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event is not dispatched one frame after the transitionrun event");
-
-  // Await one more requestAnimationFrame callback.
-  await new Promise(resolve => requestAnimationFrame(resolve));
-
-  assert_not_equals(timeOnScrollEventOnAnotherScroller, null,
-    "The new scroll event is dispatched two frames after the transitionrun event");
-  assert_less_than(timeOnTransitionRun, timeOnScrollEventOnAnotherScroller,
-    "The new scroll event is dispatched after the transitionrun event");
+  // The order as per https://html.spec.whatwg.org/#event-loop-processing-model
+  // should be:
+  //
+  //  * scroll0 (frame 0, run the scroll steps)
+  //  * mqlchange (frame 0, evaluate media queries and report changes)
+  //  * transitionrun (frame 0, update animations and send events)
+  //  * raf0 (frame 0, run the animation frame callbacks)
+  //  * timeout0 (in between frames)
+  //  * scroll1 (frame 1, run the scroll steps)
+  //  * raf1 (frame 1, run the animation frame callbacks)
+  assert_array_equals(frameEvents, [
+    "scroll0",
+    "mqlchange",
+    "transitionrun",
+    "raf0",
+    "timeout0",
+    "scroll1",
+    "raf1",
+  ]);
 });
 </script>

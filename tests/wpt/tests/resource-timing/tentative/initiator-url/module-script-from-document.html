@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Resource Timing - initiatorUrl for module scripts requested by the document</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../../resources/test-initiator.js"></script>
+
+<!-- Classic script defining appendModuleScript(), invoked from a task below. -->
+<script src="/resource-timing/resources/module-script-appender.js"></script>
+
+<!-- The document loads the target module directly via a module script tag. -->
+<script type="module" src="/resource-timing/resources/module-script-imported.js?label=document-src"></script>
+
+<!-- The document statically imports a module. -->
+<script type="module">
+import "/resource-timing/resources/module-script-imported.js?label=document-static";
+</script>
+
+<script>
+// The document dynamically imports a module.
+import("/resource-timing/resources/module-script-imported.js?label=document-dynamic");
+
+// The document dynamically adds a module script element.
+const script = document.createElement("script");
+script.type = "module";
+script.src =
+  getUrl("/resource-timing/resources/module-script-imported.js?label=document-add-script");
+document.head.appendChild(script);
+
+// appendModuleScript() loads a module script by appendChild().
+setTimeout(appendModuleScript, 0, "document-set-timeout");
+
+const documentUrl = getUrl(
+  "/resource-timing/tentative/initiator-url/module-script-from-document.html");
+
+// The document is reported as the initiator for a module script it loads
+// directly.
+for (const resource of [
+  "module-script-imported.js?label=document-src",
+  "module-script-imported.js?label=document-static",
+  "module-script-imported.js?label=document-dynamic",
+  "module-script-imported.js?label=document-add-script",
+  "module-script-imported.js?label=document-set-timeout",
+]) {
+  initiator_url_test(resource, documentUrl,
+    `${resource} initiatorUrl from document`,
+    `${resource} timeout`);
+}
+</script>

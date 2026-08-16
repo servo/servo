@@ -46,4 +46,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   var ta5 = new TA(makeCtorArg([1n, 2n]));
   ta5.set(4n, 1);
   assert.compareArray(ta5, [1n, 2n], "bigint");
-});
+}, null, null, ["immutable"]);

@@ -73,16 +73,25 @@ promise_test(async t => {
     description: 'Cross-origin CORS response without TAO'
   });
 
-  // 3. Cross-origin CORS response with TAO: filtered response (kCors), timing allow check fails for client.
+  // 3. Cross-origin CORS response with TAO: filtered response (kCors), timing allow check passes for client.
   const remote_cors_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py?cors=1&tao=1`;
   await test_fetch({
     target: remote_cors_tao,
     mode: 'cors',
-    expect_timing_allow: false,
+    expect_timing_allow: true,
     description: 'Cross-origin CORS response with TAO'
   });
 
-  // 4. Synthetic response created inside Service Worker: synthetic response (kDefault), timing allow check passes.
+  // 4. Cross-origin opaque response (no-cors) with TAO: filtered response (kOpaque), timing allow check passes for client.
+  const remote_opaque_tao = `${host_info.HTTPS_REMOTE_ORIGIN}${base_path()}resources/server-timing.py?tao=1`;
+  await test_fetch({
+    target: remote_opaque_tao,
+    mode: 'no-cors',
+    expect_timing_allow: true,
+    description: 'Cross-origin opaque response (no-cors) with TAO'
+  });
+
+  // 5. Synthetic response created inside Service Worker: synthetic response (kDefault), timing allow check passes.
   await test_fetch({
     target: 'synthetic',
     mode: 'cors',
@@ -90,7 +99,7 @@ promise_test(async t => {
     description: 'Synthetic response from ServiceWorker'
   });
 
-  // 5. Same-origin response (kBasic): timing allow check passes.
+  // 6. Same-origin response (kBasic): timing allow check passes.
   const same_origin_url = `${host_info.HTTPS_ORIGIN}${base_path()}resources/server-timing.py`;
   await test_fetch({
     target: same_origin_url,

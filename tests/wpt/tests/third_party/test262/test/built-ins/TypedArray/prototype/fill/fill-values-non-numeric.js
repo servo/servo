@@ -84,4 +84,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     }
   });
   assert.sameValue(sample[0], 7, "object toString when valueOf is absent");
-});
+}, null, null, ["immutable"]);

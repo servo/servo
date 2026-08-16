@@ -9,7 +9,6 @@ info: |
 
   1. If NewTarget is undefined, throw a TypeError exception.
   2. Let pluralRules be ? OrdinaryCreateFromConstructor(newTarget, "%PluralRulesPrototype%", « ... »).
-  3. Return ? InitializePluralRules(pluralRules, locales, options).
 
   OrdinaryCreateFromConstructor ( constructor, intrinsicDefaultProto [ , internalSlotsList ] )
 

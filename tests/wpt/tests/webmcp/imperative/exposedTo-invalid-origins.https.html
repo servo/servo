@@ -52,6 +52,47 @@ promise_test(async t => {
     execute: () => {}
   }, { signal, exposedTo: ['about:blank#invalidOrigin']}) )
 }, "registerTool() with abort signal reason because signal is processed before `exposedTo`");
+
+promise_test(async t => {
+  const ac1 = new AbortController();
+
+  // 1. Attempt an invalid tool registration whose promise rejects with SecurityError.
+  const p1 = document.modelContext.registerTool({
+    name: 'target_tool',
+    description: 'Target tool',
+    execute: async () => 'callback1'
+  }, { signal: ac1.signal, exposedTo: ['http://insecure.example'] });
+  await promise_rejects_dom(t, 'SecurityError', p1, 'First registration should fail with SecurityError');
+
+  // 2. Valid tool registration with callback2 under the same tool name.
+  const ac2 = new AbortController();
+  await document.modelContext.registerTool({
+    name: 'target_tool',
+    description: 'Target tool',
+    execute: async () => 'callback2'
+  }, { signal: ac2.signal });
+
+  // 3. Cache the RegisteredTool object.
+  const [tool] = await document.modelContext.getTools();
+  assert_true(!!tool, 'target_tool should be registered');
+
+  // 4. Abort the signal from the first (rejected) registration.
+  ac1.abort();
+
+  // 5. Attempt to register a replacement callback3 under the same name.
+  // Since ac1.abort() must not unregister target_tool, this duplicate registration must reject with InvalidStateError.
+  const p3 = document.modelContext.registerTool({
+    name: 'target_tool',
+    description: 'Target tool replacement',
+    execute: async () => 'callback3'
+  });
+  await promise_rejects_dom(t, 'InvalidStateError', p3, 'Duplicate registration should reject with InvalidStateError');
+
+  // 6. Execute the cached RegisteredTool.
+  // This must execute callback2 and resolve to 'callback2', not callback3.
+  const result = await document.modelContext.executeTool(tool, '{}');
+  assert_equals(result, 'callback2', 'Executing the cached RegisteredTool must run callback2');
+}, 'Aborting a signal from a rejected registration must not unregister a later valid tool with the same name');
 </script>
 </body>
 </html>

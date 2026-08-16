@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#scroll-notation">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2046965">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/css/css-animations/support/testcommon.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+
+  .fill-vh {
+    width: 100px;
+    height: 100vh;
+  }
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+const tests = [
+  { prop: 'animation-play-state', value: 'paused' },
+  { prop: 'animation-composition', value: 'accumulate' },
+  { prop: 'animation-timing-function', value: 'ease' },
+  { prop: 'animation-duration', value: '1s' },
+  { prop: 'animation-iteration-count', value: '3' },
+  { prop: 'animation-direction', value: 'reverse' },
+  { prop: 'animation-delay', value: '1s' },
+  { prop: 'animation-fill-mode', value: 'both' },
+];
+
+async function do_test(prop, value, t) {
+  const div = addDiv(t, { style: 'width: 50px; height: 100px;' });
+  const filling = addDiv(t, { class: 'fill-vh' });
+  const scroller = document.scrollingElement;
+  await waitForNextFrame();
+
+  div.style.animation = 'anim 100s linear forwards';
+  div.style.animationTimeline = 'scroll(root)';
+  await waitForCSSScrollTimelineStyle();
+
+  const anim = div.getAnimations()[0];
+  await anim.ready;
+
+  await waitForNextFrame();
+  let prev_timeline = anim.timeline;
+  div.style.setProperty(prop, value);
+  // Force a style flush.
+  getComputedStyle(div).width;
+  const timeline = anim.timeline;
+  assert_equals(timeline, prev_timeline);
+}
+
+for (const {prop: prop, value: value} of tests) {
+  promise_test(async t => {
+    await do_test(prop, value, t);
+  }, `Anonymous scroll timeline does not get reconstructed when modifying ${prop}`);
+}
+</script>

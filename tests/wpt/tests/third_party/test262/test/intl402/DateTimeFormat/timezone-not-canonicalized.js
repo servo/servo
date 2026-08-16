@@ -2,7 +2,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializedatetimeformat
+esid: sec-createdatetimeformat
 description: Time zone identifiers are not canonicalized before storing in internal slots
 features: [canonical-tz]
 ---*/

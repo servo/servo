@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS user-select default value for button element</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/9709">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1998331">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<button id="test_btn">Button under test</button>
+<script>
+  test(function() {
+    assert_equals(getComputedStyle(test_btn).userSelect, "auto",
+                  "Button should default to 'user-select: auto'");
+    }
+  )
+</script>

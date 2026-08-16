@@ -29,4 +29,4 @@ testWithTypedArrayConstructors(function(TA) {
   assert.throws(TypeError, function() {
     sample.reduceRight(callbackfn);
   });
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

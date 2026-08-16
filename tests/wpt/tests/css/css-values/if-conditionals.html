@@ -767,4 +767,7 @@
   // Equality of attr-tainted if()
   test_if_with_custom_properties('if(style(--x: attr(data-attr type(*))): true_value; else: false_value)', [['--x', 'attr']], 'true_value');
   test_if_with_custom_properties('if(style(--x: attr): true_value; else: false_value)', [['--x', 'attr(data-attr type(*))']], 'true_value');
+
+  // The else keyword is recognized after substitution, so a var() that expands to else matches.
+  test_if_with_custom_properties('if(var(--else): true_value; else: false_value)', [['--else', 'else']], 'true_value');
 </script>

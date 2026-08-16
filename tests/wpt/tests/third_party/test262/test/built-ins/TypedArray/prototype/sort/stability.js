@@ -12,11 +12,11 @@ features: [TypedArray, stable-typedarray-sort]
 // Treat 0..3, 4..7, etc. as equal.
 const compare = (a, b) => (a / 4 | 0) - (b / 4 | 0);
 
-testWithTypedArrayConstructors(TA => {
+testWithTypedArrayConstructors((TA, makeCtorArg) => {
   // Create an array of the form `[0, 1, …, 126, 127]`.
   const array = Array.from({ length: 128 }, (_, i) => i);
 
-  const typedArray1 = new TA(array);
+  const typedArray1 = new TA(makeCtorArg(array));
   assert(compareArray(
     typedArray1.sort(compare),
     array
@@ -25,7 +25,7 @@ testWithTypedArrayConstructors(TA => {
   // Reverse `array` in-place so it becomes `[127, 126, …, 1, 0]`.
   array.reverse();
 
-  const typedArray2 = new TA(array);
+  const typedArray2 = new TA(makeCtorArg(array));
   assert(compareArray(
     typedArray2.sort(compare),
     [
@@ -42,4 +42,4 @@ testWithTypedArrayConstructors(TA => {
       123, 122, 121, 120,   127, 126, 125, 124,
     ]
   ), 'not presorted');
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

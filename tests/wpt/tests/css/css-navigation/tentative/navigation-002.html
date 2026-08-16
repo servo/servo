@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>@navigation (between:)</title>
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-navigation">
+<style>
+  @location --foo {
+    pathname: "/target/foo/*";
+  }
+  @location --bar {
+    pathname: "/target/bar/*";
+  }
+  @navigation (between: --foo and --bar) {
+    #elm {
+      --between: matched;
+    }
+  }
+</style>
+<span id="elm"></span>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-navigation.js"></script>
+<script>
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+    const match_params = [
+      [elm, "--between"],
+    ];
+
+    await test_navigation(t, "nav1", ()=> { navigation.navigate("/target/foo/1"); }, [0], [0], match_params);
+    await test_navigation(t, "nav2", ()=> { navigation.navigate("/target/bar/2"); }, [1], [1], match_params);
+    await test_navigation(t, "nav3", ()=> { navigation.back(); },                    [1], [1], match_params);
+    await test_navigation(t, "nav4", ()=> { navigation.back(); },                    [0], [0], match_params);
+  }, "Navigate between URLs");
+</script>

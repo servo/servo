@@ -84,6 +84,38 @@ promise_test(async t => {
 }, 'Validate subprotocol headers sent');
 
 promise_test(async t => {
+  const options = { protocols: ['a"b'] };
+  const wt = new WebTransport(webtransport_url('echo-request-headers.py'), options);
+  await wt.ready;
+
+  const streams = await wt.incomingUnidirectionalStreams;
+  const stream_reader = streams.getReader();
+  const { value: recv_stream } = await stream_reader.read();
+  stream_reader.releaseLock();
+
+  const request_headers = await read_stream_as_json(recv_stream);
+  check_and_remove_standard_headers(request_headers);
+  // '"' inside a protocol name must be escaped as '\"' in the SF string.
+  assert_equals(request_headers['wt-available-protocols'], '"a\\"b"');
+}, 'Protocol with double-quote is escaped in wt-available-protocols header');
+
+promise_test(async t => {
+  const options = { protocols: ['a\\b'] };
+  const wt = new WebTransport(webtransport_url('echo-request-headers.py'), options);
+  await wt.ready;
+
+  const streams = await wt.incomingUnidirectionalStreams;
+  const stream_reader = streams.getReader();
+  const { value: recv_stream } = await stream_reader.read();
+  stream_reader.releaseLock();
+
+  const request_headers = await read_stream_as_json(recv_stream);
+  check_and_remove_standard_headers(request_headers);
+  // '\' inside a protocol name must be escaped as '\\' in the SF string.
+  assert_equals(request_headers['wt-available-protocols'], '"a\\\\b"');
+}, 'Protocol with backslash is escaped in wt-available-protocols header');
+
+promise_test(async t => {
   const options = { protocols: ["a", "b", "c"] };
   const wt = new WebTransport(webtransport_url('custom-response.py?wt-protocol="b"'), options);
   await wt.ready;

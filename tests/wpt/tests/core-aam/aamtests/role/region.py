@@ -27,11 +27,17 @@ def test_atspi(atspi, session, inline):
 #     # Role: IA2_ROLE_LANDMARK
 #     # Object Attribute: xml-roles:region
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Group
-#     # Localized Control Type: region
-#     # Landmark Type: Custom
-#     # Localized Landmark Type: region
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Group
+    # Localized Control Type: region
+    # Landmark Type: Custom
+    # Localized Landmark Type: region
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Group
+    assert node.CurrentLocalizedControlType == "region"
+    assert node.GetCurrentPropertyValue(uia.PropertyId.LandmarkType) == uia.LandmarkType.Custom
+    assert node.GetCurrentPropertyValue(uia.PropertyId.LocalizedLandmarkType) == "region"

@@ -32,4 +32,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.sameValue(result.foo, 42, "sample.foo === 42");
   assert.sameValue(result.bar, "bar", "sample.bar === 'bar'");
   assert.sameValue(result[s], 1, "sample[s] === 1");
-});
+}, null, null, ["immutable"]);

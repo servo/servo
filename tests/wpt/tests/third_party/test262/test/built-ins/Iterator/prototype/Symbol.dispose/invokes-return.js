@@ -21,10 +21,13 @@ const IteratorPrototype = Object.getPrototypeOf(
 
 const iter = Object.create(IteratorPrototype);
 var returnCalled = false;
+var argumentCount = 0;
 iter.return = function () {
+  argumentCount = arguments.length;
   returnCalled = true;
   return { done: true };
 };
 
 iter[Symbol.dispose]();
 assert.sameValue(returnCalled, true);
+assert.sameValue(argumentCount, 0);

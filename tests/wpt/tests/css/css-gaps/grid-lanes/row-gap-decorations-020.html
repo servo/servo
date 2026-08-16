@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row fill-reverse paints cross rules in final-coordinate order in row grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-020-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row fill-reverse;
+    width: 300px;
+    grid-template-rows: 120px 120px;
+    row-gap: 20px;
+    column-gap: 24px;
+    grid-lanes-pack: dense;
+    flow-tolerance: 0;
+    background: #cdd5e0;
+    column-rule: 4px solid gold;
+  }
+  .lanes > div {
+    background: #5b8def;
+  }
+  .lanes > div.a { grid-row: 1; width: 40px; }
+  .lanes > div.b { grid-row: 2; width: 100px; }
+  .lanes > div.c { grid-row: 1; width: 48px; }
+  .lanes > div.spanner {
+    grid-row: 1 / span 2;
+    width: 60px;
+    background: #8a6df0;
+  }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="spanner"></div>
+  <div class="c"></div>
+</div>

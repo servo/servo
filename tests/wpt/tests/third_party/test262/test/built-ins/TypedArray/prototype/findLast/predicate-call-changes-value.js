@@ -63,4 +63,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     return true;
   });
   assert.sameValue(result, 3, "findLast() returns previous found value");
-});
+}, null, null, ["immutable"]);

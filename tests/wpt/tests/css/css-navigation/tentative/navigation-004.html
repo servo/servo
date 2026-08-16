@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<title>@navigation rules with expressions, using @location</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-navigation">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-location">
+<style>
+  /* Assuming here that "css-navigation" is part of the test path. */
+  @location --r1 {
+    pattern: url-pattern("/*/css-navigation/*");
+  }
+
+  @location --r2 {
+    pattern: url-pattern("should-not-match");
+  }
+
+  /* Assuming that this one will match. */
+  @location --r3 {
+    protocol: "http*";
+  }
+
+  /* These should match. */
+  @navigation (at: --r1) or (at: --r2) {
+    #match1 {
+      height: 7px;
+    }
+  }
+  @navigation (at: --r2) or (at: --r1) {
+    #match2 {
+      height: 7px;
+    }
+  }
+  @navigation (at: url-pattern("/*/css-navigation/*")) and (at: --r3) {
+    #match3 {
+      height: 7px;
+    }
+  }
+  @navigation not (at: --r2) {
+    #match4 {
+      height: 7px;
+    }
+  }
+  @navigation not (to: --r2) {
+    #match5 {
+      height: 7px;
+    }
+  }
+  @navigation not ((to: --r2) or (from: --r2)) {
+    #match6 {
+      height: 7px;
+    }
+  }
+  @navigation (from: --r1) or (at: --r1) {
+    #match7 {
+      height: 7px;
+    }
+  }
+  @navigation (at: --r1) and (not (at: --r2)) {
+    #match8 {
+      height: 7px;
+    }
+  }
+  @navigation ((at: --r2) and (at: --r1)) or (at: --r3) {
+    #match9 {
+      height: 7px;
+    }
+  }
+  @navigation (not (--r1)) or (at: --r2) or (at: --r3) {
+    #match10 {
+      height: 7px;
+    }
+  }
+  @navigation (at: --r1) and (not (at: --r2)) and (at: --r3) {
+    #match11 {
+      height: 7px;
+    }
+  }
+  @navigation (at: --r1) and (not (at: --r2)) and (at: --r3) and (from: --r1) and (to: --r1) and (not (from: --r2)) and (not (to: --r2)) and (from: --r3) and (to: --r3) {
+    #match12 {
+      height: 7px;
+    }
+  }
+
+  @navigation ((at: --r1) and (at: --r2) and (at: --r3) and (from: --r1) and (to: --r1) and (from: --r2) and (to: --r2) and (from: --r3) and (to: --r3)) or (at: url-pattern("/*/css-navigation/*")) {
+    #match13 {
+      height: 7px;
+    }
+  }
+
+  /* These should not match. */
+  @navigation (at: --r2) and (at: --r1) {
+    #nomatch1 {
+      height: 13px;
+    }
+  }
+  @navigation not (at: --r1) {
+    #nomatch2 {
+      height: 13px;
+    }
+  }
+  @navigation (from: --r2) {
+    #nomatch3 {
+      height: 13px;
+    }
+  }
+  @navigation (to: --r2) {
+    #nomatch4 {
+      height: 13px;
+    }
+  }
+  @navigation (at: --r1) and (at: --r2) and (at: --r3) {
+    #nomatch5 {
+      height: 13px;
+    }
+  }
+</style>
+<div class="matches">
+  <div id="match1"></div>
+  <div id="match2"></div>
+  <div id="match3"></div>
+  <div id="match4"></div>
+  <div id="match5"></div>
+  <div id="match6"></div>
+  <div id="match7"></div>
+  <div id="match8"></div>
+  <div id="match9"></div>
+  <div id="match10"></div>
+  <div id="match11"></div>
+  <div id="match12"></div>
+  <div id="match13"></div>
+</div>
+<div class="nomatches">
+  <div id="nomatch1"></div>
+  <div id="nomatch2"></div>
+  <div id="nomatch3"></div>
+  <div id="nomatch4"></div>
+  <div id="nomatch5"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+    let committed = Promise.withResolvers();
+    navigation.onnavigate = (event) => {
+      event.intercept({
+        async handler() {
+          committed.resolve();
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        }
+      })
+    };
+
+    // Trigger an active navigation, so that any valid "at" rule will match.
+    navigation.navigate("somewhere");
+    await committed.promise;
+
+    for (const elm of document.querySelectorAll(".matches > div")) {
+      assert_equals(elm.offsetHeight, 7, `Should match ${elm.id}`);
+    }
+
+    for (const elm of document.querySelectorAll(".nomatches > div")) {
+      assert_equals(elm.offsetHeight, 0, `Should not match ${elm.id}`);
+    }
+  }, "conditions, locations defined by @location");
+</script>

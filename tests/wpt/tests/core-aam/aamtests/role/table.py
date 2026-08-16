@@ -33,10 +33,15 @@ def test_atspi(atspi, session, inline):
 #     # Object Attribute: xml-roles:table
 #     # Interface: IAccessibleTable2
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Table
-#     # Control Pattern: Grid
-#     # Control Pattern: Table
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Table
+    # Control Pattern: Grid
+    # Control Pattern: Table
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Table
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsGridPatternAvailable)
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsTablePatternAvailable)

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: grid-axis rules stop where spanners cross the gutter above a dense tail split in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-037-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(3, 100px);
+    grid-lanes-pack: dense;
+    flow-tolerance: 0;
+    column-gap: 20px;
+    row-gap: 16px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    background: #5b8def;
+  }
+  .lanes > div.a { grid-column: 1; height: 24px; }
+  .lanes > div.b { grid-column: 2; height: 88px; }
+  .lanes > div.c { grid-column: 3; height: 240px; }
+  .lanes > div.s { grid-column: 2 / span 2; height: 48px; background: #8a6df0; }
+  .lanes > div.d { grid-column: 1 / span 2; height: 64px; background: #8a6df0; }
+  .lanes > div.f { grid-column: 1; height: 40px; background: #1f9d6b; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="s"></div>
+  <div class="d"></div>
+  <div class="f"></div>
+</div>

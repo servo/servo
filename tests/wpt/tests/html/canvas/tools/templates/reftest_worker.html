@@ -3,6 +3,7 @@
 <meta charset="UTF-8">
 <html class="reftest-wait">
 <link rel="match" href="{{ reference_file_link }}">
+<script src="/common/reftest-wait.js"></script>
 {% if fuzzy %}<meta name=fuzzy content="{{ fuzzy }}">
 {% endif %}
 {% if timeout %}<meta name="timeout" content="{{ timeout }}">
@@ -16,22 +17,31 @@
 </canvas>
 <script id='myWorker' type='text/worker'>
   self.onmessage = {% if test_type == 'promise' %}async {% endif %}function(e) {
-    const canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
-    const ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
+    try {
+      const canvas = new OffscreenCanvas({{ size[0] }}, {{ size[1] }});
+      const ctx = canvas.getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
 
-    {{ code | trim | indent(4) }}
+      {{ code | trim | indent(6) }}
 
-    const bitmap = canvas.transferToImageBitmap();
-    self.postMessage(bitmap, bitmap);
+      const bitmap = canvas.transferToImageBitmap();
+      self.postMessage({ type: 'bitmap', bitmap }, [bitmap]);
+    } catch (error) {
+      self.postMessage({ type: 'error', message: error });
+    }
   };
 </script>
 <script>
   const blob = new Blob([document.getElementById('myWorker').textContent]);
   const worker = new Worker(URL.createObjectURL(blob));
-  worker.addEventListener('message', msg => {
+  worker.onerror = failOnError;
+  worker.onmessage = reftestStep(msg => {
+    if (msg.data.type === 'error') {
+      failOnError(msg.data.message);
+      return;
+    }
     const outputCtx = document.getElementById("canvas").getContext('2d'{% if attributes %}, {{ attributes }}{% endif %});
-    outputCtx.drawImage(msg.data, 0, 0);
-    document.documentElement.classList.remove("reftest-wait");
+    outputCtx.drawImage(msg.data.bitmap, 0, 0);
+    takeScreenshot();
   });
   worker.postMessage(null);
 </script>

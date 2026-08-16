@@ -20,4 +20,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
 
   assert.compareArray(explicit, [42, 43, 44, 45, 46], 'The value of `explicit` is [42, 43, 44, 45, 46]');
   assert.compareArray(implicit, [42, 43, 44, 45, 46], 'The value of `implicit` is [42, 43, 44, 45, 46]');
-});
+}, null, null, ["immutable"]);

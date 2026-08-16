@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>document.modelContext gated by document.domain being disabled</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<iframe src="https://{{hosts[][www]}}:{{location[port]}}/webmcp/imperative/resources/document-domain-enabled-iframe.html"></iframe>
+<script>
+fetch_tests_from_window(document.querySelector('iframe').contentWindow);
+</script>
+</body>

@@ -101,4 +101,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     compareArray(new TA(makeCtorArg([0n, 0n])).fill(1n, 0, 1.5), [1n, 0n]),
     'end as a float number coerced'
   );
-});
+}, null, null, ["immutable"]);

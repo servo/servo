@@ -10,6 +10,8 @@ def main(request, response):
         headers.append((b"Timing-Allow-Origin", b"*"))
     if b"cors" in request.GET:
         headers.append((b"Access-Control-Allow-Origin", b"*"))
+        headers.append((b"Access-Control-Expose-Headers",
+                        b"Server-Timing, Timing-Allow-Origin"))
 
     # 1x1 transparent PNG
     png_data = decodebytes(

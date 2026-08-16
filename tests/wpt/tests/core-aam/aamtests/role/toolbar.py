@@ -24,8 +24,11 @@ def test_atspi(atspi, session, inline):
 #     # Spec:
 #     # Role: ROLE_SYSTEM_TOOLBAR
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: ToolBar
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: ToolBar
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.ToolBar

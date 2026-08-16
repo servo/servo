@@ -1,9 +1,14 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>RTCPeerConnection-helper tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
+<video id="videoin">
+</video>
+<video id="videoout">
+</video>
 <script>
 'use strict';
 
@@ -18,4 +23,86 @@ promise_test(async t => {
   await exchangeOfferAnswer(pc1, pc2);
   await waitForState(transceiver.sender.transport, 'connected');
 }, 'Setting up a connection using helpers and defaults should work');
+
+function bandwidth(stats1, stats2) {
+  const transport1 = [...stats1.values()].filter(({type}) => type === 'transport')[0];
+  const transport2 = [...stats2.values()].filter(({type}) => type === 'transport')[0];
+  const bytes = transport2.bytesReceived - transport1.bytesReceived;
+  // Timestamps are in milliseconds.
+  // Multiply by 1000 to get bytes per second, multiply by 8 to get bits/s.
+  const bandwidth = 1000 * 8 * bytes /
+        (transport2.timestamp - transport1.timestamp);
+  return bandwidth;
+}
+
+// Returns tuple of { bandwidth, fps, x-res, y-res }
+async function measureStuff(t, pc, intervalMs) {
+  // Sample stats twice at intervalMs, but wait until the first stats
+  // show up.
+  let inboundRtp1List;
+  let stats1;
+  while (inboundRtp1List == undefined || inboundRtp1List.length == 0) {
+    stats1 = await pc.getStats();
+    inboundRtp1List = [...stats1.values()].filter(({type}) => type === 'inbound-rtp');
+    await new Promise(r => t.step_timeout(r, intervalMs));
+  }
+  const stats2 = await pc.getStats();
+  const inboundRtp2List = [...stats2.values()].filter(({type}) => type === 'inbound-rtp');
+  const inboundRtp1 = inboundRtp1List[0];
+  const inboundRtp2 = inboundRtp2List[0];
+  const fps = 1000 * (inboundRtp2.framesReceived - inboundRtp1.framesReceived) /
+        (inboundRtp2.timestamp - inboundRtp1.timestamp);
+  const result = {
+    bandwidth: bandwidth(stats1, stats2),
+    fps: fps,
+    width: inboundRtp2.frameWidth,
+    height: inboundRtp2.frameHeight
+  };
+  // Unbreak for debugging.
+  // con sole.log('Measure: ', performance.now(), " ", JSON.stringify(result));
+  return result;
+}
+
+// Wait for a certain condition to be true on the traffic measures
+// on the PC. Will typically be conditions on resolution, framerate
+// or bandwidth.
+async function waitForCondition(t, pc, condition, maxWait, stepName) {
+  let counter = 1;
+  let measure = await measureStuff(t, pc, 1000);
+  while (counter < maxWait && !condition(measure)) {
+    measure = await measureStuff(t, pc, 1000);
+    counter += 1;
+  }
+  assert_true(condition(measure),
+              `failure in ${stepName}, measure is ${JSON.stringify(measure)}`);
+  return condition(measure);
+}
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  const stream = await getNoiseStream({video: true});
+  const videoInDisplay = document.getElementById('videoin');
+  videoInDisplay.srcObject = stream;
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  const sender = pc1.addTrack(stream.getTracks()[0]);
+  pc2.ontrack = (e) => {
+    const videoOutDisplay = document.getElementById('videoout');
+    const stream = new MediaStream([e.track]);
+    videoOutDisplay.srcObject = stream;
+  }
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
+  await waitForState(sender.transport, 'connected');
+
+  assert_true(await waitForCondition(t, pc2, (measure) => {
+    return (measure.bandwidth > 40000 &&
+            measure.width >= 640 &&
+            measure.fps > 9);
+  }, 15, 'video track size - may include keyframe'));
+}, 'A test video track transmits at least 40 Kbits/sec of data at 480x360 size',
+             {timeout: 16000});
+
 </script>

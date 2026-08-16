@@ -34,4 +34,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     });
   });
 
-});
+}, null, null, ["immutable"]);

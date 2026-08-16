@@ -129,6 +129,9 @@ def browser_kwargs(logger, test_type, run_info_data, config, subsuite, **kwargs)
                       "gmp_path": kwargs["gmp_path"] if "gmp_path" in kwargs else None,
                       "debug_test": kwargs["debug_test"]}
 
+    if test_type == "aamtest":
+        browser_kwargs["env"] = {"GNOME_ACCESSIBILITY": "1"}
+
     if test_type in ("wdspec", "aamtest"):
         browser_kwargs["webdriver_binary"] = kwargs["webdriver_binary"]
         browser_kwargs["webdriver_args"] = kwargs["webdriver_args"].copy()

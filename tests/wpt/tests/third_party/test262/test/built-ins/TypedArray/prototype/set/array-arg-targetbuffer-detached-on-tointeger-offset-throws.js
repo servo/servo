@@ -21,8 +21,8 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA(2);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(2));
   var calledOffset = 0;
   var obj = {
     valueOf: function() {
@@ -36,4 +36,4 @@ testWithTypedArrayConstructors(function(TA) {
   });
 
   assert.sameValue(calledOffset, 1);
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

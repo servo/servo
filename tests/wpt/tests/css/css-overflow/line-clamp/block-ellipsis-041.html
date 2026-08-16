@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: No clearance if block-ellipsis fits</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-041-ref.html">
+<meta name="assert" content="After displacing content to make room for the ellipsis, if the line would fit next to a float, keep and there and do not shift it down.">
+<style>
+.test {
+    font-family: monospace;
+    width: 5.1ch; /* .1 is to make sure rounding errors don't interfere with line breaking */
+    line-clamp: 1;
+}
+aside {
+    float: left;
+    width: 1ch;
+    height: 1lh;
+}
+.red { color: red; }
+</style>
+
+<p>Test passes if there is a “…” below and <strong>no red</strong>.
+
+<div class=test>
+    <aside></aside>
+    <span class=red>FAIL FAIL FAIL FAIL</span>
+</div>
+

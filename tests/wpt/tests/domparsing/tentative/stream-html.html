@@ -137,7 +137,7 @@
     await writer.write("ABC");
     await writer.abort("abort-reason");
     await writer.write("DEF").catch(() => {});
-    assert_equals(placeholder.textContent, "ABC");
+    assert_equals(placeholder.textContent, "");
   }, "Aborting streamHTML()");
 
   promise_test(async (t) => {

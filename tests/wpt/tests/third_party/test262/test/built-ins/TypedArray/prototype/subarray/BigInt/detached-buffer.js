@@ -50,8 +50,8 @@ var o2 = {
   }
 };
 
-testWithBigIntTypedArrayConstructors(function(TA) {
-  var sample = new TA(2);
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(2));
   begin = false;
   end = false;
 
@@ -62,4 +62,4 @@ testWithBigIntTypedArrayConstructors(function(TA) {
 
   assert(begin, "observable ToInteger(begin)");
   assert(end, "observable ToInteger(end)");
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

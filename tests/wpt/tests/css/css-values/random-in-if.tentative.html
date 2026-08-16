@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <title>CSS Values and Units Test: random() in if()</title>
 <link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13662">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
@@ -47,11 +48,11 @@ test(() => {
 
     const elComputedValue = getComputedStyle(el).getPropertyValue('--unregistered');
 
-    assert_equals(elComputedValue, 'false');
+    assert_equals(elComputedValue, 'true');
   } finally {
     document.body.removeChild(holder);
   }
-}, `random() should not be allowed in if() style() condition`);
+}, `random() should be allowed in if() style() condition`);
 
 test(() => {
   const holder = document.createElement('div');
@@ -63,11 +64,177 @@ test(() => {
 
     const elComputedValue = getComputedStyle(el).getPropertyValue('--unregistered');
 
-    assert_equals(elComputedValue, 'false');
+    assert_equals(elComputedValue, 'true');
   } finally {
     document.body.removeChild(holder);
   }
-}, `random() in var() should not be allowed in if() style() condition`);
+}, `random() in var() should be allowed in if() style() condition`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    let allSamePropertyScoped = true;
+    let allSamePropertyIndexScoped = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const prop3 = `--unregistered3-${i}`;
+      const el = document.createElement('div');
+      el.style.setProperty(prop1, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop2, 'if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop3, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;) if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el);
+
+      const elComputedValue1 = getComputedStyle(el).getPropertyValue(prop1);
+      let [val11, val12] = elComputedValue1.split(' ');
+      if (val11 != val12) {
+        allSame = false;
+      }
+
+      const elComputedValue2 = getComputedStyle(el).getPropertyValue(prop2);
+      let [val21, val22] = elComputedValue2.split(' ');
+      if (val21 != val22) {
+        allSamePropertyScoped = false;
+      }
+
+      const elComputedValue3 = getComputedStyle(el).getPropertyValue(prop3);
+      let [val31, val32] = elComputedValue3.split(' ');
+      if (val31 != val32) {
+        allSamePropertyIndexScoped = false;
+      }
+    }
+    assert_equals(allSame, true);
+    assert_equals(allSamePropertyScoped, true);
+    assert_equals(allSamePropertyIndexScoped, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing random() in if() style() condition within same property`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const el = document.createElement('div');
+      el.style.setProperty(prop1, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop2, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el);
+      const elComputedValue1 = getComputedStyle(el).getPropertyValue(prop1);
+      const elComputedValue2 = getComputedStyle(el).getPropertyValue(prop2);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing element-scoped random() in if() style() condition across different properties`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop1 = `--unregistered-${i}`;
+      const prop2 = `--unregistered2-${i}`;
+      const el = document.createElement('div');
+      el.style.setProperty(prop1, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      el.style.setProperty(prop2, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el);
+      const elComputedValue1 = getComputedStyle(el).getPropertyValue(prop1);
+      const elComputedValue2 = getComputedStyle(el).getPropertyValue(prop2);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() in if() style() condition across different properties`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(property-index-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-index-scoped random() in if() style() condition across different elements`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;)');
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(property-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, true);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing property-scoped random() in if() style() condition across different elements`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    let allSame = true;
+    for(let i = 0; i < 30; i++) {
+      const prop = `--unregistered-${i}`;
+      const el1 = document.createElement('div');
+      el1.style.setProperty(prop, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      const el2 = document.createElement('div');
+      el2.style.setProperty(prop, 'if(style(random(element-scoped, 0, 1) > 0.5): true; else: false;)');
+      holder.appendChild(el1);
+      holder.appendChild(el2);
+      const elComputedValue1 = getComputedStyle(el1).getPropertyValue(prop);
+      const elComputedValue2 = getComputedStyle(el2).getPropertyValue(prop);
+      if (elComputedValue1 != elComputedValue2) {
+        allSame = false;
+      }
+    }
+    assert_equals(allSame, false);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Sharing element-scoped random() in if() style() condition across different elements`);
 
 test(() => {
   const holder = document.createElement('div');

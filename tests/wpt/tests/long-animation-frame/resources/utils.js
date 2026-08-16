@@ -147,3 +147,9 @@ function test_promise_script(cb, resolve_or_reject, invoker, label) {
 function test_self_script_block(cb, invoker, type) {
   test_loaf_script(cb, invoker, type);
 }
+
+function close_enough(actual, expected) {
+  const diff = Math.abs(actual - expected);
+  const max_abs = Math.max(Math.abs(actual), Math.abs(expected));
+  return diff * 10 < max_abs + 1e-9;
+}

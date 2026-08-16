@@ -30,12 +30,12 @@ includes: [testTypedArray.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   var called = false;
-  var result = new TA().reduce(function() {
+  var result = new TA(makeCtorArg(0)).reduce(function() {
     called = true;
   }, 42);
 
   assert.sameValue(result, 42);
   assert.sameValue(called, false);
-}, null, ["passthrough"]);
+});

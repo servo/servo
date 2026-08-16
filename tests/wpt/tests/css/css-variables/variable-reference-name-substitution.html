@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>var() name argument is an arbitrary substitution value</title>
+    <link rel="help" href="https://drafts.csswg.org/css-variables-2/#replace-a-var-function">
+    <link rel="help" href="https://drafts.csswg.org/css-values-5/#component-function-commas">
+    <link rel="author" title="Apple Inc." href="https://apple.com">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        #target { --other: 10px; }
+        @property --registered-length {
+            syntax: "<length>";
+            inherits: false;
+            initial-value: 7px;
+        }
+        @property --registered-universal {
+            syntax: "*";
+            inherits: false;
+        }
+    </style>
+</head>
+<body>
+<div id="target" data-name="--other" data-not-a-name="10px"></div>
+<script>
+    "use strict";
+
+    const target = document.getElementById("target");
+
+    function computed(declaration, property) {
+        target.setAttribute("style", declaration);
+        const value = getComputedStyle(target).getPropertyValue(property || "width");
+        target.removeAttribute("style");
+        return value;
+    }
+
+    const initialWidth = computed("width: initial;");
+
+    // The inner var() resolves to `--other`, which becomes the name looked up by the outer var().
+    // https://drafts.csswg.org/css-variables-2/#replace-a-var-function example.
+    test(() => {
+        assert_equals(computed("--myvar: --other; width: var(var(--myvar));"), "10px");
+    }, "var() name comes from another var()");
+
+    test(() => {
+        assert_equals(computed("--myvar: --other; --indirect: --myvar; width: var(var(var(--indirect)));"), "10px");
+    }, "var() name comes from a chain of var()s");
+
+    // A substituted name that does not parse as a <custom-property-name> makes the reference
+    // guaranteed-invalid, so the fallback is used.
+    test(() => {
+        assert_equals(computed("--myvar: not-a-custom-prop; width: var(var(--myvar), 20px);"), "20px");
+    }, "invalid substituted name falls back");
+
+    // The name-providing var() is itself unset, so the name is guaranteed-invalid: fallback is used.
+    test(() => {
+        assert_equals(computed("width: var(var(--unset), 30px);"), "30px");
+    }, "unset name-providing var() falls back");
+
+    // Whitespace around the substituted name is allowed.
+    test(() => {
+        assert_equals(computed("--myvar: --other; width: var( var(--myvar) );"), "10px");
+    }, "whitespace around substituted name");
+
+    // A substituted name that is not itself a custom-property name (bad prefix) and no fallback:
+    // the property is invalid at computed-value time and falls back to initial (auto).
+    test(() => {
+        assert_equals(computed("--myvar: other; width: var(var(--myvar));"), initialWidth);
+    }, "invalid substituted name without fallback is invalid at computed-value time");
+
+    // A name argument that substitutes to nothing does not parse as a <custom-property-name>.
+    test(() => {
+        assert_equals(computed("--empty: ; width: var(var(--empty), 40px);"), "40px");
+    }, "name argument substituting to nothing falls back");
+
+    // A <custom-property-name> is a single ident, so a multi-token name never parses.
+    test(() => {
+        assert_equals(computed("--two: --other --other; width: var(var(--two), 50px);"), "50px");
+    }, "multi-token substituted name falls back");
+
+    test(() => {
+        assert_equals(computed("--dimension: 10px; width: var(var(--dimension), 60px);"), "60px");
+    }, "dimension-token substituted name falls back");
+
+    test(() => {
+        assert_equals(computed('--string: "--other"; width: var(var(--string), 70px);'), "70px");
+    }, "string substituted name falls back");
+
+    // "--" is not a valid <custom-property-name>.
+    test(() => {
+        assert_equals(computed("--dashes: --; width: var(var(--dashes), 80px);"), "80px");
+    }, "-- as substituted name falls back");
+
+    // https://drafts.csswg.org/css-values-5/#component-function-commas
+    // A {}-wrapped free-form production represents the contents of the block, so the braces are
+    // stripped before the name is parsed. They are allowed even when not required.
+    test(() => {
+        assert_equals(computed("width: var({--other});"), "10px");
+    }, "{}-wrapped literal name argument");
+
+    test(() => {
+        assert_equals(computed("--myvar: --other; width: var({var(--myvar)});"), "10px");
+    }, "{}-wrapped substituted name argument");
+
+    test(() => {
+        assert_equals(computed("width: var( { --other } );"), "10px");
+    }, "{}-wrapped name argument with whitespace");
+
+    test(() => {
+        assert_equals(computed("width: var({--unset}, 90px);"), "90px");
+    }, "{}-wrapped name argument with fallback");
+
+    // Other arbitrary substitution functions can produce the name.
+    test(() => {
+        assert_equals(computed("width: var(attr(data-name type(*)));"), "10px");
+    }, "var() name comes from attr()");
+
+    test(() => {
+        assert_equals(computed("width: var(attr(data-not-a-name type(*)), 100px);"), "100px");
+    }, "var() name from attr() that is not a name falls back");
+
+    test(() => {
+        assert_equals(computed("width: var(if(style(--other: 10px): --other; else: --unset));"), "10px");
+    }, "var() name comes from if()");
+
+    test(() => {
+        assert_equals(computed("width: var(random-item(--key, --other, --other));"), "10px");
+    }, "var() name comes from random-item()");
+
+    // Cycles are detected through the name argument, since looking up the referenced property
+    // implies property replacement. https://drafts.csswg.org/css-variables-2/#replace-a-var-function
+    test(() => {
+        assert_equals(computed("--self: var(var(--self)); width: var(--self, 110px);"), "110px");
+    }, "direct cycle through the name argument");
+
+    test(() => {
+        assert_equals(computed("--name: --cyclic; --cyclic: var(var(--name)); width: var(--cyclic, 120px);"), "120px");
+    }, "indirect cycle through the name argument");
+
+    // Registered properties: a substituted name resolves them like a literal name does.
+    test(() => {
+        assert_equals(computed("--name: --registered-length; width: var(var(--name));"), "7px");
+    }, "substituted name resolves a registered property");
+
+    // A universal registration without an initial value is guaranteed-invalid, so the fallback is used.
+    test(() => {
+        assert_equals(computed("--name: --registered-universal; width: var(var(--name), 130px);"), "130px");
+    }, "substituted name of a guaranteed-invalid registered property uses the fallback");
+
+    // A name that does not parse has no referenced property, so there is no registered syntax to
+    // check the fallback against.
+    // https://drafts.css-houdini.org/css-properties-values-api/#fallbacks-in-var-references
+    test(() => {
+        assert_equals(computed("--name: not-a-name; width: var(var(--name), 140px);"), "140px");
+    }, "fallback of an unparsed name is not syntax checked");
+</script>
+</body>
+</html>

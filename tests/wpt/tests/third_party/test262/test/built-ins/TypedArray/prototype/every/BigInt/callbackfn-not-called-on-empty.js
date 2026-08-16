@@ -25,12 +25,12 @@ includes: [testTypedArray.js]
 features: [BigInt, TypedArray]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   var called = 0;
 
-  new TA().every(function() {
+  new TA(makeCtorArg(0)).every(function() {
     called++;
   });
 
   assert.sameValue(called, 0);
-}, null, ["passthrough"]);
+});

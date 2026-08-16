@@ -44,4 +44,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     typedArray.set([null]);
   }, "abrupt completion from Null");
 
-});
+}, null, null, ["immutable"]);

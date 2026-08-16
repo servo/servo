@@ -27,11 +27,17 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_CELL
 #     # Interface: IAccessibleTableCell
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: DataItem
-#     # Localized Control Type: item
-#     # Control Pattern: GridItem
-#     # Control Pattern: TableItem
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: DataItem
+    # Localized Control Type: item
+    # Control Pattern: GridItem
+    # Control Pattern: TableItem
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.DataItem
+    assert node.CurrentLocalizedControlType == "item"
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsGridItemPatternAvailable)
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsTableItemPatternAvailable)

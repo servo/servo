@@ -88,6 +88,14 @@ if (rest) {
     assert_throws_js(TypeError, () => pc.addTransceiver('invalid'));
   }, 'addTransceiver() with string argument as invalid kind should throw TypeError');
 
+  test(t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    assert_throws_js(RangeError, () => pc.addTransceiver('audio', {
+      sendEncodings: [{ maxBitrate: 0 }]
+    }));
+  }, 'addTransceiver() with maxBitrate set to 0 should throw RangeError');
+
   /*
     5.1.  addTransceiver
       The initial value of mid is null.

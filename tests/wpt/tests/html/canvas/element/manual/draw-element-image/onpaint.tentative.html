@@ -211,6 +211,10 @@
   }, 'onpaint should not fire if a canvas ancestor changes');
 
   promise_test(async t => {
+    t.add_cleanup(() => {
+      child.style.transform = '';
+    });
+
     // Wait a frame.
     await waitForOneFrame();
 
@@ -219,11 +223,10 @@
     canvas.onpaint = (event) => {
       onPaintCount++;
       lastChanged = event.changedElements;
-      child.style.transform = `translateX(${onPaintCount}px)`;
     };
 
     // 1. Make a change that causes a repaint.
-    child.classList.toggle('color-change');
+    child.style.transform = 'translateX(1px)';
 
     // 2. Wait a frame and assert that onpaint fires.
     await waitForOneFrame();
@@ -233,12 +236,50 @@
 
     // 3. Wait another frame and assert that onpaint does not fire again.
     await waitForOneFrame();
-    // TODO(crbug.com/488090082): These assertions fails because we incorrectly
-    // trigger onpaint for transform changes.
-    // assert_equals(onPaintCount, 1,
-    //   'onpaint should not fire after transform changes.');
-    // assert_equals(child.style.transform, 'translateX(1px)');
-  }, 'onpaint should not fire after canvas child transform changes');
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire once if a canvas child CSS transform changes');
+
+  promise_test(async t => {
+    t.add_cleanup(() => {
+      child.setCanvasTransform();
+    });
+
+    // Wait a frame.
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = (event) => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+      child.setCanvasTransform(new DOMMatrix().translate(onPaintCount, 0));
+    };
+
+    // 1. Make a change that causes a repaint.
+    child.classList.toggle('color-change');
+
+    // 2. Wait a frame and assert that onpaint fires.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'onpaint should fire after a repaint.');
+    assert_equals(child.getCanvasTransform().e, 1,
+      'canvas transform should have been updated after paint event');
+    assert_array_equals(lastChanged, [child]);
+
+    // 3. Wait another frame and assert that onpaint does not fire again.
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1, 'onpaint should not fire with no changes.');
+
+    // 4. Make a change to the canvas transform and assert that onpaint does not fire.
+    child.setCanvasTransform(new DOMMatrix().translate(0, 10));
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire if a canvas child transform changes.');
+    assert_equals(child.getCanvasTransform().e, 0,
+      'canvas transform should not have been modified after setting.');
+    assert_equals(child.getCanvasTransform().f, 10,
+      'canvas transform should not have been modified after setting.');
+  }, 'onpaint should not fire if a canvas child transform changes');
 
   promise_test(async t => {
     // Wait a frame.

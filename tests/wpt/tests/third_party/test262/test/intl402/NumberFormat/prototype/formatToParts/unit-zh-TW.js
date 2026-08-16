@@ -6,6 +6,7 @@ esid: sec-intl.numberformat.prototype.formattoparts
 description: Checks handling of the unit style.
 locale: [zh-TW]
 features: [Intl.NumberFormat-unified]
+includes: [testIntlNumberFormat.js]
 ---*/
 
 function verifyFormatParts(actual, expected, message) {
@@ -19,79 +20,63 @@ function verifyFormatParts(actual, expected, message) {
   }
 }
 
+function makePart(type, value) {
+  return value ? [{ "type": type, "value": value }] : [];
+}
+
+function addUnitParts(numberParts, separators, prefixText, suffixText) {
+  return [].concat(
+    makePart("unit", prefixText),
+    makePart("literal", separators.prefix),
+    numberParts,
+    makePart("literal", separators.suffix),
+    makePart("unit", suffixText)
+  );
+}
+
+// The unit/number separator is CLDR data, not specified by ECMA-402, so
+// read it from the implementation instead of hardcoding it.
+// (e.g. a literal " " part between the number and unit parts, or none)
+const shortSep = getUnitSeparators("zh-TW", "short");
+const narrowSep = getUnitSeparators("zh-TW", "narrow");
+const longSep = getUnitSeparators("zh-TW", "long");
+
 const tests = [
   [
     -987,
-    {
-      "short":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
-      "narrow":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"unit","value":"公里/小時"}],
-      "long":
-        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"minusSign","value":"-"},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
-    }
+    [{ type: "minusSign", value: "-" }, { type: "integer", value: "987" }],
   ],
   [
     -0.001,
-    {
-      "short":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
-      "narrow":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"unit","value":"公里/小時"}],
-      "long":
-        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
-    }
+    [{ type: "minusSign", value: "-" }, { type: "integer", value: "0" }, { type: "decimal", value: "." }, { type: "fraction", value: "001" }],
   ],
   [
     -0,
-    {
-      "short":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
-      "narrow":
-        [{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"unit","value":"公里/小時"}],
-      "long":
-        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"minusSign","value":"-"},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
-    }
+    [{ type: "minusSign", value: "-" }, { type: "integer", value: "0" }],
   ],
   [
     0,
-    {
-      "short":
-        [{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
-      "narrow":
-        [{"type":"integer","value":"0"},{"type":"unit","value":"公里/小時"}],
-      "long":
-        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"integer","value":"0"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
-    }
+    [{ type: "integer", value: "0" }],
   ],
   [
     0.001,
-    {
-      "short":
-        [{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
-      "narrow":
-        [{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"unit","value":"公里/小時"}],
-      "long":
-        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"integer","value":"0"},{"type":"decimal","value":"."},{"type":"fraction","value":"001"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
-    }
+    [{ type: "integer", value: "0" }, { type: "decimal", value: "." }, { type: "fraction", value: "001" }],
   ],
   [
     987,
-    {
-      "short":
-        [{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里/小時"}],
-      "narrow":
-        [{"type":"integer","value":"987"},{"type":"unit","value":"公里/小時"}],
-      "long":
-        [{"type":"unit","value":"每小時"},{"type":"literal","value":" "},{"type":"integer","value":"987"},{"type":"literal","value":" "},{"type":"unit","value":"公里"}],
-    }
+    [{ type: "integer", value: "987" }],
   ],
 ];
 
-for (const [number, expectedData] of tests) {
+for (const [number, numberParts] of tests) {
+  const expectedData = {
+    "short": addUnitParts(numberParts, shortSep, "", "公里/小時"),
+    "narrow": addUnitParts(numberParts, narrowSep, "", "公里/小時"),
+    "long": addUnitParts(numberParts, longSep, "每小時", "公里"),
+  };
+
   for (const [unitDisplay, expected] of Object.entries(expectedData)) {
     const nf = new Intl.NumberFormat("zh-TW", { style: "unit", unit: "kilometer-per-hour", unitDisplay });
-    verifyFormatParts(nf.formatToParts(number), expected);
+    verifyFormatParts(nf.formatToParts(number), expected, `${number} ${unitDisplay}`);
   }
 }
-

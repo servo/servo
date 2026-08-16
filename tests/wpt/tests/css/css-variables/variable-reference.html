@@ -37,13 +37,13 @@
         { cssText: "width: var(--prop,);",                  expectedPropertyValue: "var(--prop,)" },
 
         { cssText: "width: var();",                         expectedPropertyValue: "" },
-        { cssText: "width: var(prop);",                     expectedPropertyValue: "" },
-        { cssText: "width: var(-prop);",                    expectedPropertyValue: "" },
-        { cssText: "width: var(--prop 20px);",              expectedPropertyValue: "" },
-        { cssText: "width: var(--prop, var(prop));",        expectedPropertyValue: "" },
-        { cssText: "width: var(--prop, var(-prop));",       expectedPropertyValue: "" },
-        { cssText: "width: var(20px);",                     expectedPropertyValue: "" },
-        { cssText: "width: var(var(--prop));",              expectedPropertyValue: "" },
+        { cssText: "width: var(prop);",                     expectedPropertyValue: "var(prop)" },
+        { cssText: "width: var(-prop);",                    expectedPropertyValue: "var(-prop)" },
+        { cssText: "width: var(--prop 20px);",              expectedPropertyValue: "var(--prop 20px)" },
+        { cssText: "width: var(--prop, var(prop));",        expectedPropertyValue: "var(--prop, var(prop))" },
+        { cssText: "width: var(--prop, var(-prop));",       expectedPropertyValue: "var(--prop, var(-prop))" },
+        { cssText: "width: var(20px);",                     expectedPropertyValue: "var(20px)" },
+        { cssText: "width: var(var(--prop));",              expectedPropertyValue: "var(var(--prop))" },
     ];
 
     testcases.forEach(function (testcase) {

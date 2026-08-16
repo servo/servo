@@ -107,4 +107,162 @@ promise_test(async t => {
 
   assert_equals(outputs, 1, 'outputs');
 }, 'Test encode canvas-element-constructed VideoFrame');
+
+promise_test(async t => {
+  const canvas = document.querySelector('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+  drawFourColors(canvas);
+
+  // Crop to top-left quadrant (yellow: #FFFF00).
+  const visibleRect = {x: 0, y: 0, width: 160, height: 120};
+  const frame = new VideoFrame(canvas, {timestamp: 0, visibleRect: visibleRect});
+  assert_equals(frame.codedWidth, canvas.width);
+  assert_equals(frame.codedHeight, canvas.height);
+  assert_equals(frame.visibleRect.x, 0);
+  assert_equals(frame.visibleRect.y, 0);
+  assert_equals(frame.visibleRect.width, 160);
+  assert_equals(frame.visibleRect.height, 120);
+
+  let outputChunk = null;
+  let outputMetadata = null;
+  const codecInit = getDefaultCodecInit(t);
+  codecInit.output = (chunk, metadata) => {
+    outputChunk = chunk;
+    if (metadata && metadata.decoderConfig) {
+      outputMetadata = metadata;
+    }
+  };
+
+  const encoder = new VideoEncoder(codecInit);
+  encoder.configure({
+    codec: 'vp8',
+    width: visibleRect.width,
+    height: visibleRect.height,
+  });
+  encoder.encode(frame);
+  frame.close();
+  await encoder.flush();
+  encoder.close();
+
+  assert_not_equals(outputChunk, null, 'output chunk');
+
+  let decodedFrame = null;
+  const decoder = new VideoDecoder({
+    output(f) {
+      decodedFrame = f;
+    },
+    error(e) {
+      assert_unreached(e.message);
+    },
+  });
+  decoder.configure(outputMetadata.decoderConfig);
+  decoder.decode(outputChunk);
+  await decoder.flush();
+  decoder.close();
+
+  assert_not_equals(decodedFrame, null, 'decoded frame');
+  assert_equals(decodedFrame.displayWidth, 160);
+  assert_equals(decodedFrame.displayHeight, 120);
+
+  const testCanvas = document.createElement('canvas');
+  testCanvas.width = 160;
+  testCanvas.height = 120;
+  const testCtx = testCanvas.getContext('2d');
+  testCtx.drawImage(decodedFrame, 0, 0);
+  decodedFrame.close();
+
+  // All 4 quadrants in the decoded frame should be yellow (#FFFF00).
+  const samplePoints = [
+    {x: 40, y: 30},
+    {x: 120, y: 30},
+    {x: 40, y: 90},
+    {x: 120, y: 90},
+  ];
+  for (const pt of samplePoints) {
+    const pixel = testCtx.getImageData(pt.x, pt.y, 1, 1).data;
+    assert_greater_than(pixel[0], 200, `Red channel at (${pt.x}, ${pt.y})`);
+    assert_greater_than(pixel[1], 200, `Green channel at (${pt.x}, ${pt.y})`);
+    assert_less_than(pixel[2], 50, `Blue channel at (${pt.x}, ${pt.y})`);
+  }
+}, 'Test encode canvas-element-constructed VideoFrame with visibleRect');
+
+promise_test(async t => {
+  const canvas = document.querySelector('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+  drawFourColors(canvas);
+
+  // Crop to bottom-right quadrant (green: #00FF00).
+  const visibleRect = {x: 160, y: 120, width: 160, height: 120};
+  const frame = new VideoFrame(canvas, {timestamp: 0, visibleRect: visibleRect});
+  assert_equals(frame.codedWidth, canvas.width);
+  assert_equals(frame.codedHeight, canvas.height);
+  assert_equals(frame.visibleRect.x, 160);
+  assert_equals(frame.visibleRect.y, 120);
+  assert_equals(frame.visibleRect.width, 160);
+  assert_equals(frame.visibleRect.height, 120);
+
+  let outputChunk = null;
+  let outputMetadata = null;
+  const codecInit = getDefaultCodecInit(t);
+  codecInit.output = (chunk, metadata) => {
+    outputChunk = chunk;
+    if (metadata && metadata.decoderConfig) {
+      outputMetadata = metadata;
+    }
+  };
+
+  const encoder = new VideoEncoder(codecInit);
+  encoder.configure({
+    codec: 'vp8',
+    width: visibleRect.width,
+    height: visibleRect.height,
+  });
+  encoder.encode(frame);
+  frame.close();
+  await encoder.flush();
+  encoder.close();
+
+  assert_not_equals(outputChunk, null, 'output chunk');
+
+  let decodedFrame = null;
+  const decoder = new VideoDecoder({
+    output(f) {
+      decodedFrame = f;
+    },
+    error(e) {
+      assert_unreached(e.message);
+    },
+  });
+  decoder.configure(outputMetadata.decoderConfig);
+  decoder.decode(outputChunk);
+  await decoder.flush();
+  decoder.close();
+
+  assert_not_equals(decodedFrame, null, 'decoded frame');
+  assert_equals(decodedFrame.displayWidth, 160);
+  assert_equals(decodedFrame.displayHeight, 120);
+
+  const testCanvas = document.createElement('canvas');
+  testCanvas.width = 160;
+  testCanvas.height = 120;
+  const testCtx = testCanvas.getContext('2d');
+  testCtx.drawImage(decodedFrame, 0, 0);
+  decodedFrame.close();
+
+  // All 4 quadrants in the decoded frame should be green (#00FF00).
+  const samplePoints = [
+    {x: 40, y: 30},
+    {x: 120, y: 30},
+    {x: 40, y: 90},
+    {x: 120, y: 90},
+  ];
+  for (const pt of samplePoints) {
+    const pixel = testCtx.getImageData(pt.x, pt.y, 1, 1).data;
+    assert_less_than(pixel[0], 50, `Red channel at (${pt.x}, ${pt.y})`);
+    assert_greater_than(pixel[1], 200, `Green channel at (${pt.x}, ${pt.y})`);
+    assert_less_than(pixel[2], 50, `Blue channel at (${pt.x}, ${pt.y})`);
+  }
+}, 'Test encode canvas-element-constructed VideoFrame with non-zero offset visibleRect');
 </script>

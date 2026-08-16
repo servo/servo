@@ -21,7 +21,7 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   var ta;
   function detachAndReturnIndex(){
       $DETACHBUFFER(ta.buffer);
@@ -31,8 +31,8 @@ testWithTypedArrayConstructors(function(TA) {
   var array = [];
   array.length = 10000; // big arrays are more likely to cause a crash if they are accessed after they are freed
   array.fill(7, 0);
-  ta = new TA(array);
+  ta = new TA(makeCtorArg(array));
   assert.throws(TypeError, function(){
     ta.copyWithin(0, {valueOf : detachAndReturnIndex}, 1000);
   }, "should throw TypeError as array is detached");
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

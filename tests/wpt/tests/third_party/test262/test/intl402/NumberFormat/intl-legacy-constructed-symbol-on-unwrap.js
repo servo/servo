@@ -12,21 +12,14 @@ features: [intl-normative-optional]
 let object = new Intl.NumberFormat();
 let newObject = Intl.NumberFormat.call(object);
 let symbol = null;
-let error = null;
-try {
-    let proxy = new Proxy(newObject, {
-        get(target, property) {
-            symbol = property;
-            return target[property];
-        }
-    });
-    Intl.NumberFormat.prototype.resolvedOptions.call(proxy);
-} catch (e) {
-    // If normative optional is not implemented, an error will be thrown.
-    error = e;
-    assert(error instanceof TypeError);
-}
-if (error === null) {
-      assert.sameValue(typeof symbol, "symbol");
-      assert.sameValue(symbol.description, "IntlLegacyConstructedSymbol");
-}
+
+let proxy = new Proxy(newObject, {
+  get(target, property) {
+    symbol = property;
+    return target[property];
+  }
+});
+Intl.NumberFormat.prototype.resolvedOptions.call(proxy);
+
+assert.sameValue(typeof symbol, "symbol");
+assert.sameValue(symbol.description, "IntlLegacyConstructedSymbol");

@@ -35,10 +35,15 @@ def test_atspi(atspi, session, inline):
 #     # Object Attribute: live:polite
 #     # Object Attribute: container-live-role:log
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Group
-#     # Localized Control Type: log
-#     # LiveSetting: Polite (1)
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Group
+    # Localized Control Type: log
+    # LiveSetting: Polite (1)
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Group
+    assert node.CurrentLocalizedControlType == "log"
+    assert node.GetCurrentPropertyValue(uia.PropertyId.LiveSetting) == 1
