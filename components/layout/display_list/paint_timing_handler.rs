@@ -16,7 +16,7 @@ use crate::fragment_tree::Tag;
 use crate::query::transform_f32_rectangle;
 
 /// <https://w3c.github.io/paint-timing/#pending-image-record>
-/// Different struct from spec, but Fulfulling the same purpose.
+/// Different struct from spec, but fulfulling the same purpose.
 struct PendingImageRecord {
     /// The image element this record belongs to.
     /// for <https://w3c.github.io/paint-timing/#pending-image-record-element>
@@ -207,7 +207,6 @@ impl PaintTimingHandler {
         // currentCandidate is not null or 0 otherwise.
         // Step 2. Let largestSize be currentSize.
         let mut largest_size = self.lcp_size;
-        // let mut best: Option<(Tag, Option<ServoUrl>, f32)> = None;
 
         // Step 3. Let newCandidate be null.
         let mut new_candidate = None;
