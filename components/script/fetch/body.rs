@@ -50,7 +50,7 @@ use crate::dom::readablestream::{
     ReadableStream, get_read_promise_bytes, get_read_promise_done, pipe_through,
 };
 use crate::dom::urlsearchparams::URLSearchParams;
-use crate::mime_multipart::{Node, read_multipart_body};
+use crate::fetch::mime_multipart::{Node, read_multipart_body};
 use crate::realms::enter_auto_realm;
 use crate::tasks::task_source::SendableTaskSource;
 

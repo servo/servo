@@ -18,7 +18,7 @@ use style::values::specified::source_size_list::SourceSizeList;
 use style_traits::ParsingMode;
 use xml5ever::local_name;
 
-use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlpictureelement::HTMLPictureElement;

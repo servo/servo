@@ -31,6 +31,9 @@ use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
 use webrender_api::units::DeviceIntSize;
 
+use crate::css::stylesheet_loader::{
+    ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner,
+};
 use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenList_Binding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -60,10 +63,11 @@ use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::srcset::SourceSet;
 use crate::dom::types::{EventTarget, GlobalScope};
+use crate::fetch::network_listener::{
+    FetchResponseListener, ResourceTimingListener, submit_timing,
+};
 use crate::links::LinkRelations;
 use crate::modules::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
-use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]

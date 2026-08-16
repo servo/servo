@@ -43,7 +43,7 @@ use style::properties::{
 use style::stylesheets::CssRuleType;
 use style_traits::{CssWriter, ParsingMode, ToCss};
 
-use crate::css::parser_context_for_document;
+use crate::css::css::parser_context_for_document;
 use crate::dom::Document;
 use crate::dom::animationeffect::AnimationEffect;
 use crate::dom::bindings::codegen::Bindings::KeyframeEffectBinding::{

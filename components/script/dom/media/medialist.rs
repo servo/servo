@@ -15,7 +15,7 @@ use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::{CssRuleType, CustomMediaEvaluator, Origin, UrlExtraData};
 use style_traits::{ParseError, ParsingMode, ToCss};
 
-use crate::css::parser_context_for_document;
+use crate::css::css::parser_context_for_document;
 use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::DomGlobal;

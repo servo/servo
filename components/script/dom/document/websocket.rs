@@ -49,7 +49,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::window::Window;
-use crate::fetch::RequestWithGlobalScope;
+use crate::fetch::fetch::RequestWithGlobalScope;
 use crate::tasks::task::TaskOnce;
 use crate::tasks::task_source::SendableTaskSource;
 

@@ -45,9 +45,9 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::CSSErrorReporter;
 use crate::event_loop::document_loader::LoadType;
-use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task_source::TaskSourceName;
 use crate::unminify::{

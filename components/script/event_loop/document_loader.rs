@@ -16,7 +16,7 @@ use servo_url::ServoUrl;
 
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
-use crate::fetch::FetchCanceller;
+use crate::fetch::fetch::FetchCanceller;
 
 #[derive(Clone, Debug, Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum LoadType {

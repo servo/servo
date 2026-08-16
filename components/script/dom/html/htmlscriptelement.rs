@@ -60,12 +60,12 @@ use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
-use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
+use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::modules::import_map::{ImportMap, parse_an_import_map_string, register_import_map};
 use crate::modules::script_module::{
     ModuleTree, ScriptFetchOptions, fetch_an_external_module_script, fetch_inline_module_script,
 };
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::IntroductionType;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 

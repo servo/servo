@@ -17,7 +17,7 @@ use style::stylesheets::CssRuleType;
 use style::values::specified::Color;
 use style_traits::{ParsingMode, ToCss};
 
-use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::document_embedder_controls::ControlElement;
