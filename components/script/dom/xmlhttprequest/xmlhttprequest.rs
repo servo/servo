@@ -45,7 +45,6 @@ use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 use url::Position;
 
-use crate::body::{BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal};
 use crate::dom::bindings::buffer_source::{HeapBufferSource, get_buffer_source_copy};
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
@@ -76,9 +75,12 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::event_loop::document_loader::DocumentLoader;
-use crate::fetch::{FetchCanceller, RequestWithGlobalScope};
+use crate::fetch::body::{
+    BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal,
+};
+use crate::fetch::fetch::{FetchCanceller, RequestWithGlobalScope};
+use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::tasks::task_source::{SendableTaskSource, TaskSourceName};
 use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;

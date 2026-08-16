@@ -51,10 +51,10 @@ use crate::dom::windowproxy::WindowProxy;
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
+use crate::fetch::network_listener::ResourceTimingListener;
 use crate::navigation::{
     determine_creation_sandboxing_flags, determine_iframe_element_referrer_policy,
 };
-use crate::network_listener::ResourceTimingListener;
 
 #[derive(PartialEq)]
 enum PipelineType {

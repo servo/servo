@@ -22,7 +22,7 @@ use style::shared_lock::StylesheetGuards;
 use style::stylesheets::{CssRuleType, FontFaceRule, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
-use crate::css::parser_context_for_document_with_reporter;
+use crate::css::css::parser_context_for_document_with_reporter;
 use crate::dom::bindings::buffer_source::get_buffer_source_copy;
 use crate::dom::bindings::codegen::Bindings::FontFaceBinding::{
     FontFaceDescriptors, FontFaceLoadStatus, FontFaceMethods,

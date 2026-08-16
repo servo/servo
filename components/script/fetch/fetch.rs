@@ -30,7 +30,6 @@ use servo_url::ServoUrl;
 use timers::TimerEventRequest;
 use uuid::Uuid;
 
-use crate::body::BodyMixin;
 use crate::dom::abortsignal::AbortAlgorithm;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
@@ -56,7 +55,8 @@ use crate::dom::request::Request;
 use crate::dom::response::Response;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::window::Window;
-use crate::network_listener::{
+use crate::fetch::body::BodyMixin;
+use crate::fetch::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
 use crate::realms::enter_auto_realm;

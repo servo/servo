@@ -44,7 +44,7 @@ use crate::dom::node::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::FetchCanceller;
+use crate::fetch::fetch::FetchCanceller;
 use crate::messaging::MainThreadScriptMsg;
 
 #[derive(Clone)]

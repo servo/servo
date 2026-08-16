@@ -33,8 +33,10 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::srcset::SourceSet;
 use crate::dom::types::HTMLLinkElement;
-use crate::fetch::create_a_potential_cors_request;
-use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
+use crate::fetch::fetch::create_a_potential_cors_request;
+use crate::fetch::network_listener::{
+    FetchResponseListener, ResourceTimingListener, submit_timing,
+};
 
 trait ValueForKeyInLinkHeader {
     fn has_key_in_link_header(&self, key: &str) -> bool;

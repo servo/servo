@@ -24,10 +24,6 @@ use script_bindings::cformat;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::ServoUrl;
 
-use crate::body::{
-    BodyMixin, BodyType, Extractable, body_text_stream, clone_body_stream_for_dom_body,
-    consume_body,
-};
 use crate::conversions::Convert;
 use crate::dom::abortsignal::AbortSignal;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
@@ -44,7 +40,11 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::headers::{Guard, Headers};
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::fetch::RequestWithGlobalScope;
+use crate::fetch::body::{
+    BodyMixin, BodyType, Extractable, body_text_stream, clone_body_stream_for_dom_body,
+    consume_body,
+};
+use crate::fetch::fetch::RequestWithGlobalScope;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]

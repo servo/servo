@@ -58,7 +58,7 @@ use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
-use crate::fetch::{CspViolationsProcessor, load_whole_resource};
+use crate::fetch::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;

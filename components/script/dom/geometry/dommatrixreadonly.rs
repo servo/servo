@@ -25,7 +25,7 @@ use servo_constellation_traits::DomMatrix;
 use style::stylesheets::CssRuleType;
 use style_traits::ParsingMode;
 
-use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::{
     DOMMatrix2DInit, DOMMatrixInit, DOMMatrixMethods,

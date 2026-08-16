@@ -28,7 +28,6 @@ use style::str::split_html_space_chars;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 
-use crate::body::Extractable;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -84,6 +83,7 @@ use crate::dom::submitevent::SubmitEvent;
 use crate::dom::types::{DocumentFragment, HTMLIFrameElement};
 use crate::dom::window::Window;
 use crate::event_loop::script_thread::ScriptThread;
+use crate::fetch::body::Extractable;
 use crate::links::{LinkRelations, get_element_target, valid_navigable_target_name_or_keyword};
 use crate::navigation::navigate;
 

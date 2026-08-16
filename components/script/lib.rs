@@ -21,17 +21,17 @@ extern crate malloc_size_of_derive;
 extern crate stylo_atoms;
 
 mod animations;
-mod css;
 #[macro_use]
 mod tasks;
-mod body;
+
 pub(crate) mod conversions;
+mod css;
 mod devtools;
+mod fetch;
 #[macro_use]
 mod dom;
 pub(crate) use dom::canvas_context;
 mod event_loop;
-pub(crate) mod fetch;
 pub(crate) mod indexeddb;
 mod init;
 mod url;
@@ -40,16 +40,12 @@ pub mod layout_dom;
 pub(crate) mod messaging;
 mod microtask;
 pub(crate) mod mime;
-mod mime_multipart;
 pub(crate) mod modules;
 mod navigation;
-mod network_listener;
 mod realms;
 mod routed_promise;
 pub(crate) mod script_runtime;
 pub(crate) mod serviceworker_manager;
-mod stylesheet_loader;
-mod stylesheet_set;
 pub mod test;
 mod timers;
 mod webdriver_handlers;

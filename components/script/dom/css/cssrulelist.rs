@@ -22,6 +22,7 @@ use super::csskeyframerule::CSSKeyframeRule;
 use super::cssrule::CSSRule;
 use super::cssstylesheet::CSSStyleSheet;
 use crate::conversions::Convert;
+use crate::css::stylesheet_loader::ElementStylesheetLoader;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
@@ -29,7 +30,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::stylesheet_loader::ElementStylesheetLoader;
 
 unsafe_no_jsmanaged_fields!(RulesSource);
 

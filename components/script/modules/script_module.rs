@@ -74,11 +74,11 @@ use crate::dom::types::{
     DedicatedWorkerGlobalScope, SharedWorkerGlobalScope, WorkerGlobalScope, WorkletGlobalScope,
 };
 use crate::dom::window::Window;
+use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::modules::import_map::{ModuleSpecifierMap, resolve_url_like_module_specifier};
 use crate::modules::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
 };
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
 use crate::tasks::task::NonSendTaskBox;

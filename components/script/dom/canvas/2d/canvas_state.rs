@@ -50,7 +50,7 @@ use webrender_api::ImageKey;
 
 use crate::canvas_context::{CanvasContext, OffscreenRenderingContext, RenderingContext};
 use crate::conversions::Convert;
-use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::{
     CanvasDirection, CanvasFillRule, CanvasImageSource, CanvasLineCap, CanvasLineJoin,
     CanvasTextAlign, CanvasTextBaseline, ImageDataMethods,
