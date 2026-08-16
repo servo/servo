@@ -3686,7 +3686,10 @@ impl Document {
     pub(crate) fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
         let mut sizes = DocumentSizes::default();
 
-        for node in self.upcast::<Node>().children() {
+        for node in self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::Yes)
+        {
             let type_id = node.type_id();
 
             MALLOC_SIZE_OF_OPS.with(|ops_tls| ops_tls.set(ops));
