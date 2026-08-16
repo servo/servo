@@ -10,7 +10,7 @@ use embedder_traits::{
     EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
 };
 use euclid::{Point2D, Rect, Size2D};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use net_traits::CoreResourceMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
@@ -247,7 +247,7 @@ impl DocumentEmbedderControls {
         }
     }
 
-    pub(crate) fn show_context_menu(&self, hit_test_result: &HitTestResult) {
+    pub(crate) fn show_context_menu(&self, no_gc: &NoGC, hit_test_result: &HitTestResult) {
         {
             let mut visible_elements = self.visible_elements.borrow_mut();
             visible_elements.retain(|index, control_element| {
@@ -298,7 +298,7 @@ impl DocumentEmbedderControls {
         if let Some(anchor_element) = anchor_element.as_ref() {
             info.flags.insert(ContextMenuElementInformationFlags::Link);
             info.link_url = anchor_element
-                .full_href_url_for_user_interface()
+                .full_href_url_for_user_interface(no_gc)
                 .map(ServoUrl::into_url);
 
             items.extend(vec![
@@ -480,17 +480,17 @@ impl ContextMenuNodes {
                 };
 
                 let url_string = anchor_element
-                    .full_href_url_for_user_interface()
+                    .full_href_url_for_user_interface(cx.no_gc())
                     .as_ref()
                     .map(ServoUrl::to_string)
-                    .unwrap_or_else(|| String::from(anchor_element.Href()));
+                    .unwrap_or_else(|| String::from(anchor_element.Href(cx.no_gc())));
                 set_clipboard_text(url_string);
             },
             ContextMenuAction::OpenLinkInNewWebView => {
                 let Some(anchor_element) = &self.anchor_element else {
                     return;
                 };
-                if let Some(url) = anchor_element.full_href_url_for_user_interface() {
+                if let Some(url) = anchor_element.full_href_url_for_user_interface(cx.no_gc()) {
                     open_url_in_new_webview(cx, url);
                 };
             },

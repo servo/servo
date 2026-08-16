@@ -185,7 +185,7 @@ impl FileManager {
             FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
                 let _ = sender.send(self.store.set_blob_url_validity(true, &id, &origin));
             },
-            FileManagerThreadMsg::GetTokenForFile(id, _origin, sender) => {
+            FileManagerThreadMsg::GetTokenForFile(id, sender) => {
                 let token = match self.get_token_for_file(&id, false) {
                     FileTokenCheck::Required(token) => Some(token),
                     _ => None,

@@ -242,8 +242,7 @@ fn test_reset_start_time() {
 fn parse_blob_url_with_opaque_origin() {
     let input = ServoUrl::parse("blob:null/93947d57-a49f-4b00-bdcc-fbf1ed8b60ab").unwrap();
     let expected_uuid = Uuid::from_str("93947d57-a49f-4b00-bdcc-fbf1ed8b60ab").unwrap();
-    let (uuid, origin) = parse_blob_url(&input).unwrap();
+    let uuid = parse_blob_url(&input).unwrap();
 
     assert_eq!(uuid, expected_uuid);
-    assert!(!origin.is_tuple(), "Origin is not opaque");
 }

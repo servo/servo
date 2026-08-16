@@ -7,8 +7,9 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use num_traits::ToPrimitive;
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
@@ -44,7 +45,7 @@ pub(crate) struct HTMLAnchorElement {
     #[no_trace]
     relations: Cell<LinkRelations>,
     #[no_trace]
-    url: DomRefCell<Option<ServoUrl>>,
+    url: DomRefCell<Option<UrlWithBlobClaim>>,
 }
 
 impl HTMLAnchorElement {
@@ -80,16 +81,19 @@ impl HTMLAnchorElement {
 
     /// Get the full URL of the `href` attribute of this `<a>` element, returning `None` if
     /// the URL could not be joined with the `Document` URL.
-    pub(crate) fn full_href_url_for_user_interface(&self) -> Option<ServoUrl> {
+    pub(crate) fn full_href_url_for_user_interface(&self, no_gc: &NoGC) -> Option<ServoUrl> {
         if !self.upcast::<Element>().has_attribute(&local_name!("href")) {
             return None;
         }
-        self.owner_document().base_url().join(&self.Href()).ok()
+        self.owner_document()
+            .base_url()
+            .join(&self.Href(no_gc))
+            .ok()
     }
 }
 
 impl HyperlinkElement for HTMLAnchorElement {
-    fn get_url(&self) -> &DomRefCell<Option<ServoUrl>> {
+    fn get_url(&self) -> &DomRefCell<Option<UrlWithBlobClaim>> {
         &self.url
     }
 }
@@ -119,6 +123,12 @@ impl VirtualMethods for HTMLAnchorElement {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
 
+        self.attribute_mutated_for_hyperlinks(cx.no_gc(), attr, mutation);
+
+        // https://html.spec.whatwg.org/multipage/#introduction-2
+        // > Similarly, for a and area elements with an href attribute and a rel attribute,
+        // > links must be created for the keywords of the rel attribute
+        // > as defined for those keywords in the link types section.
         match *attr.local_name() {
             local_name!("href") => self
                 .upcast::<Element>()
@@ -218,23 +228,21 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     make_setter!(SetTarget, "target");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
-    fn Href(&self) -> USVString {
-        self.get_href()
+    fn Href(&self, no_gc: &NoGC) -> USVString {
+        self.get_href(no_gc)
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
-    fn SetHref(&self, cx: &mut JSContext, value: USVString) {
-        self.set_href(cx, value);
-    }
+    // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
+    make_url_setter!(SetHref, "href");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin>
-    fn Origin(&self) -> USVString {
-        self.get_origin()
+    fn Origin(&self, no_gc: &NoGC) -> USVString {
+        self.get_origin(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
-    fn Protocol(&self) -> USVString {
-        self.get_protocol()
+    fn Protocol(&self, no_gc: &NoGC) -> USVString {
+        self.get_protocol(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
@@ -243,8 +251,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
-    fn Password(&self) -> USVString {
-        self.get_password()
+    fn Password(&self, no_gc: &NoGC) -> USVString {
+        self.get_password(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
@@ -253,8 +261,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
-    fn Hash(&self) -> USVString {
-        self.get_hash()
+    fn Hash(&self, no_gc: &NoGC) -> USVString {
+        self.get_hash(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
@@ -263,8 +271,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
-    fn Host(&self) -> USVString {
-        self.get_host()
+    fn Host(&self, no_gc: &NoGC) -> USVString {
+        self.get_host(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
@@ -273,8 +281,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
-    fn Hostname(&self) -> USVString {
-        self.get_hostname()
+    fn Hostname(&self, no_gc: &NoGC) -> USVString {
+        self.get_hostname(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
@@ -283,8 +291,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
-    fn Port(&self) -> USVString {
-        self.get_port()
+    fn Port(&self, no_gc: &NoGC) -> USVString {
+        self.get_port(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
@@ -293,8 +301,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
-    fn Pathname(&self) -> USVString {
-        self.get_pathname()
+    fn Pathname(&self, no_gc: &NoGC) -> USVString {
+        self.get_pathname(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
@@ -303,8 +311,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
-    fn Search(&self) -> USVString {
-        self.get_search()
+    fn Search(&self, no_gc: &NoGC) -> USVString {
+        self.get_search(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
@@ -313,8 +321,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
-    fn Username(&self) -> USVString {
-        self.get_username()
+    fn Username(&self, no_gc: &NoGC) -> USVString {
+        self.get_username(no_gc)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
