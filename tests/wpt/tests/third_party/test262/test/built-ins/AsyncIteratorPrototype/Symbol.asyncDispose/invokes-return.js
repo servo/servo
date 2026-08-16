@@ -13,7 +13,7 @@ info: |
   5. If return is undefined, then
     a. Perform ! Call(promiseCapability.[[Resolve]], undefined, « undefined »).
   6. Else,
-    a. Let result be Call(return, O, « undefined »).
+    a. Let result be Call(return, O, « »).
     b. IfAbruptRejectPromise(result, promiseCapability).
     c. Let resultWrapper be Completion(PromiseResolve(%Promise%, result)).
     d. IfAbruptRejectPromise(resultWrapper, promiseCapability).
@@ -34,11 +34,14 @@ asyncTest(async function () {
 
   const iter = Object.create(AsyncIteratorPrototype);
   var returnCalled = false;
+  var argumentCount = 0;
   iter.return = async function () {
+    argumentCount = arguments.length;
     returnCalled = true;
     return { done: true };
   };
 
   await iter[Symbol.asyncDispose]();
   assert.sameValue(returnCalled, true);
+  assert.sameValue(argumentCount, 0);
 });

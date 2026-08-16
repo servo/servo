@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>streamHTMLUnsafe with parser blocking script</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="placeholder"></div>
+<script>
+  promise_test(async (t) => {
+    window.events = [];
+    window.resolvers = Promise.withResolvers();
+    const placeholder = document.getElementById("placeholder");
+    const writable = placeholder.streamHTMLUnsafe({ runScripts: true });
+    const writer = writable.getWriter();
+
+    // Chunk 1: A slow script that pushes 'slow' to events.
+    await writer.write("<script src='resources/slow.js?pipe=trickle(d1)'><" + "/script>");
+
+    // Chunk 2: An inline script that pushes 'inline' to events and resolves the promise.
+    // Because the parser should block on Chunk 1, 'inline' should not be executed until 'slow' is executed.
+    await writer.write("<script>window.events.push('inline'); window.resolvers.resolve();<" + "/script>");
+
+    // We close the writer.
+    await writer.close();
+
+    await window.resolvers.promise;
+
+    assert_array_equals(window.events, ["slow", "inline"]);
+  }, "streamHTMLUnsafe with parser blocking script should process in order");
+</script>

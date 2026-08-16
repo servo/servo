@@ -28,4 +28,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
 
   assert.compareArray(arr.with(1, value), [3n, 4n, 2n]);
   assert.compareArray(arr, [3n, 1n, 2n]);
-});
+}, null, null, ["immutable"]);

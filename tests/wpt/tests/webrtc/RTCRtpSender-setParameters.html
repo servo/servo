@@ -56,4 +56,13 @@ if (interop2026) {
   }, `setParameters() with already used parameters should reject with InvalidStateError if the event loop has been relinquished`);
 }
 
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const { sender } = pc.addTransceiver('audio');
+    const param = sender.getParameters();
+    param.encodings[0].maxBitrate = 0;
+    await promise_rejects_js(t, RangeError, sender.setParameters(param));
+  }, `setParameters() with maxBitrate set to 0 should reject with RangeError`);
+
 </script>

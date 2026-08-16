@@ -46,12 +46,10 @@ async function cleanup(controller) {
   controller.abort();
   const target = canvas.querySelector("#target");
   target.style.pointerEvents = '';
-  target.style.transformOrigin = '';
-  target.style.transform = '';
+  target.setCanvasTransform();
   const negative = canvas.querySelector("#negative");
   negative.style.pointerEvents = '';
-  negative.style.transformOrigin = '';
-  negative.style.transform = '';
+  negative.setCanvasTransform();
 }
 
 promise_test((t) => {
@@ -63,8 +61,7 @@ promise_test((t) => {
     const canvasRect = canvas.getBoundingClientRect();
 
     const target = canvas.querySelector("#target");
-    target.style.transformOrigin = "0 0";
-    target.style.transform = "translate(15px, 35px) scale(0.01)";
+    target.setCanvasTransform(new DOMMatrix().translate(15, 35).scale(0.01));
 
     // Do not hit test #negative for this test.
     const negative = canvas.querySelector("#negative");
@@ -85,12 +82,10 @@ promise_test((t) => {
     const canvasRect = canvas.getBoundingClientRect();
 
     const target = canvas.querySelector("#target");
-    target.style.transformOrigin = "0 0";
-    target.style.transform = "translate(15px, 35px) scale(0.01)";
+    target.setCanvasTransform(new DOMMatrix().translate(15, 35).scale(0.01));
 
     const negative = canvas.querySelector("#negative");
-    negative.style.transformOrigin = "0 0";
-    negative.style.transform = "translate(15px, 35px) scale(0.01)";
+    negative.setCanvasTransform(new DOMMatrix().translate(15, 35).scale(0.01));
 
     target.addEventListener("pointerenter", reject, { signal: controller.signal });
     negative.addEventListener("pointerenter", resolve, { signal: controller.signal });
@@ -108,8 +103,7 @@ promise_test((t) => {
     const canvasRect = canvas.getBoundingClientRect();
 
     const negative = canvas.querySelector("#negative");
-    negative.style.transformOrigin = "0 0";
-    negative.style.transform = "translate(15px, 35px) scale(0.01)";
+    negative.setCanvasTransform(new DOMMatrix().translate(15, 35).scale(0.01));
 
     negative.addEventListener("pointerenter", reject, { signal: controller.signal });
     await movePointer(canvasRect.x + 14, canvasRect.y + 35);
@@ -129,8 +123,7 @@ promise_test((t) => {
     const canvasRect = canvas.getBoundingClientRect();
 
     const target = canvas.querySelector("#target");
-    target.style.transformOrigin = "0 0";
-    target.style.transform = "translate(15px, 35px) scale(0.01)";
+    target.setCanvasTransform(new DOMMatrix().translate(15, 35).scale(0.01));
 
     // Do not hit test #negative for this test.
     const negative = canvas.querySelector("#negative");

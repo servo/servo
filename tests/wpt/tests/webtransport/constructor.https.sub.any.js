@@ -25,6 +25,15 @@ const BAD_PROTOCOL_LISTS = [
   ['\u8AA4'],
   ['test', 'test'],
   ['a'.repeat(513)],
+  // Control characters are not valid in HTTP header fields and cannot appear
+  // in Structured Fields strings (RFC 8941).
+  ['\r'],
+  ['\n'],
+  ['a\rb'],
+  ['a\nb'],
+  ['\x00'],
+  ['\x01'],
+  ['\x7f'],
 ];
 
 for (const protocols of BAD_PROTOCOL_LISTS) {

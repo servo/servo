@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Browsing context - `_current` name keyword</title>
+<link rel="help" href="https://crbug.com/539212797">
+<link rel="help" href="https://chromestatus.com/feature/5121089536262144">
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(t => {
+  const window1 = window.open('', '_current');
+  const window2 = window.open('', '_current');
+  t.add_cleanup(() => {
+    window1.close();
+  });
+  assert_not_equals(window1, window, '`_current` should not target the current window');
+  assert_equals(window1, window2, '`_current` should be treated as a normal window name');
+  assert_equals(window1.name, '_current', 'The new window name should be `_current`');
+}, 'window.open into `_current` should create a new browsing context named `_current`');
+
+test(t => {
+  const window1 = window.open('', '_CuRrEnT');
+  const window2 = window.open('', '_CuRrEnT');
+  const window3 = window.open('', '_current');
+  t.add_cleanup(() => {
+    window1.close();
+    window3.close();
+  });
+  assert_not_equals(window1, window, '`_CuRrEnT` should not target the current window');
+  assert_equals(window1, window2, '`_CuRrEnT` should be treated as a normal window name');
+  assert_equals(window1.name, '_CuRrEnT', 'The new window name should be `_CuRrEnT`');
+  assert_not_equals(window1, window3, 'Regular window names are case-sensitive');
+}, '`_current` and its case variants should be treated as normal, case-sensitive window names');
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Resource Timing - initiatorUrl for module scripts requested by a dynamically loaded importer</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../../resources/test-initiator.js"></script>
+<script>
+// Include this importer so that it imports module-script-imported.js.
+import("/resource-timing/resources/module-script-importer-module-dynamic.js");
+
+// A dynamically loaded importer is reported as the initiator for the target it
+// imports, whether statically or dynamically, distinguished by a label.
+for (const label of [
+  "dynamic-module-importer-static",
+  "dynamic-module-importer-dynamic",
+  "dynamic-module-importer-add-script",
+]) {
+  const resource = `module-script-imported.js?label=${label}`;
+  initiator_url_test(resource,
+    getUrl("/resource-timing/resources/module-script-importer-module-dynamic.js"),
+    `${label} initiatorUrl from module-script-importer-module-dynamic.js`,
+    `${label} timeout`);
+}
+</script>

@@ -71,6 +71,29 @@ async function doNavigate(url, id, port) {
   }
 }
 
+async function doBackgroundFetch(url, port) {
+  try {
+    await self.registration.backgroundFetch.fetch('test-fetch', url);
+  } catch (e) {
+    port.postMessage({error: e.toString()});
+  }
+}
+
+async function broadcastResult(result) {
+  const allClients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+  for (const client of allClients) {
+    client.postMessage(result);
+  }
+}
+
+self.addEventListener('backgroundfetchsuccess', event => {
+  event.waitUntil(broadcastResult({ok: true, body: "success"}));
+});
+
+self.addEventListener('backgroundfetchfail', event => {
+  event.waitUntil(broadcastResult({error: "TypeError: Failed to fetch"}));
+});
+
 async function handleMessage(e) {
   const port = e.ports[0];
   switch (e.data.method) {
@@ -82,6 +105,9 @@ async function handleMessage(e) {
       break;
     case 'webtransport':
       doWebTransport(e.data.url, port);
+      break;
+    case 'background-fetch':
+      doBackgroundFetch(e.data.url, port);
       break;
     case 'navigate':
       doNavigate(e.data.url, e.data.id, port);

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: clip-path basic shape on a rotated SVG container</title>
+<link rel="author" title="Ahmad Saleem" href="mailto:ahmad.saleem792+github@gmail.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="match" href="clip-path-shape-svg-rotated-container-ref.html">
+<meta name="assert" content="The reference box of a rotated container is its own bounding box in its own user space, so inset() trims 100 user units from its right edge and the result rotates with the container.">
+<svg width="300" height="300">
+  <g transform="rotate(90 100 100)" style="clip-path: inset(0 100px 0 0)">
+    <rect x="50" y="50" width="200" height="100" fill="green"/>
+  </g>
+</svg>

@@ -29,8 +29,11 @@ def test_atspi(atspi, session, inline):
 #     # Role: IA2_ROLE_MARK
 #     # Object Attribute: xml-roles:mark
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Group
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Group
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Group

@@ -1,11 +1,11 @@
 // Copyright (C) 2024 Kevin Gibbons. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 /*---
-esid: sec-iteratorprototype.drop
+esid: sec-iterator.prototype.drop
 description: >
   Underlying iterator is closed when argument validation fails
 info: |
-  %Iterator.prototype%.drop ( limit )
+  Iterator.prototype.drop ( limit )
 
 features: [iterator-helpers]
 flags: []
@@ -31,6 +31,12 @@ assert.sameValue(closed, true);
 closed = false;
 assert.throws(RangeError, function() {
   closable.drop(NaN);
+});
+assert.sameValue(closed, true);
+
+closed = false;
+assert.throws(RangeError, function() {
+  closable.drop(Number.MAX_SAFE_INTEGER + 1);
 });
 assert.sameValue(closed, true);
 

@@ -42,6 +42,103 @@ function failIfNot(condition, msg) {
 }
 
 /**
+ * Display the failure reason and stop waiting for a screenshot.
+ *
+ * Does nothing for a mismatch-only reftest (no `match` reference is also
+ * present), since an error page necessarily differs from the reference and
+ * would spuriously pass instead of correctly timing out.
+ * @param {Error|ErrorEvent|PromiseRejectionEvent|*} error - The error that caused the failure.
+ */
+function failOnError(error) {
+  // Only <link>s explicitly in the XHTML namespace count as match/mismatch
+  // links, matching the manifest's own namespace-qualified lookup.
+  const links = document.getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "link");
+  let hasMatch = false;
+  let hasMismatch = false;
+  for (const link of links) {
+    const rel = link.getAttribute("rel");
+    if (rel === "match") {
+      hasMatch = true;
+    } else if (rel === "mismatch") {
+      hasMismatch = true;
+    }
+  }
+  if (hasMismatch && !hasMatch) {
+    return;
+  }
+
+  let message;
+  if (typeof PromiseRejectionEvent !== "undefined" && error instanceof PromiseRejectionEvent) {
+    if (error.reason && error.reason.message) {
+      message = "Unhandled rejection: " + error.reason.message;
+    } else {
+      message = "Unhandled rejection";
+    }
+  } else {
+    if (error.message) {
+      message = "Uncaught exception: " + error.message;
+    } else {
+      message = "Uncaught exception";
+    }
+  }
+
+  const node = document.createElementNS("http://www.w3.org/1999/xhtml", "div");
+  node.textContent = message;
+
+  if (document.body) {
+    document.body.insertBefore(node, document.body.firstChild);
+  } else {
+    const root = document.documentElement;
+    const is_html = (root &&
+                     root.namespaceURI === "http://www.w3.org/1999/xhtml" &&
+                     root.localName === "html");
+    const is_svg = ("SVGSVGElement" in self && root instanceof SVGSVGElement);
+    if (is_svg) {
+      const foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+      foreignObject.setAttribute("width", "100%");
+      foreignObject.setAttribute("height", "100%");
+      root.insertBefore(foreignObject, root.firstChild);
+      foreignObject.appendChild(node);
+    } else if (is_html) {
+      root.appendChild(document.createElementNS("http://www.w3.org/1999/xhtml", "body"))
+          .appendChild(node);
+    } else {
+      root.insertBefore(node, root.firstChild);
+    }
+  }
+
+  takeScreenshot();
+}
+
+/**
+ * Wrap `func` so a synchronous exception it throws is reported via
+ * failOnError() instead of propagating as an uncaught error. For use
+ * wrapping a callback, e.g. an event listener.
+ * @param {Function} func - Callback to wrap.
+ * @returns {Function} The wrapped callback.
+ */
+function reftestStep(func) {
+  return function(...args) {
+    try {
+      return func.apply(this, args);
+    } catch (e) {
+      failOnError(e);
+    }
+  };
+}
+
+/**
+ * Call `func` immediately, reporting via failOnError() either a
+ * synchronous exception it throws or an asynchronous rejection of the
+ * promise it returns.
+ * @param {Function} func - Function to call, typically async.
+ */
+function reftestPromise(func) {
+  const result = reftestStep(func)();
+  Promise.resolve(result).catch(failOnError);
+}
+
+/**
  * Once a text track cue becomes active, pause the video, wait
  * for layout to update, then call takeScreenshot().
  */

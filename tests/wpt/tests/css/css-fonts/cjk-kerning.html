@@ -11,7 +11,7 @@
 <style>
 @font-face {
   font-family: test;
-  src: url('resources/NotoSansJP-Regular.subset.otf') format('opentype');
+  src: url('resources/NotoSansJP-cjk-kerning-test-subset.otf') format('opentype');
 }
 h1 {
 	font: bold 1.5em/1 sans-serif;
@@ -22,7 +22,7 @@ h2 {
 }
 .test {
 	font-family: test, sans-serif;
-	font-size: 3em;
+	font-size: 50px;
 }
 .latin {
     background: yellow;
@@ -78,6 +78,8 @@ h2 {
 </div>
 
 <script>
+promise_setup(() => document.fonts.load("3em test", "ティティティティ"));
+
 const expectMatch = [
     [ ".kernON .latin",  ".paltOFFkernON .latin" ],
     [ ".kernON .latin",  ".paltONkernON .latin" ],
@@ -95,7 +97,7 @@ const expectMatchOneOf = [
 ];
 
 expectMatch.forEach((t) => {
-    test(() => {
+    promise_test(async () => {
         let w1 = document.querySelector(t[0]).offsetWidth;
         let w2 = document.querySelector(t[1]).offsetWidth;
         assert_equals(w1, w2);
@@ -103,7 +105,7 @@ expectMatch.forEach((t) => {
 });
 
 expectMismatch.forEach((t) => {
-    test(() => {
+    promise_test(async () => {
         let w1 = document.querySelector(t[0]).offsetWidth;
         let w2 = document.querySelector(t[1]).offsetWidth;
         assert_not_equals(w1, w2);
@@ -111,7 +113,7 @@ expectMismatch.forEach((t) => {
 });
 
 expectMatchOneOf.forEach((t) => {
-    test(() => {
+    promise_test(async () => {
         let w1 = document.querySelector(t[0]).offsetWidth;
         let matched = false;
         t[1].forEach((t2) => {

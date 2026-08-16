@@ -1,0 +1,114 @@
+<!doctype HTML>
+<title>Test allow-origins validation for responsive iframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#responsive-iframes">
+<link rel="author" href="mailto:kojii@chromium.org">
+<meta name="variant" content="?origin=same,allowed=star,expect=400">
+<meta name="variant" content="?origin=same,allowed=parent,expect=400">
+<meta name="variant" content="?origin=same,allowed=other,expect=150">
+<meta name="variant" content="?origin=same,allowed=wildcard,expect=150">
+<meta name="variant" content="?origin=same,allowed=http,expect=400">
+<meta name="variant" content="?origin=same,allowed=https,expect=150">
+<meta name="variant" content="?origin=same,allowed=self,expect=400">
+<meta name="variant" content="?origin=same,allowed=none,expect=150">
+<meta name="variant" content="?origin=same,allowed=multiple,expect=400">
+<meta name="variant" content="?origin=same,allowed=space,expect=150">
+<meta name="variant" content="?origin=same,allowed=empty,expect=150">
+<meta name="variant" content="?origin=same,allowed=missing,expect=150">
+<meta name="variant" content="?origin=cross,allowed=star,expect=400">
+<meta name="variant" content="?origin=cross,allowed=parent,expect=400">
+<meta name="variant" content="?origin=cross,allowed=child,expect=150">
+<meta name="variant" content="?origin=cross,allowed=self,expect=150">
+<meta name="variant" content="?origin=cross,allowed=other,expect=150">
+<meta name="variant" content="?origin=subdomain,allowed=star,expect=400">
+<meta name="variant" content="?origin=subdomain,allowed=parent,expect=400">
+<meta name="variant" content="?origin=subdomain,allowed=child,expect=150">
+<meta name="variant" content="?container=subdomain,origin=same,allowed=wildcard,expect=400">
+<meta name="variant" content="?container=subdomain,origin=cross,allowed=wildcard,expect=400">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<style>
+iframe {
+  border: 0;
+  frame-sizing: content-height;
+}
+</style>
+<body>
+<script>
+const hostInfo = get_host_info();
+// TODO(crbug.com/479970848): Chromium bots don't support '&'.
+const search = location.search.replace(/,/g, '&');
+const params = new URLSearchParams(search);
+const containerType = params.get('container') || 'parent';
+const originType = params.get('origin') || 'same';
+const allowedType = params.get('allowed') || 'other';
+const expectedHeight = parseInt(params.get('expect') || '150');
+const paramsDesc = `container=${containerType}, origin=${originType}, allowed=${allowedType}`;
+const currentContainerOrigin = location.origin;
+
+function computeAllowedParam() {
+  switch (allowedType) {
+    case 'star': return '*';
+    case 'parent': return currentContainerOrigin;
+    case 'child':
+      switch (originType) {
+        case 'cross': return hostInfo.HTTP_NOTSAMESITE_ORIGIN;
+        case 'subdomain': return hostInfo.HTTP_REMOTE_ORIGIN;
+      }
+      return currentContainerOrigin;
+    case 'other': return 'https://invalid-origin.example';
+    case 'wildcard': return 'http://*.' + hostInfo.ORIGINAL_HOST + ':' + hostInfo.HTTP_PORT;
+    case 'http': return 'http:';
+    case 'https': return 'https:';
+    case 'self': return "'self'";
+    case 'none': return "'none'";
+    case 'multiple': return 'https://invalid-origin.example ' + currentContainerOrigin;
+    case 'space': return ' ';
+    case 'empty':
+    default: return '';
+  }
+}
+
+if (containerType === 'subdomain' && location.origin !== hostInfo.HTTP_REMOTE_ORIGIN) {
+  location.href = hostInfo.HTTP_REMOTE_ORIGIN + location.pathname + location.search;
+} else {
+  async_test(t => {
+    const iframe = document.createElement('iframe');
+    iframe.frameBorder = '0';
+    iframe.scrolling = 'no';
+
+    const fileName = (allowedType === 'missing')
+        ? 'iframe-contents-allow-origins-missing.html'
+        : 'iframe-contents-allow-origins.sub.html';
+    const resourcePath = new URL(`resources/${fileName}`, window.location.href).pathname;
+    const allowedParam = computeAllowedParam();
+    const query = (allowedType === 'missing') ? '' : `?allowed=${encodeURIComponent(allowedParam)}`;
+    let iframeSrc = resourcePath + query;
+    if (originType === 'cross') {
+      iframeSrc = hostInfo.HTTP_NOTSAMESITE_ORIGIN + resourcePath + query;
+    } else if (originType === 'subdomain') {
+      iframeSrc = hostInfo.HTTP_REMOTE_ORIGIN + resourcePath + query;
+    }
+
+    iframe.src = iframeSrc;
+    iframe.addEventListener('load', t.step_func(() => {
+      try {
+        if (iframe.contentWindow && iframe.contentWindow.location.href === 'about:blank') {
+          return;
+        }
+      } catch (e) {
+        // Cross-origin iframe accesses `location.href` with `SecurityError`,
+        // which means it loaded target URL.
+      }
+      t.step(() => {
+        assert_equals(iframe.offsetHeight, expectedHeight,
+          `iframe height should be ${expectedHeight}px for ${paramsDesc}`);
+      });
+      t.done();
+    }));
+
+    document.body.appendChild(iframe);
+  }, `Allowed origins check: ${paramsDesc}`);
+}
+</script>
+</body>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP executeTool where caller == target document navigation crash test</title>
+
+<script>
+window.onload = async () => {
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/iframe-caller-and-target-crash.html";
+  iframe.allow = "tools *";
+
+  const tool_started_promise = new Promise(resolve => {
+    window.addEventListener("message", e => {
+      if (e.data && e.data.action === "tool_started") resolve();
+    }, {once: true});
+  });
+
+  document.body.appendChild(iframe);
+  await tool_started_promise;
+
+  const nav_promise = new Promise(resolve => iframe.onload = resolve);
+  // Navigate the iframe away during its pending tool execution. In Chromium,
+  // this used to crash the browser process.
+  iframe.src = "/common/blank.html";
+  await nav_promise;
+};
+</script>

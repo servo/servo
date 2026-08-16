@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<title>DOMParser: script already started</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-domparser-parsefromstring">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// The DOMParser parserFromString method wants an XML parser with
+// XML scripting support disabled. This test tests that various
+// parseFromString-parsed script elements are inactive ("already started").
+//
+// See:
+//   https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-domparser-parsefromstring
+//   step 3, "Otherwise: [...] "with XML scripting support disabled."
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<div><script>window.mark = 1;</sc" + "ript></div>", "text/html");
+  document.body.appendChild(d.body);
+  assert_equals(window.mark, 0);
+}, "parseFromString as HTML, appendChild");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<div><script>window.mark = 1;</sc" + "ript></div>", "text/html");
+  document.body.appendChild(document.importNode(d.body, true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as HTML, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<svg><script>window.mark = 1;</sc" + "ript></svg>", "text/html");
+  document.body.appendChild(d.body);
+  assert_equals(window.mark, 0);
+}, "parseFromString as HTML, svg script, appendChild");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<svg><script>window.mark = 1;</sc" + "ript></svg>", "text/html");
+  document.body.appendChild(document.importNode(d.body, true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as HTML, svg script, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>", "text/xml");
+  document.body.appendChild(d.rootElement);
+  assert_equals(window.mark, 0);
+}, "parseFromString as XML, svg script, appendChild");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<svg xmlns='http://www.w3.org/2000/svg'><script>window.mark = 1;</sc" + "ript></svg>", "text/xml");
+  document.body.appendChild(document.importNode(d.rootElement, true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XML, svg script, append importNode result");
+</script>
+</body>
+</html>

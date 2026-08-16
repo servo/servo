@@ -599,6 +599,18 @@
     // Carry forward hue that became powerless due to conversion of colorspace
     fuzzy_test_computed_color(`color-mix(in oklch, hsl(0 100% 100%), blue)`, `oklch(0.726007 0.156607 264.052)`);
 
+    // Carry forward analogous sets with all missing components.
+    fuzzy_test_computed_color(`color-mix(in oklch, oklab(0.1 none none), oklch(0.3 0.2 90deg))`, `oklch(0.2 0.2 90)`);
+    fuzzy_test_computed_color(`color-mix(in oklab, oklch(0.1 none none), oklab(0.3 0.2 0.4))`, `oklab(0.2 0.2 0.4)`);
+    fuzzy_test_computed_color(`color-mix(in hsl, hwb(none none none), hsl(none 0.2 0.4))`, `hsl(none 0.2 0.4)`);
+    fuzzy_test_computed_color(`color-mix(in hwb, hsl(none none none), hwb(none 0.2 0.4))`, `hwb(none 0.2 0.4)`);
+
+    // Test that forwarding does not take place when only part of an analogous set is missing.
+    fuzzy_test_computed_color(`color-mix(in oklch, oklab(0.1 none 0.3), oklch(0.3 0.2 0deg))`, `oklch(0.2 0.25 45)`);
+    fuzzy_test_computed_color(`color-mix(in oklab, oklch(0.1 0.3 none), oklab(0.3 0.2 0.4))`, `oklab(0.2 0.1 0.2)`);
+    fuzzy_test_computed_color(`color-mix(in hsl, hwb(none 40% none), hsl(none 0.2 0.4))`, `hsl(none 50.099 35.20)`);
+    fuzzy_test_computed_color(`color-mix(in hwb, hsl(none none 20%), hwb(none 0.2 0.4))`, `hwb(none 10.099 40.20)`);
+
     // color-mix() with 1 or more colors.
     fuzzy_test_computed_color(`color-mix(in srgb, red)`, `color(srgb 1 0 0)`);
     fuzzy_test_computed_color(`color-mix(in srgb, red 50%)`, `color(srgb 1 0 0 / 0.5)`);

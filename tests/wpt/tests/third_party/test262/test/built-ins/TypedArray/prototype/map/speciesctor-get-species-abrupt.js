@@ -42,4 +42,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.throws(Test262Error, function() {
     sample.map(function() { return 0; });
   });
-}, null, ["passthrough"]);
+});

@@ -2,7 +2,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: >
   Tests that Get(O, P) and ToString(arg) are properly called within the
   constructor for Intl.NumberFormat

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Moving focused iframe into an active document during focus change should not crash</title>
+This test passes if it does not crash
+<script>
+    const root = document.documentElement;
+
+    const activeIframe = document.createElement("iframe");
+    root.appendChild(activeIframe);
+
+    const targetIframe = document.createElement("iframe");
+    root.appendChild(targetIframe);
+
+    targetIframe.addEventListener("focusout", () => {
+        activeIframe.contentDocument.adoptNode(targetIframe);
+    })
+
+    targetIframe.focus();
+
+    const nextTarget = document.createElement("button");
+    root.appendChild(nextTarget);
+
+    nextTarget.focus();
+</script>

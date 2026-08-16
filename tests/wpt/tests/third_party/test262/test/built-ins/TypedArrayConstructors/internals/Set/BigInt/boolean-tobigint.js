@@ -56,4 +56,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   typedArray[1] = true;
   assert.sameValue(typedArray[0], 0n, 'The value of typedArray[0] is 0n');
   assert.sameValue(typedArray[1], 1n, 'The value of typedArray[1] is 1n');
-});
+}, null, null, ["immutable"]);

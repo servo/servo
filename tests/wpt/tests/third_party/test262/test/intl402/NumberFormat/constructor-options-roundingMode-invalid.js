@@ -1,7 +1,7 @@
 // Copyright 2021 the V8 project authors. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: Abrupt completion from invalid values for `roundingMode`
 features: [Intl.NumberFormat-v3]
 ---*/

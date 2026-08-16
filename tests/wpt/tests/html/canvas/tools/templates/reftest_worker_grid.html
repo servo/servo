@@ -4,6 +4,7 @@
 <html class="reftest-wait">
 <link rel="stylesheet" href="/html/canvas/resources/canvas-grid-reftest.css">
 <link rel="match" href="{{ reference_file_link }}">
+<script src="/common/reftest-wait.js"></script>
 {% if fuzzy %}<meta name=fuzzy content="{{ fuzzy }}">
 {% endif %}
 {% if timeout %}<meta name="timeout" content="{{ timeout }}">
@@ -29,28 +30,37 @@
   <script id="myWorker{{ variant.id }}" type="text/worker">
     {% set async = 'async ' if test_type == 'promise' else '' %}
     self.onmessage = {{async}}function(e) {
-      const canvas = new OffscreenCanvas({{
-          variant.size[0] }}, {{ variant.size[1] }});
-      const ctx = canvas.getContext('2d'{%
-          if variant.attributes %}, {{ variant.attributes }}{% endif %});
+      try {
+        const canvas = new OffscreenCanvas({{
+            variant.size[0] }}, {{ variant.size[1] }});
+        const ctx = canvas.getContext('2d'{%
+            if variant.attributes %}, {{ variant.attributes }}{% endif %});
 
-      {{ variant.code | trim | indent(6) }}
+        {{ variant.code | trim | indent(8) }}
 
-      const bitmap = canvas.transferToImageBitmap();
-      self.postMessage(bitmap, bitmap);
+        const bitmap = canvas.transferToImageBitmap();
+        self.postMessage({ type: 'bitmap', bitmap }, [bitmap]);
+      } catch (error) {
+        self.postMessage({ type: 'error', message: error });
+      }
     };
   </script>
   <script type="module">
     const blob = new Blob([document.getElementById('myWorker{{
         variant.id }}').textContent]);
     const worker = new Worker(URL.createObjectURL(blob));
-    worker.addEventListener('message', msg => {
+    worker.onerror = failOnError;
+    worker.onmessage = reftestStep(msg => {
+      if (msg.data.type === 'error') {
+        failOnError(msg.data.message);
+        return;
+      }
       const outputCanvas = document.getElementById('canvas{{ variant.id }}');
       const outputCtx = outputCanvas.getContext('2d'{%
           if variant.attributes %}, {{ variant.attributes }}{% endif %});
-      outputCtx.drawImage(msg.data, 0, 0);
+      outputCtx.drawImage(msg.data.bitmap, 0, 0);
       if (--pending_tests == 0) {
-        document.documentElement.classList.remove('reftest-wait');
+        takeScreenshot();
       }
     });
     worker.postMessage(null);

@@ -80,4 +80,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   });
   assert.sameValue(sample[0], 7n, "object toString when valueOf is absent");
 
-});
+}, null, null, ["immutable"]);

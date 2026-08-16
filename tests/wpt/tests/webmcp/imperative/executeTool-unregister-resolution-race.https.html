@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool unregistration and resolution race</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const ac = new AbortController();
+
+  await document.modelContext.registerTool({
+    name: "racy_tool",
+    description: "a racy tool",
+    execute: async () => {
+      return new Promise(resolve => {
+        resolve({status: "resolved"});
+        // Synchronously unregister the tool after resolving the promise.
+        // Unregistering a tool does not cancel pending tool executions,
+        // so executeTool() should resolve successfully with the tool's result.
+        //
+        // (This test was originally written as a regression test from a time
+        // when unregistering a tool cancelled pending executions. It no longer
+        // does.)
+        ac.abort();
+      });
+    }
+  }, {signal: ac.signal});
+
+  const [tool] = await document.modelContext.getTools();
+  const execute_promise = document.modelContext.executeTool(tool, '{}');
+
+  const result = await execute_promise;
+  assert_equals(result, '{"status":"resolved"}');
+}, 'executeTool resolves successfully even when tool is unregistered synchronously after its promise resolves');
+</script>
+</body>
+</html>

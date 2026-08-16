@@ -20,6 +20,8 @@ assert_initial_values([
   { interface: 'SVGFEDisplacementMapElement', attributes: [ 'xChannelSelector', 'yChannelSelector' ],
     xChannelSelector: { initial: SVGFEDisplacementMapElement.SVG_CHANNEL_A, valid: 'R' },
     yChannelSelector: { initial: SVGFEDisplacementMapElement.SVG_CHANNEL_A, valid: 'G' } },
+  { interface: 'SVGFEGaussianBlurElement', attributes: [ 'edgeMode' ],
+    edgeMode: { initial: SVGFEGaussianBlurElement.SVG_EDGEMODE_NONE, valid: 'wrap' } },
   { interface: 'SVGFEMorphologyElement', attributes: [ 'operator' ],
     operator: { initial: SVGFEMorphologyElement.SVG_MORPHOLOGY_OPERATOR_ERODE, valid: 'dilate' } },
   { interface: 'SVGFETurbulenceElement', attributes: [ 'stitchTiles', 'type' ],

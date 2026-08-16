@@ -43,12 +43,15 @@
                 reject,
                 {accuracyMode: "approximate"}
             );
-            calledAsync = true;
         });
 
-        assert_equals(position.latitude, latitude);
-        assert_equals(position.longitude, longitude);
-        assert_equals(position.accuracy, accuracy);
+        // The coordinates are not compared to the emulated values: an approximate position is "coarsened
+        // to a larger area", and "What constitutes a coarsened area is left to the underlying system,
+        // which in turn can vary per jurisdiction", so an implementation that coarsens cannot be
+        // required to return them unchanged. They must still be present.
+        assert_equals(typeof position.latitude, "number", "latitude must be a number");
+        assert_equals(typeof position.longitude, "number", "longitude must be a number");
+        assert_equals(typeof position.accuracy, "number", "accuracy must be a number");
         assert_equals(position.altitude, null);
         assert_equals(position.altitudeAccuracy, null);
         assert_equals(position.heading, null);
@@ -62,9 +65,8 @@
             window.navigator.geolocation.getCurrentPosition(
                 position => resolve(position.coords.toJSON()),
                 reject,
-              {accuracyMode: "approximate", enableHighAccuracy: true}
+                {accuracyMode: "precise", enableHighAccuracy: true}
             );
-            calledAsync = true;
         });
 
         assert_equals(position.latitude, latitude);

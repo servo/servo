@@ -113,6 +113,23 @@ var TemporalHelpers = {
     ],
   },
 
+
+  /**
+   * Apple's fork of ICU contains code for these calendars, but they are not yet
+   * allowed to be supported in AvailableCalendars. See
+   * https://github.com/tc39/ecma402/blob/main/meetings/notes-2025-12-04.md#datetimeformatconstructor-options-calendar-islamic-fallbackjs-should-allow-other-fallback-values-4677
+   */
+  NotYetSupportedCalendars: [
+    "bangla",
+    "gujarati",
+    "kannada",
+    "marathi",
+    "odia",
+    "tamil",
+    "telugu",
+    "vikram",
+  ],
+
   /*
    * Return the canonical era code.
    */

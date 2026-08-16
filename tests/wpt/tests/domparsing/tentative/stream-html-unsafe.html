@@ -100,7 +100,7 @@ promise_test(async t => {
     assert_equals(getComputedStyle(document.querySelector("#target")).color, "rgb(100, 0, 100)");
 }, "streamHTMLUnsafe() can stream into <style>");
 
-promise_test(async t => {
+  promise_test(async (t) => {
     const placeholder = document.createElement("div");
     placeholder.innerHTML = "start ";
     const writable = placeholder.streamHTMLUnsafe();
@@ -108,8 +108,19 @@ promise_test(async t => {
     await writer.write("ABC");
     await writer.abort("abort-reason");
     await writer.write("DEF").catch(() => {});
-    assert_equals(placeholder.textContent, "ABC");
-}, "Aborting streamHTMLUnsafe()");
+    assert_equals(placeholder.textContent, "");
+  }, "Aborting streamHTMLUnsafe()");
+
+  promise_test(async t => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    window.did_eval_script = false;
+    const writer = element.streamHTMLUnsafe({runScripts: true}).getWriter();
+    await writer.write("<script>window.did_eval_script = true;");
+    await writer.abort();
+    assert_false(window.did_eval_script);
+  }, "streamHTMLUnsafe should not execute unclosed scripts on abort");
+
 
 promise_test(async t => {
     const placeholder = document.createElement("div");

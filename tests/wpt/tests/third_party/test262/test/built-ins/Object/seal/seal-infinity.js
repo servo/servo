@@ -33,4 +33,4 @@ info: |
 
 ---*/
 
-Object.seal(Infinity);
+assert.sameValue(Object.seal(Infinity), Infinity);

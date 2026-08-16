@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Invalid :link-to() rules</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#link-to-pseudo-class">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test(()=> {
+    test_invalid_rule(":link-to() {}");
+  }, "empty");
+
+  test(()=> {
+    test_invalid_rule(":link-to(--loc garbage) {}");
+  }, "trailing garbage");
+
+  test(()=> {
+    test_invalid_rule(":link-to(rgb(255 0 0)) {}");
+  }, "invalid function");
+
+  test(()=> {
+    test_invalid_rule(":link-to(url(255 0 0)) {}");
+  }, "invalid function argument");
+</script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: per-corner concave 'corner-shape' superellipse values — reference</title>
+<style>
+    .target { position: relative; background: red; width: 100px; height: 100px; box-sizing: border-box;
+        clip-path: path("M 75.000 0.000 C 75.000 7.326 75.379 14.511 80.434 19.566 C 85.489 24.621 92.674 25.000 100.000 25.000 L 100.000 75.000 C 83.369 75.000 79.456 74.694 77.075 77.075 C 74.694 79.456 75.000 83.369 75.000 100.000 L 25.000 100.000 C 25.000 75.747 25.081 75.620 24.731 75.269 C 24.380 74.919 24.253 75.000 0.000 75.000 L 0.000 25.000 C 1.535 25.000 7.947 22.680 15.314 15.314 C 22.680 7.947 25.000 1.535 25.000 0.000 Z"); }
+    .clip { position: absolute; inset: 5px; overflow: hidden; }
+    .shape { position: absolute; inset: -5px; background: green; clip-path: path("M 70.000 0.000 C 70.000 8.791 70.454 17.414 76.520 23.480 C 82.586 29.546 91.209 30.000 100.000 30.000 L 100.000 70.000 C 80.043 70.000 75.347 69.633 72.490 72.490 C 69.633 75.347 70.000 80.043 70.000 100.000 L 30.000 100.000 C 30.000 70.896 30.097 70.744 29.677 70.323 C 29.256 69.903 29.104 70.000 0.000 70.000 L 1.584 29.742 C 3.314 29.742 10.536 27.129 18.832 18.832 C 27.129 10.536 29.742 3.314 29.742 1.584 Z"); }
+</style>
+</head>
+<div class=target><div class=clip><div class=shape></div></div></div>

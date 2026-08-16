@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: 120px;
+    column-gap: 16px;
+    width: 480px;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    width: 80px;
+    background: #5b8def;
+  }
+  .lanes > div.centered { justify-self: center; background: #1f9d6b; }
+  .col-rule { position: absolute; width: 0; border-left: 4px solid gold; }
+</style>
+<div class="lanes">
+  <div></div>
+  <div class="centered"></div>
+</div>
+<div class="col-rule" style="left: 86px; top: 0; height: 120px;"></div>

@@ -8,8 +8,8 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA([1, 2, 3]);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg([1, 2, 3]));
   var obj = {
     length: 3,
     "0": 42
@@ -33,4 +33,4 @@ testWithTypedArrayConstructors(function(TA) {
   assert.sameValue(0, sample.byteLength);
   assert.sameValue(0, sample.byteOffset);
   assert.sameValue(0, sample.length);
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

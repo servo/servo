@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: stacking-axis justify-self keeps the owning item's preceding column rule at the alignment-area boundary and leaves the alignment space undecorated in row grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-019-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: 120px;
+    column-gap: 16px;
+    width: 480px;
+    background: #cdd5e0;
+    column-rule: 4px solid gold;
+  }
+  .lanes > div {
+    width: 80px;
+    background: #5b8def;
+  }
+  .lanes > div.centered { justify-self: center; background: #1f9d6b; }
+</style>
+<div class="lanes">
+  <div></div>
+  <div class="centered"></div>
+</div>

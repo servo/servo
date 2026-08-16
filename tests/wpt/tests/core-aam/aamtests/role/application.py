@@ -24,9 +24,13 @@ def test_atspi(atspi, session, inline):
 #     # Spec:
 #     # Role: ROLE_SYSTEM_APPLICATION
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Pane
-#     # Localized Control Type: application
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Pane
+    # Localized Control Type: application
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Pane
+    assert node.CurrentLocalizedControlType == "application"

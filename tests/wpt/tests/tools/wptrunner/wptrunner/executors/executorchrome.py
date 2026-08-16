@@ -15,6 +15,7 @@ from .base import strip_server
 from .executorwebdriver import (
     WebDriverBaseProtocolPart,
     WebDriverCrashtestExecutor,
+    WebDriverAccessibilityProtocolPart,
     WebDriverFedCMProtocolPart,
     WebDriverPrintRefTestExecutor,
     WebDriverProtocol,
@@ -27,6 +28,8 @@ from .executorwebdriver import (
 from .protocol import LeakProtocolPart, ProtocolPart
 
 here = os.path.dirname(__file__)
+
+AXNode = Mapping[str, Any]
 
 def _update_capabilities_if_extension_test(
     browser: Any, capabilities: Optional[MutableMapping[str, Any]]
@@ -191,6 +194,105 @@ class ChromeDriverFedCMProtocolPart(WebDriverFedCMProtocolPart):
                                                    f"{self.parent.vendor_prefix}/fedcm/confirmidplogin")
 
 
+class ChromeDriverAccessibilityProtocolPart(WebDriverAccessibilityProtocolPart):
+    def setup(self):
+        super().setup()
+        self._nodes_by_id = {}
+
+    def teardown(self):
+        try:
+            self.parent.cdp.execute_cdp_command("Accessibility.disable")
+        except error.WebDriverException:
+            pass
+
+    def get_accessibility_properties_for_element(self, element):
+        node = self._get_ax_node_for_element(element)
+        return self._serialize_node(node) if node else {}
+
+    def get_accessibility_properties_for_accessibility_node(self, id):
+        node = self._find_ax_node_by_ax_node_id(id)
+        return self._serialize_node(node) if node else {}
+
+    def _get_full_ax_tree(self) -> Mapping[str, AXNode]:
+        self.parent.cdp.execute_cdp_command("Accessibility.enable")
+        node_array = self.parent.cdp.execute_cdp_command(
+            "Accessibility.getFullAXTree",
+            {}
+        ).get("nodes", [])
+
+        return {node["nodeId"]: node for node in node_array}
+
+    def _find_ax_node_by_ax_node_id(self, ax_node_id: str) -> Optional[AXNode]:
+        full_ax_tree = self._get_full_ax_tree()
+        node = full_ax_tree.get(ax_node_id, None)
+
+        return node
+
+    def _get_ax_node_for_element(self, element: Any) -> Optional[AXNode]:
+        # Parse the ID, then hand it off to the shared helper
+        parsed_ids = self._extract_chromedriver_ids(element.id)
+
+        if parsed_ids and parsed_ids.get("element"):
+            return self._get_ax_node_by_backend_node_id(parsed_ids["element"])
+
+        return None
+
+    def _get_ax_node_by_backend_node_id(self, backend_node_id: str) -> Optional[AXNode]:
+        """Shared CDP call to fetch an accessibility node by its backend ID."""
+        ax_tree = self.parent.cdp.execute_cdp_command(
+            "Accessibility.getPartialAXTree",
+            {
+                "backendNodeId": int(backend_node_id),
+                "fetchRelatives": False,
+            }
+        )
+        nodes: list[AXNode] = ax_tree.get("nodes", [])
+        return nodes[0] if nodes else None
+
+    def _serialize_node(self, node: AXNode) -> Mapping[str, Any]:
+        # TODO: Define an approach to handle ignored items as this is different
+        # browsers by browser and might make testing the subtree harder.
+
+        rv: dict[str,Any] = {
+            "accessibilityId": node["nodeId"],
+            "children": node.get("childIds", []),
+        }
+
+        if "parentId" in node:
+            rv["parent"] = node["parentId"]
+
+        # Parse native fields
+        if "role" in node:
+            rv["role"] = node["role"].get("value")
+        if "name" in node:
+            rv["label"] = node["name"].get("value")
+        if "value" in node:
+            rv["value"] = node["value"].get("value")
+        if "description" in node:
+            rv["description"] = node["description"].get("value")
+
+        # We only support a subset of properties for now outside of the native fields.
+        allowed_properties = {'checked', 'pressed', 'level',
+                              'multiline', 'orientation', 'required',
+                              'roledescription', 'selected'}
+
+        for prop in node.get("properties", []):
+            if prop["name"] in allowed_properties:
+                rv[prop["name"]] = prop["value"].get("value")
+
+        return rv
+
+    @staticmethod
+    def _extract_chromedriver_ids(element_id_string: str) -> Optional[Mapping[str, str]]:
+        """
+        Extracts Frame, Document, and Element IDs from a ChromeDriver id.
+        Expected format: f.[hash].d.[hash].e.[id]
+        """
+        pattern = r"^f\.(?P<frame>[^.]+)\.d\.(?P<document>[^.]+)\.e\.(?P<element>.+)$"
+        match = re.match(pattern, element_id_string)
+
+        return match.groupdict() if match else None
+
 class ChromeDriverDevToolsProtocolPart(ProtocolPart):
     """A low-level API for sending Chrome DevTools Protocol [0] commands directly to the browser.
 
@@ -244,6 +346,7 @@ class ChromeDriverTracingProtocolPart(ProtocolPart):
 
 class ChromeDriverProtocol(WebDriverProtocol):
     implements = [
+        ChromeDriverAccessibilityProtocolPart,
         ChromeDriverBaseProtocolPart,
         ChromeDriverDevToolsProtocolPart,
         ChromeDriverFedCMProtocolPart,
@@ -269,6 +372,7 @@ class ChromeDriverProtocol(WebDriverProtocol):
 
 class ChromeDriverBidiProtocol(WebDriverBidiProtocol):
     implements = [
+        ChromeDriverAccessibilityProtocolPart,
         ChromeDriverBaseProtocolPart,
         ChromeDriverDevToolsProtocolPart,
         ChromeDriverFedCMProtocolPart,

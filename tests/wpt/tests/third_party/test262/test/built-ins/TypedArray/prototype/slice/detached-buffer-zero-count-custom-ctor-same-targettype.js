@@ -16,18 +16,18 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [align-detached-buffer-semantics-with-web-reality, Symbol.species, TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   let counter = 0;
   let sample, result, other;
   let ctor = {};
   ctor[Symbol.species] = function(count) {
-    counter++;
     $DETACHBUFFER(sample.buffer);
-    other = new TA(count);
+    counter++;
+    other = new TA(makeCtorArg(count));
     return other;
   };
 
-  sample = new TA(0);
+  sample = new TA(makeCtorArg(0));
   sample.constructor = ctor;
   result = sample.slice();
   assert.sameValue(result.length, 0, 'The value of result.length is 0');
@@ -35,8 +35,8 @@ testWithTypedArrayConstructors(function(TA) {
   assert.sameValue(result, other, 'The value of `result` is expected to equal the value of other');
   assert.sameValue(counter, 1, 'The value of `counter` is 1');
 
-  sample = new TA(4);
+  sample = new TA(makeCtorArg(4));
   sample.constructor = ctor;
   sample.slice(1, 1); // count = 0;
   assert.sameValue(counter, 2, 'The value of `counter` is 2');
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

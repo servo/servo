@@ -25,4 +25,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
 
     return 0n;
   });
-});
+}, null, null, ["immutable"]);

@@ -45,4 +45,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     compareArray(sample, [42n, 43n, 3n, 4n]),
     "values are set until exception"
   );
-});
+}, null, null, ["immutable"]);

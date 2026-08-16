@@ -229,5 +229,75 @@
         }, `${method_name} throw if parent is a DocumentFragment`);
       }
     }
-  </script>
+
+
+    for (const safe of [true, false]) {
+      const suffix = safe ? "" : "Unsafe";
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        template.innerHTML = "before;";
+
+        const writer = template[`streamAppendHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span>allowed</span>");
+        assert_equals(template.content.textContent, "before;allowed");
+      }, `streamAppendHTML${suffix} on HTMLTemplateElement appends to content`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        template.innerHTML = "after;";
+
+        const writer = template[`streamPrependHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "<span>allowed;</span>after;");
+        assert_equals(template.content.textContent, "allowed;after;");
+      }, `streamPrependHTML${suffix} on HTMLTemplateElement prepends to content`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        template.innerHTML = "before;<span id='child'></span>after;";
+        const child = template.content.querySelector('#child');
+
+        const writer = child[`streamBeforeHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span>allowed;</span><span id=\"child\"></span>after;");
+      }, `streamBeforeHTML${suffix} on child of HTMLTemplateElement content streams before child`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        template.innerHTML = "before;<span id='child'></span>after;";
+        const child = template.content.querySelector('#child');
+
+        const writer = child[`streamAfterHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span id=\"child\"></span><span>allowed;</span>after;");
+      }, `streamAfterHTML${suffix} on child of HTMLTemplateElement content streams after child`);
+
+      promise_test(async (t) => {
+        const template = document.createElement("template");
+        document.body.append(template);
+        template.innerHTML = "before;<span id='child'></span>after;";
+        const child = template.content.querySelector('#child');
+
+        const writer = child[`streamReplaceWithHTML${suffix}`]().getWriter();
+        await writer.write("<span>allowed;</span>");
+        await writer.close();
+
+        assert_equals(template.innerHTML, "before;<span>allowed;</span>after;");
+      }, `streamReplaceWithHTML${suffix} on child of HTMLTemplateElement content replaces child`);
+    }
+</script>
 </body>

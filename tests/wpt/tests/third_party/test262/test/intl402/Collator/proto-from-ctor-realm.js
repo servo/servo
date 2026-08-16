@@ -10,7 +10,6 @@ info: |
   1. If NewTarget is undefined, let newTarget be the active function object, else let newTarget be NewTarget.
   ...
   5. Let collator be ? OrdinaryCreateFromConstructor(newTarget, "%CollatorPrototype%", internalSlotsList).
-  6. Return ? InitializeCollator(collator, locales, options).
 
   OrdinaryCreateFromConstructor ( constructor, intrinsicDefaultProto [ , internalSlotsList ] )
 

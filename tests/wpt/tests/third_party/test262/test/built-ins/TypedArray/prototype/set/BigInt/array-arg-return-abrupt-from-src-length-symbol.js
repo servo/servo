@@ -27,4 +27,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.throws(TypeError, function() {
     sample.set(obj);
   });
-});
+}, null, null, ["immutable"]);

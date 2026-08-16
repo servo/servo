@@ -43,4 +43,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.throws(Test262Error, function() {
     sample.set(obj2);
   }, "toString");
-});
+}, null, null, ["immutable"]);

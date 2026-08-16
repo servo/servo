@@ -2,7 +2,7 @@
 // - src/dstr-assignment/obj-rest-not-last-element-invalid.case
 // - src/dstr-assignment/syntax/assignment-expr.template
 /*---
-description: Object rest element needs to be the last AssignmenProperty in ObjectAssignmentPattern. (AssignmentExpression)
+description: Object rest element needs to be the last AssignmentProperty in ObjectAssignmentPattern. (AssignmentExpression)
 esid: sec-variable-statement-runtime-semantics-evaluation
 features: [object-rest, destructuring-binding]
 flags: [generated]

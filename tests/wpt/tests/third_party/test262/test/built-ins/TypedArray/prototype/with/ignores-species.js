@@ -17,7 +17,7 @@ info: |
   2. Let constructor be the intrinsic object listed in column one of Table 63 for exemplar.[[TypedArrayName]].
   ...
 includes: [testTypedArray.js]
-features: [TypedArray, change-array-by-copy]
+features: [Symbol.species, TypedArray, change-array-by-copy]
 ---*/
 
 testWithTypedArrayConstructors((TA, makeCtorArg) => {
@@ -38,4 +38,4 @@ testWithTypedArrayConstructors((TA, makeCtorArg) => {
     }
   });
   ta.with(0, 2);
-}, null, ["passthrough"]);
+});

@@ -17,11 +17,14 @@ promise_test(async t => {
 
   await waitForTool('endless_tool');
 
+  let resolveRespondWith;
   const submitted_promise = new Promise((resolve) => {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      // Respond with a Promise that never resolves (hangs forever).
-      e.respondWith(new Promise(() => {}));
+      // Respond with a Promise that resolves when resolveRespondWith is called.
+      e.respondWith(new Promise(res => {
+        resolveRespondWith = res;
+      }));
       resolve();
     });
   });
@@ -35,16 +38,21 @@ promise_test(async t => {
   // Wait deterministically for the form to submit and call respondWith().
   await submitted_promise;
 
+  const toolChangePromise = new Promise(resolve =>
+      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+
   // Unregister the declarative tool by removing the form element while execution is pending.
   form.remove();
+  await toolChangePromise;
 
-  await promise_rejects_dom(
-    t,
-    'UnknownError',
-    execute_promise,
-    'Pending execution Promise should reject with UnknownError when the target declarative tool is removed from DOM'
-  );
-}, 'Pending executeTool() Promise is rejected when target declarative tool is unregistered via DOM removal');
+  const currentTools = await document.modelContext.getTools();
+  assert_array_equals(currentTools, [], 'Unregistered tool should no longer be returned by getTools()');
+
+  resolveRespondWith('form_dom_result');
+
+  const result = await execute_promise;
+  assert_equals(result, 'form_dom_result', 'Pending execution Promise should resolve to tool result even if form element was removed from DOM');
+}, 'Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via DOM removal');
 
 promise_test(async t => {
   const form = document.createElement('form');
@@ -56,10 +64,13 @@ promise_test(async t => {
 
   await waitForTool('endless_tool_attr');
 
+  let resolveRespondWith;
   const submitted_promise = new Promise((resolve) => {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      e.respondWith(new Promise(() => {}));
+      e.respondWith(new Promise(res => {
+        resolveRespondWith = res;
+      }));
       resolve();
     });
   });
@@ -73,15 +84,20 @@ promise_test(async t => {
   // Wait deterministically for the form to submit and call respondWith().
   await submitted_promise;
 
+  const toolChangePromise = new Promise(resolve =>
+      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+
   // Unregister by removing required tooldescription attribute while execution is pending.
   form.removeAttribute('tooldescription');
+  await toolChangePromise;
 
-  await promise_rejects_dom(
-    t,
-    'UnknownError',
-    execute_promise,
-    'Pending execution Promise should reject with UnknownError when required tool attribute is removed'
-  );
-}, 'Pending executeTool() Promise is rejected when target declarative tool is unregistered via attribute removal');
+  const currentTools = await document.modelContext.getTools();
+  assert_array_equals(currentTools, [], 'Unregistered tool should no longer be returned by getTools()');
+
+  resolveRespondWith('form_attr_result');
+
+  const result = await execute_promise;
+  assert_equals(result, 'form_attr_result', 'Pending execution Promise should resolve to tool result even if form attribute was removed');
+}, 'Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via attribute removal');
 </script>
 </body>

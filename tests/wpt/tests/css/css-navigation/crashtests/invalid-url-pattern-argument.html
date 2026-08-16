@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Crash: Unexpected tokens inside url-pattern()</title>
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-location">
+<link rel="help" href="https://issues.chromium.org/issues/485056787">
+<style>
+  @location --loc { pattern: url-pattern(); }
+  @location --loc { pattern: url-pattern(0); }
+  @location --loc { pattern: url-pattern( 0 ); }
+  @location --loc { pattern: url-pattern("", 0); }
+  @location --loc { pattern: url-pattern(,); }
+  @location --loc { pattern: url-pattern(!!); }
+</style>

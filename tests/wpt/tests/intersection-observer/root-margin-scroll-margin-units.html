@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="author" href="mailto:sam@webkit.org" title="Sam Weinig">
+  <link rel="help" href="https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-rootmargin">
+  <link rel="help" href="https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-scrollmargin">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<script>
+  const testcases = [
+    { unit: "px", expected: "10px" },
+    { unit: "cm", expected: "377px" },
+    { unit: "mm", expected: "37px" },
+    { unit: "q", expected: "9px" },
+    { unit: "in", expected: "960px" },
+    { unit: "pt", expected: "13px" },
+    { unit: "pc", expected: "160px" },
+  ];
+
+  for (testcase of testcases) {
+    test(function() {
+      const observer = new IntersectionObserver(function(e) {}, {
+        rootMargin: `10${testcase.unit}`,
+      });
+      assert_equals(observer.rootMargin, `${testcase.expected} ${testcase.expected} ${testcase.expected} ${testcase.expected}`)
+    }, `observer.rootMargin using '${testcase.unit}'`);
+
+    test(function() {
+      const observer = new IntersectionObserver(function(e) {}, {
+        scrollMargin: `10${testcase.unit}`,
+      });
+      assert_equals(observer.scrollMargin, `${testcase.expected} ${testcase.expected} ${testcase.expected} ${testcase.expected}`)
+    }, `observer.scrollMargin using '${testcase.unit}'`);
+  }
+</script>
+</body>
+</html>

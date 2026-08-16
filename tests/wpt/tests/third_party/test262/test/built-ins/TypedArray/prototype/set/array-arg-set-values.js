@@ -60,4 +60,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   result = sample.set(srcObj, 2);
   assert(compareArray(sample, [1, 2, 7, 17]), "offset: 2, result: " + sample);
   assert.sameValue(result, undefined, "returns undefined");
-});
+}, null, null, ["immutable"]);

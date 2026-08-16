@@ -39,4 +39,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   });
 
   assert.sameValue(calls, 1, "immediately returned");
-});
+}, null, null, ["immutable"]);

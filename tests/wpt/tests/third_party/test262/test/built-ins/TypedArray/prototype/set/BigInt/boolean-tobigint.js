@@ -43,4 +43,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
 
   assert.sameValue(typedArray[0], 0n, "False converts to BigInt");
   assert.sameValue(typedArray[1], 1n, "True converts to BigInt");
-});
+}, null, null, ["immutable"]);

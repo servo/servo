@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Resource Timing - initiatorUrl for module scripts requested by a worker</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="../../resources/test-initiator.js"></script>
+<script>
+// The worker script is reported as the initiator for the target module it
+// statically imports.
+const worker = new Worker(
+  getUrl("/resource-timing/resources/module-script-worker.js"),
+  {type: "module"});
+initiator_url_test(
+  "module-script-imported.js?label=worker-importer-static",
+  getUrl("/resource-timing/resources/module-script-worker.js"),
+  "worker-importer-static initiatorUrl from worker",
+  "worker-importer-static timeout");
+
+// The worker script is reported as the initiator for the target module it
+// dynamically imports.
+promise_test(async () => {
+  const {promise, resolve} = Promise.withResolvers();
+  worker.onmessage = event => {
+    worker.terminate();
+    resolve(event.data);
+  };
+  worker.postMessage("please_test");
+  const {result, expected} = await promise;
+  assert_equals(result, expected);
+}, "The initiator Url for a script imported from a worker must be the worker " +
+   "script");
+</script>

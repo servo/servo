@@ -33,8 +33,8 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [align-detached-buffer-semantics-with-web-reality, BigInt, TypedArray]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
-  const sample = new TA(1);
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
+  const sample = new TA(makeCtorArg(1));
   const fromIndex = {
     valueOf() {
       $DETACHBUFFER(sample.buffer);
@@ -43,4 +43,4 @@ testWithBigIntTypedArrayConstructors(function(TA) {
   };
 
   assert.sameValue(sample.includes(0n, fromIndex), false);
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

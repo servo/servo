@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>@location rules</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test(()=> {
+    const canonical = `@location --loc {\n}`;
+    test_valid_rule(canonical);
+    test_valid_rule(`@location  --loc{}`, canonical);
+  }, "no descriptors");
+
+  test(()=> {
+    test_valid_rule("@location --ahoi\\(hoi {}", "@location --ahoi\\(hoi {\n}");
+  }, "escape identifiers");
+</script>

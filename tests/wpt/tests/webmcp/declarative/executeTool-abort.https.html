@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webmcp/resources/helpers.js"></script>
+
+<form id="form1" toolname="submit_test" tooldescription="Submit test form1">
+  <button id="button1" type=submit>Submit</button>
+</form>
+<form id="form2" toolname="submit_test2" tooldescription="Submit test form2">
+  <button id="button2" type=submit>Submit</button>
+</form>
+
+<script>
+promise_test(async t => {
+  await waitForTool('submit_test');
+
+  const form1 = document.querySelector('#form1');
+  const form2 = document.querySelector('#form2');
+  const button1 = document.querySelector('#button1');
+  const button2 = document.querySelector('#button2');
+
+  assert_false(form1.matches(':tool-form-active'));
+  assert_false(form2.matches(':tool-form-active'));
+  assert_false(button1.matches(':tool-submit-active'));
+  assert_false(button2.matches(':tool-submit-active'));
+
+  const toolActivatedPromise = new Promise(r => window.addEventListener('toolactivated', e => {
+    assert_equals(e.toolName, 'submit_test');
+    assert_true(form1.matches(':tool-form-active'));
+    assert_false(form2.matches(':tool-form-active'));
+    assert_true(button1.matches(':tool-submit-active'));
+    assert_false(button2.matches(':tool-submit-active'));
+    r();
+  }));
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'submit_test');
+
+  const controller = new AbortController();
+  const executionPromise = document.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+
+  await toolActivatedPromise;
+
+  const events = [];
+  const toolCancelPromise = new Promise(r => window.addEventListener('toolcancel', e => {
+    assert_equals(e.toolName, 'submit_test');
+    assert_false(form1.matches(':tool-form-active'), "form1 matches during toolcancel");
+    assert_false(form2.matches(':tool-form-active'), "form2 matches during toolcancel");
+    assert_false(button1.matches(':tool-submit-active'), "button1 matches during toolcancel");
+    assert_false(button2.matches(':tool-submit-active'), "button2 matches during toolcancel");
+    r();
+  }));
+
+  controller.abort();
+  let executionRejectionValue = null;
+  await Promise.all([
+    toolActivatedPromise.then(events.push('toolactivated')),
+    executionPromise.catch(e => {events.push('execution_rejected'); executionRejectionValue = e}),
+    toolCancelPromise.then(() => events.push('toolcancel')),
+  ]);
+
+  assert_array_equals(events, ['toolactivated', 'execution_rejected', 'toolcancel']);
+  assert_true(executionRejectionValue instanceof DOMException);
+  assert_equals(executionRejectionValue.name, "AbortError");
+
+  assert_false(form1.matches(':tool-form-active'), "form1 matches");
+  assert_false(form2.matches(':tool-form-active'), "form2 matches");
+  assert_false(button1.matches(':tool-submit-active'), "button1 matches");
+  assert_false(button2.matches(':tool-submit-active'), "button2 matches");
+}, 'executeTool signal successfully resets tool pseudo-classes');
+</script>

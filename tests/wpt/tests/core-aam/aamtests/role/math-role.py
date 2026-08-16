@@ -24,9 +24,13 @@ def test_atspi(atspi, session, inline):
 #     # Spec:
 #     # Role: ROLE_SYSTEM_EQUATION
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Group
-#     # Localized Control Type: math
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Group
+    # Localized Control Type: math
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Group
+    assert node.CurrentLocalizedControlType == "math"

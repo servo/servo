@@ -29,8 +29,13 @@ def test_atspi(atspi, session, inline):
 #     # State: STATE_SYSTEM_READONLY
 #     # Interface: IAccessibleValue
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # <span class="property">Control Type: <code>ProgressBar</code></span><br> <span class="property">Control Pattern: <code>RangeValue</code> if <code>aria-valuenow</code>, <code>aria-valuemax</code>, or <code>aria-valuemin</code></span> is present
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: ProgressBar
+    # Control Pattern: RangeValue if aria-valuenow, aria-valuemax, or aria-valuemin is present
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.ProgressBar
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsRangeValuePatternAvailable)

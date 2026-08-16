@@ -12,12 +12,8 @@ info: |
     c. Let msgDesc be the PropertyDescriptor{[[Value]]: msg, [[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true}.
     d. Let status be DefinePropertyOrThrow(O, "message", msgDesc).
 es6id: 19.5.6.1.1
-includes: [propertyHelper.js]
+includes: [propertyHelper.js, nativeErrors.js]
 ---*/
-
-var nativeErrors = [
-  EvalError, RangeError, ReferenceError, SyntaxError, TypeError, URIError
-];
 
 for (var i = 0; i < nativeErrors.length; ++i) {
   var nativeError = nativeErrors[i];

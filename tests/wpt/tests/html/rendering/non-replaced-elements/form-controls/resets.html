@@ -34,6 +34,14 @@ input, select, textarea {
 input[type=reset i], input[type=button i], input[type=submit i], button {
   text-align: center;
 }
+input:not([type=file i], [type=range i], [type=checkbox i], [type=radio i]) {
+  align-content: unsafe center;
+}
+select:not([multiple]),
+button,
+input:is([type=reset i], [type=button i], [type=submit i], [type=color i]) {
+  align-content: center;
+}
 input[type=radio i], input[type=checkbox i], input[type=reset i], input[type=button i],
 input[type=submit i], input[type=color i], input[type=search i], select, button {
   box-sizing: border-box;
@@ -116,6 +124,7 @@ table {
                 'display',
                 'overflow',
                 'overflow-clip-margin',
+                'align-content',
                 'box-sizing'];
  runUAStyleTests(props);
 

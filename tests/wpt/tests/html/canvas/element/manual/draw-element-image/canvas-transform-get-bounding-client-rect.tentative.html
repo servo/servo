@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Canvas Transform: getBoundingClientRect mapping</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body style="margin: 0;">
+  <canvas id="canvas" style="position: absolute; left: 10px; top: 20px; width: 400px; height: 400px;" layoutsubtree>
+    <div id="target" style="position: absolute; left: 0; top: 0; width: 100px; height: 50px;"></div>
+  </canvas>
+  <div id="outside" style="position: absolute; left: 10px; top: 10px; width: 100px; height: 50px;"></div>
+
+  <script>
+    'use strict';
+
+    // TODO(crbug.com/532229486): Add a test of inlines.
+
+    test(() => {
+      const target = document.getElementById('target');
+      let rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 10);
+      assert_equals(rect.top, 20);
+
+      // Translate.
+      target.setCanvasTransform(new DOMMatrix().translate(30, 40));
+      rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 40);
+      assert_equals(rect.top, 60);
+
+      // Scale and translate.
+      target.setCanvasTransform(new DOMMatrix().translate(50, 60).scale(2, 3));
+      rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 60);
+      assert_equals(rect.top, 80);
+      assert_equals(rect.width, 200);
+      assert_equals(rect.height, 150);
+
+      // Compound with CSS transform: Canvas transform applies before CSS transform.
+      // With CSS transform scale(2) around center (50, 25), target bounds are
+      // [-50..150, -25..75] relative to (0, 0).
+      // Canvas transform translates by (30, 40), giving [-20..180, 15..115].
+      // Adding canvas position (10, 20) yields rect left = -10, top = 35.
+      // If canvas transform were applied after CSS transform, left would be 20, top would be 75.
+      target.setCanvasTransform(new DOMMatrix().translate(30, 40));
+      target.style.transform = 'scale(2)';
+      rect = target.getBoundingClientRect();
+      assert_approx_equals(rect.left, 10 + 30 - 50, 0.01);
+      assert_approx_equals(rect.top, 20 + 40 - 25, 0.01);
+      assert_approx_equals(rect.width, 200, 0.01);
+      assert_approx_equals(rect.height, 100, 0.01);
+
+      // Compound with CSS translate and transform properties: Canvas transform
+      // applies before all CSS transforms, including individual transform properties.
+      target.setCanvasTransform(new DOMMatrix().translate(30, 40));
+      target.style.translate = '5px 10px';
+      target.style.transform = 'scale(2)';
+      rect = target.getBoundingClientRect();
+      assert_approx_equals(rect.left, 10 + 30 + 5 - 50, 0.01);
+      assert_approx_equals(rect.top, 20 + 40 + 10 - 25, 0.01);
+      assert_approx_equals(rect.width, 200, 0.01);
+      assert_approx_equals(rect.height, 100, 0.01);
+
+      // Reset.
+      target.style.translate = '';
+      target.style.transform = '';
+      target.setCanvasTransform(new DOMMatrix());
+      rect = target.getBoundingClientRect();
+      assert_equals(rect.left, 10);
+      assert_equals(rect.top, 20);
+      assert_equals(rect.width, 100);
+      assert_equals(rect.height, 50);
+    }, 'setCanvasTransform() affects getBoundingClientRect() on canvas child');
+
+    test(() => {
+      const outside = document.getElementById('outside');
+      outside.setCanvasTransform(new DOMMatrix().translate(50, 50));
+      const rect = outside.getBoundingClientRect();
+      assert_equals(rect.left, 10);
+      assert_equals(rect.top, 10);
+    }, 'setCanvasTransform() does not affect getBoundingClientRect() outside canvas subtree');
+  </script>
+</body>
+</html>

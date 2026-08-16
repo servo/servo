@@ -23,5 +23,5 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.sameValue(n, 2, "additional unexpected ToNumber() calls");
   assert.sameValue(sample[0], 1, "incorrect ToNumber result in index 0");
   assert.sameValue(sample[1], 1, "incorrect ToNumber result in index 1");
-});
+}, null, null, ["immutable"]);
 

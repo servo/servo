@@ -9,8 +9,9 @@
 tools/docker/Dockerfile @web-platform-tests/wpt-core-team @web-platform-tests/admins
 .taskcluster.yml @web-platform-tests/wpt-core-team @web-platform-tests/admins
 
-# Prevent accidentally touching wasm/core which is updated by a workflow
+# Prevent accidentally touching wasm/core and wasm/proposals which are updated by a workflow
 wasm/core/ @web-platform-tests/wpt-core-team
+wasm/proposals @web-platform-tests/wpt-core-team
 
 # GENERATED: interop-tests
 css/css-anchor-position/anchor-as-multicol-crash.html @web-platform-tests/interop

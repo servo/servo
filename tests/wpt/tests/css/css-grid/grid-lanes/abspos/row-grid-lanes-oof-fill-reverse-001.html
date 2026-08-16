@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: fill-reverse sets OOF static position to inline-end in row grid-lanes</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+  <link rel="match" href="row-grid-lanes-oof-fill-reverse-001-ref.html">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    /*
+     * The OOF item's static position must be set to the inline-end edge to match
+     * where in-flow items pile from when fill-reverse is active.
+     */
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: row fill-reverse;
+      grid-template-rows: 80px;
+      gap: 10px;
+      height: 200px;
+      outline: 1px solid black;
+      position: relative;
+    }
+
+    item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      background: lightblue;
+    }
+
+    .oof {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: red;
+    }
+  </style>
+</head>
+<body>
+  <!-- row fill-reverse, width auto -->
+  <div class="grid-lanes">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <div class="oof" style="top: 0px;"></div>
+    <div class="oof" style="top: 90px;"></div>
+    <div class="oof" style="bottom: 0px;"></div>
+  </div>
+</body>
+</html>

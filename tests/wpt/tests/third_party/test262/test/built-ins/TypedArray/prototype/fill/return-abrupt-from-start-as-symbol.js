@@ -29,9 +29,9 @@ features: [Symbol, TypedArray]
 
 var start = Symbol(1);
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA();
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(0));
   assert.throws(TypeError, function() {
     sample.fill(1, start);
   });
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#geometry">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#stacking-self-alignment">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: 120px;
+    row-gap: 16px;
+    width: max-content;
+    height: 480px;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    height: 80px;
+    background: #5b8def;
+  }
+  .lanes > div.centered { align-self: center; background: #1f9d6b; }
+  .row-rule { position: absolute; height: 0; border-top: 4px solid gold; }
+</style>
+<div class="lanes">
+  <div></div>
+  <div class="centered"></div>
+</div>
+<div class="row-rule" style="left: 0; top: 86px; width: 120px;"></div>

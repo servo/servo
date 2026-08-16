@@ -2,17 +2,18 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: >
     Tests that the options maximumFractionDigits limit to the range 0 - 100.
 info: |
-    InitializeNumberFormat ( numberFormat, locales, options )
+  SetNumberFormatDigitOptions ( intlObj, options, mnfdDefault, mxfdDefault, notation )
 
-    25.a.ii. Set mxfd to ? DefaultNumberOption(mxfd, 0, 100, undefined).
+  23.a.ii. Set _mxfd_ to ? DefaultNumberOption(_mxfd_, 0, 100, *undefined*).
 
-    DefaultNumberOption ( value, minimum, maximum, fallback )
+  DefaultNumberOption ( value, minimum, maximum, fallback )
 
-    3. If value is NaN or less than minimum or greater than maximum, throw a RangeError exception.
+  3. If _value_ is not finite or ℝ(_value_) < _minimum_ or ℝ(_value_) >
+     _maximum_, throw a *RangeError* exception.
 ---*/
 
 let wontThrow = new Intl.NumberFormat(undefined, {maximumFractionDigits: 100});

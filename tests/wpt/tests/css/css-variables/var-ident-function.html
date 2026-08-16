@@ -27,8 +27,8 @@
 </style>
 <script>
   test(() => {
-    assert_equals(getComputedStyle(target).getPropertyValue('--unparsed'), 'ident("x")');
-  }, 'ident() remains unresolved on custom properties');
+    assert_equals(getComputedStyle(target).getPropertyValue('--unparsed'), 'x');
+  }, 'ident() is substituted on custom properties');
 </script>
 
 <style>

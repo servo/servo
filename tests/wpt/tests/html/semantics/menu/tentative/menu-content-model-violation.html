@@ -417,4 +417,62 @@ promise_test(async () => {
   // The outer list should STILL be in dialog mode because outerButton is still there.
   assert_equals(await test_driver.get_computed_role(outerList), 'dialog', 'Mutating a detached inner subtree should not decrement outer violations');
 }, 'Outer menu ignores mutations inside detached nested menus');
+
+promise_test(async () => {
+  const menu = document.createElement('menulist');
+  document.body.appendChild(menu);
+
+  const text = document.createTextNode('added then removed text');
+  menu.appendChild(text);
+  text.remove();
+
+  menu.showPopover();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const role = await test_driver.get_computed_role(menu);
+  assert_equals(role, 'menu');
+}, 'Adding and immediately removing an invalid text node does not force dialog');
+
+promise_test(async () => {
+  const menu = document.createElement('menulist');
+  const menuitem = document.createElement('menuitem');
+  menu.appendChild(menuitem);
+  document.body.appendChild(menu);
+
+  const text = document.createTextNode('added then removed text');
+
+  // Add and remove the text node from the menuitem
+  menuitem.appendChild(text);
+  text.remove();
+
+  menu.showPopover();
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const role = await test_driver.get_computed_role(menu);
+  assert_equals(role, 'menu');
+}, 'Adding and immediately removing text inside a menuitem does not force dialog');
+
+promise_test(async () => {
+  const menu = document.createElement('menulist');
+  const menuitem = document.createElement('menuitem');
+  const div = document.createElement('div');
+  const text = document.createTextNode('added text');
+
+  div.appendChild(text);
+  menuitem.appendChild(div);
+  menu.appendChild(menuitem);
+  document.body.appendChild(menu);
+
+  menu.showPopover();
+
+  // Teardown tests start with violations > 0. This starts with 0.
+  // Incorrectly decrementing here causes an underflow crash.
+  div.remove();
+  text.remove();
+
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const role = await test_driver.get_computed_role(menu);
+  assert_equals(role, 'menu');
+}, 'Removing a node from a detached valid subtree should not crash');
 </script>

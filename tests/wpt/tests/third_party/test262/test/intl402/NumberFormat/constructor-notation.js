@@ -2,13 +2,15 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: Checks handling of the notation option to the NumberFormat constructor.
 info: |
-    InitializeNumberFormat ( numberFormat, locales, options )
+  Intl.NumberFormat ( [ locales [ , options ] ] )
 
-    16. Let notation be ? GetOption(options, "notation", "string", « "standard", "scientific", "engineering", "compact" », "standard").
-    17. Set numberFormat.[[Notation]] to notation.
+  1. Let _notation_ be ? GetOption(_options_, *"notation"*, ~string~,
+     « *"standard"*, *"scientific"*, *"engineering"*, *"compact"* »,
+     *"standard"*).
+  1. Set _numberFormat_.[[Notation]] to _notation_.
 
 features: [Intl.NumberFormat-unified]
 ---*/

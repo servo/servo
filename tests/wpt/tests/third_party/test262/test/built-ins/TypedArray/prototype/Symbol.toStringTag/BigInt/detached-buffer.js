@@ -14,8 +14,8 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [BigInt, Symbol.toStringTag, TypedArray]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
-  var sample = new TA(1);
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(1));
   $DETACHBUFFER(sample.buffer);
   assert.sameValue(sample[Symbol.toStringTag], TA.name);
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

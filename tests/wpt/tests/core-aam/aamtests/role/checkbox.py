@@ -26,9 +26,16 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_CHECKBUTTON
 #     # See also: aria-checked in the State and Property Mapping Tables
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Checkbox
-#     # See also: aria-checked in the State and Property Mapping Tables
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: CheckBox
+    # See also: aria-checked in the State and Property Mapping Tables
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.CheckBox
+
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsTogglePatternAvailable)
+    toggle_pattern = node.GetCurrentPattern(uia.PatternId.Toggle)
+    assert toggle_pattern and toggle_pattern.CurrentToggleState == 0

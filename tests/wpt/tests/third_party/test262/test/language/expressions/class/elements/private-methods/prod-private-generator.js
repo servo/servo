@@ -107,7 +107,7 @@ var c = new C();
 var other = new C();
 
 hasProp(C.prototype, '#m', false, 'method is not defined in the prototype');
-hasProp(C, '#m', false, 'method is not defined in the contructor');
+hasProp(C, '#m', false, 'method is not defined in the constructor');
 hasProp(c, '#m', false, 'method cannot be seen outside of the class');
 
 /***

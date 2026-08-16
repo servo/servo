@@ -31,8 +31,8 @@ features: [TypedArray]
 
 var arr = [-2, Infinity, NaN, -Infinity, 0.6, 9007199254740992];
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA(arr);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(arr));
   var result, separator, expected;
 
   separator = ",";
@@ -132,4 +132,4 @@ testWithTypedArrayConstructors(function(TA) {
   }).join(separator);
   result = sample.join(separator);
   assert.sameValue(result, expected, "using: " + separator);
-}, null, ["passthrough"]);
+});

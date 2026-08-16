@@ -113,8 +113,6 @@ class AtspiWrapper(ApiWrapper[Atspi.Accessible]):
                         tab = relation.get_target(0)
                         if self._is_ready(tab, self.test_url):
                             return tab
-                        else:
-                            return None
                 continue
 
             for i in range(Atspi.Accessible.get_child_count(node)):
