@@ -262,6 +262,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onAlert(message: String) {
         AlertDialog.Builder(this)
             .setMessage(message)
+            .setPositiveButton(android.R.string.ok, null)
             .show()
     }
 
