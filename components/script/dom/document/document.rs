@@ -3698,7 +3698,17 @@ impl Document {
 
             match type_id {
                 NodeTypeId::Attr => sizes.attribute_nodes_size += size,
-                NodeTypeId::Element(_) => sizes.element_nodes_size += size,
+                NodeTypeId::Element(_) => {
+                    sizes.element_nodes_size += size;
+
+                    let element = node.downcast::<Element>().expect("node must be Element");
+                    for attr in element.attrs().borrow().iter() {
+                        if let Some(attr) = attr.as_attr() {
+                            let size = compute_size(attr.upcast::<Node>().jsobject(), ops);
+                            sizes.attribute_nodes_size += size;
+                        }
+                    }
+                },
                 NodeTypeId::CharacterData(_) => sizes.text_nodes_size += size,
                 _ => sizes.other_nodes_size += size,
             };
