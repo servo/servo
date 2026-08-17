@@ -29,15 +29,15 @@ Generate the mapping for [`text-transform: full-width`]
 from urllib.request import urlopen
 import re
 
-readme_url = "https://www.unicode.org/Public/UCD/latest/ReadMe.txt"
-data_url = "https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt"
+README_URL = "https://www.unicode.org/Public/UCD/latest/ReadMe.txt"
+DATA_URL = "https://www.unicode.org/Public/UCD/latest/ucd/UnicodeData.txt"
 
-response = urlopen(readme_url)
+response = urlopen(README_URL)
 assert response.status == 200
 body = response.read().decode("utf-8")
 version = re.search(r"Version ([\d.]+)", body).group(1)
 
-response = urlopen(data_url)
+response = urlopen(DATA_URL)
 assert response.status == 200
 body = response.read().decode("utf-8")
 
@@ -47,7 +47,7 @@ print(
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! Generated from <{data_url}> version {version}
+//! Generated from <{DATA_URL}> version {version}
 //!
 //! Do not edit directly. Update it with:
 //!
