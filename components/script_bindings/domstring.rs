@@ -115,8 +115,8 @@ impl Default for DOMStringType {
 
 impl DOMStringType {
     /// Warning:
-    /// This function does not checking and just returns the raw bytes of the string,
-    /// independently if they are  utf8 or latin1.
+    /// This function does not check and just returns the raw bytes of the string,
+    /// whether they are utf8 or latin1.
     /// The caller needs to take care that these make sense in context.
     fn as_raw_bytes(&self) -> &[u8] {
         match self {
@@ -587,7 +587,7 @@ impl DOMString {
                 }
             },
             EncodedBytes::Utf8(bytes) => unsafe {
-                // Save because we know it was a utf8 string
+                // Safe because we know it was a utf8 string
                 Some(str::from_utf8_unchecked(&bytes).to_ascii_lowercase())
             },
         };
