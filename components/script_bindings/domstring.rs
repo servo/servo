@@ -275,7 +275,7 @@ impl std::fmt::Debug for DOMStringType {
 ///
 /// The hypothesis is that it does not matter much how exactly those values are
 /// transformed, because  passing unpaired surrogates into the DOM is very rare.
-/// Instead Servo withh replace the unpaired surrogate by a U+FFFD replacement
+/// Instead Servo will replace the unpaired surrogate by a U+FFFD replacement
 /// character.
 ///
 /// Currently, the lack of crash reports about this issue provides some
