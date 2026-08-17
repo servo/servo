@@ -1076,7 +1076,10 @@ impl HTMLScriptElement {
                 debug!("script language={}", lang);
                 let language = format!("text/{}", lang);
 
-                if SCRIPT_JS_MIMES.contains(&language.to_ascii_lowercase().as_str()) {
+                if SCRIPT_JS_MIMES
+                    .iter()
+                    .any(|mime| language.eq_ignore_ascii_case(mime))
+                {
                     Some(ScriptType::Classic)
                 } else {
                     None
@@ -1085,17 +1088,24 @@ impl HTMLScriptElement {
             (Some(ty), _) => {
                 debug!("script type={}", ty);
 
-                if ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) == "module" {
+                if ty
+                    .trim_matches(HTML_SPACE_CHARACTERS)
+                    .eq_ignore_ascii_case("module")
+                {
                     return Some(ScriptType::Module);
                 }
 
-                if ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS) == "importmap" {
+                if ty
+                    .trim_matches(HTML_SPACE_CHARACTERS)
+                    .eq_ignore_ascii_case("importmap")
+                {
                     return Some(ScriptType::ImportMap);
                 }
 
-                if SCRIPT_JS_MIMES
-                    .contains(&ty.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
-                {
+                if SCRIPT_JS_MIMES.iter().any(|mime| {
+                    ty.trim_matches(HTML_SPACE_CHARACTERS)
+                        .eq_ignore_ascii_case(mime)
+                }) {
                     Some(ScriptType::Classic)
                 } else {
                     None

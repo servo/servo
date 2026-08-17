@@ -197,30 +197,53 @@ impl InputActivationType {
 
 impl InputType {
     pub(crate) fn new_from_atom(value: &Atom) -> Self {
-        match value.to_ascii_lowercase() {
-            atom!("button") => InputType::Button(Default::default()),
-            atom!("checkbox") => InputType::Checkbox(Default::default()),
-            atom!("color") => InputType::Color(Default::default()),
-            atom!("date") => InputType::Date(Default::default()),
-            atom!("datetime-local") => InputType::DatetimeLocal(Default::default()),
-            atom!("email") => InputType::Email(Default::default()),
-            atom!("file") => InputType::File(Default::default()),
-            atom!("hidden") => InputType::Hidden(Default::default()),
-            atom!("image") => InputType::Image(Default::default()),
-            atom!("month") => InputType::Month(Default::default()),
-            atom!("number") => InputType::Number(Default::default()),
-            atom!("password") => InputType::Password(Default::default()),
-            atom!("radio") => InputType::Radio(Default::default()),
-            atom!("range") => InputType::Range(Default::default()),
-            atom!("reset") => InputType::Reset(Default::default()),
-            atom!("search") => InputType::Search(Default::default()),
-            atom!("submit") => InputType::Submit(Default::default()),
-            atom!("tel") => InputType::Tel(Default::default()),
-            atom!("text") => InputType::Text(Default::default()),
-            atom!("time") => InputType::Time(Default::default()),
-            atom!("url") => InputType::Url(Default::default()),
-            atom!("week") => InputType::Week(Default::default()),
-            _ => InputType::Text(Default::default()),
+        let value = value.as_ref();
+        if value.eq_ignore_ascii_case("button") {
+            InputType::Button(Default::default())
+        } else if value.eq_ignore_ascii_case("checkbox") {
+            InputType::Checkbox(Default::default())
+        } else if value.eq_ignore_ascii_case("color") {
+            InputType::Color(Default::default())
+        } else if value.eq_ignore_ascii_case("date") {
+            InputType::Date(Default::default())
+        } else if value.eq_ignore_ascii_case("datetime-local") {
+            InputType::DatetimeLocal(Default::default())
+        } else if value.eq_ignore_ascii_case("email") {
+            InputType::Email(Default::default())
+        } else if value.eq_ignore_ascii_case("file") {
+            InputType::File(Default::default())
+        } else if value.eq_ignore_ascii_case("hidden") {
+            InputType::Hidden(Default::default())
+        } else if value.eq_ignore_ascii_case("image") {
+            InputType::Image(Default::default())
+        } else if value.eq_ignore_ascii_case("month") {
+            InputType::Month(Default::default())
+        } else if value.eq_ignore_ascii_case("number") {
+            InputType::Number(Default::default())
+        } else if value.eq_ignore_ascii_case("password") {
+            InputType::Password(Default::default())
+        } else if value.eq_ignore_ascii_case("radio") {
+            InputType::Radio(Default::default())
+        } else if value.eq_ignore_ascii_case("range") {
+            InputType::Range(Default::default())
+        } else if value.eq_ignore_ascii_case("reset") {
+            InputType::Reset(Default::default())
+        } else if value.eq_ignore_ascii_case("search") {
+            InputType::Search(Default::default())
+        } else if value.eq_ignore_ascii_case("submit") {
+            InputType::Submit(Default::default())
+        } else if value.eq_ignore_ascii_case("tel") {
+            InputType::Tel(Default::default())
+        } else if value.eq_ignore_ascii_case("text") {
+            InputType::Text(Default::default())
+        } else if value.eq_ignore_ascii_case("time") {
+            InputType::Time(Default::default())
+        } else if value.eq_ignore_ascii_case("url") {
+            InputType::Url(Default::default())
+        } else if value.eq_ignore_ascii_case("week") {
+            InputType::Week(Default::default())
+        } else {
+            InputType::Text(Default::default())
         }
     }
 

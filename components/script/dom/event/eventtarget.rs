@@ -484,13 +484,13 @@ impl EventTarget {
     /// <https://dom.spec.whatwg.org/#default-passive-value>
     fn default_passive_value(&self, ty: &Atom) -> bool {
         // Return true if all of the following are true:
-        let event_type = ty.to_ascii_lowercase();
+        let event_type = ty.trim_matches(HTML_SPACE_CHARACTERS);
 
         // type is one of "touchstart", "touchmove", "wheel", or "mousewheel"
-        let matches_event_type = matches!(
-            event_type.trim_matches(HTML_SPACE_CHARACTERS),
-            "touchstart" | "touchmove" | "wheel" | "mousewheel"
-        );
+        let matches_event_type = event_type.eq_ignore_ascii_case("touchstart") ||
+            event_type.eq_ignore_ascii_case("touchmove") ||
+            event_type.eq_ignore_ascii_case("wheel") ||
+            event_type.eq_ignore_ascii_case("mousewheel");
 
         if !matches_event_type {
             return false;

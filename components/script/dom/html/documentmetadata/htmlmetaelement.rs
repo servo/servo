@@ -64,12 +64,11 @@ impl HTMLMetaElement {
     fn process_attributes(&self, cx: &mut JSContext) {
         let element = self.upcast::<Element>();
         if let Some(ref name) = element.get_name() {
-            let name = name.to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
-            if name == "referrer" {
+            if name.eq_ignore_ascii_case("referrer") {
                 self.apply_referrer();
             }
-            if name == "viewport" {
+            if name.eq_ignore_ascii_case("viewport") {
                 self.parse_and_send_viewport_if_necessary(cx);
             }
         // https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv
@@ -89,10 +88,9 @@ impl HTMLMetaElement {
     fn process_referrer_attribute(&self) {
         let element = self.upcast::<Element>();
         if let Some(ref name) = element.get_name() {
-            let name = name.to_ascii_lowercase();
             let name = name.trim_matches(HTML_SPACE_CHARACTERS);
 
-            if name == "referrer" {
+            if name.eq_ignore_ascii_case("referrer") {
                 self.apply_referrer();
             }
         }
@@ -188,11 +186,13 @@ impl HTMLMetaElement {
                 // Step 2.2. If parsed is a valid CSS 'color-scheme' property value,
                 // then return parsed.
                 // TODO: Allow for more different themes than the ones that embedders can set
-                match content.to_ascii_lowercase().as_str() {
-                    "dark" => Some(Theme::Dark),
-                    "light" => Some(Theme::Light),
+                if content.eq_ignore_ascii_case("dark") {
+                    Some(Theme::Dark)
+                } else if content.eq_ignore_ascii_case("light") {
+                    Some(Theme::Light)
+                } else {
                     // Step 3. Return null.
-                    _ => None,
+                    None
                 }
             });
 
