@@ -265,7 +265,7 @@ pub trait WorkletThreadPool: JSTraceable {
     fn exit_worklet(&self, worklet_id: WorkletId);
     fn wake_threads(&self);
     /// Send a `WorkletTask` to a Worklet thread to execute.
-    fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask);
+    fn perform_a_worklet_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask);
 }
 
 /// Worklets execute in a dedicated thread pool.
@@ -432,7 +432,7 @@ impl WorkletThreadPool for StatelessWorkletThreadPool {
     }
 
     /// Send a `WorkletTask` to the "Primary Worklet Thread" to execute.
-    fn run_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask) {
+    fn perform_a_worklet_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask) {
         let msg = WorkletData::Task(worklet_id, worklet_task);
         let _ = self.primary_sender.send(msg);
     }
