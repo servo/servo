@@ -236,12 +236,31 @@ pub(crate) struct TextTransformationIterator<'a> {
 
 impl<'a> TextTransformationIterator<'a> {
     pub(crate) fn new(
-        text: &'a str,
+        mut text: &'a str,
         style: &ComputedValues,
         trim_leading_white_space: bool,
         on_word_boundary: bool,
     ) -> Self {
         let text_security = style.clone__webkit_text_security();
+
+        // <https://drafts.csswg.org/css-text-4/#text-transform-property>
+        let text_transform = style.clone_text_transform();
+
+        if text_transform.intersects(TextTransform::MATH_AUTO) {
+            // `math-auto` only does anything “on text nodes containing a single character” per
+            // https://w3c.github.io/mathml-core/#math-auto-transform
+            //
+            // TODO: should this be single character after whitespace collapsing?
+            // TODO: does `::first-letter` mess with this check?
+            let mut char_iter = text.chars();
+            if let Some(first_char) = char_iter.next() &&
+                let None = char_iter.next() &&
+                let Some(&mapping) = super::mathml_italics::ITALICS_MAPPINGS.get(&first_char)
+            {
+                text = mapping
+            }
+        }
+
         let chars = text
             .chars()
             .map(move |character| map_character_for_webkit_text_security(text_security, character));
@@ -264,8 +283,6 @@ impl<'a> TextTransformationIterator<'a> {
         // > only transforms spaces (U+0020) to U+3000 IDEOGRAPHIC SPACE within
         // > preserved white space.
 
-        // <https://drafts.csswg.org/css-text-4/#text-transform-property>
-        let text_transform = style.clone_text_transform();
         let case_map_iterator = match text_transform.case() {
             TextTransformCase::None => {
                 Box::new(iterator) as Box<dyn Iterator<Item = CharacterTransformIteration>>
