@@ -44,6 +44,11 @@ pub(crate) fn execute_insert_text_command(
     }
 
     // Step 3. If value's length is greater than one:
+    // NOTE: In theory, the 'spec' wants us to do insertText for every UTF-16 code unit. We do it for every UTF-8
+    //       character instead, as that lets us avoid having to deal with inbetween states where we should have
+    //       inserted one half of a surrogate pair, which would temporarily make the text in the node invalid UTF-8.
+    //       This shouldn't cause any issues since none of the per-character handling cares about half a surrogate pair
+    //       and the events that a MutationObserver sees aren't per-character in other browsers.
     if value.str().chars().nth(1).is_some() {
         // Step 3.1. For each code unit el in value, take the action for the insertText command, with value equal to el.
         for el in value.str().chars() {
@@ -121,7 +126,11 @@ pub(crate) fn execute_insert_text_command(
         }
 
         // Step 13.3. Call extend(node, offset + 1) on the context object's selection.
-        if selection.Extend(cx, &node, offset + 1).is_err() {
+        // Note: We're doing this per UTF-8 character instead of per UTF-16 code unit.
+        if selection
+            .Extend(cx, &node, offset + (value.len_utf16().0 as u32))
+            .is_err()
+        {
             unreachable!("Must always be able to extend the selection");
         }
 
@@ -149,7 +158,11 @@ pub(crate) fn execute_insert_text_command(
         }
 
         // Step 14.5. Call extend(text, 1) on the context object's selection.
-        if selection.Extend(cx, text, 1).is_err() {
+        // Note: We're doing this per UTF-8 character instead of per UTF-16 code unit.
+        if selection
+            .Extend(cx, text, value.len_utf16().0 as u32)
+            .is_err()
+        {
             unreachable!("Must always be able to extend the selection");
         }
 
