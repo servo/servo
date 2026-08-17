@@ -3071,7 +3071,7 @@ impl From<&RsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleRsaHashedImportParams {
+struct RsaHashedImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3079,7 +3079,7 @@ struct SubtleRsaHashedImportParams {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3089,7 +3089,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedImportParams 
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtleRsaHashedImportParams {
+        Ok(RsaHashedImportParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
@@ -5768,9 +5768,9 @@ impl Operation for ImportKeyOperation {
 /// Normalized algorithm for the "importKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum ImportKeyAlgorithm {
-    RsassaPkcs1V1_5(SubtleRsaHashedImportParams),
-    RsaPss(SubtleRsaHashedImportParams),
-    RsaOaep(SubtleRsaHashedImportParams),
+    RsassaPkcs1V1_5(RsaHashedImportParams),
+    RsaPss(RsaHashedImportParams),
+    RsaOaep(RsaHashedImportParams),
     Ecdsa(SubtleEcKeyImportParams),
     Ecdh(SubtleEcKeyImportParams),
     Ed25519(Algorithm),

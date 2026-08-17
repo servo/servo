@@ -24,7 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, NormalizedAlgorithm, RsaHashedKeyGenParams,
-    SubtleRsaHashedImportParams, RsaHashedKeyAlgorithm, normalize_algorithm,
+    RsaHashedImportParams, RsaHashedKeyAlgorithm, normalize_algorithm,
 };
 
 pub(crate) enum RsaAlgorithm {
@@ -197,7 +197,7 @@ pub(crate) fn import_key(
     rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleRsaHashedImportParams,
+    normalized_algorithm: &RsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
