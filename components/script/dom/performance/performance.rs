@@ -5,7 +5,6 @@
 use std::cell::Cell;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -39,7 +38,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::document::document::NavigationTiming;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performancetiming::PerformanceTiming;
@@ -169,9 +167,8 @@ impl Performance {
         cx: &mut JSContext,
         global: &GlobalScope,
         navigation_start: CrossProcessInstant,
-        navigation_timing: Rc<NavigationTiming>,
     ) -> DomRoot<Performance> {
-        let timing = PerformanceTiming::new(cx, global, navigation_timing);
+        let timing = PerformanceTiming::new(cx, global);
         let navigation = PerformanceNavigation::new(cx, global);
         reflect_dom_object_with_cx(
             Box::new(Performance::new_inherited(
