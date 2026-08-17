@@ -17,8 +17,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAeadParams, SubtleKeyAlgorithm,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
+    KeyAlgorithmAndDerivatives, SubtleAeadParams,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-encrypt>
@@ -189,7 +189,7 @@ pub(crate) fn generate_key(
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 9. Set the [[extractable]] internal slot of key to be extractable.
     // Step 10. Set the [[usages]] internal slot of key to be the normalized value of usages.
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: CryptoAlgorithm::ChaCha20Poly1305,
     };
     let key = CryptoKey::new(
@@ -319,7 +319,7 @@ pub(crate) fn import_key(
             "ChaCha20-Poly1305 fails to create key from data".into(),
         ))
     })?);
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: CryptoAlgorithm::ChaCha20Poly1305,
     };
     let key = CryptoKey::new(

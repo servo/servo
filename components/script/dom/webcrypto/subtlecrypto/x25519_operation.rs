@@ -19,8 +19,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleEcdhKeyDeriveParams, SubtleKeyAlgorithm,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
+    KeyAlgorithmAndDerivatives, SubtleEcdhKeyDeriveParams,
 };
 
 /// `id-X25519` object identifier defined in [RFC8410]
@@ -141,7 +141,7 @@ pub(crate) fn generate_key(
 
     // Step 3. Let algorithm be a new KeyAlgorithm object.
     // Step 4. Set the name attribute of algorithm to "X25519".
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: CryptoAlgorithm::X25519,
     };
 
@@ -251,7 +251,7 @@ pub(crate) fn import_key(
             // Step 2.9. Let algorithm be a new KeyAlgorithm.
             // Step 2.10. Set the name attribute of algorithm to "X25519".
             // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
@@ -333,7 +333,7 @@ pub(crate) fn import_key(
             // Step 2.10. Let algorithm be a new KeyAlgorithm.
             // Step 2.11. Set the name attribute of algorithm to "X25519".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
@@ -469,7 +469,7 @@ pub(crate) fn import_key(
             // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
             // Step 2.11. Set the name attribute of algorithm to "X25519".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
@@ -505,7 +505,7 @@ pub(crate) fn import_key(
                 .try_into()
                 .map_err(|_| Error::Data(Some("Could not convert key to bytes".into())))?;
             let public_key = PublicKey::from(key_bytes);
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(

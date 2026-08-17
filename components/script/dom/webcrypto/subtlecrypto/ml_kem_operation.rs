@@ -20,13 +20,13 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAlgorithm, SubtleEncapsulatedBits, SubtleKeyAlgorithm,
+    Algorithm, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
+    KeyAlgorithmAndDerivatives, SubtleEncapsulatedBits,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-encapsulate>
 pub(crate) fn encapsulate(
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     key: &CryptoKey,
 ) -> Result<SubtleEncapsulatedBits, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
@@ -98,7 +98,7 @@ pub(crate) fn encapsulate(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-decapsulate>
 pub(crate) fn decapsulate(
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -175,7 +175,7 @@ pub(crate) fn decapsulate(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
@@ -235,7 +235,7 @@ pub(crate) fn generate_key(
 
     // Step 4. Let algorithm be a new KeyAlgorithm object.
     // Step 5. Set the name attribute of algorithm to the name attribute of normalizedAlgorithm.
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: normalized_algorithm.name,
     };
 
@@ -289,7 +289,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -369,7 +369,7 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -467,7 +467,7 @@ pub(crate) fn import_key(
             // Step 2.14. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.15. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -538,7 +538,7 @@ pub(crate) fn import_key(
                     ))));
                 },
             };
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -623,7 +623,7 @@ pub(crate) fn import_key(
             // Step 2.8. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.9. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -904,7 +904,7 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to the name member of
             // normalizedAlgorithm.
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(

@@ -14,8 +14,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleHkdfParams,
-    SubtleKeyAlgorithm,
+    CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
+    SubtleHkdfParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-derive-bits>
@@ -118,7 +118,7 @@ pub(crate) fn import_key(
         // Step 2.5. Let algorithm be a new KeyAlgorithm object.
         // Step 2.6. Set the name attribute of algorithm to "HKDF".
         // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
-        let algorithm = SubtleKeyAlgorithm {
+        let algorithm = KeyAlgorithm {
             name: CryptoAlgorithm::Hkdf,
         };
         let key = CryptoKey::new(
