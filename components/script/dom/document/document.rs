@@ -3023,9 +3023,9 @@ impl Document {
         // Step 1. If document's custom element registry is a global custom element
         // registry, then return document's custom element registry..
         let document_custom_element_registry = self.custom_element_registry();
-        if CustomElementRegistry::is_a_global_element_registry(Some(
-            &*document_custom_element_registry.clone()?,
-        )) {
+        if CustomElementRegistry::is_a_global_element_registry(
+            document_custom_element_registry.as_deref(),
+        ) {
             return document_custom_element_registry;
         }
         // Step 2. Return null.
