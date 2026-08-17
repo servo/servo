@@ -23,8 +23,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleRsaHashedImportParams,
-    SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams, normalize_algorithm,
+    KeyAlgorithmAndDerivatives, NormalizedAlgorithm, RsaHashedKeyGenParams,
+    SubtleRsaHashedImportParams, SubtleRsaHashedKeyAlgorithm, normalize_algorithm,
 };
 
 pub(crate) enum RsaAlgorithm {
@@ -40,7 +40,7 @@ pub(crate) fn generate_key(
     rsa_algorithm: RsaAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleRsaHashedKeyGenParams,
+    normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {

@@ -19,7 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
-    SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams, SubtleRsaPssParams,
+    RsaHashedKeyGenParams, SubtleRsaHashedImportParams, SubtleRsaPssParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-sign>
@@ -178,7 +178,7 @@ pub(crate) fn verify(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleRsaHashedKeyGenParams,
+    normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
