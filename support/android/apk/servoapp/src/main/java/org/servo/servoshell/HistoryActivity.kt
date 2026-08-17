@@ -151,7 +151,6 @@ class HistoryActivity : ComponentActivity() {
         val dayFormat = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
 
         val currentCal = Calendar.getInstance()
-        val entryCal = Calendar.getInstance()
         val todayCal = Calendar.getInstance()
 
         todayCal.set(Calendar.HOUR_OF_DAY, 0)
@@ -162,8 +161,6 @@ class HistoryActivity : ComponentActivity() {
         var lastDay: String? = null
 
         for (entry in entries) {
-            entryCal.setTimeInMillis(entry.timestamp)
-
             currentCal.setTimeInMillis(entry.timestamp)
             currentCal.set(Calendar.HOUR_OF_DAY, 0)
             currentCal.set(Calendar.MINUTE, 0)
