@@ -4040,7 +4040,15 @@ impl Window {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
 
-    pub(crate) fn prepare_for_document_replacement(
+    /// This method is an approximation of the specification [algorithm].
+    /// It exists in this form because we still store some fields in Window/GlobalScope
+    /// that realistically are specific to the active document. Where possible they
+    /// should be migrated to Document and WorkerGlobalScope, but currently doing so would result
+    /// in much more complicated code. This method is the compromise, where we mutate the values
+    /// in place to match the values that the specification expects.
+    ///
+    /// [algorithm] <https://html.spec.whatwg.org/multipage/#set-up-a-window-environment-settings-object>
+    pub(crate) fn set_up_a_window_environment_settings_object(
         &self,
         layout: Box<dyn Layout>,
         creation_url: ServoUrl,
@@ -4051,12 +4059,12 @@ impl Window {
         *self.layout.borrow_mut() = layout;
         self.set_viewport_details(viewport_details);
         self.navigation_start.set(navigation_start);
-        self.viewport_details.set(viewport_details);
 
+        // Step 6. Set settings object's creation URL to creationURL, settings object's top-level
+        //   creation URL to topLevelCreationURL, and settings object's top-level origin to topLevelOrigin.
         let global = self.upcast::<GlobalScope>();
         global.set_creation_url(creation_url);
         global.set_top_level_creation_url(top_level_creation_url);
-        global.origin().reset();
 
         self.Document().disown_window();
     }

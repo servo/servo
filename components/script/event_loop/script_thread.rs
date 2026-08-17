@@ -3481,15 +3481,19 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
+        // <https://html.spec.whatwg.org/multipage/#set-up-a-window-environment-settings-object>
+        // <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
+        // Step 3. Let creationURL be navigationParams's response's URL.
+        let creation_url = final_url.clone();
         let window = match window_for_replacement(
             &self.window_proxies,
             incomplete.browsing_context_id,
             &origin,
         ) {
             Some(window) => {
-                window.prepare_for_document_replacement(
+                window.set_up_a_window_environment_settings_object(
                     self.layout_factory.create(layout_config),
-                    final_url.clone(),
+                    creation_url.clone(),
                     // TODO(37417): Set correct top-level URL here.
                     final_url.clone(),
                     incomplete.navigation_start,
@@ -3519,7 +3523,7 @@ impl ScriptThread {
                     incomplete.parent_info,
                     incomplete.viewport_details,
                     origin.clone(),
-                    final_url.clone(),
+                    creation_url.clone(),
                     // TODO(37417): Set correct top-level URL here. Currently, we only specify the
                     // url of the current window. However, in case this is an iframe, we should
                     // pass in the URL from the frame that includes the iframe (which potentially
@@ -3597,6 +3601,12 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
+        // Step 14. If navigationParams's request is non-null:
+        // Step 14.1. Set document's referrer to the empty string.
+        // Step 14.2. Let referrer be navigationParams's request's referrer.
+        // Step 14.3. If referrer is a URL record, then set document's referrer
+        //   to the serialization of referrer.
+        // TODO: verify that this actually matches the specification.
         let referrer = metadata
             .referrer
             .as_ref()
@@ -3608,6 +3618,14 @@ impl ScriptThread {
             DocumentSource::FromParser
         };
 
+        // Step 9. Let document be a new Document, with
+        // - content type: contentType
+        // - origin: navigationParams's origin
+        // - active sandboxing set: navigationParams's final sandboxing flag set
+        // - load timing info: loadTimingInfo
+        // - URL: creationURL
+        // - current document readiness: "loading"
+        // - about base URL: navigationParams's about base URL
         let document = Document::new(
             cx,
             &window,
@@ -3634,6 +3652,13 @@ impl ScriptThread {
             image_cache,
         );
 
+        document.set_ready_state(cx, DocumentReadyState::Loading);
+
+        // Step 8. Let loadTimingInfo be a new document load timing info with its
+        //   navigation start time set to navigationParams's response's timing
+        //   info's start time.
+        document.set_navigation_start(incomplete.navigation_start);
+
         let referrer_policy = metadata
             .headers
             .as_deref()
@@ -3641,21 +3666,11 @@ impl ScriptThread {
             .into();
         document.set_referrer_policy(referrer_policy);
 
-        let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
-        if let Some(refresh_val) = refresh_header {
-            // There are tests that this header handles Unicode code points
-            document.shared_declarative_refresh_steps(
-                refresh_val.as_bytes(),
-                /* from_meta_element */ false,
-            );
-        }
-
-        document.set_ready_state(cx, DocumentReadyState::Loading);
-
         self.documents
             .borrow_mut()
             .insert(incomplete.pipeline_id, &document);
 
+        // Step 10. Set window's associated Document to document.
         window.init_document(&document);
 
         // Initialize the browsing context for the window.
@@ -3698,6 +3713,19 @@ impl ScriptThread {
             );
         }
 
+        let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
+        // Step 17. If navigationParams's response has a `Refresh` header:
+        if let Some(refresh_val) = refresh_header {
+            // Step 17.1. Let value be the isomorphic decoding of the value of the header.
+            // Step 17.2. Run the shared declarative refresh steps with document and value.
+
+            // There are tests that this header handles Unicode code points
+            document.shared_declarative_refresh_steps(
+                refresh_val.as_bytes(),
+                /* from_meta_element */ false,
+            );
+        }
+
         self.senders
             .pipeline_to_constellation_sender
             .send((
@@ -3721,8 +3749,6 @@ impl ScriptThread {
                 incomplete.webview_id,
             ),
         );
-
-        document.set_navigation_start(incomplete.navigation_start);
 
         if !incomplete.load_data.is_initial_about_blank {
             if is_html_document == IsHTMLDocument::NonHTMLDocument {
@@ -4487,11 +4513,30 @@ fn window_for_replacement(
     id: BrowsingContextId,
     origin: &MutableOrigin,
 ) -> Option<DomRoot<Window>> {
-    script_window_proxies
-        .find_window_proxy(id)
+    // Step 1. Let browsingContext be the result of obtaining a browsing context
+    //   to use for a navigation response given navigationParams.
+    let browsing_context = obtain_a_browsing_context(script_window_proxies, id);
+
+    // Step 5. Let window be null.
+    // Step 6. If browsingContext's active document's is initial about:blank is true,
+    //   and browsingContext's active document's origin is same origin-domain with
+    //   navigationParams's origin, then set window to browsingContext's active window.
+    browsing_context
         .and_then(|window_proxy| window_proxy.document())
         .filter(|document| {
             document.is_initial_about_blank() && document.origin().same_origin(origin)
         })
         .map(|document| DomRoot::from_ref(document.window()))
+}
+
+/// <https://html.spec.whatwg.org/multipage/#obtain-browsing-context-navigation>
+fn obtain_a_browsing_context(
+    script_window_proxies: &ScriptWindowProxies,
+    id: BrowsingContextId,
+) -> Option<DomRoot<WindowProxy>> {
+    // Step 1. Let browsingContext be navigationParams's navigable's active browsing context.
+    // Step 2. If browsingContext is not a top-level browsing context, then return browsingContext.
+    // TODO: Every following step for top-level browsing contexts.
+    // Right now this code is only used by the code that handles initial about:blank iframes.
+    script_window_proxies.find_window_proxy(id)
 }

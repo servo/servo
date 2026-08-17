@@ -2600,6 +2600,7 @@ impl GlobalScope {
         self.top_level_creation_url.borrow().clone()
     }
 
+    /// TODO: This value should be immutable after we fix #37417.
     pub(crate) fn set_top_level_creation_url(&self, url: ServoUrl) {
         *self.top_level_creation_url.borrow_mut() = Some(url);
     }
