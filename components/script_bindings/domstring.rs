@@ -549,6 +549,20 @@ impl DOMString {
         self.str().contains(needle)
     }
 
+    /// Returns whether this [`DOMString`] is an ASCII case-insensitive match for `other`,
+    /// without allocating and copying temporaries.
+    ///
+    /// <https://infra.spec.whatwg.org/#ascii-case-insensitive>
+    pub fn eq_ignore_ascii_case(&self, other: &str) -> bool {
+        if other.is_ascii() {
+            self.encoded_bytes()
+                .bytes()
+                .eq_ignore_ascii_case(other.as_bytes())
+        } else {
+            self.str().eq_ignore_ascii_case(other)
+        }
+    }
+
     pub fn to_ascii_lowercase(&self) -> String {
         let conversion = match self.encoded_bytes() {
             EncodedBytes::Latin1(bytes) => {

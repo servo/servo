@@ -263,20 +263,21 @@ impl HTMLButtonElement {
     }
 
     fn set_type(&self, cx: &mut JSContext, value: DOMString) {
-        let value = match value.to_ascii_lowercase().as_str() {
-            "reset" => ButtonType::Reset,
-            "button" => ButtonType::Button,
-            "submit" => ButtonType::Submit,
-            _ => {
-                let element = self.upcast::<Element>();
-                if element.has_attribute(&local_name!("command")) ||
-                    element.has_attribute(&local_name!("commandfor"))
-                {
-                    ButtonType::Button
-                } else {
-                    ButtonType::Submit
-                }
-            },
+        let value = if value.eq_ignore_ascii_case("reset") {
+            ButtonType::Reset
+        } else if value.eq_ignore_ascii_case("button") {
+            ButtonType::Button
+        } else if value.eq_ignore_ascii_case("submit") {
+            ButtonType::Submit
+        } else {
+            let element = self.upcast::<Element>();
+            if element.has_attribute(&local_name!("command")) ||
+                element.has_attribute(&local_name!("commandfor"))
+            {
+                ButtonType::Button
+            } else {
+                ButtonType::Submit
+            }
         };
         self.button_type.set(value);
         self.validity_state(cx)
@@ -308,11 +309,10 @@ impl HTMLButtonElement {
         if command.starts_with_str("--") {
             return CommandState::Custom;
         }
-        let value = command.to_ascii_lowercase();
-        if value == "close" {
+        if command.eq_ignore_ascii_case("close") {
             return CommandState::Close;
         }
-        if value == "show-modal" {
+        if command.eq_ignore_ascii_case("show-modal") {
             return CommandState::ShowModal;
         }
 
@@ -510,10 +510,10 @@ impl Activatable for HTMLButtonElement {
             }
             // Step 3.3 If element's type attribute is in the Auto state, then return.
             if button_type == ButtonType::Button &&
-                self.upcast::<Element>()
+                !self
+                    .upcast::<Element>()
                     .get_string_attribute(&local_name!("type"))
-                    .to_ascii_lowercase() !=
-                    "button"
+                    .eq_ignore_ascii_case("button")
             {
                 return;
             }

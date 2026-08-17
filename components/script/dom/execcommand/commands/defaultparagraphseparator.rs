@@ -13,10 +13,12 @@ pub(crate) fn execute_default_paragraph_separator_command(
 ) -> bool {
     // > Let value be converted to ASCII lowercase. If value is then equal to "p" or "div",
     // > set the context object's default single-line container name to value, then return true. Otherwise, return false.
-    let value = match value.to_ascii_lowercase().as_str() {
-        "div" => DefaultSingleLineContainerName::Div,
-        "p" => DefaultSingleLineContainerName::Paragraph,
-        _ => return false,
+    let value = if value.eq_ignore_ascii_case("div") {
+        DefaultSingleLineContainerName::Div
+    } else if value.eq_ignore_ascii_case("p") {
+        DefaultSingleLineContainerName::Paragraph
+    } else {
+        return false;
     };
 
     document.set_default_single_line_container_name(value);

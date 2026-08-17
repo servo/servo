@@ -1669,7 +1669,7 @@ impl HTMLInputElement {
             },
 
             // Step 5.9: Otherwise, if the field element is an input element whose type attribute is in the Hidden state and name is an ASCII case-insensitive match for "_charset_":
-            InputType::Hidden(_) if name.to_ascii_lowercase() == "_charset_" => {
+            InputType::Hidden(_) if name.eq_ignore_ascii_case("_charset_") => {
                 // Step 5.9.1: Let charset be the name of encoding.
                 let charset = match encoding {
                     None => DOMString::from("UTF-8"),

@@ -9,7 +9,7 @@ use crate::dom::document::Document;
 pub(crate) fn execute_style_with_css_command(document: &Document, value: DOMString) -> bool {
     // > If value is an ASCII case-insensitive match for the string "false", set the CSS styling flag to false.
     // > Otherwise, set the CSS styling flag to true. Either way, return true.
-    let value = value.to_ascii_lowercase().as_str() != "false";
+    let value = !value.eq_ignore_ascii_case("false");
 
     document.set_css_styling_flag(value);
 
