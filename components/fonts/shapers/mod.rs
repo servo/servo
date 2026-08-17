@@ -16,6 +16,11 @@ use crate::{
     ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
 };
 
+#[cfg(all(not(feature = "harfbuzz"), not(feature = "harfrust")))]
+compile_error!(
+    "No shaping backend enabled. At least one of the 'harfrust' or 'harfbuzz' features must be enabled on the servo-fonts crate"
+);
+
 #[cfg(feature = "harfbuzz")]
 mod harfbuzz;
 #[cfg(feature = "harfbuzz")]
@@ -26,17 +31,71 @@ mod harfrust;
 #[cfg(feature = "harfrust")]
 pub(crate) use harfrust::Shaper as HarfRustShaper;
 
-#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
-mod both;
-#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
-pub(crate) use BothShaper as Shaper;
+#[cfg(feature = "compare")]
+mod compare;
 // Configure default shaper (actually used)
 #[cfg(all(feature = "harfbuzz", not(feature = "harfrust")))]
 pub(crate) use HarfBuzzShaper as Shaper;
 #[cfg(all(not(feature = "harfbuzz"), feature = "harfrust"))]
 pub(crate) use HarfRustShaper as Shaper;
+#[cfg(feature = "compare")]
+pub(crate) use compare::Shaper as CompareShaper;
 #[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
-pub(crate) use both::Shaper as BothShaper;
+pub(crate) use dynamic::DynShaper as Shaper;
+
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+mod dynamic {
+    use super::Tag;
+    use crate::{Font, FontBaseline, ShapedText, ShapingOptions};
+
+    pub(crate) enum DynShaper {
+        HarfRust(super::HarfRustShaper),
+        HarfBuzz(super::HarfBuzzShaper),
+        #[cfg(feature = "compare")]
+        Compare(super::CompareShaper),
+    }
+
+    impl DynShaper {
+        pub(crate) fn new(font: &Font) -> Self {
+            match servo_config::pref!(fonts_shaping_backend).as_ref() {
+                #[cfg(feature = "compare")]
+                "compare" | "auto" | "" => Self::Compare(super::CompareShaper::new(font)),
+
+                #[cfg(not(feature = "compare"))]
+                "auto" | "" => Self::HarfRust(super::HarfRustShaper::new(font)),
+                "harfrust" => Self::HarfRust(super::HarfRustShaper::new(font)),
+                "harfbuzz" => Self::HarfBuzz(super::HarfBuzzShaper::new(font)),
+
+                pref => panic!(
+                    "Invalid shaper {pref}. Must be 'auto', 'harfrust', 'harfbuzz', or 'compare'."
+                ),
+            }
+        }
+
+        pub fn shape_text(
+            &self,
+            text: &str,
+            options: &ShapingOptions,
+            font_features: &[(Tag, u32)],
+        ) -> ShapedText {
+            match self {
+                Self::HarfRust(shaper) => shaper.shape_text(text, options, font_features),
+                Self::HarfBuzz(shaper) => shaper.shape_text(text, options, font_features),
+                #[cfg(feature = "compare")]
+                Self::Compare(shaper) => shaper.shape_text(text, options, font_features),
+            }
+        }
+
+        pub fn baseline(&self) -> Option<FontBaseline> {
+            match self {
+                Self::HarfRust(shaper) => shaper.baseline(),
+                Self::HarfBuzz(shaper) => shaper.baseline(),
+                #[cfg(feature = "compare")]
+                Self::Compare(shaper) => shaper.baseline(),
+            }
+        }
+    }
+}
 
 /// The highest acceptable value for `styleset` values in `font-variant-alternates`.
 ///

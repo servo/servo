@@ -58,6 +58,7 @@ use crate::{
 };
 
 pub(crate) const AFRC: Tag = Tag::new(b"afrc");
+#[cfg(feature = "harfbuzz")]
 pub(crate) const BASE: Tag = Tag::new(b"BASE");
 pub(crate) const CALT: Tag = Tag::new(b"calt");
 pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
