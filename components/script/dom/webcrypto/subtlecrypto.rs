@@ -3128,7 +3128,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaPssParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaOaepParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleRsaOaepParams {
+struct RsaOaepParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3136,7 +3136,7 @@ struct SubtleRsaOaepParams {
     label: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaOaepParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaOaepParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3144,7 +3144,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaOaepParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleRsaOaepParams {
+        Ok(RsaOaepParams {
             name: algorithm_name,
             label: get_optional_buffer_source(cx, object, c"label")?,
         })
@@ -4882,7 +4882,7 @@ impl Operation for EncryptOperation {
 /// Normalized algorithm for the "encrypt" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum EncryptAlgorithm {
-    RsaOaep(SubtleRsaOaepParams),
+    RsaOaep(RsaOaepParams),
     AesCtr(SubtleAesCtrParams),
     AesCbc(SubtleAesCbcParams),
     AesGcm(SubtleAesGcmParams),
@@ -4969,7 +4969,7 @@ impl Operation for DecryptOperation {
 /// Normalized algorithm for the "decrypt" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum DecryptAlgorithm {
-    RsaOaep(SubtleRsaOaepParams),
+    RsaOaep(RsaOaepParams),
     AesCtr(SubtleAesCtrParams),
     AesCbc(SubtleAesCbcParams),
     AesGcm(SubtleAesGcmParams),
