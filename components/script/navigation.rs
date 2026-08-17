@@ -44,7 +44,7 @@ use crate::dom::node::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::FetchCanceller;
+use crate::fetch::fetch::FetchCanceller;
 use crate::messaging::MainThreadScriptMsg;
 
 #[derive(Clone)]
@@ -184,6 +184,8 @@ pub(crate) struct InProgressLoad {
     /// The [`TargetSnapshotParams`] to use when creating this document.
     #[no_trace]
     pub(crate) target_snapshot_params: TargetSnapshotParams,
+    /// Name of this iframe, if any
+    pub(crate) frame_name: Option<String>,
 }
 
 impl InProgressLoad {
@@ -206,6 +208,7 @@ impl InProgressLoad {
             user_content_manager_id: new_pipeline_info.user_content_manager_id,
             embedder_theme: new_pipeline_info.embedder_theme,
             target_snapshot_params: new_pipeline_info.target_snapshot_params,
+            frame_name: new_pipeline_info.frame_name,
         }
     }
 

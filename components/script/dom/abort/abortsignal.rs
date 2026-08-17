@@ -30,7 +30,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
-use crate::fetch::{DeferredFetchRecordId, FetchContext};
+use crate::fetch::fetch::{DeferredFetchRecordId, FetchContext};
 use crate::realms::enter_auto_realm;
 
 impl js::gc::Rootable for AbortAlgorithm {}

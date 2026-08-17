@@ -148,7 +148,8 @@ use crate::event_loop::document_loader::DocumentLoader;
 use crate::event_loop::script_mutation_observers::ScriptMutationObservers;
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::event_loop::svg_font::SvgFontResolver;
-use crate::fetch::FetchCanceller;
+use crate::fetch::fetch::FetchCanceller;
+use crate::fetch::network_listener::{FetchResponseListener, submit_timing};
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -156,7 +157,6 @@ use crate::messaging::{
 use crate::microtask::{MicrotaskQueue, MicrotaskRunnable};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
-use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
@@ -3646,6 +3646,9 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
+        if let Some(name) = incomplete.frame_name {
+            window_proxy.set_name(DOMString::from(name));
+        }
         if window_proxy.parent().is_some() {
             // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
             // The user agent must take this nested browsing context

@@ -17,10 +17,6 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_url::ServoUrl;
 use url::Position;
 
-use crate::body::{
-    BodyMixin, BodyType, Extractable, ExtractedBody, body_text_stream,
-    clone_body_stream_for_dom_body, consume_body,
-};
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::{
@@ -36,6 +32,10 @@ use crate::dom::headers::{Guard, Headers, is_obs_text, is_vchar};
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::fetch::body::{
+    BodyMixin, BodyType, Extractable, ExtractedBody, body_text_stream,
+    clone_body_stream_for_dom_body, consume_body,
+};
 use crate::script_runtime::StreamConsumer;
 
 #[dom_struct]

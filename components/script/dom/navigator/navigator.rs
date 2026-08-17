@@ -28,7 +28,6 @@ use servo_base::generic_channel;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
-use crate::body::Extractable;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 #[cfg(feature = "gamepad")]
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
@@ -66,8 +65,11 @@ use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
 #[cfg(feature = "webxr")]
 use crate::dom::xrsystem::XRSystem;
-use crate::fetch::RequestWithGlobalScope;
-use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
+use crate::fetch::body::Extractable;
+use crate::fetch::fetch::RequestWithGlobalScope;
+use crate::fetch::network_listener::{
+    FetchResponseListener, ResourceTimingListener, submit_timing,
+};
 
 pub(crate) fn hardware_concurrency() -> u64 {
     static CPUS: LazyLock<u64> = LazyLock::new(|| num_cpus::get().try_into().unwrap_or(1));
@@ -533,7 +535,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         let base = global.api_base_url();
         // Step 2. Set origin to this's relevant settings object's origin.
         //
-        // Handled in `crate::fetch::RequestWithGlobalScope::with_global_scope`
+        // Handled in `crate::fetch::fetch::RequestWithGlobalScope::with_global_scope`
 
         // Step 3. Set parsedUrl to the result of the URL parser steps with url and base.
         // If the algorithm returns an error, or if parsedUrl's scheme is not "http" or "https",

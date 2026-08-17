@@ -56,8 +56,8 @@ use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 // TODO: Service Worker API (persistent notification)
 // https://notifications.spec.whatwg.org/#service-worker-api
 

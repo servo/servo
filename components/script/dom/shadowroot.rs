@@ -23,6 +23,7 @@ use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
 
 use crate::conversions::Convert;
+use crate::css::stylesheet_set::StylesheetSetRef;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::GetHTMLOptions;
 use crate::dom::bindings::codegen::Bindings::HTMLSlotElementBinding::HTMLSlotElement_Binding::HTMLSlotElementMethods;
 use crate::dom::bindings::codegen::Bindings::SanitizerBinding::{
@@ -61,7 +62,6 @@ use crate::dom::sanitizer::Sanitizer;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::window::Window;
-use crate::stylesheet_set::StylesheetSetRef;
 
 /// Whether a shadow root hosts an User Agent widget.
 #[derive(JSTraceable, MallocSizeOf, PartialEq)]

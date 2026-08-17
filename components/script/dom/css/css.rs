@@ -12,7 +12,7 @@ use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::stylist::RegisterCustomPropertyResult;
 use style_traits::ParsingMode;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::codegen::Bindings::CSSBinding::CSSMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};

@@ -20,7 +20,7 @@ use style::values::generics::easing::TimingKeyword;
 use style::values::specified::TimingFunction;
 use style_traits::{ParsingMode, ToCss};
 
-use crate::css::parser_context_for_document;
+use crate::css::css::parser_context_for_document;
 use crate::dom::Window;
 use crate::dom::bindings::codegen::UnionTypes::UnrestrictedDoubleOrString;
 

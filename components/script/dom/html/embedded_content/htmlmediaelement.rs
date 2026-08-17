@@ -104,9 +104,11 @@ use crate::dom::videotrack::VideoTrack;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{
+    FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request,
+};
+use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::microtask::MicrotaskRunnable;
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::tasks::task_source::SendableTaskSource;
 

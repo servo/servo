@@ -22,7 +22,7 @@ use style::values::computed::Overflow;
 use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style_traits::{CSSPixel, ParsingMode, ToCss};
 
-use crate::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,

@@ -145,14 +145,14 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
-use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord};
+use crate::fetch::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord};
+use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::MicrotaskRunnable;
 use crate::modules::import_map::ImportMap;
 use crate::modules::script_module::{
     ModuleRequest, ModuleStatus, ModuleTree, ResolvedModule, ScriptFetchOptions,
 };
-use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::ThreadSafeJSContext;
 use crate::tasks::task_manager::TaskManager;

@@ -262,6 +262,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onAlert(message: String) {
         AlertDialog.Builder(this)
             .setMessage(message)
+            .setPositiveButton(android.R.string.ok, null)
             .show()
     }
 
@@ -297,9 +298,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
         Log.i(TAG, "onHistoryChanged: $canGoBack<->$canGoForward")
         canGoBackState.value = canGoBack
         canGoForwardState.value = canGoForward
-    }
-
-    override fun onRedrawing(redrawing: Boolean) {
     }
 
     public override fun onPause() {

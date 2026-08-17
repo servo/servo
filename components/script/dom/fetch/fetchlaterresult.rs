@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::Bindings::FetchLaterResultBinding::FetchLater
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::window::Window;
-use crate::fetch::DeferredFetchRecordId;
+use crate::fetch::fetch::DeferredFetchRecordId;
 
 /// <https://fetch.spec.whatwg.org/#fetchlaterresult>
 #[dom_struct]

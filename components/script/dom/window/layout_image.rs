@@ -22,8 +22,8 @@ use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::fetch::RequestWithGlobalScope;
-use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
+use crate::fetch::fetch::RequestWithGlobalScope;
+use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 
 struct LayoutImageContext {
     id: PendingImageId,
