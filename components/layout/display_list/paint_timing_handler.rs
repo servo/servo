@@ -105,11 +105,6 @@ impl PaintTimingHandler {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        if let Some(node) = tag.map(|tag| tag.node) &&
-            !self.reported_image_nodes.insert(node)
-        {
-            return;
-        }
         self.painted_images.push(PendingImageRecord {
             tag,
             bounds,
@@ -259,6 +254,19 @@ impl PaintTimingHandler {
 
         // Step 4. For each record of paintedImages:
         for record in std::mem::take(&mut self.painted_images) {
+            // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
+            // > Note: Each pending image record in paintedImages and text
+            // > element in paintedTextNodes will only be reported exactly
+            // > once, from mark paint timing, for the first paint where the
+            // > element is considered paintable (i.e. has opacity and
+            // > visibility) and contentful (i.e. image resource or blocking
+            // > fonts are sufficiently loaded).
+            // TODO(shubhamg13): Move to mark_paint_timing
+            if let Some(node) = record.tag.map(|tag| tag.node) &&
+                !self.reported_image_nodes.insert(node)
+            {
+                return;
+            }
             // Step 4.1. Let imageElement be record’s element.
 
             // TODO Step 4.2. If imageElement is not exposed for paint timing,
