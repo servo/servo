@@ -69,6 +69,7 @@
 //!
 
 pub mod construct;
+mod full_width;
 pub mod inline_box;
 pub mod line;
 mod line_breaker;
