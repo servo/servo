@@ -690,26 +690,25 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
     fn SetContentEditable(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
-        let lower_value = value.to_ascii_lowercase();
         let attr_name = &local_name!("contenteditable");
-        match lower_value.as_ref() {
+        if value.eq_ignore_ascii_case("inherit") {
             // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
-            "inherit" => {
-                self.element.remove_attribute_by_name(cx, attr_name);
-            },
+            self.element.remove_attribute_by_name(cx, attr_name);
+        } else if value.eq_ignore_ascii_case("true") ||
+            value.eq_ignore_ascii_case("false") ||
+            value.eq_ignore_ascii_case("plaintext-only")
+        {
             // > if the new value is an ASCII case-insensitive match for the string "true", then the content attribute must be set to the string "true",
             // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
             // > if the new value is an ASCII case-insensitive match for the string "false", then the content attribute must be set to the string "false",
-            "true" | "false" | "plaintext-only" => {
-                self.element
-                    .set_attribute(cx, attr_name, AttrValue::String(lower_value));
-            },
+            let lower_value = value.to_ascii_lowercase();
+            self.element
+                .set_attribute(cx, attr_name, AttrValue::String(lower_value));
+        } else {
             // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
-            _ => {
-                return Err(Error::Syntax(Some(
-                    "Invalid attribute for HTML element".into(),
-                )));
-            },
+            return Err(Error::Syntax(Some(
+                "Invalid attribute for HTML element".into(),
+            )));
         };
         Ok(())
     }

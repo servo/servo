@@ -295,7 +295,7 @@ impl LinkRelations {
         // Step 2. If element's link types do not include the opener keyword and
         //         target is an ASCII case-insensitive match for "_blank", then return true.
         let target_is_blank =
-            target_attribute_value.is_some_and(|target| target.to_ascii_lowercase() == "_blank");
+            target_attribute_value.is_some_and(|target| target.eq_ignore_ascii_case("_blank"));
         if !self.contains(Self::OPENER) && target_is_blank {
             return true;
         }
@@ -331,8 +331,10 @@ pub(crate) fn valid_navigable_target_name_or_keyword(target: &DOMString) -> bool
     if valid_navigable_target_name(target) {
         return true;
     }
-    let target = target.to_ascii_lowercase();
-    target == "_blank" || target == "_self" || target == "_parent" || target == "_top"
+    target.eq_ignore_ascii_case("_blank") ||
+        target.eq_ignore_ascii_case("_self") ||
+        target.eq_ignore_ascii_case("_parent") ||
+        target.eq_ignore_ascii_case("_top")
 }
 
 /// <https://html.spec.whatwg.org/multipage/#get-an-element%27s-target>
