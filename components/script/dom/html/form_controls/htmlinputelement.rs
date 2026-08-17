@@ -1987,7 +1987,8 @@ impl HTMLInputElement {
     }
 
     fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
-        if mouse_event.upcast::<Event>().DefaultPrevented() {
+        let event = mouse_event.upcast::<Event>();
+        if event.DefaultPrevented() {
             return;
         }
 
@@ -1996,7 +1997,15 @@ impl HTMLInputElement {
         if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
             return;
         }
-        if self.textinput.borrow_mut().handle_mouse_event(mouse_event) {
+        if event.type_() != atom!("mousedown") {
+            return;
+        }
+
+        if self
+            .textinput
+            .borrow_mut()
+            .handle_mousedown_event(self.upcast(), mouse_event)
+        {
             self.maybe_update_shared_selection();
         }
     }

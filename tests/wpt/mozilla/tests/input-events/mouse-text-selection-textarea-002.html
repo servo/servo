@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>Clicking in &lt;textarea&gt; should move the edit point even when selecting outside of the textarea</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="input-events.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<textarea id="target" style="color: rgba(255, 0, 0, 0.2); height: 500px; width: 500px;  font: 50px/1 Ahem;">
+1234 6789
+1234 6789
+1234 6789
+1234
+</textarea>
+
+<script>
+promise_test(async test => {
+    let targetRect = getTextEntryContentRect(target);
+    let middleOfFirstLine = (50 / 2) + targetRect.top;
+    let middleOfThirdLine = (50 * 2) + 25 + targetRect.top;
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    /// Test selecting beyond the end of the text area.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left, middleOfFirstLine)
+      .pointerDown()
+      .pointerMove(targetRect.left + targetRect.width + 100, middleOfFirstLine)
+      .pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 9);
+    assert_equals(target.selectionDirection, "forward");
+    target.setSelectionRange(0, 0);
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    // Move the pointer beyond the end of the third line of the text area.
+    await new test_driver.Actions()
+        .pointerMove(targetRect.left, middleOfFirstLine)
+        .pointerDown()
+        .pointerMove(targetRect.left + targetRect.width + 100, middleOfThirdLine)
+        .pointerUp()
+        .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 29);
+    assert_equals(target.selectionDirection, "forward");
+    target.setSelectionRange(0, 0);
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    // Start in the middle of the first line and move the pointer beyond the end of the
+    // third line of the text area.
+    await new test_driver.Actions()
+        .pointerMove(targetRect.left + (50 * 3), middleOfFirstLine)
+        .pointerDown()
+        .pointerMove(targetRect.left + targetRect.width + 100, middleOfThirdLine)
+        .pointerUp()
+        .send();
+    assert_equals(target.selectionStart, 3);
+    assert_equals(target.selectionEnd, 29);
+    assert_equals(target.selectionDirection, "forward");
+    target.setSelectionRange(0, 0);
+
+    // Click somewhere else to avoid double-clicking.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    // Start in the middle of the first line and move the pointer beyond the end of the text entirely.
+    await new test_driver.Actions()
+        .pointerMove(targetRect.left + (50 * 3), middleOfFirstLine)
+        .pointerDown()
+        .pointerMove(targetRect.left + targetRect.width + 100, middleOfFirstLine)
+        .pointerMove(targetRect.left + targetRect.width + 100, targetRect.bottom - 10)
+        .pointerUp()
+        .send();
+    assert_equals(target.selectionStart, 3);
+    assert_equals(target.selectionEnd, 35);
+    assert_equals(target.selectionDirection, "forward");
+    target.setSelectionRange(0, 0);
+});
+</script>

@@ -31,12 +31,14 @@ mod fetch;
 #[macro_use]
 mod dom;
 pub(crate) use dom::canvas_context;
+mod drag;
 mod event_loop;
 pub(crate) mod indexeddb;
 mod init;
 mod url;
 
 pub mod layout_dom;
+mod links;
 pub(crate) mod messaging;
 mod microtask;
 pub(crate) mod mime;
@@ -48,14 +50,10 @@ pub(crate) mod script_runtime;
 pub(crate) mod serviceworker_manager;
 pub mod test;
 mod timers;
+mod unminify;
 mod webdriver_handlers;
 mod window_named_properties;
 mod xpath;
-
-mod unminify;
-
-mod drag_data_store;
-mod links;
 
 pub use event_loop::script_thread::ScriptThread;
 pub use init::init;

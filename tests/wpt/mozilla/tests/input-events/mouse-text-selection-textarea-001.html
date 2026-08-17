@@ -95,7 +95,6 @@ promise_test(async test => {
     assert_equals(target.selectionEnd, 35); // includes trailing whitespace
     assert_equals(target.selectionDirection, "forward");
     target.setSelectionRange(0, 0);
-
 });
 
 promise_test(async test => {
@@ -120,8 +119,8 @@ promise_test(async test => {
       .pointerMove(targetRect.left + (50 * 5), middleOfFirstLine)
       .pointerUp()
       .send();
-    assert_equals(target.selectionStart, 0);
-    assert_equals(target.selectionEnd, 3);
+    assert_equals(target.selectionStart, 3);
+    assert_equals(target.selectionEnd, 5);
     target.setSelectionRange(0, 0);
 
     // Click somewhere else to avoid double-clicking.
@@ -130,7 +129,7 @@ promise_test(async test => {
       .pointerDown()
       .pointerUp()
       .send();
-}, "Middle button click should cancel ongoing text selection via drag");
+}, "Middle button click should reset the selection origin during ongoing text selection via drag");
 
 promise_test(async test => {
     let targetRect = getTextEntryContentRect(target);

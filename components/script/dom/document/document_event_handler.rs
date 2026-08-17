@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::time::{Duration, Instant};
 
+use app_units::Au;
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
@@ -74,7 +75,8 @@ use crate::dom::types::{
     WheelEvent, Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
-use crate::drag_data_store::{DragDataStore, Kind, Mode};
+use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
+use crate::drag::drag_gesture::DragGesture;
 use crate::realms::enter_auto_realm;
 
 /// A data structure used for tracking the current click count. This can be
@@ -206,6 +208,9 @@ pub(crate) struct DocumentEventHandler {
     /// Map from pointer ID to the actual/current pointer capture target.
     /// Updated during process_pending_pointer_capture when events are dispatched.
     pointer_capture_target: DomRefCell<FxHashMap<i32, Dom<Element>>>,
+    /// The current drag gesture, if one exists. Events that affect this drag
+    /// gesture will be forwarded to it.
+    drag_gesture: DomRefCell<Option<DragGesture>>,
 }
 
 impl DocumentEventHandler {
@@ -232,6 +237,7 @@ impl DocumentEventHandler {
             access_key_handlers: Default::default(),
             pending_pointer_capture: Default::default(),
             pointer_capture_target: Default::default(),
+            drag_gesture: Default::default(),
         }
     }
 
@@ -452,11 +458,11 @@ impl DocumentEventHandler {
                 element.set_hover_state(false);
             }
 
-            let flags = HitTestFlags::empty();
-            if let Some(hit_test_result) = self
-                .most_recent_mousemove_point
-                .get()
-                .and_then(|point| self.window.hit_test_from_point_in_viewport(flags, point))
+            if let Some(hit_test_result) =
+                self.most_recent_mousemove_point.get().and_then(|point| {
+                    self.window
+                        .hit_test_from_point_in_viewport(HitTestFlags::empty(), point)
+                })
             {
                 let mouse_out_event = MouseEvent::new_for_platform_motion_event(
                     cx,
@@ -582,17 +588,23 @@ impl DocumentEventHandler {
         let released_disconnected =
             self.release_disconnected_pointer_capture(cx, pointer_id, "mouse", true);
 
-        let flags = if input_event.primary_button_is_pressed() {
-            HitTestFlags::IncludeDomPosition
-        } else {
-            HitTestFlags::empty()
-        };
+        if let Some(hit_test_result) = input_event.hit_test_result.as_ref() {
+            let point_in_viewport = hit_test_result.point_in_viewport.map(Au::from_f32_px);
+            let mut maybe_drag_gesture = self.drag_gesture.borrow_mut();
+            if maybe_drag_gesture.as_mut().is_some_and(|drag_gesture| {
+                !drag_gesture.handle_mouse_move_event(input_event, point_in_viewport)
+            }) {
+                *maybe_drag_gesture = None;
+            }
+        }
 
         // Always do full hit test so we can keep `current_hover_target` in sync
         // with the actual element under the pointer. Boundary events for hover
         // transitions are suppressed while pointer capture is active: per spec,
         // pointer events are retargeted to the capture element.
-        let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
+        let Some(hit_test_result) = self
+            .window
+            .hit_test_from_input_event(HitTestFlags::empty(), input_event)
         else {
             return;
         };
@@ -810,10 +822,9 @@ impl DocumentEventHandler {
             return;
         };
 
-        let flags = HitTestFlags::empty();
         let Some(hit_test_result) = self
             .window
-            .hit_test_from_point_in_viewport(flags, most_recent_mousemove_point)
+            .hit_test_from_point_in_viewport(HitTestFlags::empty(), most_recent_mousemove_point)
         else {
             return;
         };
@@ -874,7 +885,19 @@ impl DocumentEventHandler {
         mouse_button_event: MouseButtonEvent,
         input_event: &ConstellationInputEvent,
     ) {
-        let flags = if input_event.primary_button_is_pressed() {
+        {
+            let mut maybe_drag_gesture = self.drag_gesture.borrow_mut();
+            if maybe_drag_gesture
+                .as_mut()
+                .is_some_and(|drag_gesture| !drag_gesture.handle_mouse_button_event(input_event))
+            {
+                *maybe_drag_gesture = None;
+            }
+        }
+
+        let flags = if input_event.primary_button_is_pressed() ||
+            input_event.auxiliary_button_is_pressed()
+        {
             HitTestFlags::IncludeDomPosition
         } else {
             HitTestFlags::empty()
@@ -2998,6 +3021,11 @@ impl DocumentEventHandler {
             },
             _ => {},
         }
+    }
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn install_drag_gesture(&self, drag_gesture: DragGesture) {
+        *self.drag_gesture.borrow_mut() = Some(drag_gesture);
     }
 }
 

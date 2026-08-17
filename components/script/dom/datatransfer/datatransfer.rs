@@ -23,7 +23,7 @@ use crate::dom::element::Element;
 use crate::dom::filelist::FileList;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::window::Window;
-use crate::drag_data_store::{DragDataStore, Mode};
+use crate::drag::drag_data_store::{DragDataStore, Mode};
 
 const VALID_DROP_EFFECTS: [&str; 4] = ["none", "copy", "link", "move"];
 const VALID_EFFECTS_ALLOWED: [&str; 9] = [

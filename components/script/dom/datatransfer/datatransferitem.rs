@@ -26,7 +26,7 @@ use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
 use crate::dom::filesystementry::FileSystemEntry;
 use crate::dom::filesystemfileentry::FileSystemFileEntry;
 use crate::dom::globalscope::GlobalScope;
-use crate::drag_data_store::{DragDataStore, Kind, Mode};
+use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 
 #[dom_struct]
 pub(crate) struct DataTransferItem {

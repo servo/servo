@@ -13393,7 +13393,7 @@
      ]
     ],
     "mouse-text-selection-input-text.html": [
-     "885ef616d85be47c133fc0b7fb9c64c51200fc01",
+     "f58c4be61baced285f890cbb9e87bead486ac7c2",
      [
       null,
       {
@@ -13401,8 +13401,17 @@
       }
      ]
     ],
-    "mouse-text-selection-textarea.html": [
-     "e05ad05b1a21aefcf3e7c2bfd60e0733185f8b4a",
+    "mouse-text-selection-textarea-001.html": [
+     "78ccde4658c67c1b292acede2dbbf63ddfa0ccaf",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "mouse-text-selection-textarea-002.html": [
+     "9ee59cefe0c27db665db3381e70f2b6206ae92d8",
      [
       null,
       {
