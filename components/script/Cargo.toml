@@ -42,6 +42,10 @@ webgpu = [
     "script_bindings/webgpu",
     "script_traits/webgpu",
 ]
+webnn = [
+    "dep:webnn",
+    "script_bindings/webnn",
+]
 webxr = ["webgl", "gamepad", "webxr-api", "script_bindings/webxr"]
 
 [lints.rust]
@@ -181,6 +185,7 @@ uuid = { workspace = true, features = ["serde"] }
 web_atoms = { workspace = true }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
+webnn = { workspace = true, optional = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
 wgpu-core = { workspace = true, optional = true }

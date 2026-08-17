@@ -94,6 +94,9 @@ webgpu = [
     "servo-constellation/webgpu",
     "servo-constellation-traits/webgpu",
 ]
+webnn = [
+    "script/webnn",
+]
 webxr = [
     "webgl",
     "gamepad",

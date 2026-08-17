@@ -633,6 +633,7 @@ pub enum PermissionFeature {
     PersistentStorage,
     ScreenWakeLock(WakeLockType),
     Gamepad,
+    WebNN,
 }
 
 /// Used to specify the kind of input method editor appropriate to edit a field.

@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "components/media/examples",
+    "components/webnn",
     "components/xpath",
     "ffi/capi",
     "ports/servoshell",
@@ -370,6 +371,8 @@ webgpu_traits = { package = "servo-webgpu-traits", version = "=0.5.0", path = "c
 webxr = { package = "servo-webxr", version = "=0.5.0", path = "components/webxr" }
 webxr-api = { package = "servo-webxr-api", version = "=0.5.0", path = "components/shared/webxr" }
 xpath = { package = "servo-xpath", version = "=0.5.0", path = "components/xpath" }
+#
+webnn = { package = "servo-webnn", version = "=0.5.0", path = "components/webnn" }
 # End workspace-version dependencies - Don't change this comment, we grep for it in scripts!
 
 # RSA key generation could be very slow without compilation
