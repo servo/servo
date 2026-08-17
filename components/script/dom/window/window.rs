@@ -3657,8 +3657,8 @@ impl Window {
         &self.local_script_source
     }
 
-    pub(crate) fn set_navigation_start(&self, instant: CrossProcessInstant) {
-        self.navigation_start.set(instant);
+    pub(crate) fn set_navigation_start(&self) {
+        self.navigation_start.set(CrossProcessInstant::now());
     }
 
     pub(crate) fn navigation_start(&self) -> CrossProcessInstant {

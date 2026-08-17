@@ -720,6 +720,8 @@ pub(crate) struct Document {
     #[no_trace]
     theme: Cell<Option<Theme>>,
 
+    /// True if this document is no longer the active document of its associated
+    /// window.
     window_replaced: Cell<bool>,
 }
 
@@ -6554,7 +6556,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // TODO: prompt to unload.
         // TODO: set unload_event_start and unload_event_end
 
-        self.window().set_navigation_start(CrossProcessInstant::now());
+        self.window().set_navigation_start();
 
         // Step 8. If document's node navigable is non-null and document's node navigable's
         // ongoing navigation is a navigation ID, then stop loading document's node navigable.
