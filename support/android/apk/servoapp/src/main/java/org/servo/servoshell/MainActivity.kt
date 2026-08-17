@@ -5,7 +5,6 @@
  */
 package org.servo.servoshell
 
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -21,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.selectAll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberSearchBarState
 import androidx.compose.runtime.Composable
@@ -61,6 +62,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     private lateinit var historyManager: HistoryManager
     private var currentUrl = ""
     private var currentTitle = ""
+    private var alertMessageState = mutableStateOf<String?>(null)
 
     private class Settings(preferences: SharedPreferences) {
         var experimental = preferences.getBoolean("experimental", false)
@@ -182,6 +184,17 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 BackHandler(enabled = canGoBackState.value) {
                     servoView.goBack()
                 }
+                alertMessageState.value?.let { alertMessage ->
+                    AlertDialog(
+                        onDismissRequest = { alertMessageState.value = null },
+                        confirmButton = {
+                            TextButton(onClick = { alertMessageState.value = null }) {
+                                Text(stringResource(android.R.string.ok))
+                            }
+                        },
+                        text = { Text(alertMessage) },
+                    )
+                }
             }
         }
 
@@ -260,10 +273,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     }
 
     override fun onAlert(message: String) {
-        AlertDialog.Builder(this)
-            .setMessage(message)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
+        alertMessageState.value = message
     }
 
     override fun onLoadStarted() {
