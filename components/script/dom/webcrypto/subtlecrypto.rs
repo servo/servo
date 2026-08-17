@@ -2981,7 +2981,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedKeyGenParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleRsaHashedKeyAlgorithm {
+pub(crate) struct RsaHashedKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
     name: CryptoAlgorithm,
 
@@ -2995,7 +2995,7 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
     hash: DigestAlgorithm,
 }
 
-impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
+impl ToJSValConvertible for RsaHashedKeyAlgorithm {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -3045,11 +3045,11 @@ impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
     }
 }
 
-impl TryFrom<SerializableRsaHashedKeyAlgorithm> for SubtleRsaHashedKeyAlgorithm {
+impl TryFrom<SerializableRsaHashedKeyAlgorithm> for RsaHashedKeyAlgorithm {
     type Error = ();
 
     fn try_from(value: SerializableRsaHashedKeyAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleRsaHashedKeyAlgorithm {
+        Ok(RsaHashedKeyAlgorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             modulus_length: value.modulus_length,
             public_exponent: value.public_exponent,
@@ -3058,8 +3058,8 @@ impl TryFrom<SerializableRsaHashedKeyAlgorithm> for SubtleRsaHashedKeyAlgorithm 
     }
 }
 
-impl From<&SubtleRsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
-    fn from(value: &SubtleRsaHashedKeyAlgorithm) -> Self {
+impl From<&RsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
+    fn from(value: &RsaHashedKeyAlgorithm) -> Self {
         SerializableRsaHashedKeyAlgorithm {
             name: value.name.as_str().into(),
             modulus_length: value.modulus_length,
@@ -4301,7 +4301,7 @@ impl ExportedKey {
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(KeyAlgorithm),
-    RsaHashedKeyAlgorithm(SubtleRsaHashedKeyAlgorithm),
+    RsaHashedKeyAlgorithm(RsaHashedKeyAlgorithm),
     EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),

@@ -24,7 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, NormalizedAlgorithm, RsaHashedKeyGenParams,
-    SubtleRsaHashedImportParams, SubtleRsaHashedKeyAlgorithm, normalize_algorithm,
+    SubtleRsaHashedImportParams, RsaHashedKeyAlgorithm, normalize_algorithm,
 };
 
 pub(crate) enum RsaAlgorithm {
@@ -105,7 +105,7 @@ pub(crate) fn generate_key(
     // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent attribute
     // of normalizedAlgorithm.
     // Step 8. Set the hash attribute of algorithm to equal the hash member of normalizedAlgorithm.
-    let algorithm = SubtleRsaHashedKeyAlgorithm {
+    let algorithm = RsaHashedKeyAlgorithm {
         name: match rsa_algorithm {
             // Step 5. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
             RsaAlgorithm::RsassaPkcs1v1_5 => CryptoAlgorithm::RsassaPkcs1V1_5,
@@ -633,7 +633,7 @@ pub(crate) fn import_key(
         ),
         _ => unreachable!(),
     };
-    let algorithm = SubtleRsaHashedKeyAlgorithm {
+    let algorithm = RsaHashedKeyAlgorithm {
         name: match &rsa_algorithm {
             RsaAlgorithm::RsassaPkcs1v1_5 => {
                 // Step 4. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5"
