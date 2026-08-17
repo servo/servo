@@ -23,8 +23,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, NormalizedAlgorithm, RsaHashedKeyGenParams,
-    RsaHashedImportParams, RsaHashedKeyAlgorithm, normalize_algorithm,
+    KeyAlgorithmAndDerivatives, NormalizedAlgorithm, RsaHashedImportParams, RsaHashedKeyAlgorithm,
+    RsaHashedKeyGenParams, normalize_algorithm,
 };
 
 pub(crate) enum RsaAlgorithm {

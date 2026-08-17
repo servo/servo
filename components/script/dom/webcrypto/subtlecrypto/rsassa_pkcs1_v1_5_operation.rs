@@ -19,7 +19,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
-    RsaHashedKeyGenParams, RsaHashedImportParams,
+    RsaHashedImportParams, RsaHashedKeyGenParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-sign>
