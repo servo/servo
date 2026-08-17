@@ -135,7 +135,6 @@ impl PaintWorkletGlobalScope {
         self.image_cache.clone()
     }
 
-
     /// <https://drafts.css-houdini.org/css-paint-api/#draw-a-paint-image>
     fn draw_a_paint_image(
         &self,
@@ -332,9 +331,6 @@ impl PaintWorkletGlobalScope {
             executor: Mutex<WorkletExecutor>,
         }
 
-        impl WorkletPainter {
-        }
-
         impl SpeculativePainter for WorkletPainter {
             fn speculatively_draw_a_paint_image(
                 &self,
@@ -345,7 +341,7 @@ impl PaintWorkletGlobalScope {
 
                 let speculatively_draw_a_paint_image_task =
                     move |cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
-                        let paint_worklet_global_scope = global_scope.downcast::<PaintWorkletGlobalScope>().expect("Could not downcast &WorkletGlobalScope to &PaintWorkletGlobalScope.");
+                        let paint_worklet_global_scope = global_scope.downcast::<PaintWorkletGlobalScope>().expect("PaintWorklet's task should be run only on PaintWorkletGlobalScope.");
 
                         let should_speculate = (*paint_worklet_global_scope.cached_name.borrow() !=
                             name) ||
@@ -403,7 +399,7 @@ impl PaintWorkletGlobalScope {
 
                 let draw_a_paint_image_task =
                     move |cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
-                        let paint_worklet_global_scope = global_scope.downcast::<PaintWorkletGlobalScope>().expect("Could not downcast &WorkletGlobalScope to &PaintWorkletGlobalScope.");
+                        let paint_worklet_global_scope = global_scope.downcast::<PaintWorkletGlobalScope>().expect("PaintWorklet's task should be run only on PaintWorkletGlobalScope.");
 
                         let cache_hit = paint_worklet_global_scope.has_cached_paint_image(
                             &name,
