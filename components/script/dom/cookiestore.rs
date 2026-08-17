@@ -606,7 +606,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
 impl CookieStore {
     /// <https://cookiestore.spec.whatwg.org/#normalize-a-cookie-name-or-value>
-    fn normalize(value: &USVString) -> String {
+    pub(crate) fn normalize(value: &USVString) -> String {
         value.trim_matches([' ', '\t']).into()
     }
 
