@@ -3854,6 +3854,7 @@ dependencies = [
 [[package]]
 name = "html5ever"
 version = "0.40.0"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "log",
  "markup5ever",
@@ -5079,6 +5080,7 @@ dependencies = [
 [[package]]
 name = "markup5ever"
 version = "0.40.0"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "log",
  "tendril",
@@ -10190,6 +10192,7 @@ dependencies = [
 [[package]]
 name = "tendril"
 version = "0.5.1"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "encoding_rs",
  "new_debug_unreachable",
@@ -11407,6 +11410,7 @@ dependencies = [
 [[package]]
 name = "web_atoms"
 version = "0.2.6"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "phf",
  "phf_codegen",
@@ -12527,6 +12531,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 [[package]]
 name = "xml5ever"
 version = "0.40.0"
+source = "git+https://github.com/Ms2ger/html5ever.git?branch=xmlns#fcc7664e25a4ed5c89e9c1759565034551165b46"
 dependencies = [
  "log",
  "markup5ever",
