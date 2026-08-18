@@ -563,11 +563,8 @@ pub enum QueryMsg {
     StyleQuery,
     TextIndexQuery,
     PaddingQuery,
-<<<<<<< HEAD
     FlushForUpdateTheRenderingQuery,
-=======
     AccessKitNodeQuery,
->>>>>>> 8928fe336c1 (wip)
 }
 
 /// The goal of a reflow request.
