@@ -20,7 +20,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
     ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
-    SubtleEcKeyGenParams, SubtleEcKeyImportParams, EcdsaParams, ec_common,
+    EcKeyGenParams, SubtleEcKeyImportParams, EcdsaParams, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-sign>
@@ -222,7 +222,7 @@ pub(crate) fn verify(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyGenParams,
+    normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {

@@ -22,7 +22,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256,
     NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
-    SubtleEcKeyGenParams, SubtleEcKeyImportParams,
+    EcKeyGenParams, SubtleEcKeyImportParams,
 };
 use crate::dom::webcrypto::subtlecrypto::JsonWebKeyExt;
 
@@ -38,7 +38,7 @@ pub(crate) fn generate_key(
     ec_algorithm: EcAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyGenParams,
+    normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {

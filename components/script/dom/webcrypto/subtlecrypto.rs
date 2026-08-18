@@ -3180,7 +3180,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdsaParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleEcKeyGenParams {
+struct EcKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3188,7 +3188,7 @@ struct SubtleEcKeyGenParams {
     named_curve: String,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3196,7 +3196,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyGenParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleEcKeyGenParams {
+        Ok(EcKeyGenParams {
             name: algorithm_name,
             named_curve: String::from(get_required_parameter::<DOMString>(
                 cx,
@@ -5547,8 +5547,8 @@ enum GenerateKeyAlgorithm {
     RsassaPkcs1V1_5(RsaHashedKeyGenParams),
     RsaPss(RsaHashedKeyGenParams),
     RsaOaep(RsaHashedKeyGenParams),
-    Ecdsa(SubtleEcKeyGenParams),
-    Ecdh(SubtleEcKeyGenParams),
+    Ecdsa(EcKeyGenParams),
+    Ecdh(EcKeyGenParams),
     Ed25519(Algorithm),
     X25519(Algorithm),
     Ed448(Algorithm),
