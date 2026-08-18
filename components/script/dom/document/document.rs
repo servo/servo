@@ -5892,7 +5892,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None => return,
         };
 
+        // > On setting, the steps corresponding to the first matching condition in the following list must be run:
+        // ↪ If the document element is an SVG svg element
         let node = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
+            // Step 1. If there is an SVG title element that is a child of the document element,
+            // let element be the first such element.
             let elem = root
                 .upcast::<Node>()
                 .child_elements_unrooted(cx.no_gc())
@@ -5901,7 +5905,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 });
             match elem {
                 Some(elem) => UnrootedDom::upcast::<Node>(elem).as_rooted(),
+                // Step 2. Otherwise:
                 None => {
+                    // Step 2.1 Let element be the result of creating an element given the document element's
+                    // node document, "title", and the SVG namespace.
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
                     let elem = Element::create(
                         cx,
@@ -5912,6 +5919,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                         CustomElementCreationMode::Synchronous,
                         None,
                     );
+
+                    // Step 2.2 Insert element as the first child of the document element.
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
@@ -5919,15 +5928,21 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                         .unwrap()
                 },
             }
-        } else if root.namespace() == &ns!(html) {
+        }
+        // ↪ If the document element is in the HTML namespace
+        else if root.namespace() == &ns!(html) {
             let elem = root
                 .upcast::<Node>()
                 .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
                 .find(|node| node.is::<HTMLTitleElement>());
             match elem {
+                // Step 2. If the title element is non-null, let element be the title element.
                 Some(elem) => elem.as_rooted(),
+                // Step 3. Otherwise:
                 None => match self.GetHead() {
                     Some(head) => {
+                        // Step 3.1 Let element be the result of creating an element given the
+                        // document element's node document, "title", and the HTML namespace.
                         let name = QualName::new(None, ns!(html), local_name!("title"));
                         let elem = Element::create(
                             cx,
@@ -5938,17 +5953,27 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             CustomElementCreationMode::Synchronous,
                             None,
                         );
+
+                        // Step 3.2 Append element to the head element.
                         head.upcast::<Node>()
                             .AppendChild(cx, elem.upcast())
                             .unwrap()
                     },
+                    // Step 1. If the title element is null and the head element is null, then return.
                     None => return,
                 },
             }
-        } else {
+        }
+        // ↪ Otherwise
+        else {
+            // Do nothing.
             return;
         };
 
+        // Step 3. of "↪ If the document element is an SVG svg element"
+        // Step 4. of "↪ If the document element is in the HTML namespace"
+        //
+        // > String replace all with the given value within element.
         node.set_text_content_for_element(cx, Some(title));
     }
 
