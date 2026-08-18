@@ -247,6 +247,10 @@ impl PendingTasksStruct {
 }
 
 pub trait WorkletThreadPool: JSTraceable {
+    /// Loads a worklet module into every thread in this thread pool.
+    /// If all of the threads load successfully, the promise is resolved.
+    /// If any of the threads fails to load, the promise is rejected.
+    /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet-script-graph>
     #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
@@ -262,13 +266,18 @@ pub trait WorkletThreadPool: JSTraceable {
         promise: &Rc<Promise>,
         inherited_secure_context: Option<bool>,
     );
+    /// Request that the [`WorkletGlobalScope`] associated with the [`WorkletId`] be removed from all the threads in the thread pool.
     fn exit_worklet(&self, worklet_id: WorkletId);
+    /// Signal all the threads in the pool that there may be control messages to process.
     fn wake_threads(&self);
-    /// Send a `WorkletTask` to a Worklet thread to execute.
+    /// Queue a [`WorkletTask`] for execution on this [`WorkletThreadPool`]. The task will be executed in the context of the [`WorkletGlobalScope`] represented by the [`WorketId`].
     fn perform_a_worklet_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask);
 }
 
-/// Worklets execute in a dedicated thread pool.
+/// The `StatelessWorkletThreadPool` executes the associated
+/// [`WorkletTask`]s in a dedicated thread pool with the assumption that
+/// the tasks are idempotent. This is useful for the paint worklet, for
+/// example.
 ///
 /// The goal is to ensure that there is a primary worklet thread,
 /// which is able to responsively execute worklet code. In particular,
@@ -371,10 +380,6 @@ impl StatelessWorkletThreadPool {
 }
 
 impl WorkletThreadPool for StatelessWorkletThreadPool {
-    /// Loads a worklet module into every worklet thread.
-    /// If all of the threads load successfully, the promise is resolved.
-    /// If any of the threads fails to load, the promise is rejected.
-    /// <https://drafts.css-houdini.org/worklets/#fetch-and-invoke-a-worklet-script>
     #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
@@ -431,14 +436,14 @@ impl WorkletThreadPool for StatelessWorkletThreadPool {
         let _ = self.primary_sender.send(WorkletData::WakeUp);
     }
 
-    /// Send a `WorkletTask` to the "Primary Worklet Thread" to execute.
+    /// Queue the [`WorkletTask`] for execution on the primary thread.
     fn perform_a_worklet_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask) {
         let msg = WorkletData::Task(worklet_id, worklet_task);
         let _ = self.primary_sender.send(msg);
     }
 }
 
-// A boxed closure sent to the "Primary Worklet Thread" to execute Worklet tasks.
+/// A task which can be performed in the context of a [`WorkletGlobalScope`].
 type WorkletTask = Box<dyn FnOnce(&mut JSContext, &WorkletGlobalScope) + Send>;
 
 /// The data messages sent to worklet threads
@@ -869,7 +874,7 @@ impl WorkletThread {
         );
     }
 
-    /// Execute a `WorkletTask`.
+    /// Run the steps for the `WorkletTask` for a given Worklet.
     fn perform_a_worklet_task(
         &self,
         cx: &mut JSContext,
