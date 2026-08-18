@@ -162,23 +162,28 @@ impl MouseButtonEvent {
 }
 
 /// The types of mouse buttons.
+///
+/// <https://w3c.github.io/pointerevents/#the-button-property>
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum MouseButton {
-    Left,
-    Middle,
-    Right,
+    #[doc(hidden)]
+    None,
+    Primary,
+    Auxiliary,
+    Secondary,
     Back,
     Forward,
     Other(u16),
 }
 
-impl<T: Into<u64>> From<T> for MouseButton {
+impl<T: Into<i128>> From<T> for MouseButton {
     fn from(value: T) -> Self {
         let value = value.into();
         match value {
-            0 => MouseButton::Left,
-            1 => MouseButton::Middle,
-            2 => MouseButton::Right,
+            -1 => MouseButton::None,
+            0 => MouseButton::Primary,
+            1 => MouseButton::Auxiliary,
+            2 => MouseButton::Secondary,
             3 => MouseButton::Back,
             4 => MouseButton::Forward,
             _ => MouseButton::Other(value as u16),
@@ -189,9 +194,10 @@ impl<T: Into<u64>> From<T> for MouseButton {
 impl From<MouseButton> for i16 {
     fn from(value: MouseButton) -> Self {
         match value {
-            MouseButton::Left => 0,
-            MouseButton::Middle => 1,
-            MouseButton::Right => 2,
+            MouseButton::None => -1,
+            MouseButton::Primary => 0,
+            MouseButton::Auxiliary => 1,
+            MouseButton::Secondary => 2,
             MouseButton::Back => 3,
             MouseButton::Forward => 4,
             MouseButton::Other(value) => value as i16,

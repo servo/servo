@@ -9123,6 +9123,7 @@ name = "servo-script-traits"
 version = "0.5.0"
 dependencies = [
  "accesskit",
+ "bitflags 2.13.1",
  "crossbeam-channel",
  "euclid",
  "keyboard-types",

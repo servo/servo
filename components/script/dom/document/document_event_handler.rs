@@ -40,7 +40,7 @@ use script_bindings::match_domstring_ascii;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot, DomSlice};
 use script_bindings::str::DOMString;
-use script_traits::ConstellationInputEvent;
+use script_traits::{ConstellationInputEvent, MouseButtons};
 use servo_base::generic_channel::GenericCallback;
 use servo_config::pref;
 use servo_constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
@@ -173,7 +173,7 @@ pub(crate) struct DocumentEventHandler {
     /// The number of mouse buttons currently being pressed. This is used to ensure
     /// that `pointerup` and `pointerdown` events are only sent when transitioning from
     /// having no mouse buttons pressed to having any and vice-versa.
-    mouse_buttons_down: Cell<u32>,
+    mouse_buttons_down_count: Cell<u32>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
     /// The element that was most recently activated during a mouse button press or touch
@@ -219,7 +219,7 @@ impl DocumentEventHandler {
             coalesced_wheel_event_ids: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
-            mouse_buttons_down: Cell::new(0),
+            mouse_buttons_down_count: Cell::new(0),
             current_hover_target: Default::default(),
             current_active_element: Default::default(),
             most_recently_clicked_element: Default::default(),
@@ -871,7 +871,7 @@ impl DocumentEventHandler {
     fn handle_native_mouse_button_event(
         &self,
         cx: &mut JSContext,
-        event: MouseButtonEvent,
+        mouse_button_event: MouseButtonEvent,
         input_event: &ConstellationInputEvent,
     ) {
         let flags = if input_event.primary_button_is_pressed() {
@@ -887,13 +887,13 @@ impl DocumentEventHandler {
 
         debug!(
             "{:?}: at {:?}",
-            event.action, hit_test_result.point_in_frame
+            mouse_button_event.action, hit_test_result.point_in_frame
         );
 
         // Set the sequential focus navigation starting point for any mouse button down event, no
         // matter if the target is not a node.
         let document = self.window.Document();
-        if event.action == MouseButtonAction::Down {
+        if mouse_button_event.action == MouseButtonAction::Down {
             document
                 .focus_handler()
                 .set_sequential_focus_navigation_starting_point(&hit_test_result.node);
@@ -908,17 +908,17 @@ impl DocumentEventHandler {
         };
 
         let node = element.upcast::<Node>();
-        debug!("{:?} on {:?}", event.action, node.debug_str());
+        debug!("{:?} on {:?}", mouse_button_event.action, node.debug_str());
 
         // <https://html.spec.whatwg.org/multipage/#selector-active>
         // > If the element is being actively pointed at the element is being activated.
         // Disabled elements can also be activated, so this must happen before the
         // early return below.
-        if event.button == MouseButton::Left {
-            if event.action == MouseButtonAction::Down {
+        if mouse_button_event.button == MouseButton::Primary {
+            if mouse_button_event.action == MouseButtonAction::Down {
                 self.set_active_element(&element);
             }
-            if event.action == MouseButtonAction::Up {
+            if mouse_button_event.action == MouseButtonAction::Up {
                 self.unset_active_element();
             }
         }
@@ -930,7 +930,7 @@ impl DocumentEventHandler {
             return;
         }
 
-        let mouse_event_type = match event.action {
+        let mouse_event_type = match mouse_button_event.action {
             embedder_traits::MouseButtonAction::Up => atom!("mouseup"),
             embedder_traits::MouseButtonAction::Down => atom!("mousedown"),
         };
@@ -941,16 +941,19 @@ impl DocumentEventHandler {
         // UIEvent.detail: indicates the current click count incremented by one. For
         // example, if no click happened before the mousedown, detail will contain
         // the value 1
-        if event.action == MouseButtonAction::Down {
+        if mouse_button_event.action == MouseButtonAction::Down {
             self.click_counting_info
                 .safe_borrow_mut(cx.no_gc())
-                .reset_click_count_if_necessary(event.button, hit_test_result.point_in_frame);
+                .reset_click_count_if_necessary(
+                    mouse_button_event.button,
+                    hit_test_result.point_in_frame,
+                );
         }
 
         let mouse_event = MouseEvent::for_platform_button_event(
             cx,
             mouse_event_type,
-            event,
+            mouse_button_event,
             input_event.pressed_mouse_buttons,
             &self.window,
             &hit_test_result,
@@ -958,13 +961,13 @@ impl DocumentEventHandler {
             self.click_counting_info.borrow().count + 1,
         );
 
-        match event.action {
+        match mouse_button_event.action {
             MouseButtonAction::Down => {
                 self.last_mouse_button_down_point
                     .set(Some(hit_test_result.point_in_frame));
 
                 // Step 6. Dispatch pointerdown event.
-                let mouse_buttons_down = self.mouse_buttons_down.get();
+                let mouse_buttons_down = self.mouse_buttons_down_count.get();
                 let pointer_event_name = if mouse_buttons_down == 0 {
                     // From <https://w3c.github.io/pointerevents/#dfn-pointerdown>
                     // > The user agent MUST fire a pointer event named pointerdown when a pointer enters
@@ -995,7 +998,7 @@ impl DocumentEventHandler {
                     .unwrap_or_else(|| DomRoot::from_ref(node.upcast::<EventTarget>()));
 
                 // Increment button count before firing so setPointerCapture works in handler.
-                self.mouse_buttons_down.set(mouse_buttons_down + 1);
+                self.mouse_buttons_down_count.set(mouse_buttons_down + 1);
 
                 pointer_event.upcast::<Event>().fire(cx, &pointer_target);
 
@@ -1024,14 +1027,14 @@ impl DocumentEventHandler {
 
                 // Step 9. If mbutton is the secondary mouse button, then
                 // Maybe show context menu with native, target.
-                if let MouseButton::Right = event.button {
+                if let MouseButton::Secondary = mouse_button_event.button {
                     self.maybe_show_context_menu(cx, node.upcast(), &hit_test_result, input_event);
                 }
             },
             // https://w3c.github.io/pointerevents/#dfn-handle-native-mouse-up
             MouseButtonAction::Up => {
                 // Step 6. Dispatch pointerup event.
-                let mouse_buttons_down = self.mouse_buttons_down.get();
+                let mouse_buttons_down = self.mouse_buttons_down_count.get();
                 let pointer_event_name = if mouse_buttons_down == 1 {
                     // From <https://w3c.github.io/pointerevents/#dfn-pointerup>:
                     // > The user agent MUST fire a pointer event named pointerup when a pointer leaves
@@ -1065,7 +1068,7 @@ impl DocumentEventHandler {
 
                 // Decrement button count after firing event, so setPointerCapture/releasePointerCapture
                 // work during the pointerup handler (pointer is still "active").
-                self.mouse_buttons_down
+                self.mouse_buttons_down_count
                     .set(mouse_buttons_down.saturating_sub(1));
 
                 // Process pending pointer capture after decrementing button count, but skip
@@ -1090,11 +1093,14 @@ impl DocumentEventHandler {
                 // even when those events are not fired.
                 self.click_counting_info
                     .safe_borrow_mut(cx.no_gc())
-                    .increment_click_count(event.button, hit_test_result.point_in_frame);
+                    .increment_click_count(
+                        mouse_button_event.button,
+                        hit_test_result.point_in_frame,
+                    );
 
                 self.maybe_trigger_click_for_mouse_button_down_event(
                     cx,
-                    event,
+                    mouse_button_event,
                     input_event,
                     &hit_test_result,
                     &element,
@@ -1113,7 +1119,7 @@ impl DocumentEventHandler {
         hit_test_result: &HitTestResult,
         element: &Element,
     ) {
-        if event.button != MouseButton::Left {
+        if event.button != MouseButton::Primary {
             return;
         }
 
@@ -1196,7 +1202,7 @@ impl DocumentEventHandler {
                 .point_relative_to_initial_containing_block
                 .to_i32(),
             input_event.active_keyboard_modifiers,
-            2i16, // button, right mouse button
+            MouseButton::Secondary,
             input_event.pressed_mouse_buttons,
             None,                     // related_target
             None,                     // point_in_target
@@ -1683,7 +1689,7 @@ impl DocumentEventHandler {
                 .point_relative_to_initial_containing_block
                 .to_i32(),
             input_event.active_keyboard_modifiers,
-            0i16,
+            MouseButton::Primary,
             input_event.pressed_mouse_buttons,
             None,
             None,
@@ -2528,7 +2534,7 @@ impl DocumentEventHandler {
     pub(crate) fn is_active_pointer(&self, pointer_id: i32) -> bool {
         if pointer_id == PointerId::Mouse as i32 {
             // Mouse is active when buttons are down
-            self.mouse_buttons_down.get() > 0
+            self.mouse_buttons_down_count.get() > 0
         } else {
             // Touch pointers are tracked in active_pointer_ids
             self.active_pointer_ids
@@ -2660,8 +2666,8 @@ impl DocumentEventHandler {
             Point2D::new(0, 0),
             Point2D::new(0, 0),
             Modifiers::empty(),
-            0,
-            0,
+            MouseButton::Primary,
+            MouseButtons::empty(),
             None,
             None,
             pointer_id,
@@ -2698,6 +2704,13 @@ impl DocumentEventHandler {
         target: &Element,
         related_target: Option<&Element>,
     ) {
+        // TODO: This is wrong when the button pressed is not the primary one.
+        let mouse_buttons = if self.mouse_buttons_down_count.get() != 0 {
+            MouseButtons::Primary
+        } else {
+            MouseButtons::empty()
+        };
+
         let pointer_event = PointerEvent::new(
             cx,
             &self.window,
@@ -2710,8 +2723,8 @@ impl DocumentEventHandler {
             Point2D::new(0, 0),
             Point2D::new(0, 0),
             Modifiers::empty(),
-            -1, // button: -1 for boundary events
-            self.mouse_buttons_down.get() as u16,
+            MouseButton::None,
+            mouse_buttons,
             related_target.map(|el| el.upcast::<EventTarget>()),
             None,
             pointer_id,

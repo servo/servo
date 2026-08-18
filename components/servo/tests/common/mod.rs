@@ -181,12 +181,12 @@ pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint) {
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Down,
-        MouseButton::Left,
+        MouseButton::Primary,
         point,
     )));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Up,
-        MouseButton::Left,
+        MouseButton::Primary,
         point,
     )));
 }
