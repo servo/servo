@@ -65,7 +65,7 @@ impl TestWorkletGlobalScope {
         TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &global.origin(), global)
     }
 
-    /// Get a value on the `lookup_table` using a key.
+    /// Get the value associated with the given key.
     pub fn lookup_value(&self, key: String) -> Option<String> {
         self.lookup_table.borrow().get(&key).cloned()
     }
