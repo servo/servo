@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
+use std::borrow::Cow;
 use std::cell::LazyCell;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -969,7 +970,7 @@ pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
 }
 
 enum InnerOrOuterTextItem {
-    Text(String),
+    Text(Cow<'static, str>),
     RequiredLineBreakCount(usize),
 }
 
@@ -1160,7 +1161,7 @@ fn rendered_text_collection_steps(
                 // encounter another text node we can ensure no trailing white space for
                 // normal text without having to look ahead
                 if state.did_truncate_trailing_white_space && !is_first_character_whitespace {
-                    items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                    items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(" ")));
                 };
 
                 if !transformed_text.is_empty() {
@@ -1174,14 +1175,14 @@ fn rendered_text_collection_steps(
                         state.may_start_with_whitespace = is_final_character_whitespace;
                         state.did_truncate_trailing_white_space = false;
                     }
-                    items.push(InnerOrOuterTextItem::Text(transformed_text));
+                    items.push(InnerOrOuterTextItem::Text(Cow::Owned(transformed_text)));
                 }
             } else {
                 // If we don't have a parent element then there's no style data available,
                 // in this (pretty unlikely) case we just return the Text fragment as is.
-                items.push(InnerOrOuterTextItem::Text(
+                items.push(InnerOrOuterTextItem::Text(Cow::Owned(
                     node.text_content().deref().into(),
-                ));
+                )));
             }
         },
         Some(LayoutNodeType::Element(LayoutElementType::HTMLBRElement)) => {
@@ -1189,7 +1190,7 @@ fn rendered_text_collection_steps(
             // LF code point to items.
             state.did_truncate_trailing_white_space = false;
             state.may_start_with_whitespace = true;
-            items.push(InnerOrOuterTextItem::Text(String::from("\u{000A}")));
+            items.push(InnerOrOuterTextItem::Text(Cow::Borrowed("\u{000A}")));
         },
         _ => {
             // First we need to gather some infos to setup the various flags
@@ -1239,7 +1240,7 @@ fn rendered_text_collection_steps(
                 // a single U+0009 TAB code point to items.
                 Display::TableCell => {
                     if !state.first_table_cell {
-                        items.push(InnerOrOuterTextItem::Text(String::from(
+                        items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(
                             "\u{0009}", /* tab */
                         )));
                         // Make sure we don't add a white-space we removed from the previous node
@@ -1254,7 +1255,7 @@ fn rendered_text_collection_steps(
                 // LF code point to items.
                 Display::TableRow => {
                     if !state.first_table_row {
-                        items.push(InnerOrOuterTextItem::Text(String::from(
+                        items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(
                             "\u{000A}", /* Line Feed */
                         )));
                         // Make sure we don't add a white-space we removed from the previous node
@@ -1278,7 +1279,7 @@ fn rendered_text_collection_steps(
                 Display::InlineFlex | Display::InlineGrid | Display::InlineBlock
                     if state.did_truncate_trailing_white_space =>
                 {
-                    items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                    items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(" ")));
                     state.did_truncate_trailing_white_space = false;
                     state.may_start_with_whitespace = true;
                 },
@@ -1325,7 +1326,7 @@ fn rendered_text_collection_steps(
                     LayoutNodeType::Element(LayoutElementType::HTMLMediaElement),
                 ) => {
                     if display != Display::Block && state.did_truncate_trailing_white_space {
-                        items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                        items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(" ")));
                         state.did_truncate_trailing_white_space = false;
                     };
                     state.may_start_with_whitespace = false;
