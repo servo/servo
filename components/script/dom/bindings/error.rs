@@ -13,7 +13,7 @@ use backtrace::Backtrace;
 use embedder_traits::JavaScriptErrorInfo;
 use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
-use js::error::{throw_range_error, throw_type_error};
+use js::error::{throw_range_error_safe, throw_type_error_safe};
 use js::gc::{HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::ExceptionStackBehavior;
 #[cfg(feature = "js_backtrace")]
@@ -79,12 +79,12 @@ pub(crate) fn throw_dom_exception(cx: &mut JSContext, global: &GlobalScope, resu
 
         Err(JsEngineError::Type(message)) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
-            throw_type_error(cx.raw_cx(), &message);
+            throw_type_error_safe(cx, &message);
         },
 
         Err(JsEngineError::Range(message)) => unsafe {
             assert!(!JS_IsExceptionPending(cx));
-            throw_range_error(cx.raw_cx(), &message);
+            throw_range_error_safe(cx, &message);
         },
 
         Err(JsEngineError::JSFailed) => unsafe {

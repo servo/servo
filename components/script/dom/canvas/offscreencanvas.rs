@@ -8,7 +8,7 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 #[cfg(feature = "webgl")]
-use js::error::throw_type_error;
+use js::error::throw_type_error_safe;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
 use pixels::{EncodedImageType, Snapshot};
@@ -112,23 +112,20 @@ impl OffscreenCanvas {
     }
 
     #[cfg(feature = "webgl")]
-    #[expect(unsafe_code)]
     fn get_gl_attributes(
         cx: &mut js::context::JSContext,
         options: HandleValue,
     ) -> Option<GLContextAttributes> {
-        unsafe {
-            match WebGLContextAttributes::new(cx, options) {
-                Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
-                Ok(ConversionResult::Failure(error)) => {
-                    throw_type_error(cx.raw_cx(), &error);
-                    None
-                },
-                _ => {
-                    debug!("Unexpected error on conversion of WebGLContextAttributes");
-                    None
-                },
-            }
+        match WebGLContextAttributes::new(cx, options) {
+            Ok(ConversionResult::Success(attrs)) => Some(attrs.convert()),
+            Ok(ConversionResult::Failure(error)) => {
+                throw_type_error_safe(cx, &error);
+                None
+            },
+            _ => {
+                debug!("Unexpected error on conversion of WebGLContextAttributes");
+                None
+            },
         }
     }
 

@@ -8,7 +8,7 @@ use std::convert::TryFrom;
 use std::ffi::CStr;
 use std::ptr::{self, NonNull};
 
-use js::error::throw_type_error;
+use js::error::throw_type_error_safe;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::JS::CompartmentIterResult;
 use js::jsapi::{
@@ -544,7 +544,9 @@ unsafe extern "C" fn invalid_constructor(
     _argc: libc::c_uint,
     _vp: *mut JSVal,
 ) -> bool {
-    throw_type_error(cx, c"Illegal constructor.");
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    throw_type_error_safe(&mut cx, c"Illegal constructor.");
     false
 }
 
@@ -553,7 +555,9 @@ unsafe extern "C" fn non_new_constructor(
     _argc: libc::c_uint,
     _vp: *mut JSVal,
 ) -> bool {
-    throw_type_error(cx, c"This constructor needs to be called with `new`.");
+    // SAFETY: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    throw_type_error_safe(&mut cx, c"This constructor needs to be called with `new`.");
     false
 }
 
