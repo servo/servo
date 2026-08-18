@@ -64,9 +64,7 @@ jobs:
         uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         timeout-minutes: 30
-        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
-      - name: Install cargo-ohos
-        run: cargo install cargo-ohos --locked
+        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest --ohos
       - name: Setup OpenHarmony SDK
         id: setup_sdk
         uses: openharmony-rs/setup-ohos-sdk@v1.0.0
@@ -174,9 +172,10 @@ jobs:
       - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
       - name: Adding test files to directory
         run: cp -r support/hitrace-bencher/* support/openharmony/AppScope/resources/resfile/
-      # TODO: bake into image before merge.
-      - name: Install cargo-ohos
-        run: cargo install cargo-ohos --locked
+      # TODO: This should be a no-op in most cases, since the image build already ran bootstrap.
+      - name: Bootstrap dependencies
+        timeout-minutes: 10
+        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest --ohos
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
