@@ -19,12 +19,12 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
-    SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams, SubtleRsaOaepParams,
+    RsaHashedImportParams, RsaHashedKeyGenParams, RsaOaepParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleRsaOaepParams,
+    normalized_algorithm: &RsaOaepParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -90,7 +90,7 @@ pub(crate) fn encrypt(
 
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleRsaOaepParams,
+    normalized_algorithm: &RsaOaepParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -160,7 +160,7 @@ pub(crate) fn decrypt(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleRsaHashedKeyGenParams,
+    normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
@@ -178,7 +178,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleRsaHashedImportParams,
+    normalized_algorithm: &RsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,

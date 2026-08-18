@@ -2934,7 +2934,7 @@ impl From<&KeyAlgorithm> for SerializableKeyAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyGenParams>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleRsaHashedKeyGenParams {
+pub(crate) struct RsaHashedKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -2948,7 +2948,7 @@ pub(crate) struct SubtleRsaHashedKeyGenParams {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -2958,7 +2958,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedKeyGenParams 
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtleRsaHashedKeyGenParams {
+        Ok(RsaHashedKeyGenParams {
             name: algorithm_name,
             modulus_length: get_required_parameter(
                 cx,
@@ -2981,7 +2981,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedKeyGenParams 
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleRsaHashedKeyAlgorithm {
+pub(crate) struct RsaHashedKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
     name: CryptoAlgorithm,
 
@@ -2995,7 +2995,7 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
     hash: DigestAlgorithm,
 }
 
-impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
+impl ToJSValConvertible for RsaHashedKeyAlgorithm {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -3045,11 +3045,11 @@ impl ToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
     }
 }
 
-impl TryFrom<SerializableRsaHashedKeyAlgorithm> for SubtleRsaHashedKeyAlgorithm {
+impl TryFrom<SerializableRsaHashedKeyAlgorithm> for RsaHashedKeyAlgorithm {
     type Error = ();
 
     fn try_from(value: SerializableRsaHashedKeyAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleRsaHashedKeyAlgorithm {
+        Ok(RsaHashedKeyAlgorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             modulus_length: value.modulus_length,
             public_exponent: value.public_exponent,
@@ -3058,8 +3058,8 @@ impl TryFrom<SerializableRsaHashedKeyAlgorithm> for SubtleRsaHashedKeyAlgorithm 
     }
 }
 
-impl From<&SubtleRsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
-    fn from(value: &SubtleRsaHashedKeyAlgorithm) -> Self {
+impl From<&RsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
+    fn from(value: &RsaHashedKeyAlgorithm) -> Self {
         SerializableRsaHashedKeyAlgorithm {
             name: value.name.as_str().into(),
             modulus_length: value.modulus_length,
@@ -3071,7 +3071,7 @@ impl From<&SubtleRsaHashedKeyAlgorithm> for SerializableRsaHashedKeyAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleRsaHashedImportParams {
+struct RsaHashedImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3079,7 +3079,7 @@ struct SubtleRsaHashedImportParams {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3089,7 +3089,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedImportParams 
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtleRsaHashedImportParams {
+        Ok(RsaHashedImportParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
@@ -3098,7 +3098,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedImportParams 
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaPssParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleRsaPssParams {
+struct RsaPssParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3106,7 +3106,7 @@ struct SubtleRsaPssParams {
     salt_length: u32,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaPssParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaPssParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3114,7 +3114,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaPssParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleRsaPssParams {
+        Ok(RsaPssParams {
             name: algorithm_name,
             salt_length: get_required_parameter(
                 cx,
@@ -3128,7 +3128,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaPssParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaOaepParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleRsaOaepParams {
+struct RsaOaepParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3136,7 +3136,7 @@ struct SubtleRsaOaepParams {
     label: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaOaepParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaOaepParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3144,7 +3144,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaOaepParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleRsaOaepParams {
+        Ok(RsaOaepParams {
             name: algorithm_name,
             label: get_optional_buffer_source(cx, object, c"label")?,
         })
@@ -4301,7 +4301,7 @@ impl ExportedKey {
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(KeyAlgorithm),
-    RsaHashedKeyAlgorithm(SubtleRsaHashedKeyAlgorithm),
+    RsaHashedKeyAlgorithm(RsaHashedKeyAlgorithm),
     EcKeyAlgorithm(SubtleEcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
@@ -4882,7 +4882,7 @@ impl Operation for EncryptOperation {
 /// Normalized algorithm for the "encrypt" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum EncryptAlgorithm {
-    RsaOaep(SubtleRsaOaepParams),
+    RsaOaep(RsaOaepParams),
     AesCtr(SubtleAesCtrParams),
     AesCbc(SubtleAesCbcParams),
     AesGcm(SubtleAesGcmParams),
@@ -4969,7 +4969,7 @@ impl Operation for DecryptOperation {
 /// Normalized algorithm for the "decrypt" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum DecryptAlgorithm {
-    RsaOaep(SubtleRsaOaepParams),
+    RsaOaep(RsaOaepParams),
     AesCtr(SubtleAesCtrParams),
     AesCbc(SubtleAesCbcParams),
     AesGcm(SubtleAesGcmParams),
@@ -5057,7 +5057,7 @@ impl Operation for SignOperation {
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum SignAlgorithm {
     RsassaPkcs1V1_5(Algorithm),
-    RsaPss(SubtleRsaPssParams),
+    RsaPss(RsaPssParams),
     Ecdsa(SubtleEcdsaParams),
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
@@ -5146,7 +5146,7 @@ impl Operation for VerifyOperation {
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum VerifyAlgorithm {
     RsassaPkcs1V1_5(Algorithm),
-    RsaPss(SubtleRsaPssParams),
+    RsaPss(RsaPssParams),
     Ecdsa(SubtleEcdsaParams),
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
@@ -5544,9 +5544,9 @@ impl Operation for GenerateKeyOperation {
 /// Normalized algorithm for the "generateKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum GenerateKeyAlgorithm {
-    RsassaPkcs1V1_5(SubtleRsaHashedKeyGenParams),
-    RsaPss(SubtleRsaHashedKeyGenParams),
-    RsaOaep(SubtleRsaHashedKeyGenParams),
+    RsassaPkcs1V1_5(RsaHashedKeyGenParams),
+    RsaPss(RsaHashedKeyGenParams),
+    RsaOaep(RsaHashedKeyGenParams),
     Ecdsa(SubtleEcKeyGenParams),
     Ecdh(SubtleEcKeyGenParams),
     Ed25519(Algorithm),
@@ -5768,9 +5768,9 @@ impl Operation for ImportKeyOperation {
 /// Normalized algorithm for the "importKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum ImportKeyAlgorithm {
-    RsassaPkcs1V1_5(SubtleRsaHashedImportParams),
-    RsaPss(SubtleRsaHashedImportParams),
-    RsaOaep(SubtleRsaHashedImportParams),
+    RsassaPkcs1V1_5(RsaHashedImportParams),
+    RsaPss(RsaHashedImportParams),
+    RsaOaep(RsaHashedImportParams),
     Ecdsa(SubtleEcKeyImportParams),
     Ecdh(SubtleEcKeyImportParams),
     Ed25519(Algorithm),
