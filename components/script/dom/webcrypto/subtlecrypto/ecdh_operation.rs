@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
     ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
-    EcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdhKeyDeriveParams, ec_common,
+    EcKeyGenParams, EcKeyImportParams, SubtleEcdhKeyDeriveParams, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
@@ -203,7 +203,7 @@ pub(crate) fn derive_bits(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyImportParams,
+    normalized_algorithm: &EcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,

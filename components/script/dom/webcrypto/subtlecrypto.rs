@@ -3260,7 +3260,7 @@ impl From<&EcKeyAlgorithm> for SerializableEcKeyAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleEcKeyImportParams {
+struct EcKeyImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3268,7 +3268,7 @@ struct SubtleEcKeyImportParams {
     named_curve: String,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3276,7 +3276,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyImportParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleEcKeyImportParams {
+        Ok(EcKeyImportParams {
             name: algorithm_name,
             named_curve: String::from(get_required_parameter::<DOMString>(
                 cx,
@@ -5771,8 +5771,8 @@ enum ImportKeyAlgorithm {
     RsassaPkcs1V1_5(RsaHashedImportParams),
     RsaPss(RsaHashedImportParams),
     RsaOaep(RsaHashedImportParams),
-    Ecdsa(SubtleEcKeyImportParams),
-    Ecdh(SubtleEcKeyImportParams),
+    Ecdsa(EcKeyImportParams),
+    Ecdh(EcKeyImportParams),
     Ed25519(Algorithm),
     X25519(Algorithm),
     Ed448(Algorithm),
