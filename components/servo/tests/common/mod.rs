@@ -74,9 +74,7 @@ impl ServoTest {
         &self.servo
     }
 
-    /// Spin the Servo event loop until one of:
-    ///  - The given callback returns `Ok(false)`.
-    ///  - The given callback returns an `Error`, in which case the `Error` will be returned.
+    /// Spin the Servo event loop until the provided callback returns `false`.
     pub fn spin(&self, callback: impl Fn() -> bool + 'static) {
         while callback() {
             self.servo.spin_event_loop();
