@@ -150,12 +150,16 @@ impl ReferrerPolicy {
     pub fn from_with_legacy(value: &str) -> Self {
         // Step 5. If value is one of the values given in the first column of the following table,
         // then set value to the value given in the second column:
-        match value.to_ascii_lowercase().as_str() {
-            "never" => ReferrerPolicy::NoReferrer,
-            "default" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
-            "always" => ReferrerPolicy::UnsafeUrl,
-            "origin-when-crossorigin" => ReferrerPolicy::OriginWhenCrossOrigin,
-            _ => ReferrerPolicy::from(value),
+        if value.eq_ignore_ascii_case("never") {
+            ReferrerPolicy::NoReferrer
+        } else if value.eq_ignore_ascii_case("default") {
+            ReferrerPolicy::StrictOriginWhenCrossOrigin
+        } else if value.eq_ignore_ascii_case("always") {
+            ReferrerPolicy::UnsafeUrl
+        } else if value.eq_ignore_ascii_case("origin-when-crossorigin") {
+            ReferrerPolicy::OriginWhenCrossOrigin
+        } else {
+            ReferrerPolicy::from(value)
         }
     }
 
@@ -174,16 +178,24 @@ impl ReferrerPolicy {
 impl From<&str> for ReferrerPolicy {
     /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
     fn from(value: &str) -> Self {
-        match value.to_ascii_lowercase().as_str() {
-            "no-referrer" => ReferrerPolicy::NoReferrer,
-            "no-referrer-when-downgrade" => ReferrerPolicy::NoReferrerWhenDowngrade,
-            "origin" => ReferrerPolicy::Origin,
-            "same-origin" => ReferrerPolicy::SameOrigin,
-            "strict-origin" => ReferrerPolicy::StrictOrigin,
-            "strict-origin-when-cross-origin" => ReferrerPolicy::StrictOriginWhenCrossOrigin,
-            "origin-when-cross-origin" => ReferrerPolicy::OriginWhenCrossOrigin,
-            "unsafe-url" => ReferrerPolicy::UnsafeUrl,
-            _ => ReferrerPolicy::EmptyString,
+        if value.eq_ignore_ascii_case("no-referrer") {
+            ReferrerPolicy::NoReferrer
+        } else if value.eq_ignore_ascii_case("no-referrer-when-downgrade") {
+            ReferrerPolicy::NoReferrerWhenDowngrade
+        } else if value.eq_ignore_ascii_case("origin") {
+            ReferrerPolicy::Origin
+        } else if value.eq_ignore_ascii_case("same-origin") {
+            ReferrerPolicy::SameOrigin
+        } else if value.eq_ignore_ascii_case("strict-origin") {
+            ReferrerPolicy::StrictOrigin
+        } else if value.eq_ignore_ascii_case("strict-origin-when-cross-origin") {
+            ReferrerPolicy::StrictOriginWhenCrossOrigin
+        } else if value.eq_ignore_ascii_case("origin-when-cross-origin") {
+            ReferrerPolicy::OriginWhenCrossOrigin
+        } else if value.eq_ignore_ascii_case("unsafe-url") {
+            ReferrerPolicy::UnsafeUrl
+        } else {
+            ReferrerPolicy::EmptyString
         }
     }
 }

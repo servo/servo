@@ -268,10 +268,10 @@ pub enum CorsSettings {
 impl CorsSettings {
     /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
     pub fn from_enumerated_attribute(value: &str) -> CorsSettings {
-        match value.to_ascii_lowercase().as_str() {
-            "anonymous" => CorsSettings::Anonymous,
-            "use-credentials" => CorsSettings::UseCredentials,
-            _ => CorsSettings::Anonymous,
+        if value.eq_ignore_ascii_case("use-credentials") {
+            CorsSettings::UseCredentials
+        } else {
+            CorsSettings::Anonymous
         }
     }
 }

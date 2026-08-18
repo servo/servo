@@ -272,10 +272,9 @@ impl Response {
                 let headers = old_headers
                     .iter()
                     .filter(|(name, _)| {
-                        !matches!(
-                            &*name.as_str().to_ascii_lowercase(),
-                            "set-cookie" | "set-cookie2"
-                        )
+                        let name = name.as_str();
+                        !name.eq_ignore_ascii_case("set-cookie") &&
+                            !name.eq_ignore_ascii_case("set-cookie2")
                     })
                     .map(|(n, v)| (n.clone(), v.clone()))
                     .collect();
@@ -285,13 +284,26 @@ impl Response {
             ResponseType::Cors => {
                 let headers = old_headers
                     .iter()
-                    .filter(|(name, _)| match &*name.as_str().to_ascii_lowercase() {
-                        "cache-control" | "content-language" | "content-length" |
-                        "content-type" | "expires" | "last-modified" | "pragma" => true,
-                        "set-cookie" | "set-cookie2" => false,
-                        header => exposed_headers
-                            .iter()
-                            .any(|h| *header == h.as_str().to_ascii_lowercase()),
+                    .filter(|(name, _)| {
+                        let name = name.as_str();
+                        if name.eq_ignore_ascii_case("cache-control") ||
+                            name.eq_ignore_ascii_case("content-language") ||
+                            name.eq_ignore_ascii_case("content-length") ||
+                            name.eq_ignore_ascii_case("content-type") ||
+                            name.eq_ignore_ascii_case("expires") ||
+                            name.eq_ignore_ascii_case("last-modified") ||
+                            name.eq_ignore_ascii_case("pragma")
+                        {
+                            true
+                        } else if name.eq_ignore_ascii_case("set-cookie") ||
+                            name.eq_ignore_ascii_case("set-cookie2")
+                        {
+                            false
+                        } else {
+                            exposed_headers
+                                .iter()
+                                .any(|h| h.as_str().eq_ignore_ascii_case(name))
+                        }
                     })
                     .map(|(n, v)| (n.clone(), v.clone()))
                     .collect();
