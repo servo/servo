@@ -333,7 +333,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
             print(f"Building for OpenHarmony requires `cargo-ohos`: {error_msg}", file=sys.stderr)
             print("Please rerun `./mach bootstrap --ohos`.", file=sys.stderr)
             sys.exit(1)
-        command = ["cargo", "ohos", "env", "--format", "json", "--target", self.triple()]
+        command = ["cargo", "ohos", "env", "--format", "json", "--download-prebuilt=19", "--target", self.triple()]
         try:
             # `cargo-ohos` prints status information to `stderr`, so don't intercept that.
             output = subprocess.run(command, check=True, stdout=subprocess.PIPE, encoding="utf8", env=input_env).stdout
