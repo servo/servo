@@ -484,6 +484,14 @@ impl MouseEvent {
 
         pointer_event
     }
+
+    pub(crate) fn button(&self) -> MouseButton {
+        self.button.get()
+    }
+
+    pub(crate) fn buttons(&self) -> MouseButtons {
+        self.buttons.get()
+    }
 }
 
 impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {

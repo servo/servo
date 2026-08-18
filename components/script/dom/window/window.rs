@@ -79,6 +79,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{self, GenericCallback, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_base::text::Utf32CodeUnits;
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
 #[cfg(feature = "webgl")]
@@ -3211,6 +3212,21 @@ impl Window {
                 })
             })
             .map(|(source, overflow)| ScrollingBox::new(source, overflow))
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) fn text_index_query_on_node_for_event(
+        &self,
+        node: &Node,
+        point_in_viewport: Point2D<Au, CSSPixel>,
+    ) -> Option<(DomRoot<Node>, Utf32CodeUnits)> {
+        self.layout_reflow(QueryMsg::TextIndexQuery);
+        let result = self
+            .layout
+            .borrow()
+            .query_text_index(node.to_trusted_node_address(), point_in_viewport)?;
+        let node = unsafe { from_untrusted_node_address(result.0.into()) };
+        Some((node, result.1))
     }
 
     pub(crate) fn elements_from_point_query(

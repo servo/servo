@@ -423,6 +423,11 @@ impl ConstellationInputEvent {
     pub fn primary_button_is_pressed(&self) -> bool {
         self.pressed_mouse_buttons.contains(MouseButtons::Primary)
     }
+
+    /// Returns whether `pressed_mouse_buttons` includes the auxiliary (middle) button
+    pub fn auxiliary_button_is_pressed(&self) -> bool {
+        self.pressed_mouse_buttons.contains(MouseButtons::Auxiliary)
+    }
 }
 
 /// All of the information necessary to create a new [`ScriptThread`] for a new [`EventLoop`].

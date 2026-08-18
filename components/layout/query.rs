@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use embedder_traits::UntrustedNodeAddress;
-use euclid::{Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use itertools::Itertools;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
@@ -20,6 +20,7 @@ use layout_api::{
 use paint_api::display_list::ScrollTree;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_base::text::Utf32CodeUnits;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
@@ -27,7 +28,7 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use style::dom::NodeInfo;
+use style::dom::{NodeInfo, OpaqueNode};
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -48,7 +49,7 @@ use style_traits::{CSSPixel, ParsingMode, ToCss};
 use webrender_api::units::LayoutPixel;
 
 use crate::cell::RefOrAtomicRef;
-use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
+use crate::display_list::{ClosestFragmentSearch, StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
 use crate::flow::inline::text_transform::TextTransformationIterator;
 use crate::fragment_tree::{
@@ -1365,6 +1366,22 @@ fn rendered_text_collection_steps(
         },
     };
     items
+}
+
+pub fn find_character_offset_in_fragment_descendants(
+    node: &ServoLayoutNode,
+    stacking_context_tree: &StackingContextTree,
+    point_in_viewport: Point2D<Au, CSSPixel>,
+) -> Option<(OpaqueNode, Utf32CodeUnits)> {
+    let mut search = ClosestFragmentSearch::default();
+    for fragment in &node.fragments_for_pseudo(None) {
+        if let Some(point_in_fragment) =
+            stacking_context_tree.offset_in_fragment(fragment, point_in_viewport)
+        {
+            search.collect_relevant_children(fragment, point_in_fragment);
+        }
+    }
+    search.into_dom_position()
 }
 
 pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<UntrustedNodeAddress> {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::default::Default;
 
 use dom_struct::dom_struct;
@@ -158,6 +158,10 @@ impl HTMLTextAreaElement {
         )
     }
 
+    pub(crate) fn textinput_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
+        self.textinput.borrow_mut()
+    }
+
     pub(crate) fn auto_directionality(&self) -> String {
         let value: String = String::from(self.Value());
         HTMLInputElement::directionality_from_value(&value)
@@ -214,7 +218,8 @@ impl HTMLTextAreaElement {
     }
 
     fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
-        if mouse_event.upcast::<Event>().DefaultPrevented() {
+        let event = mouse_event.upcast::<Event>();
+        if event.DefaultPrevented() {
             return;
         }
 
@@ -223,7 +228,15 @@ impl HTMLTextAreaElement {
         if self.textinput.borrow().is_empty() {
             return;
         }
-        if self.textinput.borrow_mut().handle_mouse_event(mouse_event) {
+        if event.type_() != atom!("mousedown") {
+            return;
+        }
+
+        if self
+            .textinput
+            .borrow_mut()
+            .handle_mousedown_event(self.upcast(), mouse_event)
+        {
             self.maybe_update_shared_selection();
         }
     }
