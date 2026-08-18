@@ -112,7 +112,6 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         let promise = Promise::new(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
-        let mut current = self.subscriptions.borrow_mut();
 
         // Step 4.2. For each entry in subscriptions, run these steps.
         for subscription in subscriptions {
@@ -126,6 +125,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
                 },
             };
 
+            let mut current = self.subscriptions.safe_borrow_mut(cx);
             // Step 4.2.7. If subscription list does not already contain
             // subscription, then append subscription to subscription list.
             if !current.iter().any(|existing| {
@@ -169,7 +169,6 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
         let promise = Promise::new(cx, &self.global());
         // Step 4.1. Let subscription list be registration's associated cookie
         // change subscription list.
-        let mut current = self.subscriptions.borrow_mut();
 
         // Step 4.2. For each entry in subscriptions, run these steps.
         for subscription in subscriptions {
@@ -183,6 +182,7 @@ impl CookieStoreManagerMethods<crate::DomTypeHolder> for CookieStoreManager {
                 },
             };
 
+            let mut current = self.subscriptions.safe_borrow_mut(cx);
             // Step 4.2.7. Remove any item from subscription list equal to
             // subscription.
             current.retain(|existing| {
