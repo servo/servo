@@ -305,7 +305,7 @@ impl IntersectionObserver {
         // Step 4
         // > Add target to observer’s internal [[ObservationTargets]] slot.
         self.observation_targets
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .push(Dom::from_ref(target));
 
         target
@@ -328,7 +328,7 @@ impl IntersectionObserver {
         // Step 2
         // > Remove target from this’s internal [[ObservationTargets]] slot, if present
         self.observation_targets
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .retain(|element| &**element != target);
 
         // Should disconnect from owner if it is not observing anything.
@@ -389,7 +389,9 @@ impl IntersectionObserver {
         );
 
         // Step 2. Append it to observer's internal [[QueuedEntries]] slot.
-        self.queued_entries.borrow_mut().push(entry.as_traced());
+        self.queued_entries
+            .safe_borrow_mut(cx.no_gc())
+            .push(entry.as_traced());
 
         // Step 3. Queue an intersection observer task for document.
         document.queue_an_intersection_observer_task();
@@ -815,7 +817,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
             target.remove_intersection_observer(self, no_gc);
         });
         // > 2. Remove target from this’s internal [[ObservationTargets]] slot.
-        self.observation_targets.borrow_mut().clear();
+        self.observation_targets.safe_borrow_mut(no_gc).clear();
 
         // We should remove this observer from the event loop.
         self.disconnect_from_owner();
