@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
     ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
-    EcKeyGenParams, EcKeyImportParams, SubtleEcdhKeyDeriveParams, ec_common,
+    EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
@@ -46,7 +46,7 @@ pub(crate) fn generate_key(
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-derive-bits>
 pub(crate) fn derive_bits(
-    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+    normalized_algorithm: &EcdhKeyDeriveParams,
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
@@ -242,7 +242,7 @@ pub(crate) fn get_public_key(
 /// derived by the named curve specified by the `named_curve` member of the `[[algorithm]]` slot of
 /// the `public` member of normalizedAlgorithm.
 pub(crate) fn secret_length(
-    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+    normalized_algorithm: &EcdhKeyDeriveParams,
 ) -> Result<u32, Error> {
     let public_key = normalized_algorithm.public.root();
     let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = public_key.algorithm() else {

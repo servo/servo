@@ -3290,7 +3290,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyImportParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcdhKeyDeriveParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleEcdhKeyDeriveParams {
+struct EcdhKeyDeriveParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3298,7 +3298,7 @@ struct SubtleEcdhKeyDeriveParams {
     public: Trusted<CryptoKey>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcdhKeyDeriveParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdhKeyDeriveParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3308,7 +3308,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcdhKeyDeriveParams {
     ) -> Result<Self, Self::Error> {
         let public = get_required_parameter::<DomRoot<CryptoKey>>(cx, object, c"public", ())?;
 
-        Ok(SubtleEcdhKeyDeriveParams {
+        Ok(EcdhKeyDeriveParams {
             name: algorithm_name,
             public: Trusted::new(&public),
         })
@@ -5367,9 +5367,9 @@ impl Operation for DeriveBitsOperation {
 /// Normalized algorithm for the "deriveBits" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum DeriveBitsAlgorithm {
-    Ecdh(SubtleEcdhKeyDeriveParams),
-    X25519(SubtleEcdhKeyDeriveParams),
-    X448(SubtleEcdhKeyDeriveParams),
+    Ecdh(EcdhKeyDeriveParams),
+    X25519(EcdhKeyDeriveParams),
+    X448(EcdhKeyDeriveParams),
     Hkdf(SubtleHkdfParams),
     Pbkdf2(SubtlePbkdf2Params),
     Argon2(SubtleArgon2Params),
