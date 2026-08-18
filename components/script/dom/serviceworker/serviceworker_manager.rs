@@ -724,33 +724,37 @@ fn update_serviceworker(
 ) {
     let (sender, receiver) = unbounded();
     #[cfg(feature = "devtools")]
-    let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+    let devtools_receiver = {
+        let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
 
-    #[cfg(feature = "devtools")]
-    {
         scope_things.init.from_devtools_sender = Some(devtools_sender);
-    }
-    #[cfg(feature = "devtools")]
-    if let Some(ref chan) = scope_things.devtools_chan &&
-        let Some(ref sender) = scope_things.init.from_devtools_sender
-    {
-        let page_info = DevtoolsPageInfo {
-            title: format!("Service Worker for {}", scope_things.script_url),
-            url: scope_things.script_url.clone(),
-            is_top_level_global: false,
-            is_service_worker: true,
-        };
-        let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-            (
-                scope_things.browsing_context_id,
-                scope_things.init.pipeline_id,
-                Some(scope_things.worker_id),
-                scope_things.webview_id,
-            ),
-            sender.clone(),
-            page_info,
-        ));
-    }
+
+        if let Some(ref chan) = scope_things.devtools_chan &&
+            let Some(ref sender) = scope_things.init.from_devtools_sender
+        {
+            let page_info = DevtoolsPageInfo {
+                title: format!("Service Worker for {}", scope_things.script_url),
+                url: scope_things.script_url.clone(),
+                is_top_level_global: false,
+                is_service_worker: true,
+            };
+            let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                (
+                    scope_things.browsing_context_id,
+                    scope_things.init.pipeline_id,
+                    Some(scope_things.worker_id),
+                    scope_things.webview_id,
+                ),
+                sender.clone(),
+                page_info,
+            ));
+        }
+
+        Some(devtools_receiver)
+    };
+
+    #[cfg(not(feature = "devtools"))]
+    let devtools_receiver = None;
 
     let worker_id = ServiceWorkerId::new();
 
@@ -762,7 +766,6 @@ fn update_serviceworker(
         scope_things.clone(),
         sender.clone(),
         receiver,
-        #[cfg(feature = "devtools")]
         devtools_receiver,
         own_sender,
         scope_url,

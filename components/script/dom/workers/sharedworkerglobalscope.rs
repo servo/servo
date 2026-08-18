@@ -14,6 +14,8 @@ use content_security_policy::Violation;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 #[cfg(feature = "devtools")]
 use devtools_traits::DevtoolScriptControlMsg;
+#[cfg(not(feature = "devtools"))]
+type DevtoolScriptControlMsg = ();
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
@@ -57,6 +59,8 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::sharedworker::{SharedWorker, SharedWorkerStorageKey, TrustedSharedWorkerAddress};
 #[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
+#[cfg(not(feature = "devtools"))]
+type DebuggerGlobalScope = ();
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -248,9 +252,7 @@ impl SharedWorkerGlobalScope {
         worker_url: ServoUrl,
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
-        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
-            DevtoolScriptControlMsg,
-        >,
+        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
@@ -261,7 +263,7 @@ impl SharedWorkerGlobalScope {
         control_receiver: Receiver<SharedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
-        #[cfg(feature = "devtools")] debugger_global: &DebuggerGlobalScope,
+        debugger_global: Option<&DebuggerGlobalScope>,
         storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
@@ -276,7 +278,6 @@ impl SharedWorkerGlobalScope {
                 worker_type,
                 worker_url,
                 runtime,
-                #[cfg(feature = "devtools")]
                 from_devtools_receiver,
                 closing,
                 #[cfg(feature = "webgpu")]
@@ -295,7 +296,9 @@ impl SharedWorkerGlobalScope {
             pending_connect: DomRefCell::new(VecDeque::new()),
             control_receiver,
             #[cfg(feature = "devtools")]
-            debugger_global: Dom::from_ref(debugger_global),
+            debugger_global: Dom::from_ref(
+                debugger_global.expect("debugger global must exist when devtools is enabled"),
+            ),
             storage_key,
             constructor_origin,
             constructor_url,
@@ -344,8 +347,7 @@ impl SharedWorkerGlobalScope {
             worker_url,
             worker,
             parent_event_loop_sender,
-            #[cfg(feature = "devtools")]
-            from_devtools_receiver,
+            Some(from_devtools_receiver),
             runtime,
             own_sender,
             receiver,
@@ -357,8 +359,7 @@ impl SharedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
             font_context,
-            #[cfg(feature = "devtools")]
-            debugger_global,
+            Some(debugger_global),
             storage_key,
             constructor_origin,
             constructor_url,
