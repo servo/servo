@@ -95,10 +95,11 @@ impl InlineBox {
 
         // We can avoid all this work (and the extra BoxFragmentRareData it incurs) in most situations. In particular,
         // it should (for inlines) only be necessary when there is:
-        // - Backgrounds that change in the inline direction and cross fragments
-        // - Border-radii that are larger than the end fragments
-        // - Block-axis dashed, dotted and image borders
+        // - backgrounds that change in the inline direction and cross fragments
+        // - border-radii that are larger than the end fragments
+        // - block-axis dashed, dotted and image borders
         // - Some values of `clip-path` and `mask`
+        // - any `box-shadow`
 
         // Notably, some things that we do not need to consider are:
         // - `overflow: hidden` or similar, since `overflow` does not apply to inline elements
@@ -135,6 +136,7 @@ impl InlineBox {
                 style.get_border().border_right_style,
                 BorderStyle::Dashed | BorderStyle::Dotted
             ) ||
+            !style.get_effects().box_shadow.0.is_empty() ||
             style.get_border().border_image_source != Image::None ||
             !style.get_effects().clip.is_auto()
         {
