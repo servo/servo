@@ -637,17 +637,20 @@ unsafe extern "C" fn content_security_policy_allows(
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
 pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &GlobalScope) {
     // Step 1. Let list be a clone of global's about-to-be-notified rejected promises list.
-    let uncaught_rejections: Vec<TrustedPromise> = global
-        .get_uncaught_rejections()
-        .borrow_mut()
-        .drain(..)
-        .map(|promise| {
-            let promise =
-                Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise.handle()) });
+    let uncaught_rejections: Vec<TrustedPromise> = {
+        global
+            .get_uncaught_rejections()
+            .borrow()
+            .iter()
+            .map(|promise| {
+                let promise =
+                    Promise::new_with_js_promise(cx, unsafe { Handle::from_raw(promise.handle()) });
 
-            TrustedPromise::new(promise)
-        })
-        .collect();
+                TrustedPromise::new(promise)
+            })
+            .collect()
+    };
+    global.get_uncaught_rejections().safe_borrow_mut(cx).clear();
 
     // Step 2. If list is empty, then return.
     if uncaught_rejections.is_empty() {
