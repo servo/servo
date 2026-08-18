@@ -49,9 +49,6 @@ class MachCommands(CommandBase):
         skip_lints: bool = False,
         skip_nextest: bool = False,
     ) -> int:
-        # Note: This entry point isn't actually invoked by ./mach bootstrap.
-        # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
-        # it can install dependencies without needing mach's dependencies
         try:
             servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest)
         except NotImplementedError as exception:
