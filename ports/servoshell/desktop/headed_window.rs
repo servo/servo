@@ -275,9 +275,9 @@ impl HeadedWindow {
         }
 
         let mouse_button = match &button {
-            MouseButton::Left => ServoMouseButton::Left,
-            MouseButton::Right => ServoMouseButton::Right,
-            MouseButton::Middle => ServoMouseButton::Middle,
+            MouseButton::Left => ServoMouseButton::Primary,
+            MouseButton::Right => ServoMouseButton::Secondary,
+            MouseButton::Middle => ServoMouseButton::Auxiliary,
             MouseButton::Back => ServoMouseButton::Back,
             MouseButton::Forward => ServoMouseButton::Forward,
             MouseButton::Other(value) => ServoMouseButton::Other(*value),

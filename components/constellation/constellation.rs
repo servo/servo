@@ -110,7 +110,7 @@ use embedder_traits::{
     AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderProxy, FocusSequenceNumber,
     GenericEmbedderProxy, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
     JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
-    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseButtonAction, MouseButtonEvent,
     NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WakeLockDelegate, WakeLockType,
     WebDriverCommandMsg, WebDriverLoadStatus, WebDriverScriptCommand,
 };
@@ -137,8 +137,8 @@ use rand::seq::IndexedRandom;
 use rand::{RngExt, SeedableRng, make_rng};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{
-    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, NewPipelineInfo,
-    ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
+    ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, MouseButtons,
+    NewPipelineInfo, ProgressiveWebMetricType, ScriptThreadMessage, UpdatePipelineIdReason,
 };
 use servo_background_hang_monitor::HangMonitorRegister;
 use servo_base::generic_channel::{
@@ -478,7 +478,7 @@ pub struct Constellation<STF, SWF> {
 
     /// Bitmask which indicates which combination of mouse buttons are
     /// currently being pressed.
-    pressed_mouse_buttons: u16,
+    pressed_mouse_buttons: MouseButtons,
 
     /// The currently activated keyboard modifiers.
     active_keyboard_modifiers: Modifiers,
@@ -739,7 +739,7 @@ where
                     webxr_registry: state.webxr_registry,
                     canvas: OnceCell::new(),
                     pending_approval_navigations: Default::default(),
-                    pressed_mouse_buttons: 0,
+                    pressed_mouse_buttons: MouseButtons::empty(),
                     active_keyboard_modifiers: Modifiers::empty(),
                     hard_fail,
                     active_media_session: None,
@@ -3116,24 +3116,15 @@ where
     }
 
     fn update_pressed_mouse_buttons(&mut self, event: &MouseButtonEvent) {
-        // This value is ultimately used for a DOM mouse event, and the specification says that
-        // the pressed buttons should be represented as a bitmask with values defined at
-        // <https://w3c.github.io/uievents/#dom-mouseevent-buttons>.
-        let button_as_bitmask = match event.button {
-            MouseButton::Left => 1,
-            MouseButton::Right => 2,
-            MouseButton::Middle => 4,
-            MouseButton::Back => 8,
-            MouseButton::Forward => 16,
-            MouseButton::Other(_) => return,
+        let Ok(buttons) = MouseButtons::try_from(event.button) else {
+            return;
         };
-
         match event.action {
             MouseButtonAction::Down => {
-                self.pressed_mouse_buttons |= button_as_bitmask;
+                self.pressed_mouse_buttons |= buttons;
             },
             MouseButtonAction::Up => {
-                self.pressed_mouse_buttons &= !(button_as_bitmask);
+                self.pressed_mouse_buttons &= !(buttons);
             },
         }
     }
