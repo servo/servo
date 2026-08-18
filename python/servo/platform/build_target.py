@@ -335,10 +335,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
             sys.exit(1)
         command = ["cargo", "ohos", "env", "--format", "json", "--target", self.triple()]
         try:
-            output = subprocess.run(command, check=True, capture_output=True, encoding="utf8", env=input_env).stdout
-        except subprocess.CalledProcessError as exception:
-            print(exception.stderr, end="", file=sys.stderr)
-            print("Failed to determine the OpenHarmony toolchain environment via `cargo ohos env`.", file=sys.stderr)
+            # `cargo-ohos` prints status information to `stderr`, so don't intercept that.
+            output = subprocess.run(command, check=True, stdout=subprocess.PIPE, encoding="utf8", env=input_env).stdout
+        except subprocess.CalledProcessError:
+            print("Error: Failed to determine the OpenHarmony toolchain environment via `cargo ohos env`.", file=sys.stderr)
             sys.exit(1)
         try:
             ohos_env = json.loads(output)
