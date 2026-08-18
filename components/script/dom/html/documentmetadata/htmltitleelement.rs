@@ -9,6 +9,7 @@ use html5ever::{LocalName, Prefix};
 use js::context::JSContext;
 use js::rust::HandleObject;
 
+use crate::dom::ElementCreator;
 use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -21,7 +22,11 @@ use crate::dom::node::{BindContext, ChildrenMutation, Node};
 #[dom_struct]
 pub(crate) struct HTMLTitleElement {
     htmlelement: HTMLElement,
-    popped: Cell<bool>,
+    /// Whether this element is on the HTML parsers stack of open elements.
+    ///
+    /// While this is the case  we don't bother incrementally
+    /// updating the document title.
+    is_currently_being_parsed: Cell<bool>,
 }
 
 impl HTMLTitleElement {
@@ -29,10 +34,11 @@ impl HTMLTitleElement {
         local_name: LocalName,
         prefix: Option<Prefix>,
         document: &Document,
+        is_parser_created: bool,
     ) -> HTMLTitleElement {
         HTMLTitleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            popped: Cell::new(false),
+            is_currently_being_parsed: Cell::new(is_parser_created),
         }
     }
 
@@ -42,11 +48,15 @@ impl HTMLTitleElement {
         prefix: Option<Prefix>,
         document: &Document,
         proto: Option<HandleObject>,
+        creator: ElementCreator,
     ) -> DomRoot<HTMLTitleElement> {
         Node::reflect_node_with_proto(
             cx,
             Box::new(HTMLTitleElement::new_inherited(
-                local_name, prefix, document,
+                local_name,
+                prefix,
+                document,
+                creator.is_parser_created(),
             )),
             document,
             proto,
@@ -86,7 +96,7 @@ impl VirtualMethods for HTMLTitleElement {
 
         // Notify of title changes only after the initial full parsing
         // of the element.
-        if self.popped.get() {
+        if !self.is_currently_being_parsed.get() {
             self.notify_title_changed();
         }
     }
@@ -106,7 +116,7 @@ impl VirtualMethods for HTMLTitleElement {
             s.pop(cx);
         }
 
-        self.popped.set(true);
+        self.is_currently_being_parsed.set(false);
 
         // Initial notification of title change, once the full text
         // is available.
