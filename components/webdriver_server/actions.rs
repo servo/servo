@@ -879,7 +879,8 @@ impl Handler {
                 mode: WheelMode::DeltaPixel,
             };
             let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
-            let input_event = InputEvent::Wheel(WheelEvent::new(delta, point));
+            let input_event =
+                InputEvent::Wheel(WheelEvent::new(delta, point, /*modifier=*/ false));
 
             self.send_blocking_input_event_to_embedder(input_event);
 
