@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use net_traits::request::{CorsSettings, RequestId};
+use net_traits::request::RequestId;
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
@@ -140,28 +140,17 @@ impl HTMLTrackElement {
             return;
         }
         // Step 3. If the text track's track element does not have a media element as a parent, return.
-        let Some(parent) = self
+        if self
             .upcast::<Node>()
             .GetParentElement()
-            .filter(|parent| parent.is::<HTMLMediaElement>())
-        else {
+            .map_or(false, |parent| !parent.is::<HTMLMediaElement>())
+        {
             return;
         };
         // Step 4. Run the remainder of these steps in parallel, allowing whatever caused these steps to run to continue.
-        // Step 5. Top: Await a stable state. The synchronous section consists of the following steps.
-        // (The steps in the synchronous section are marked with ⌛.)
-        // Step 6. ⌛ Set the text track readiness state to loading.
-        self.readiness_state.set(TextTrackReadinessState::Loading);
-        // Step 7. ⌛ Let URL be the track URL of the track element.
-        let url = self.track_url.borrow().clone();
-        // Step 8. ⌛ If the track element's parent is a media element,
-        // then let corsAttributeState be the state of the parent media element's
-        // crossorigin content attribute. Otherwise, let corsAttributeState be No CORS.
-        let cors_attribute_state = cors_setting_for_element(&parent);
+        // Step 5. Top: Await a stable state.
         let task = TrackElementMicrotask::ProcessingModel {
             elem: Dom::from_ref(self),
-            cors_attribute_state,
-            url,
         };
         self.is_running_processing_model_algorithm.set(true);
 
@@ -348,13 +337,7 @@ impl VirtualMethods for HTMLTrackElement {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum TrackElementMicrotask {
-    ProcessingModel {
-        elem: Dom<HTMLTrackElement>,
-        #[no_trace]
-        cors_attribute_state: Option<CorsSettings>,
-        #[no_trace]
-        url: Option<ServoUrl>,
-    },
+    ProcessingModel { elem: Dom<HTMLTrackElement> },
 }
 
 impl MicrotaskRunnable for TrackElementMicrotask {
@@ -364,11 +347,23 @@ impl MicrotaskRunnable for TrackElementMicrotask {
         };
         match self {
             // https://html.spec.whatwg.org/multipage/#start-the-track-processing-model
-            TrackElementMicrotask::ProcessingModel {
-                elem,
-                cors_attribute_state,
-                url,
-            } => {
+            TrackElementMicrotask::ProcessingModel { elem } => {
+                let media_parent = elem
+                    .upcast::<Node>()
+                    .GetParentNode()
+                    .and_then(DomRoot::downcast::<HTMLMediaElement>);
+
+                // The synchronous section consists of the following steps.
+                // (The steps in the synchronous section are marked with ⌛.)
+                // Step 6. ⌛ Set the text track readiness state to loading.
+                elem.readiness_state.set(TextTrackReadinessState::Loading);
+                // Step 7. ⌛ Let URL be the track URL of the track element.
+                let url = elem.track_url.borrow().clone();
+                // Step 8. ⌛ If the track element's parent is a media element,
+                // then let corsAttributeState be the state of the parent media element's
+                // crossorigin content attribute. Otherwise, let corsAttributeState be No CORS.
+                let cors_attribute_state =
+                    media_parent.and_then(|parent| cors_setting_for_element(parent.upcast()));
                 // Step 9. End the synchronous section, continuing the remaining steps in parallel.
                 // TODO
                 // Step 10. If URL is not the empty string:
@@ -381,8 +376,8 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                         Some(document.webview_id()),
                         url.clone(),
                         Destination::Track,
-                        *cors_attribute_state,
-                        None,
+                        cors_attribute_state,
+                        Some(true),
                         global.get_referrer(),
                     )
                     // Step 10.2. Set request's client to the track element's node document's relevant
