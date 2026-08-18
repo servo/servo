@@ -1416,26 +1416,6 @@ pub(crate) fn handle_get_computed_role(
     }
 
 }
-// pub(crate) fn handle_computed_role(documents: &DocumentCollection,
-//                                    pipeline: PipelineId,
-//                                    reply: GenericSender<Option<String>>,) {
-//     // ... existing browsing context checks ...
-//
-//     // Activate accessibility and wait for the tree to be built
-//     let (sender, receiver) = generic_channel::channel().unwrap();
-//     self.send_message_to_embedder(WebDriverCommandMsg::SetAccessibilityActive(
-//         self.webview_id()?, true, sender
-//     ))?;
-//     wait_for_ipc_response_flatten(receiver)?;  // blocks until reflow done
-//
-//     // Now query
-//     let (sender, receiver) = generic_channel::channel().unwrap();
-//     let cmd = WebDriverScriptCommand::GetComputedRole(element.to_string(), sender);
-//     self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
-//     Ok(WebDriverResponse::Generic(ValueResponse(
-//         serde_json::to_value(wait_for_ipc_response_flatten(receiver)?)?,
-//     )))
-// }
 
 pub(crate) fn handle_get_page_source(
     cx: &mut JSContext,
