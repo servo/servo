@@ -315,6 +315,8 @@ class OpenHarmonyTarget(CrossBuildTarget):
             f"The installed cargo-ohos version {found_version} is not SemVer compatible"
             + f" with the required cargo-ohos version {required_version}"
         )
+        if required_version > found_version:
+            return (False, f"The installed cargo-ohos version {found_version} is too old.")
         if required_version.major == 0:
             if required_version.minor != found_version.minor:
                 return (False, semver_incompatible_error_msg)
@@ -345,7 +347,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
         if schema_version is None or schema_version != self.CARGO_OHOS_EXPECTED_SCHEMA_VERSION:
             # This shouldn't happen if cargo-ohos releases follow semver, but still better
             # to check.
-            raise (RuntimeError("Unexpected schema-version mismatch."))
+            raise RuntimeError("Unexpected schema-version mismatch.")
 
         return ohos_env
 
