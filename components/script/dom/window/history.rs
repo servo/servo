@@ -16,7 +16,8 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::HistoryStateId;
 use servo_constellation_traits::{
-    ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
+    HistoryTraversalSource, ScriptToConstellationMessage, SessionHistoryTraversalRequest,
+    StructuredSerializedData, TraversalDirection,
 };
 use servo_url::ServoUrl;
 
@@ -74,12 +75,17 @@ impl History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security(None));
         }
-        let msg = ScriptToConstellationMessage::TraverseHistory(direction);
         let _ = self
             .window
             .as_global_scope()
             .script_to_constellation_chan()
-            .send(msg);
+            .send(ScriptToConstellationMessage::TraverseHistory(
+                SessionHistoryTraversalRequest::new(
+                    self.window.webview_id(),
+                    direction,
+                    HistoryTraversalSource::Script,
+                ),
+            ));
         Ok(())
     }
 

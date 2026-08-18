@@ -50,7 +50,7 @@ pub enum EmbedderToConstellationMessage {
     /// Request to load a page, with optionally additional data in [`URLRequest`].
     LoadUrl(WebViewId, UrlRequest),
     /// Request to traverse the joint session history of the provided browsing context.
-    TraverseHistory(WebViewId, TraversalDirection, TraversalId),
+    TraverseHistory(SessionHistoryTraversalRequest),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
     ChangeViewportDetails(WebViewId, ViewportDetails, WindowSizeType),
     /// Inform the constellation of a theme change.
@@ -173,6 +173,46 @@ pub enum TraversalDirection {
     Forward(usize),
     /// Travel backward the given number of documents.
     Back(usize),
+}
+
+/// The source of a [`HistoryTraversalRequest`].
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub enum HistoryTraversalSource {
+    /// The traversal was triggered from the embedder, which means it is expecting
+    /// a notification when the request has completed.
+    Embedder,
+    /// The traversal was triggered from the script event loop.
+    Script,
+}
+
+/// A history traversal request.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SessionHistoryTraversalRequest {
+    /// An identifier that uniquely identifies this [`HistoryTraversalRequest`].
+    pub id: TraversalId,
+    /// The `WebView` that should be traversed.
+    pub webview_id: WebViewId,
+    /// The direction and number of steps that should be traversed.
+    pub direction: TraversalDirection,
+    /// The [`HistoryTraversalSource`] of this [`HistoryTraversalRequest`].
+    pub source: HistoryTraversalSource,
+}
+
+impl SessionHistoryTraversalRequest {
+    /// Create a new [`HistoryTraversalRequest`] either due to an embedder API call
+    /// or a script-initiated history traversal.
+    pub fn new(
+        webview_id: WebViewId,
+        direction: TraversalDirection,
+        source: HistoryTraversalSource,
+    ) -> Self {
+        Self {
+            id: TraversalId::new(),
+            webview_id,
+            direction,
+            source,
+        }
+    }
 }
 
 /// A task on the <https://html.spec.whatwg.org/multipage/#port-message-queue>
