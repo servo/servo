@@ -282,9 +282,9 @@ impl PaintWorkletGlobalScope {
     }
 
     #[expect(unsafe_code)]
-    /// Gets or creates the `self.paint_class_instances` given by `name`.
-    /// Returns None if the operation went normally.
-    /// Returns Some we have a pending exception.
+    /// Gets or creates the `self.paint_class_instances` given by `name` and inserts
+    /// the value into the provided `paint_instance` handle. Returns `Err` when this
+    /// fails.
     fn get_or_create_paint_instance(
         &self,
         cx: &mut JSContext,
@@ -292,12 +292,17 @@ impl PaintWorkletGlobalScope {
         name: Atom,
         class_constructor: HandleValue,
         size_in_dpx: Size2D<u32, DevicePixel>,
-    ) -> Option<DrawAPaintImageResult> {
+    ) -> Result<(), DrawAPaintImageResult> {
         if let Some(entry) = self.paint_class_instances.borrow().get(&name) {
             paint_instance.set(entry.get());
-            return None;
+            return Ok(());
         }
 
+        // Step of <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
+        // 5.2 Let paintCtor be the class constructor on definition.
+        // 5.3 Let paintInstance be the result of Construct(paintCtor).
+        //     If construct throws an exception, set the definition’s constructor valid flag to false,
+        //     let the image output be an invalid image and abort all these steps.
         let args = HandleValueArray::empty();
         rooted!(&in(cx) let mut result = null_mut::<JSObject>());
         unsafe {
@@ -315,7 +320,7 @@ impl PaintWorkletGlobalScope {
                 .expect("Vanishing paint definition.")
                 .constructor_valid_flag
                 .set(false);
-            return Some(self.invalid_image(size_in_dpx, vec![]));
+            return Err(self.invalid_image(size_in_dpx, vec![]));
         }
         // Step 5.4
         let value = Box::<Heap<Value>>::default();
@@ -323,7 +328,7 @@ impl PaintWorkletGlobalScope {
         self.paint_class_instances
             .safe_borrow_mut(cx)
             .insert(name, value);
-        None
+        Ok(())
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
@@ -378,7 +383,7 @@ impl PaintWorkletGlobalScope {
         // the primary worklet thread.
         // https://github.com/servo/servo/issues/17377
         rooted!(&in(cx) let mut paint_instance = UndefinedValue());
-        if let Some(early_return) = self.get_or_create_paint_instance(
+        if let Err(early_return) = self.get_or_create_paint_instance(
             cx,
             paint_instance.handle_mut(),
             name.clone(),
