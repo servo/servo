@@ -21,7 +21,8 @@
     document.body.appendChild(div);
 
     await new Promise(resolve => {
-      new PerformanceObserver((entryList, observer) => {
+      new PerformanceObserver(
+        t.step_func((entryList, observer) => {
         for (const entry of entryList.getEntries()) {
           if (entry.id !== 'multi-line-text') continue;
 
@@ -47,7 +48,7 @@
           observer.disconnect();
           resolve();
         }
-      }).observe({type: 'largest-contentful-paint', buffered: true});
+      })).observe({type: 'largest-contentful-paint', buffered: true});
     });
   }, 'Text fragment union: wrapped text LCP size reflects the union of all line boxes.');
 </script>
