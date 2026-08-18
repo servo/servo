@@ -2312,7 +2312,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             );
             let spread = box_shadow.spread.px();
             let blur = box_shadow.base.blur.px();
-            let clip_rect = match clip_mode {
+            let mut clip_rect = match clip_mode {
                 // Inset shadows are always inside the rect.
                 BoxShadowClipMode::Inset => rect,
                 // Match webrender's box_shadow.rs Gaussian blur inflation.
@@ -2324,6 +2324,63 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .inflate(extra_size_from_blur, extra_size_from_blur)
                 },
             };
+            if self.fragment.is_fragmented_along_left_edge() {
+                let difference = self
+                    .fragmentation_clip_rect()
+                    .expect("Must have fragmentation clip rect")
+                    .min
+                    .x -
+                    clip_rect.min.x;
+                if difference > 0.0 {
+                    clip_rect = clip_rect.translate(LayoutVector2D::new(difference, 0.0));
+                    clip_rect.set_size(LayoutSize::new(
+                        clip_rect.size().width - difference,
+                        clip_rect.size().height,
+                    ));
+                }
+            }
+            if self.fragment.is_fragmented_along_top_edge() {
+                let difference = self
+                    .fragmentation_clip_rect()
+                    .expect("Must have fragmentation clip rect")
+                    .min
+                    .x -
+                    clip_rect.min.x;
+                if difference > 0.0 {
+                    clip_rect = clip_rect.translate(LayoutVector2D::new(difference, 0.0));
+                    clip_rect.set_size(LayoutSize::new(
+                        clip_rect.size().width,
+                        clip_rect.size().height - difference,
+                    ));
+                }
+            }
+            if self.fragment.is_fragmented_along_right_edge() {
+                let difference = clip_rect.max.x -
+                    self.fragmentation_clip_rect()
+                        .expect("Must have fragmentation clip rect")
+                        .max
+                        .x;
+                if difference > 0.0 {
+                    clip_rect.set_size(LayoutSize::new(
+                        clip_rect.size().width - difference,
+                        clip_rect.size().height,
+                    ));
+                }
+            }
+            if self.fragment.is_fragmented_along_bottom_edge() {
+                let difference = clip_rect.max.y -
+                    self.fragmentation_clip_rect()
+                        .expect("Must have fragmentation clip rect")
+                        .max
+                        .y;
+                if difference > 0.0 {
+                    clip_rect.set_size(LayoutSize::new(
+                        clip_rect.size().width,
+                        clip_rect.size().height - difference,
+                    ));
+                }
+            }
+
             let border_radius = match clip_mode {
                 BoxShadowClipMode::Inset => {
                     // The `border-radius` value applies to the border box, but inset shadows

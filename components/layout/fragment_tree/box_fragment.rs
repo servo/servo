@@ -438,25 +438,25 @@ impl BoxFragment {
             self.is_fragmented_along_right_edge()
     }
 
-    fn is_fragmented_along_top_edge(&self) -> bool {
+    pub(crate) fn is_fragmented_along_top_edge(&self) -> bool {
         self.rare_data
             .get()
             .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_top_edge)
     }
 
-    fn is_fragmented_along_bottom_edge(&self) -> bool {
+    pub(crate) fn is_fragmented_along_bottom_edge(&self) -> bool {
         self.rare_data
             .get()
             .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_bottom_edge)
     }
 
-    fn is_fragmented_along_left_edge(&self) -> bool {
+    pub(crate) fn is_fragmented_along_left_edge(&self) -> bool {
         self.rare_data
             .get()
             .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_left_edge)
     }
 
-    fn is_fragmented_along_right_edge(&self) -> bool {
+    pub(crate) fn is_fragmented_along_right_edge(&self) -> bool {
         self.rare_data
             .get()
             .is_some_and(|rare_data| rare_data.borrow().is_fragmented_along_right_edge)
