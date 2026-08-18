@@ -14,8 +14,6 @@ use std::{fmt, mem};
 
 use app_units::Au;
 use cssparser::match_ignore_ascii_case;
-#[cfg(feature = "devtools")]
-use devtools_traits::{AttrInfo, DomMutation, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use euclid::Rect;
 use html5ever::serialize::TraversalScope;
@@ -1873,7 +1871,7 @@ impl Element {
     }
 
     #[cfg(feature = "devtools")]
-    pub(crate) fn summarize(&self) -> Vec<AttrInfo> {
+    pub(crate) fn summarize(&self) -> Vec<devtools_traits::AttrInfo> {
         self.attrs
             .borrow()
             .iter()
@@ -4808,22 +4806,26 @@ impl VirtualMethods for Element {
 
         // Notify devtools that the DOM changed
         #[cfg(feature = "devtools")]
-        let window = self.owner_window();
-        #[cfg(feature = "devtools")]
-        if window.live_devtools_updates() {
-            let global = window.upcast::<GlobalScope>();
-            if let Some(sender) = global.devtools_chan() {
-                let pipeline_id = global.pipeline_id();
-                if ScriptThread::devtools_want_updates_for_node(pipeline_id, self.upcast()) {
-                    let devtools_message = ScriptToDevtoolsControlMsg::DomMutation(
-                        pipeline_id,
-                        DomMutation::AttributeModified {
-                            node: self.upcast::<Node>().unique_id(pipeline_id),
-                            attribute_name: attr.local_name().to_string(),
-                            new_value: mutation.new_value(attr).map(|value| value.to_string()),
-                        },
-                    );
-                    sender.send(devtools_message).unwrap();
+        {
+            let window = self.owner_window();
+            if window.live_devtools_updates() {
+                let global = window.upcast::<GlobalScope>();
+                if let Some(sender) = global.devtools_chan() {
+                    let pipeline_id = global.pipeline_id();
+                    if ScriptThread::devtools_want_updates_for_node(pipeline_id, self.upcast()) {
+                        let devtools_message =
+                            devtools_traits::ScriptToDevtoolsControlMsg::DomMutation(
+                                pipeline_id,
+                                devtools_traits::DomMutation::AttributeModified {
+                                    node: self.upcast::<Node>().unique_id(pipeline_id),
+                                    attribute_name: attr.local_name().to_string(),
+                                    new_value: mutation
+                                        .new_value(attr)
+                                        .map(|value| value.to_string()),
+                                },
+                            );
+                        sender.send(devtools_message).unwrap();
+                    }
                 }
             }
         }

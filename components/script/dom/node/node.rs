@@ -15,8 +15,6 @@ use std::{cmp, fmt, iter};
 
 use app_units::Au;
 use bitflags::bitflags;
-#[cfg(feature = "devtools")]
-use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
 use embedder_traits::{MouseButton, UntrustedNodeAddress};
 use euclid::default::Size2D;
@@ -46,8 +44,6 @@ use script_bindings::reflector::{
 use script_traits::{DocumentActivity, MouseButtons};
 use servo_base::id::PipelineId;
 use servo_base::text::Utf32CodeUnitsOrNodeOffset;
-#[cfg(feature = "devtools")]
-use servo_config::pref;
 use smallvec::SmallVec;
 use style::Atom;
 use style::context::QuirksMode;
@@ -58,12 +54,9 @@ use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
-#[cfg(feature = "devtools")]
-use crate::conversions::Convert;
+use crate::dom::ChildrenMutation;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-#[cfg(feature = "devtools")]
-use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -1853,7 +1846,9 @@ impl Node {
     }
 
     #[cfg(feature = "devtools")]
-    pub(crate) fn summarize(&self, cx: &mut JSContext) -> NodeInfo {
+    pub(crate) fn summarize(&self, cx: &mut JSContext) -> devtools_traits::NodeInfo {
+        use crate::conversions::Convert;
+        use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
         let USVString(base_uri) = self.BaseURI();
         let node_type = self.NodeType();
         let pipeline = self.owner_window().pipeline_id();
@@ -1869,7 +1864,8 @@ impl Node {
             let Some(root) = potential_host.shadow_root() else {
                 return false;
             };
-            !root.is_user_agent_widget() || pref!(inspector_show_servo_internal_shadow_roots)
+            !root.is_user_agent_widget() ||
+                servo_config::pref!(inspector_show_servo_internal_shadow_roots)
         });
 
         let num_children = if is_shadow_host {
@@ -1894,7 +1890,7 @@ impl Node {
             element.is_none_or(|element| !element.is_display_none()) || self.is::<DocumentType>();
         let attrs = element.map(Element::summarize).unwrap_or_default();
 
-        NodeInfo {
+        devtools_traits::NodeInfo {
             unique_id: self.unique_id(pipeline),
             host,
             base_uri,

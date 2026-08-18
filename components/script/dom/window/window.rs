@@ -21,7 +21,7 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
 #[cfg(feature = "devtools")]
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
@@ -3488,39 +3488,8 @@ impl Window {
         // activating this document due to a navigation.
         self.Document().title_changed();
     }
-
-    #[cfg(feature = "devtools")]
-    pub(crate) fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
-        let markers = self.devtools_markers.borrow();
-        markers.contains(&timeline_type)
-    }
-
-    #[cfg(feature = "devtools")]
-    pub(crate) fn emit_timeline_marker(&self, marker: TimelineMarker) {
-        let sender = self.devtools_marker_sender.borrow();
-        let sender = sender.as_ref().expect("There is no marker sender");
-        sender.send(Some(marker)).unwrap();
-    }
-
-    #[cfg(feature = "devtools")]
-    pub(crate) fn set_devtools_timeline_markers(
-        &self,
-        markers: Vec<TimelineMarkerType>,
-        reply: GenericSender<Option<TimelineMarker>>,
-    ) {
-        *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers.borrow_mut().extend(markers);
-    }
-
-    #[cfg(feature = "devtools")]
-    pub(crate) fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
-        let mut devtools_markers = self.devtools_markers.borrow_mut();
-        for marker in markers {
-            devtools_markers.remove(&marker);
-        }
-        if devtools_markers.is_empty() {
-            *self.devtools_marker_sender.borrow_mut() = None;
-        }
+    pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
+        *self.webdriver_script_chan.borrow_mut() = chan;
     }
 
     pub(crate) fn set_webdriver_load_status_sender(
@@ -3902,7 +3871,7 @@ impl Window {
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         #[cfg(feature = "devtools")] devtools_chan: Option<
-            GenericCallback<ScriptToDevtoolsControlMsg>,
+            GenericCallback<devtools_traits::ScriptToDevtoolsControlMsg>,
         >,
         script_to_constellation_sender: ScriptToConstellationSender,
         embedder_chan: ScriptToEmbedderChan,
@@ -4054,37 +4023,40 @@ impl Window {
     {
         LayoutValue::new(self.layout_marker.borrow().clone(), value)
     }
-
-    /// This method is an approximation of the specification [algorithm].
-    /// It exists in this form because we still store some fields in Window/GlobalScope
-    /// that realistically are specific to the active document. Where possible they
-    /// should be migrated to Document and WorkerGlobalScope, but currently doing so would result
-    /// in much more complicated code. This method is the compromise, where we mutate the values
-    /// in place to match the values that the specification expects.
-    ///
-    /// [algorithm] <https://html.spec.whatwg.org/multipage/#set-up-a-window-environment-settings-object>
-    pub(crate) fn set_up_a_window_environment_settings_object(
-        &self,
-        layout: Box<dyn Layout>,
-        creation_url: ServoUrl,
-        top_level_creation_url: ServoUrl,
-        navigation_start: CrossProcessInstant,
-        viewport_details: ViewportDetails,
-    ) {
-        *self.layout.borrow_mut() = layout;
-        self.set_viewport_details(viewport_details);
-        self.navigation_start.set(navigation_start);
-
-        // Step 6. Set settings object's creation URL to creationURL, settings object's top-level
-        //   creation URL to topLevelCreationURL, and settings object's top-level origin to topLevelOrigin.
-        let global = self.upcast::<GlobalScope>();
-        global.set_creation_url(creation_url);
-        global.set_top_level_creation_url(top_level_creation_url);
-
-        self.Document().detach_window();
-    }
 }
 
+#[cfg(feature = "devtools")]
+impl Window {
+    pub(crate) fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
+        let markers = self.devtools_markers.borrow();
+        markers.contains(&timeline_type)
+    }
+
+    pub(crate) fn emit_timeline_marker(&self, marker: TimelineMarker) {
+        let sender = self.devtools_marker_sender.borrow();
+        let sender = sender.as_ref().expect("There is no marker sender");
+        sender.send(Some(marker)).unwrap();
+    }
+
+    pub(crate) fn set_devtools_timeline_markers(
+        &self,
+        markers: Vec<TimelineMarkerType>,
+        reply: GenericSender<Option<TimelineMarker>>,
+    ) {
+        *self.devtools_marker_sender.borrow_mut() = Some(reply);
+        self.devtools_markers.borrow_mut().extend(markers);
+    }
+
+    pub(crate) fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
+        let mut devtools_markers = self.devtools_markers.borrow_mut();
+        for marker in markers {
+            devtools_markers.remove(&marker);
+        }
+        if devtools_markers.is_empty() {
+            *self.devtools_marker_sender.borrow_mut() = None;
+        }
+    }
+}
 /// An instance of a value associated with a particular snapshot of layout. This stored
 /// value can only be read as long as the associated layout marker that is considered
 /// valid. It will automatically become unavailable when the next layout operation is

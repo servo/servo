@@ -400,7 +400,7 @@ impl WorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
-        #[cfg(feature = "devtools")] devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,
@@ -411,9 +411,10 @@ impl WorkerGlobalScope {
         PipelineNamespace::auto_install();
 
         #[cfg(feature = "devtools")]
-        let devtools_receiver = match init.from_devtools_sender {
-            Some(..) => Some(devtools_receiver),
-            None => None,
+        let devtools_receiver = if init.from_devtools_sender.is_some() {
+            devtools_receiver
+        } else {
+            None
         };
 
         Self {
@@ -1171,13 +1172,19 @@ impl WorkerGlobalScope {
             factory.abort_pending_upgrades_and_close_databases();
         }
     }
+}
 
-    #[cfg(feature = "devtools")]
+#[cfg(feature = "devtools")]
+impl WorkerGlobalScope {
     pub(crate) fn init_debugger_global(
         &self,
-        debugger_global: &DebuggerGlobalScope,
+        debugger_global: Option<&DebuggerGlobalScope>,
         cx: &mut JSContext,
     ) {
+        let Some(debugger_global) = debugger_global else {
+            return;
+        };
+
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
 
@@ -1190,7 +1197,6 @@ impl WorkerGlobalScope {
         self.debugger_global.set(*wrapped_global);
     }
 
-    #[cfg(feature = "devtools")]
     pub(crate) fn handle_devtools_message(&self, msg: DevtoolScriptControlMsg, cx: &mut JSContext) {
         match msg {
             DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _wants_updates) => {},

@@ -12,8 +12,6 @@ use std::rc::Rc;
 use std::sync::LazyLock;
 
 use deny_public_fields::DenyPublicFields;
-#[cfg(feature = "devtools")]
-use devtools_traits::EventListenerInfo;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
@@ -1055,13 +1053,15 @@ impl EventTarget {
     }
 
     #[cfg(feature = "devtools")]
-    pub(crate) fn summarize_event_listeners_for_devtools(&self) -> Vec<EventListenerInfo> {
+    pub(crate) fn summarize_event_listeners_for_devtools(
+        &self,
+    ) -> Vec<devtools_traits::EventListenerInfo> {
         let handlers = self.handlers.borrow();
         let mut listener_infos = Vec::with_capacity(handlers.0.len());
         for (event_type, event_listeners) in &handlers.0 {
             for event_listener in event_listeners.iter() {
                 let event_listener_entry = event_listener.borrow();
-                listener_infos.push(EventListenerInfo {
+                listener_infos.push(devtools_traits::EventListenerInfo {
                     event_type: event_type.to_string(),
                     capturing: event_listener_entry.phase() == ListenerPhase::Capturing,
                 });
