@@ -116,8 +116,6 @@ use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
 #[cfg(feature = "devtools")]
 use crate::devtools;
-#[cfg(feature = "devtools")]
-use crate::devtools::DevtoolsState;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -428,7 +426,7 @@ pub struct ScriptThread {
     privileged_urls: Vec<ServoUrl>,
 
     #[cfg(feature = "devtools")]
-    devtools_state: DevtoolsState,
+    devtools_state: crate::devtools::DevtoolsState,
 }
 
 struct BHMExitSignal {

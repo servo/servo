@@ -314,9 +314,7 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
-            DevtoolScriptControlMsg,
-        >,
+        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -339,7 +337,6 @@ impl DedicatedWorkerGlobalScope {
                 worker_type,
                 worker_url,
                 runtime,
-                #[cfg(feature = "devtools")]
                 from_devtools_receiver,
                 closing,
                 #[cfg(feature = "webgpu")]
@@ -376,9 +373,7 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
-            DevtoolScriptControlMsg,
-        >,
+        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -402,7 +397,6 @@ impl DedicatedWorkerGlobalScope {
             worker_name,
             worker_type,
             worker_url,
-            #[cfg(feature = "devtools")]
             from_devtools_receiver,
             runtime,
             parent_event_loop_sender,
@@ -428,7 +422,7 @@ impl DedicatedWorkerGlobalScope {
         #[cfg(feature = "devtools")]
         scope
             .upcast::<WorkerGlobalScope>()
-            .init_debugger_global(debugger_global, cx);
+            .init_debugger_global(Some(debugger_global), cx);
 
         scope
     }
@@ -571,8 +565,7 @@ impl DedicatedWorkerGlobalScope {
                     worker_name.into(),
                     worker_type,
                     worker_url.url(),
-                    #[cfg(feature = "devtools")]
-                    devtools_mpsc_port,
+                    Some(devtools_mpsc_port),
                     runtime,
                     parent_event_loop_sender,
                     own_sender,

@@ -21,7 +21,7 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
 #[cfg(feature = "devtools")]
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
+use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
@@ -3475,40 +3475,6 @@ impl Window {
         self.Document().title_changed();
     }
 
-    #[cfg(feature = "devtools")]
-    pub(crate) fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
-        let markers = self.devtools_markers.borrow();
-        markers.contains(&timeline_type)
-    }
-
-    #[cfg(feature = "devtools")]
-    pub(crate) fn emit_timeline_marker(&self, marker: TimelineMarker) {
-        let sender = self.devtools_marker_sender.borrow();
-        let sender = sender.as_ref().expect("There is no marker sender");
-        sender.send(Some(marker)).unwrap();
-    }
-
-    #[cfg(feature = "devtools")]
-    pub(crate) fn set_devtools_timeline_markers(
-        &self,
-        markers: Vec<TimelineMarkerType>,
-        reply: GenericSender<Option<TimelineMarker>>,
-    ) {
-        *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers.borrow_mut().extend(markers);
-    }
-
-    #[cfg(feature = "devtools")]
-    pub(crate) fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
-        let mut devtools_markers = self.devtools_markers.borrow_mut();
-        for marker in markers {
-            devtools_markers.remove(&marker);
-        }
-        if devtools_markers.is_empty() {
-            *self.devtools_marker_sender.borrow_mut() = None;
-        }
-    }
-
     pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
@@ -3894,7 +3860,7 @@ impl Window {
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
         #[cfg(feature = "devtools")] devtools_chan: Option<
-            GenericCallback<ScriptToDevtoolsControlMsg>,
+            GenericCallback<devtools_traits::ScriptToDevtoolsControlMsg>,
         >,
         script_to_constellation_sender: ScriptToConstellationSender,
         embedder_chan: ScriptToEmbedderChan,
@@ -4047,6 +4013,38 @@ impl Window {
     }
 }
 
+#[cfg(feature = "devtools")]
+impl Window {
+    pub(crate) fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
+        let markers = self.devtools_markers.borrow();
+        markers.contains(&timeline_type)
+    }
+
+    pub(crate) fn emit_timeline_marker(&self, marker: TimelineMarker) {
+        let sender = self.devtools_marker_sender.borrow();
+        let sender = sender.as_ref().expect("There is no marker sender");
+        sender.send(Some(marker)).unwrap();
+    }
+
+    pub(crate) fn set_devtools_timeline_markers(
+        &self,
+        markers: Vec<TimelineMarkerType>,
+        reply: GenericSender<Option<TimelineMarker>>,
+    ) {
+        *self.devtools_marker_sender.borrow_mut() = Some(reply);
+        self.devtools_markers.borrow_mut().extend(markers);
+    }
+
+    pub(crate) fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
+        let mut devtools_markers = self.devtools_markers.borrow_mut();
+        for marker in markers {
+            devtools_markers.remove(&marker);
+        }
+        if devtools_markers.is_empty() {
+            *self.devtools_marker_sender.borrow_mut() = None;
+        }
+    }
+}
 /// An instance of a value associated with a particular snapshot of layout. This stored
 /// value can only be read as long as the associated layout marker that is considered
 /// valid. It will automatically become unavailable when the next layout operation is
