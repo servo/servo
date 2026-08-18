@@ -20,12 +20,12 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
     ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
-    SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdsaParams, ec_common,
+    SubtleEcKeyGenParams, SubtleEcKeyImportParams, EcdsaParams, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-sign>
 pub(crate) fn sign(
-    normalized_algorithm: &SubtleEcdsaParams,
+    normalized_algorithm: &EcdsaParams,
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -120,7 +120,7 @@ pub(crate) fn sign(
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-verify>
 pub(crate) fn verify(
-    normalized_algorithm: &SubtleEcdsaParams,
+    normalized_algorithm: &EcdsaParams,
     key: &CryptoKey,
     message: &[u8],
     signature: &[u8],

@@ -3153,7 +3153,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaOaepParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleEcdsaParams {
+struct EcdsaParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3161,7 +3161,7 @@ struct SubtleEcdsaParams {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcdsaParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdsaParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3171,7 +3171,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcdsaParams {
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtleEcdsaParams {
+        Ok(EcdsaParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
@@ -5058,7 +5058,7 @@ impl Operation for SignOperation {
 enum SignAlgorithm {
     RsassaPkcs1V1_5(Algorithm),
     RsaPss(RsaPssParams),
-    Ecdsa(SubtleEcdsaParams),
+    Ecdsa(EcdsaParams),
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
@@ -5147,7 +5147,7 @@ impl Operation for VerifyOperation {
 enum VerifyAlgorithm {
     RsassaPkcs1V1_5(Algorithm),
     RsaPss(RsaPssParams),
-    Ecdsa(SubtleEcdsaParams),
+    Ecdsa(EcdsaParams),
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
