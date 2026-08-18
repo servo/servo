@@ -20,7 +20,7 @@ use html5ever::serialize::SerializeOpts;
 use http::Method;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
 use hyper_serde::Serde;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue};
@@ -46,6 +46,7 @@ use stylo_atoms::Atom;
 use url::Position;
 
 use crate::dom::bindings::buffer_source::{HeapBufferSource, get_buffer_source_copy};
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::{
     XMLHttpRequestMethods, XMLHttpRequestResponseType,
@@ -120,7 +121,7 @@ impl FetchResponseListener for XHRContext {
         let xhr = self.xhr.root();
         let rv = xhr.process_headers_available(cx, self.gen_id, metadata);
         if rv.is_err() {
-            *self.sync_status.borrow_mut() = Some(rv);
+            *self.sync_status.safe_borrow_mut(cx.no_gc()) = Some(rv);
         }
     }
 
@@ -143,7 +144,7 @@ impl FetchResponseListener for XHRContext {
             .xhr
             .root()
             .process_response_complete(cx, self.gen_id, response.map(|_| ()));
-        *self.sync_status.borrow_mut() = Some(rv);
+        *self.sync_status.safe_borrow_mut(cx.no_gc()) = Some(rv);
     }
 
     fn process_csp_violations(
@@ -415,7 +416,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 }
 
                 // Step 10. Terminate this’s fetch controller.
-                self.terminate_ongoing_fetch();
+                self.terminate_ongoing_fetch(cx.no_gc());
 
                 // FIXME(#13767): In the WPT test: FileAPI/blob/Blob-XHR-revoke.html,
                 // the xhr.open(url) is expected to hold a reference to the URL,
@@ -424,13 +425,13 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 // scheme and trigger corresponding actions here.
 
                 // Step 12
-                *self.request_method.borrow_mut() = parsed_method;
-                *self.request_url.borrow_mut() = Some(parsed_url);
+                *self.request_method.safe_borrow_mut(cx.no_gc()) = parsed_method;
+                *self.request_url.safe_borrow_mut(cx.no_gc()) = Some(parsed_url);
                 self.sync.set(!asynch);
-                *self.request_headers.borrow_mut() = HeaderMap::new();
+                *self.request_headers.safe_borrow_mut(cx.no_gc()) = HeaderMap::new();
                 self.send_flag.set(false);
                 self.upload_listener.set(false);
-                *self.status.borrow_mut() = HttpStatus::new_error();
+                *self.status.safe_borrow_mut(cx.no_gc()) = HttpStatus::new_error();
 
                 // Step 13
                 if self.ready_state.get() != XMLHttpRequestState::Opened {
@@ -446,7 +447,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-setrequestheader()-method>
-    fn SetRequestHeader(&self, name: ByteString, value: ByteString) -> ErrorResult {
+    fn SetRequestHeader(&self, no_gc: &NoGC, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1: If this’s state is not opened, then throw an "InvalidStateError" DOMException.
         // Step 2: If this’s send() flag is set, then throw an "InvalidStateError" DOMException.
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
@@ -474,7 +475,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             name_str,
             str::from_utf8(value).ok()
         );
-        let mut headers = self.request_headers.borrow_mut();
+        let mut headers = self.request_headers.safe_borrow_mut(no_gc);
 
         // Step 6: Combine (name, value) in this’s author request headers.
         // https://fetch.spec.whatwg.org/#concept-header-list-combine
@@ -506,7 +507,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-timeout-attribute>
-    fn SetTimeout(&self, timeout: u32) -> ErrorResult {
+    fn SetTimeout(&self, no_gc: &NoGC, timeout: u32) -> ErrorResult {
         // Step 1
         if self.sync_in_window() {
             return Err(Error::InvalidAccess(None));
@@ -518,15 +519,15 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
         if self.send_flag.get() {
             if timeout.is_zero() {
-                self.cancel_timeout();
+                self.cancel_timeout(no_gc);
                 return Ok(());
             }
             let progress = Instant::now() - self.fetch_time.get();
             if timeout > progress {
-                self.set_timeout(timeout - progress);
+                self.set_timeout(no_gc, timeout - progress);
             } else {
                 // Immediately execute the timeout steps
-                self.set_timeout(Duration::ZERO);
+                self.set_timeout(no_gc, Duration::ZERO);
             }
         }
         Ok(())
@@ -801,7 +802,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
 
         let timeout = self.timeout.get();
         if timeout > Duration::ZERO {
-            self.set_timeout(timeout);
+            self.set_timeout(cx.no_gc(), timeout);
         }
         Ok(())
     }
@@ -809,7 +810,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     /// <https://xhr.spec.whatwg.org/#the-abort()-method>
     fn Abort(&self, cx: &mut JSContext) {
         // Step 1
-        self.terminate_ongoing_fetch();
+        self.terminate_ongoing_fetch(cx.no_gc());
         // Step 2
         let state = self.ready_state.get();
         if (state == XMLHttpRequestState::Opened && self.send_flag.get()) ||
@@ -828,9 +829,9 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
         if self.ready_state.get() == XMLHttpRequestState::Done {
             self.change_ready_state(cx, XMLHttpRequestState::Unsent);
             self.response_status.set(Err(()));
-            *self.status.borrow_mut() = HttpStatus::new_error();
-            self.response.borrow_mut().clear();
-            self.response_headers.borrow_mut().clear();
+            *self.status.safe_borrow_mut(cx.no_gc()) = HttpStatus::new_error();
+            self.response.safe_borrow_mut(cx.no_gc()).clear();
+            self.response_headers.safe_borrow_mut(cx.no_gc()).clear();
         }
     }
 
@@ -897,7 +898,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-overridemimetype()-method>
-    fn OverrideMimeType(&self, mime: DOMString) -> ErrorResult {
+    fn OverrideMimeType(&self, no_gc: &NoGC, mime: DOMString) -> ErrorResult {
         // 1. If this’s state is loading or done, then throw an "InvalidStateError"
         //   DOMException.
         match self.ready_state.get() {
@@ -917,7 +918,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 .map_err(|_| Error::Syntax(None))?,
         };
 
-        *self.override_mime_type.borrow_mut() = Some(override_mime);
+        *self.override_mime_type.safe_borrow_mut(no_gc) = Some(override_mime);
         Ok(())
     }
 
@@ -1063,7 +1064,8 @@ impl XMLHttpRequest {
             },
         };
 
-        metadata.final_url[..Position::AfterQuery].clone_into(&mut self.response_url.borrow_mut());
+        metadata.final_url[..Position::AfterQuery]
+            .clone_into(&mut self.response_url.safe_borrow_mut(cx.no_gc()));
 
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(
@@ -1145,14 +1147,14 @@ impl XMLHttpRequest {
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
                 if !status.is_error() {
-                    *self.status.borrow_mut() = status;
+                    *self.status.safe_borrow_mut(cx.no_gc()) = status;
                 }
                 if let Some(h) = headers.as_ref() {
-                    *self.response_headers.borrow_mut() = h.clone();
+                    *self.response_headers.safe_borrow_mut(cx.no_gc()) = h.clone();
                 }
                 {
                     let len = headers.and_then(|h| h.typed_get::<ContentLength>());
-                    let mut response = self.response.borrow_mut();
+                    let mut response = self.response.safe_borrow_mut(cx.no_gc());
                     response.clear();
                     if let Some(len) = len {
                         // don't attempt to prereserve more than 4 MB of memory,
@@ -1177,7 +1179,9 @@ impl XMLHttpRequest {
                 // Part of step 11, send() (processing response body)
                 // XXXManishearth handle errors, if any (substep 2)
 
-                self.response.borrow_mut().append(&mut partial_response);
+                self.response
+                    .safe_borrow_mut(cx.no_gc())
+                    .append(&mut partial_response);
                 if !self.sync.get() {
                     if self.ready_state.get() == XMLHttpRequestState::HeadersReceived {
                         self.ready_state.set(XMLHttpRequestState::Loading);
@@ -1201,8 +1205,8 @@ impl XMLHttpRequest {
                         self.sync.get()
                 );
 
-                self.cancel_timeout();
-                self.canceller.borrow_mut().ignore();
+                self.cancel_timeout(cx.no_gc());
+                self.canceller.safe_borrow_mut(cx.no_gc()).ignore();
 
                 // Part of step 11, send() (processing response end of file)
                 // XXXManishearth handle errors, if any (substep 2)
@@ -1218,13 +1222,13 @@ impl XMLHttpRequest {
                 self.dispatch_response_progress_event(cx, atom!("loadend"));
             },
             XHRProgress::Errored(_, e) => {
-                self.cancel_timeout();
-                self.canceller.borrow_mut().ignore();
+                self.cancel_timeout(cx.no_gc());
+                self.canceller.safe_borrow_mut(cx.no_gc()).ignore();
 
                 self.discard_subsequent_responses();
                 self.send_flag.set(false);
-                *self.status.borrow_mut() = HttpStatus::new_error();
-                self.response_headers.borrow_mut().clear();
+                *self.status.safe_borrow_mut(cx.no_gc()) = HttpStatus::new_error();
+                self.response_headers.safe_borrow_mut(cx.no_gc()).clear();
                 // XXXManishearth set response to NetworkError
                 self.change_ready_state(cx, XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
@@ -1252,8 +1256,8 @@ impl XMLHttpRequest {
         }
     }
 
-    fn terminate_ongoing_fetch(&self) {
-        self.canceller.borrow_mut().abort();
+    fn terminate_ongoing_fetch(&self, no_gc: &NoGC) {
+        self.canceller.safe_borrow_mut(no_gc).abort();
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         self.response_status.set(Ok(()));
@@ -1324,19 +1328,19 @@ impl XMLHttpRequest {
         self.dispatch_progress_event(cx, false, type_, len, total);
     }
 
-    fn set_timeout(&self, duration: Duration) {
+    fn set_timeout(&self, no_gc: &NoGC, duration: Duration) {
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
         let callback = OneshotTimerCallback::XhrTimeout(XHRTimeoutCallback {
             xhr: Trusted::new(self),
             generation_id: self.generation_id.get(),
         });
-        *self.timeout_cancel.borrow_mut() =
+        *self.timeout_cancel.safe_borrow_mut(no_gc) =
             Some(self.global().schedule_callback(callback, duration));
     }
 
-    fn cancel_timeout(&self) {
-        if let Some(handle) = self.timeout_cancel.borrow_mut().take() {
+    fn cancel_timeout(&self, no_gc: &NoGC) {
+        if let Some(handle) = self.timeout_cancel.safe_borrow_mut(no_gc).take() {
             self.global().unschedule_callback(handle);
         }
     }
@@ -1626,7 +1630,7 @@ impl XMLHttpRequest {
             )
         };
 
-        *self.canceller.borrow_mut() =
+        *self.canceller.safe_borrow_mut(cx.no_gc()) =
             FetchCanceller::new(request_builder.id, false, global.core_resource_thread());
 
         global.fetch(request_builder, context, task_source);
