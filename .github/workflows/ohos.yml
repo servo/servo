@@ -175,7 +175,7 @@ jobs:
       # This should be a no-op in most cases, since the image build already ran bootstrap.
       - name: Bootstrap dependencies
         timeout-minutes: 10
-        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest --ohos
+        run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest --skip-platform --ohos
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
