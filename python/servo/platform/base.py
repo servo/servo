@@ -101,12 +101,12 @@ class Base:
 
     def install_ohos(self, force: bool) -> bool:
         (is_installed_and_compatible, _reason) = OpenHarmonyTarget.is_cargo_ohos_compatible()
-        if not is_installed_and_compatible or force:
-            print(" * Installing cargo-ohos...")
+        if not (is_installed_and_compatible or force):
+            return False
+        print(" * Installing cargo-ohos...")
         requested_version = OpenHarmonyTarget.REQUESTED_CARGO_OHOS_VERSION
         if subprocess.call(["cargo", "install", f"cargo-ohos@{requested_version}", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-ohos failed.")
-
         return True
 
     def install_cargo_deny(self, force: bool) -> bool:
