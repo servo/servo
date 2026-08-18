@@ -3210,7 +3210,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyGenParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleEcKeyAlgorithm {
+pub(crate) struct EcKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
     name: CryptoAlgorithm,
 
@@ -3218,7 +3218,7 @@ pub(crate) struct SubtleEcKeyAlgorithm {
     named_curve: String,
 }
 
-impl ToJSValConvertible for SubtleEcKeyAlgorithm {
+impl ToJSValConvertible for EcKeyAlgorithm {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -3238,19 +3238,19 @@ impl ToJSValConvertible for SubtleEcKeyAlgorithm {
     }
 }
 
-impl TryFrom<SerializableEcKeyAlgorithm> for SubtleEcKeyAlgorithm {
+impl TryFrom<SerializableEcKeyAlgorithm> for EcKeyAlgorithm {
     type Error = ();
 
     fn try_from(value: SerializableEcKeyAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleEcKeyAlgorithm {
+        Ok(EcKeyAlgorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             named_curve: value.named_curve,
         })
     }
 }
 
-impl From<&SubtleEcKeyAlgorithm> for SerializableEcKeyAlgorithm {
-    fn from(value: &SubtleEcKeyAlgorithm) -> Self {
+impl From<&EcKeyAlgorithm> for SerializableEcKeyAlgorithm {
+    fn from(value: &EcKeyAlgorithm) -> Self {
         SerializableEcKeyAlgorithm {
             name: value.name.as_str().into(),
             named_curve: value.named_curve.clone(),
@@ -4302,7 +4302,7 @@ impl ExportedKey {
 pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(KeyAlgorithm),
     RsaHashedKeyAlgorithm(RsaHashedKeyAlgorithm),
-    EcKeyAlgorithm(SubtleEcKeyAlgorithm),
+    EcKeyAlgorithm(EcKeyAlgorithm),
     AesKeyAlgorithm(SubtleAesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
     KmacKeyAlgorithm(SubtleKmacKeyAlgorithm),
