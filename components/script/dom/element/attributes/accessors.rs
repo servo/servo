@@ -157,6 +157,22 @@ impl Element {
         }
     }
 
+    pub(crate) fn set_nullable_tokenlist_attribute(
+        &self,
+        cx: &mut JSContext,
+        local_name: &LocalName,
+        value: Option<DOMString>,
+    ) {
+        match value {
+            Some(string_value) => {
+                self.set_tokenlist_attribute(cx, local_name, string_value);
+            },
+            None => {
+                self.remove_attribute(cx, &ns!(), local_name);
+            },
+        }
+    }
+
     /// Returns true if any attribute in the tokenlist fulfill `f`. Equivalent to
     /// `get_tokenlist_attribute(name).iter().any(f)`.
     pub(crate) fn any_tokenlist_attribute(

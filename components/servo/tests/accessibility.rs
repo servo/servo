@@ -227,6 +227,18 @@ fn test_accessibility_basic_mapping() {
 }
 
 #[test]
+fn test_accessibility_basic_role_from_attribute() {
+    let url = "data:text/html,<!DOCTYPE html><div role='blockquote'></div>";
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let first_child = root
+        .children()
+        .next()
+        .expect("Root web area should have at least one child.");
+    assert_eq!(first_child.role(), Role::Blockquote);
+}
+
+#[test]
 fn test_accessibility_basic_name_from_contents() {
     let url = "data:text/html,<!DOCTYPE html><h1>Servo</h1>";
     let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
@@ -393,6 +405,74 @@ fn test_accessibility_text_change() {
         h1.label(),
         Some("This is an h1, now with more text".to_owned())
     );
+}
+
+#[test]
+fn test_accessibility_role_mutations() {
+    let url = "data:text/html,<!DOCTYPE html>\
+        <div id='div1' role='emphasis'>Servo</div>\
+        <aside id='aside'>Aside</aside>\
+        <main id='main' role='status'>Main</main>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 3);
+    let div = children[0];
+    assert_eq!(
+        div.role(),
+        Role::Emphasis,
+        "<div> should respect author's override"
+    );
+    let aside = children[1];
+    assert_eq!(
+        aside.role(),
+        Role::Complementary,
+        "<aside> should default to implicit ARIA role"
+    );
+    let main = children[2];
+    assert_eq!(
+        main.role(),
+        Role::Status,
+        "<main> should respect author's override"
+    );
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "\
+            div1.role = 'blockquote';\
+            aside.role = 'presentation';\
+            main.role = null;\
+        ",
+    );
+
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    let update = updates.pop().expect("Guaranteed by assert above");
+    assert_eq!(update.nodes.len(), 3);
+    assert_eq!(
+        update.nodes[0].1.role(),
+        Role::Main,
+        "<main> should fallback to implicit role when explicit role is removed"
+    );
+    assert_eq!(
+        update.nodes[1].1.role(),
+        Role::Blockquote,
+        "<div> should have the new explicit role"
+    );
+    assert_eq!(
+        update.nodes[2].1.role(),
+        Role::GenericContainer,
+        "<aside> should use the explicit role instead of the implicit role"
+    );
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let children: Vec<accesskit_consumer::Node> = root.children().collect();
+    assert_eq!(children.len(), 3);
+    assert_eq!(children[0].role(), Role::Blockquote);
+    assert_eq!(children[1].role(), Role::GenericContainer);
+    assert_eq!(children[2].role(), Role::Main);
 }
 
 #[test]

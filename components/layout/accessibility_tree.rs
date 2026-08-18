@@ -12,13 +12,14 @@ use bitflags::bitflags;
 use layout_api::{AccessibilityDamage, LayoutElement, LayoutNode, LayoutNodeType};
 use log::trace;
 use rustc_hash::{FxHashMap, FxHashSet};
-use script::layout_dom::ServoLayoutNode;
+use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use servo_base::Epoch;
 use servo_base::print_tree::PrintTree;
 use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
+use style::Atom;
 use style::dom::OpaqueNode;
-use web_atoms::{LocalName, local_name};
+use web_atoms::{LocalName, local_name, ns};
 
 use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
@@ -513,12 +514,25 @@ impl AccessibilityTree {
     }
 }
 
+/// <https://w3c.github.io/aria/#host_general_role>
+fn role_from_role_attribute(dom_element: &ServoLayoutElement<'_>) -> Option<Role> {
+    let role_attribute = dom_element.attribute(&ns!(), &local_name!("role"))?;
+    role_attribute
+        .as_tokens()
+        .iter()
+        .filter_map(|role_name_in_attribute| SUPPORTED_ARIA_ROLES.get(role_name_in_attribute))
+        .next()
+        .cloned()
+}
+
 fn role_from_dom_node(dom_node: &ServoLayoutNode<'_>) -> Role {
     if let Some(dom_element) = dom_node.as_element() {
-        let local_name = dom_element.local_name().to_ascii_lowercase();
-        *HTML_ELEMENT_ROLE_MAPPINGS
-            .get(&local_name)
-            .unwrap_or(&Role::GenericContainer)
+        role_from_role_attribute(&dom_element).unwrap_or_else(|| {
+            let local_name = dom_element.local_name().to_ascii_lowercase();
+            *HTML_ELEMENT_ROLE_MAPPINGS
+                .get(&local_name)
+                .unwrap_or(&Role::GenericContainer)
+        })
     } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
         Role::TextRun
     } else {
@@ -772,7 +786,7 @@ impl AccessibilityNode {
         dom_damage: AccessibilityDamage,
     ) -> LocalAccessibilityDamage {
         let mut local_damage = LocalAccessibilityDamage::empty();
-        if !dom_damage.contains(AccessibilityDamage::Text) {
+        if !dom_damage.contains(AccessibilityDamage::Node) {
             return local_damage;
         }
         local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
@@ -1166,6 +1180,55 @@ static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLo
         (local_name!("main"), Role::Main),
         (local_name!("nav"), Role::Navigation),
         (local_name!("p"), Role::Paragraph),
+    ]
+    .into_iter()
+    .collect()
+});
+
+/// A map from role names allowed in the 'role' attribute of an HTML element to the corresponding
+/// [`Role`] in AccessKit.
+///
+/// This is currently just the roles that don't have any [supported][1] or [required][2] properties
+/// and also don't require an [accessible name][3].
+/// [1]: https://w3c.github.io/aria/#supportedState
+/// [2]: https://w3c.github.io/aria/#requiredState
+/// [3]: https://w3c.github.io/aria/#namefromauthor
+static SUPPORTED_ARIA_ROLES: LazyLock<FxHashMap<Atom, Role>> = LazyLock::new(|| {
+    [
+        (Atom::from("alert"), Role::Alert),
+        (Atom::from("banner"), Role::Banner),
+        (Atom::from("blockquote"), Role::Blockquote),
+        (Atom::from("caption"), Role::Caption),
+        (Atom::from("code"), Role::Code),
+        (Atom::from("complementary"), Role::Complementary),
+        (Atom::from("contentinfo"), Role::ContentInfo),
+        (Atom::from("definition"), Role::Definition),
+        (Atom::from("deletion"), Role::ContentDeletion),
+        (Atom::from("directory"), Role::Unknown),
+        (Atom::from("document"), Role::Document),
+        (Atom::from("emphasis"), Role::Emphasis),
+        (Atom::from("feed"), Role::Feed),
+        (Atom::from("figure"), Role::Figure),
+        (Atom::from("generic"), Role::GenericContainer),
+        (Atom::from("insertion"), Role::ContentInsertion),
+        (Atom::from("list"), Role::List),
+        (Atom::from("log"), Role::Log),
+        (Atom::from("main"), Role::Main),
+        (Atom::from("math"), Role::Math),
+        (Atom::from("navigation"), Role::Navigation),
+        (Atom::from("none"), Role::GenericContainer),
+        (Atom::from("note"), Role::Note),
+        (Atom::from("paragraph"), Role::Paragraph),
+        (Atom::from("presentation"), Role::GenericContainer),
+        (Atom::from("rowgroup"), Role::RowGroup),
+        (Atom::from("search"), Role::Search),
+        (Atom::from("status"), Role::Status),
+        (Atom::from("strong"), Role::Strong),
+        // (Atom::from("subscript"), Role::Subscript), // no corresponding accesskit role.
+        // (Atom::from("superscript"), Role::Superscript), // no corresponding accesskit role.
+        (Atom::from("term"), Role::Term),
+        (Atom::from("time"), Role::Time),
+        (Atom::from("timer"), Role::Timer),
     ]
     .into_iter()
     .collect()
