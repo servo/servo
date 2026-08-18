@@ -143,7 +143,7 @@ impl HTMLTrackElement {
         if self
             .upcast::<Node>()
             .GetParentElement()
-            .map_or(false, |parent| !parent.is::<HTMLMediaElement>())
+            .is_none_or(|parent| !parent.is::<HTMLMediaElement>())
         {
             return;
         };
@@ -390,7 +390,7 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                     // Step 10.4. Fetch request.
                     let listener = HTMLTrackElementFetchListener {
                         element: Trusted::new(elem),
-                        url: url.clone(),
+                        url,
                         payload: vec![],
                     };
                     document.fetch_background(request, listener);
