@@ -320,6 +320,7 @@ impl PaintWorkletGlobalScope {
                 .expect("Vanishing paint definition.")
                 .constructor_valid_flag
                 .set(false);
+            // 1.2 Let the image output be an invalid image and abort all these steps.
             return Err(self.invalid_image(size_in_dpx, vec![]));
         }
         // Step 5.4
