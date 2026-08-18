@@ -74,7 +74,7 @@ pub(crate) struct ContainingBlock {
     /// containing block.
     accumulated_reference_frame_offset: PhysicalVec<Au>,
 
-    /// Whether current containing block established a scroll frome.
+    /// Whether current containing block established a scroll frame.
     established_scroll_frame: bool,
 }
 
@@ -1148,22 +1148,18 @@ impl BoxFragment {
             .scroll_tree
             .get_node(parent_scroll_node_id);
         let sticky_offset_boundary = match parent_scroll_node.info {
-            SpatialTreeNodeInfo::Scroll(ref scrollable_node_info) => {
-                if established_scroll_frame {
-                    let content_rect = &scrollable_node_info.content_rect;
-                    &PhysicalRect::new(
-                        PhysicalPoint::new(
-                            Au::from_f32_px(content_rect.min.x),
-                            Au::from_f32_px(content_rect.min.y),
-                        ),
-                        PhysicalSize::new(
-                            Au::from_f32_px(content_rect.max.x - content_rect.min.x),
-                            Au::from_f32_px(content_rect.max.y - content_rect.min.y),
-                        ),
-                    )
-                } else {
-                    containing_block_rect
-                }
+            SpatialTreeNodeInfo::Scroll(ref scrollable_node_info) if established_scroll_frame => {
+                let content_rect = &scrollable_node_info.content_rect;
+                &PhysicalRect::new(
+                    PhysicalPoint::new(
+                        Au::from_f32_px(content_rect.min.x),
+                        Au::from_f32_px(content_rect.min.y),
+                    ),
+                    PhysicalSize::new(
+                        Au::from_f32_px(content_rect.max.x - content_rect.min.x),
+                        Au::from_f32_px(content_rect.max.y - content_rect.min.y),
+                    ),
+                )
             },
             _ => containing_block_rect,
         };
