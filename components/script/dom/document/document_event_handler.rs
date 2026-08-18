@@ -266,7 +266,9 @@ impl DocumentEventHandler {
                 .and_then(|index| pending_input_events.get_mut(index)) &&
                 let InputEvent::Wheel(ref mut existing_wheel_event) =
                     existing_constellation_wheel_event.event.event &&
-                existing_wheel_event.delta.mode == new_wheel_event.delta.mode
+                existing_wheel_event.delta.mode == new_wheel_event.delta.mode &&
+                existing_constellation_wheel_event.active_keyboard_modifiers ==
+                    event.active_keyboard_modifiers
             {
                 self.coalesced_wheel_event_ids
                     .borrow_mut()
@@ -1699,11 +1701,20 @@ impl DocumentEventHandler {
         event: EmbedderWheelEvent,
         input_event: &ConstellationInputEvent,
     ) -> InputEventResult {
+        let swap_axis = if input_event
+            .active_keyboard_modifiers
+            .contains(Modifiers::SHIFT)
+        {
+            InputEventResult::ScrollSwapAxis
+        } else {
+            Default::default()
+        };
+
         // Ignore all incoming events without a hit test.
         let flags = HitTestFlags::empty();
         let Some(hit_test_result) = self.window.hit_test_from_input_event(flags, input_event)
         else {
-            return Default::default();
+            return swap_axis;
         };
 
         let Some(el) = hit_test_result
@@ -1711,7 +1722,7 @@ impl DocumentEventHandler {
             .inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(DomRoot::downcast::<Element>)
         else {
-            return Default::default();
+            return swap_axis;
         };
 
         let node = el.upcast::<Node>();
@@ -1768,7 +1779,7 @@ impl DocumentEventHandler {
         dom_event.set_composed(true);
         dom_event.fire(cx, node.upcast());
 
-        dom_event.flags().into()
+        InputEventResult::from(dom_event.flags()) | swap_axis
     }
 
     #[cfg(feature = "gamepad")]
