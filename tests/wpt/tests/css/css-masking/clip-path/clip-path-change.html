@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Masking: clip-path: clip path border-box</title>
+    <link rel="author" title="Josh Matthews" href="mailto:jdm@servo.org">
+    <link rel="help" href="https://www.w3.org/TR/css-masking-1/#the-clip-path">
+    <link rel="help" href="https://github.com/servo/servo/issues/46932">
+    <link rel="match" href="clip-path-change-ref.html">
+    <meta name="assert" content="Test checks whether changing clip-path style updates the rendering appropriately.">
+    <style>
+      div {
+        position: absolute;
+        left: 50px;
+        top: 50px;
+        background-color: blue;
+        width: 30px;
+        height: 30px;
+        padding: 10px;
+        border: solid blue 25px;
+        clip-path: inset(10px 0px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id=test></div>
+    <script>
+      document.body.offsetTop;
+      test.style.clipPath = "inset(30px 0px)";
+    </script>
+  </body>
+</html>
