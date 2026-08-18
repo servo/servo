@@ -105,7 +105,7 @@ class Base:
             return False
         print(" * Installing cargo-ohos...")
         requested_version = OpenHarmonyTarget.REQUESTED_CARGO_OHOS_VERSION
-        if subprocess.call(["cargo", "install", f"cargo-ohos@{requested_version}", "--locked"]) != 0:
+        if subprocess.call(["cargo", "install", f"cargo-ohos@^{requested_version}", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-ohos failed.")
         return True
 

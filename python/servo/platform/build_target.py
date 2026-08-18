@@ -289,7 +289,7 @@ class OpenHarmonyTarget(CrossBuildTarget):
     # will bump the schema version in cargo-ohos.
     CARGO_OHOS_EXPECTED_SCHEMA_VERSION = 1
     # Pin a cargo-ohos semver version for bootstrap
-    REQUESTED_CARGO_OHOS_VERSION = "^0.3"
+    REQUESTED_CARGO_OHOS_VERSION = "0.3"
 
     @classmethod
     def is_cargo_ohos_compatible(cls) -> Tuple[bool, Optional[str]]:
