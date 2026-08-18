@@ -154,7 +154,11 @@ pub trait PlatformFontMethods: Sized {
     /// `self` is consumed to work around platform differences. On some platforms, changing the
     /// variations requires creating an entirely new font face, whereas on others the returned
     /// font is `self`.
-    fn copy_with_variations(self, _variations: &[FontVariation]) -> Result<Self, &'static str> {
+    fn copy_with_variations(
+        self,
+        _font_identifer: &FontIdentifier,
+        _variations: &[FontVariation],
+    ) -> Result<Self, &'static str> {
         Err("not implemented")
     }
 
@@ -365,7 +369,7 @@ impl Font {
         // Compute and apply the OpenType variations
         let handle = if servo_config::pref!(layout_variable_fonts_enabled) {
             let used_variations = compute_variations(&descriptor, &template, &handle);
-            handle.copy_with_variations(&used_variations)?
+            handle.copy_with_variations(&template.identifier(), &used_variations)?
         } else {
             handle
         };
