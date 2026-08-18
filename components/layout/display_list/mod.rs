@@ -1175,6 +1175,19 @@ impl Fragment {
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
         builder.mark_is_contentful();
 
+        // Accumulate this text fragment for LCP by the containing element's tag
+        if let Some(tag) = state.containing_element_tag &&
+            pref!(largest_contentful_paint_enabled)
+        {
+            let transform = builder
+                .paint_info
+                .scroll_tree
+                .cumulative_node_to_root_transform(state.spatial_id);
+            builder
+                .paint_timing_handler
+                .accumulate_text_rect(tag, rect.to_webrender(), transform);
+        }
+
         for text_decoration in state.text_decorations.iter() {
             if text_decoration
                 .line
