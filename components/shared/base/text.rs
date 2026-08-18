@@ -212,14 +212,26 @@ impl Utf16CodeUnits {
             if current_utf16_offset >= self {
                 break;
             }
-            let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
-            current_utf16_offset.0 += len_utf16;
-            // `len_utf16 != 0` means this byte is the first byte of the UTF-8 byte sequence
-            // for one `char` /  UTF-32 code unit
-            current_utf32_offset.0 += (len_utf16 != 0) as usize;
+            increment_offsets_for_utf8_byte(
+                utf8_byte,
+                &mut current_utf16_offset,
+                &mut current_utf32_offset,
+            );
         }
         current_utf32_offset
     }
+}
+
+fn increment_offsets_for_utf8_byte(
+    utf8_byte: u8,
+    utf16_offset: &mut Utf16CodeUnits,
+    utf32_offset: &mut Utf32CodeUnits,
+) {
+    let len_utf16 = len_utf16_for_utf8_byte(utf8_byte);
+    utf16_offset.0 += len_utf16;
+    // `len_utf16 != 0` means this byte is the first byte of the UTF-8 byte sequence
+    // for one `char` /  UTF-32 code unit
+    utf32_offset.0 += (len_utf16 != 0) as usize;
 }
 
 fn len_utf16_for_utf8_byte(byte: u8) -> usize {
@@ -251,8 +263,8 @@ impl Utf32CodeUnits {
 
     pub fn to_utf8_code_units_in(self, string: &str) -> Utf8CodeUnits {
         let mut current_utf32_offset = Utf32CodeUnits(0);
-        for (current_utf8_offset, byte) in string.bytes().enumerate() {
-            if (byte & 0b1100_0000) == 0b1000_0000 {
+        for (current_utf8_offset, utf8_byte) in string.bytes().enumerate() {
+            if (utf8_byte & 0b1100_0000) == 0b1000_0000 {
                 // UTF-8 continuation byte
                 continue;
             }
@@ -262,6 +274,22 @@ impl Utf32CodeUnits {
             current_utf32_offset.0 += 1;
         }
         Utf8CodeUnits(string.len())
+    }
+
+    pub fn to_utf16_code_units_in(self, string: &str) -> Utf16CodeUnits {
+        let mut current_utf32_offset = Utf32CodeUnits(0);
+        let mut current_utf16_offset = Utf16CodeUnits(0);
+        for utf8_byte in string.bytes() {
+            if current_utf32_offset >= self {
+                break;
+            }
+            increment_offsets_for_utf8_byte(
+                utf8_byte,
+                &mut current_utf16_offset,
+                &mut current_utf32_offset,
+            );
+        }
+        current_utf16_offset
     }
 }
 
