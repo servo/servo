@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
-use accesskit::ActionRequest;
+use accesskit::{ActionRequest, Node};
 use app_units::Au;
 use bitflags::bitflags;
 use embedder_traits::{
@@ -528,6 +528,15 @@ impl Layout for LayoutThread {
             );
 
             process_resolved_style_request(self, &shared_style_context, node, &pseudo, &property_id)
+        })
+    }
+
+    fn query_accesskit_node(&self, node: TrustedNodeAddress) -> Option<Node> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let accessibility_tree = self.accessibility_tree.borrow();
+            let accessibility_tree = accessibility_tree.as_ref()?;
+            accessibility_tree.accesskit_node_for_dom_node(&node)
         })
     }
 
@@ -2037,6 +2046,7 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
+                QueryMsg::AccessKitNodeQuery |
                 QueryMsg::BoxArea |
                 QueryMsg::BoxAreas |
                 QueryMsg::ElementsFromPoint |
