@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::rc::Rc;
 
 use app_units::Au;
@@ -197,7 +197,7 @@ fn create_and_populate_a_resizeobserverentry(
     let last_reported_size = ResizeObserverSizeImpl::new(last_size.width(), last_size.height());
 
     {
-        let mut sizes = observation.last_reported_sizes.borrow_mut();
+        let mut sizes = observation.last_reported_sizes.safe_borrow_mut(cx.no_gc());
         if sizes.is_empty() {
             sizes.push(last_reported_size);
         } else {
@@ -276,7 +276,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-observe>
-    fn Observe(&self, target: &Element, options: &ResizeObserverOptions) {
+    fn Observe(&self, no_gc: &NoGC, target: &Element, options: &ResizeObserverOptions) {
         // Step 1. If target is in [[observationTargets]] slot, call unobserve() with argument target.
         let is_present = self
             .observation_targets
@@ -284,7 +284,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
             .iter()
             .any(|(_obs, other)| &**other == target);
         if is_present {
-            self.Unobserve(target);
+            self.Unobserve(no_gc, target);
         }
 
         // Step 2. Let observedBox be the value of the box dictionary member of options.
@@ -293,7 +293,7 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
 
         // Step 4. Add the resizeObservation to the [[observationTargets]] slot.
         self.observation_targets
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .push((resize_observation, Dom::from_ref(target)));
         target
             .owner_window()
@@ -304,15 +304,15 @@ impl ResizeObserverMethods<crate::DomTypeHolder> for ResizeObserver {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-unobserve>
-    fn Unobserve(&self, target: &Element) {
+    fn Unobserve(&self, no_gc: &NoGC, target: &Element) {
         self.observation_targets
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .retain_mut(|(_obs, other)| !(&**other == target));
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-disconnect>
-    fn Disconnect(&self) {
-        self.observation_targets.borrow_mut().clear();
+    fn Disconnect(&self, no_gc: &NoGC) {
+        self.observation_targets.safe_borrow_mut(no_gc).clear();
     }
 }
 
@@ -336,7 +336,7 @@ struct ResizeObservation {
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-observedbox>
     observed_box: ResizeObserverBoxOptions,
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobservation-lastreportedsizes>
-    last_reported_sizes: RefCell<Vec<ResizeObserverSizeImpl>>,
+    last_reported_sizes: DomRefCell<Vec<ResizeObserverSizeImpl>>,
     /// State machine mimicking the "active" and "skipped" targets slots of the observer.
     #[no_trace]
     state: Cell<ObservationState>,
@@ -347,7 +347,7 @@ impl ResizeObservation {
     pub(crate) fn new(observed_box: ResizeObserverBoxOptions) -> ResizeObservation {
         ResizeObservation {
             observed_box,
-            last_reported_sizes: RefCell::new(vec![]),
+            last_reported_sizes: DomRefCell::new(vec![]),
             state: Default::default(),
         }
     }
