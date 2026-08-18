@@ -101,7 +101,7 @@ class Base:
 
     def install_ohos(self, force: bool) -> bool:
         (is_installed_and_compatible, _reason) = OpenHarmonyTarget.is_cargo_ohos_compatible()
-        if not (is_installed_and_compatible or force):
+        if is_installed_and_compatible and not force:
             return False
         print(" * Installing cargo-ohos...")
         requested_version = OpenHarmonyTarget.REQUESTED_CARGO_OHOS_VERSION
