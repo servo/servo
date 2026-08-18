@@ -810,6 +810,12 @@ fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayou
     #[expect(unsafe_code)]
     while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
         let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
+            // The ancestor has no layout data (e.g. it belongs to a `BrowsingContext`
+            // that has just been discarded/closed, which happens routinely on pages
+            // with many ad/consent iframes such as aol.co.uk). Without advancing
+            // `current_ancestor` here, `dangerous_flat_tree_parent()` returns the
+            // same ancestor forever, spinning this loop at 100% CPU indefinitely.
+            current_ancestor = ancestor;
             continue;
         };
 
