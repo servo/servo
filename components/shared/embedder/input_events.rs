@@ -406,11 +406,19 @@ pub struct WheelDelta {
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: WebViewPoint,
+    pub modifiers: Modifiers,
 }
 
 impl WheelEvent {
-    pub fn new(delta: WheelDelta, point: WebViewPoint) -> Self {
-        WheelEvent { delta, point }
+    /// Create a new [`WheelEvent`], the modifiers passed should be the current set
+    /// of keyboard modifiers. This is used to adjust the scroll direction with the
+    /// modifiers.
+    pub fn new(delta: WheelDelta, point: WebViewPoint, modifiers: Modifiers) -> Self {
+        WheelEvent {
+            delta,
+            point,
+            modifiers,
+        }
     }
 }
 

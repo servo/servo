@@ -13680,6 +13680,15 @@
       }
      ]
     ],
+    "mouse-wheel-scrolling-with-shift.html": [
+     "e9e96691bc30e9c7ea5b7948d9ee36a4d593167e",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "mousedown-edit-point-input-text-001.html": [
      "57f707ea292adeefd8a6b94ecd55b96530921b5e",
      [
