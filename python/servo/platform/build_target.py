@@ -7,7 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from typing import List, TypeGuard
+from typing import List, Tuple, TypeGuard
 import json
 import os
 import pathlib
@@ -285,15 +285,49 @@ class AndroidTarget(CrossBuildTarget):
 
 class OpenHarmonyTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-unknown-linux-ohos"
-    MINIMUM_CARGO_OHOS_VERSION = "0.3.0"
     # The layout of the dict might change in the future, and backwords incompatible changes
     # will bump the schema version in cargo-ohos.
     CARGO_OHOS_EXPECTED_SCHEMA_VERSION = 1
+    # Pin a cargo-ohos semver version for bootstrap
+    REQUESTED_CARGO_OHOS_VERSION = "0.3"
+
+    @classmethod
+    def is_cargo_ohos_compatible(cls) -> Tuple[bool, Optional[str]]:
+        """Returns true if the cargo-ohos version is compatible. False if we need to reinstall.
+        When false, the second return parameter is a string with error information.
+        """
+
+        def cargo_ohos_version() -> Optional[str]:
+            if shutil.which("cargo-ohos") is None:
+                return None
+            result = subprocess.run(["cargo-ohos", "ohos", "--version"], encoding="utf-8", capture_output=True)
+            if result.returncode != 0:
+                return None
+            version = result.stdout.strip().split(" ")[-1]
+            return version
+
+        found_version = cargo_ohos_version()
+        if found_version is None:
+            return (False, "cargo-ohos not installed")
+        found_version = parse_version(found_version)
+        required_version = parse_version(cls.REQUESTED_CARGO_OHOS_VERSION)
+        semver_incompatible_error_msg = (
+            f"The installed cargo-ohos version {found_version} is not SemVer compatible"
+            + f" with the required cargo-ohos version {required_version}"
+        )
+        if required_version.major == 0:
+            if required_version.minor != found_version.minor:
+                return (False, semver_incompatible_error_msg)
+        else:
+            if required_version.major != found_version.major:
+                return (False, semver_incompatible_error_msg)
+        return (True, None)
 
     def get_cargo_ohos_env(self, input_env: dict[str, str]) -> dict[str, Any]:
-        if not shutil.which("cargo-ohos"):
-            print("Building for OpenHarmony requires `cargo-ohos`. Please install it by running", file=sys.stderr)
-            print("`cargo install cargo-ohos --locked`.", file=sys.stderr)
+        (compatible, error_msg) = self.is_cargo_ohos_compatible()
+        if not compatible:
+            print(f"Building for OpenHarmony requires `cargo-ohos`: {error_msg}", file=sys.stderr)
+            print("Please rerun `./mach bootstrap --ohos`.", file=sys.stderr)
             sys.exit(1)
         command = ["cargo", "ohos", "env", "--format", "json", "--target", self.triple()]
         try:
@@ -307,22 +341,11 @@ class OpenHarmonyTarget(CrossBuildTarget):
         except json.JSONDecodeError as error:
             print(f"Failed to parse `cargo ohos env` output as JSON: {error}", file=sys.stderr)
             sys.exit(1)
-        version = ohos_env.get("cargo_ohos_version")
-        if version is None or parse_version(version) < parse_version(self.MINIMUM_CARGO_OHOS_VERSION):
-            print(
-                f"Error: `cargo-ohos` {self.MINIMUM_CARGO_OHOS_VERSION} or newer is required."
-                "Please install the latest version with `cargo install cargo-ohos`",
-                file=sys.stderr,
-            )
-            sys.exit(1)
         schema_version = ohos_env.get("schema_version")
         if schema_version is None or schema_version != self.CARGO_OHOS_EXPECTED_SCHEMA_VERSION:
-            print(
-                "Error: Incompatible `cargo-ohos` version. Please update or downgrade `cargo-ohos` to a version with"
-                f" the schema version {self.CARGO_OHOS_EXPECTED_SCHEMA_VERSION} or update `mach`"
-                "to support the latest cargo-ohos release."
-            )
-            sys.exit(1)
+            # This shouldn't happen if cargo-ohos releases follow semver, but still better
+            # to check.
+            raise (RuntimeError("Unexpected schema-version mismatch."))
 
         return ohos_env
 
