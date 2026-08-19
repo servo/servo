@@ -3610,9 +3610,12 @@ impl Document {
         Ok(())
     }
 
-    pub(crate) fn details_name_groups(&self) -> RefMut<'_, DetailsNameGroups> {
+    pub(crate) fn details_name_groups<'a: 'b, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+    ) -> RefMut<'b, DetailsNameGroups> {
         RefMut::map(
-            self.details_name_groups.borrow_mut(),
+            self.details_name_groups.safe_borrow_mut(no_gc),
             |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }

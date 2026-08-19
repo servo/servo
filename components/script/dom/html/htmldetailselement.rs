@@ -333,12 +333,12 @@ impl HTMLDetailsElement {
         // root of the tree is a document or shadow root, which is why this looks a bit more complicated.
         let other_open_member = if let Some(shadow_root) = self.containing_shadow_root() {
             shadow_root
-                .details_name_groups()
+                .details_name_groups(cx.no_gc())
                 .group_members_for(&name, self)
                 .find(|group_member| group_member.Open())
         } else if self.upcast::<Node>().is_in_a_document_tree() {
             self.owner_document()
-                .details_name_groups()
+                .details_name_groups(cx.no_gc())
                 .group_members_for(&name, self)
                 .find(|group_member| group_member.Open())
         } else {
@@ -418,24 +418,24 @@ impl VirtualMethods for HTMLDetailsElement {
             if let Some(shadow_root) = self.containing_shadow_root() {
                 if let Some(old_name) = old_name {
                     shadow_root
-                        .details_name_groups()
+                        .details_name_groups(cx.no_gc())
                         .unregister_details_element(old_name, self);
                 }
                 if matches!(mutation, AttributeMutation::Set(..)) {
                     shadow_root
-                        .details_name_groups()
+                        .details_name_groups(cx.no_gc())
                         .register_details_element(self);
                 }
             } else if self.upcast::<Node>().is_in_a_document_tree() {
                 let document = self.owner_document();
                 if let Some(old_name) = old_name {
                     document
-                        .details_name_groups()
+                        .details_name_groups(cx.no_gc())
                         .unregister_details_element(old_name, self);
                 }
                 if matches!(mutation, AttributeMutation::Set(..)) {
                     document
-                        .details_name_groups()
+                        .details_name_groups(cx.no_gc())
                         .register_details_element(self);
                 }
             }
@@ -511,14 +511,14 @@ impl VirtualMethods for HTMLDetailsElement {
             // If this is true then we can't have been in a document tree previously, so
             // we register ourselves.
             self.owner_document()
-                .details_name_groups()
+                .details_name_groups(cx.no_gc())
                 .register_details_element(self);
         }
 
         let was_already_in_shadow_tree = context.is_shadow_tree == IsShadowTree::Yes;
         if !was_already_in_shadow_tree && let Some(shadow_root) = self.containing_shadow_root() {
             shadow_root
-                .details_name_groups()
+                .details_name_groups(cx.no_gc())
                 .register_details_element(self);
         }
 
@@ -531,7 +531,7 @@ impl VirtualMethods for HTMLDetailsElement {
 
         if context.tree_is_in_a_document_tree && !self.upcast::<Node>().is_in_a_document_tree() {
             self.owner_document()
-                .details_name_groups()
+                .details_name_groups(cx.no_gc())
                 .unregister_details_element(self.Name(), self);
         }
 
@@ -541,7 +541,7 @@ impl VirtualMethods for HTMLDetailsElement {
             // If we used to be in a shadow root, but aren't anymore, then unregister this details
             // element.
             old_shadow_root
-                .details_name_groups()
+                .details_name_groups(cx.no_gc())
                 .unregister_details_element(self.Name(), self);
         }
     }
