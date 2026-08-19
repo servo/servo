@@ -694,10 +694,6 @@ impl Node {
         self.owner_doc()
             .accessibility_data_mut()
             .add_pending_accessibility_damage_for_node(self, damage);
-
-        self.owner_window()
-            .layout()
-            .set_needs_accessibility_update();
     }
 }
 

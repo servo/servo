@@ -89,7 +89,7 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         global: &GlobalScope,
     ) -> DomRoot<AccessibilityUpdateResult> {
         let window = global.as_window();
-        window.layout().set_needs_accessibility_update();
+        window.layout().set_force_accessibility_update();
         let (_, statistics) = window.Document().update_the_rendering(cx);
 
         AccessibilityUpdateResult::new(

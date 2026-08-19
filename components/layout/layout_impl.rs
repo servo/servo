@@ -226,8 +226,8 @@ pub struct LayoutThread {
     /// This is `None` if accessibility is not active.
     accessibility_tree: RefCell<Option<AccessibilityTree>>,
 
-    /// See [Layout::needs_accessibility_update()].
-    needs_accessibility_update: Cell<bool>,
+    /// See [Layout::force_accessibility_update()].
+    force_accessibility_update: Cell<bool>,
 
     /// A callback to run whenever a web font from a `@font-face` rule finishes loading.
     web_font_finished_loading_callback: StylesheetWebFontLoadFinishedCallback,
@@ -714,7 +714,7 @@ impl Layout for LayoutThread {
         // allowing the bounds to be recomputed against the new scroll offsets. See #47161 for a
         // transform-based alternative to recomputing every node.
         if self.accessibility_active() {
-            self.set_needs_accessibility_update();
+            self.set_force_accessibility_update();
         }
     }
 
@@ -745,7 +745,7 @@ impl Layout for LayoutThread {
             return;
         }
 
-        self.set_needs_accessibility_update();
+        self.set_force_accessibility_update();
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         if accessibility_tree.is_some() {
             return;
@@ -757,12 +757,12 @@ impl Layout for LayoutThread {
         self.accessibility_active.get()
     }
 
-    fn needs_accessibility_update(&self) -> bool {
-        self.needs_accessibility_update.get()
+    fn force_accessibility_update(&self) -> bool {
+        self.force_accessibility_update.get()
     }
 
-    fn set_needs_accessibility_update(&self) {
-        self.needs_accessibility_update.set(true);
+    fn set_force_accessibility_update(&self) {
+        self.force_accessibility_update.set(true);
     }
 
     fn font_context(&self) -> &Arc<FontContext> {
@@ -837,7 +837,7 @@ impl LayoutThread {
             user_stylesheets: config.user_stylesheets,
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
-            needs_accessibility_update: Cell::new(false),
+            force_accessibility_update: Cell::new(false),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
         }
@@ -876,8 +876,8 @@ impl LayoutThread {
         if self.fragment_tree.borrow().is_none() {
             return false;
         }
-        // If accessibility was just activated, we need reflow to build the accessibility tree.
-        if self.needs_accessibility_update() {
+        // If the accessibility tree needs an update, we need reflow to build the accessibility tree.
+        if self.force_accessibility_update() || reflow_request.accessibility_damage.is_some() {
             return false;
         }
 
@@ -941,9 +941,11 @@ impl LayoutThread {
         reflow_request: &mut ReflowRequest,
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
-        if reflow_request.reflow_goal != ReflowGoal::UpdateTheRendering ||
-            !self.accessibility_active()
-        {
+        let Some(accessibility_damage) = std::mem::take(&mut reflow_request.accessibility_damage)
+        else {
+            return false;
+        };
+        if !self.force_accessibility_update() && accessibility_damage.is_empty() {
             return false;
         }
 
@@ -968,10 +970,8 @@ impl LayoutThread {
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        let damage: VecDeque<_> = reflow_request
-            .accessibility_damage
+        let damage: VecDeque<_> = accessibility_damage
             .iter()
-            .flatten()
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
@@ -1004,7 +1004,7 @@ impl LayoutThread {
         reflow_statistics.nodes_updated_bounds = counters.nodes_updated_bounds;
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
-        self.needs_accessibility_update.set(false);
+        self.force_accessibility_update.set(false);
         true
     }
 
@@ -1346,6 +1346,11 @@ impl LayoutThread {
                 .iter()
                 .all(|layout_root| layout_root.try_layout(&layout_context))
             {
+                if self.accessibility_active() {
+                    // TODO(#47162) Compute accessibility damage rather than forcing a full upate.
+                    self.set_force_accessibility_update();
+                }
+
                 return (
                     ReflowPhasesRun::RanLayout,
                     std::mem::take(&mut *layout_context.iframe_sizes.lock()),
@@ -1391,6 +1396,11 @@ impl LayoutThread {
                 .stylist
                 .rule_tree()
                 .dump_stdout(&layout_context.style_context.guards);
+        }
+
+        if self.accessibility_active() {
+            // TODO(#47162) Compute accessibility damage rather than forcing a full upate.
+            self.set_force_accessibility_update();
         }
 
         // GC the rule tree if some heuristics are met.
@@ -1588,7 +1598,7 @@ impl LayoutThread {
             // update lets the next "update the rendering" reflow recompute them, mirroring how
             // `set_scroll_offsets_from_renderer()` handles renderer scrolls.
             if self.accessibility_active() {
-                self.set_needs_accessibility_update();
+                self.set_force_accessibility_update();
             }
             true
         } else {

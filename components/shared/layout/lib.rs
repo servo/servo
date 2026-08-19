@@ -429,10 +429,10 @@ pub trait Layout {
     /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
     /// should force a reflow, and handle_reflow() to determine whether to update the
     /// accessibility tree during reflow.
-    fn needs_accessibility_update(&self) -> bool;
+    fn force_accessibility_update(&self) -> bool;
 
     /// See [Self::needs_accessibility_update()].
-    fn set_needs_accessibility_update(&self);
+    fn set_force_accessibility_update(&self);
 
     fn font_context(&self) -> &Arc<FontContext>;
 }
