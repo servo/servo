@@ -23,7 +23,7 @@ use servo_constellation_traits::{
 
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
-use crate::dom::node::focus::FocusNavigationScopeOwner;
+use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
 use crate::dom::types::{
     Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, KeyboardEvent, Window,
 };
@@ -737,7 +737,7 @@ impl DocumentFocusHandler {
         } else {
             iframe_element
                 .upcast::<Node>()
-                .run_the_focusing_steps(cx, None);
+                .run_the_focusing_steps(cx, None, FocusTrigger::Other);
         }
     }
 

@@ -65,6 +65,7 @@ use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
     BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
@@ -479,7 +480,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        if !self.upcast::<Node>().run_the_focusing_steps(cx, None) {
+        if !self
+            .upcast::<Node>()
+            .run_the_focusing_steps(cx, None, FocusTrigger::Other)
+        {
             // The specification seems to imply we should scroll into view even if this element
             // is not a focusable area. No browser does this, so we return early in that case.
             // See https://github.com/whatwg/html/issues/12231.
