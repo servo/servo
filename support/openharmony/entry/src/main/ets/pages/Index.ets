@@ -122,6 +122,7 @@ struct Index {
           TabContent() {
             XComponent(this.xComponentAttrs)
               .focusable(true)
+              .focusOnTouch(true)
           }.tabBar(this.tabBuilder(String(item), index))
         })
       }.barHeight(40)

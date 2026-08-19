@@ -289,7 +289,7 @@ wio = "0.2"
 wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets", "zeroize"] }
 x448 = { version = "=0.14.0-pre.12", features = ["static_secrets"] }
-xcomponent-sys = "0.3.6"
+xcomponent-sys = "0.4.0"
 xml = "1.1"
 xml5ever = "0.39"
 yuv = { version = "0.8.14", features = ["rayon"] }
