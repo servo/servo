@@ -175,6 +175,13 @@ impl PlatformFont {
 
         Self::new(font_face, pt_size, variations)
     }
+
+    fn uses_synthetic_bold(&self) -> bool {
+        matches!(
+            self.face.simulations(),
+            FontSimulations::Bold | FontSimulations::BoldOblique
+        )
+    }
 }
 
 impl PlatformFontMethods for PlatformFont {
@@ -203,6 +210,19 @@ impl PlatformFontMethods for PlatformFont {
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
         Self::new_with_variations(font_face, pt_size, &[], synthetic_bold)
+    }
+
+    fn copy_with_variations(
+        self,
+        _: &FontIdentifier,
+        variations: &[FontVariation],
+    ) -> Result<Self, &'static str> {
+        Self::new_with_variations(
+            self.face.0.clone(),
+            Some(Au::from_f32_px(self.em_size * 16.)),
+            variations,
+            self.uses_synthetic_bold(),
+        )
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -315,10 +335,7 @@ impl PlatformFontMethods for PlatformFont {
 
         // TODO: Add support for synthetic italics.
         // <https://github.com/servo/servo/issues/39637>
-        if matches!(
-            self.face.simulations(),
-            FontSimulations::Bold | FontSimulations::BoldOblique
-        ) {
+        if self.uses_synthetic_bold() {
             flags |= FontInstanceFlags::SYNTHETIC_BOLD;
         }
 
