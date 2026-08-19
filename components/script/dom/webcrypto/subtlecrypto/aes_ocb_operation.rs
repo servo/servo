@@ -22,7 +22,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, SubtleAeadParams, SubtleAesDerivedKeyParams, AesKeyGenParams, aes_common,
+    ExportedKey, SubtleAeadParams, AesDerivedKeyParams, AesKeyGenParams, aes_common,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-encrypt>
@@ -516,7 +516,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
 ) -> Result<Option<u32>, Error> {
     aes_common::get_key_length(normalized_derived_key_algorithm)
 }

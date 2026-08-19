@@ -3430,7 +3430,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesKeyGenParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesDerivedKeyParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleAesDerivedKeyParams {
+struct AesDerivedKeyParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3438,7 +3438,7 @@ struct SubtleAesDerivedKeyParams {
     length: u16,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesDerivedKeyParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesDerivedKeyParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3446,7 +3446,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesDerivedKeyParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleAesDerivedKeyParams {
+        Ok(AesDerivedKeyParams {
             name: algorithm_name,
             length: get_required_parameter(
                 cx,
@@ -6221,14 +6221,14 @@ impl Operation for GetKeyLengthOperation {
 /// Normalized algorithm for the "get key length" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum GetKeyLengthAlgorithm {
-    AesCtr(SubtleAesDerivedKeyParams),
-    AesCbc(SubtleAesDerivedKeyParams),
-    AesGcm(SubtleAesDerivedKeyParams),
-    AesKw(SubtleAesDerivedKeyParams),
+    AesCtr(AesDerivedKeyParams),
+    AesCbc(AesDerivedKeyParams),
+    AesGcm(AesDerivedKeyParams),
+    AesKw(AesDerivedKeyParams),
     Hmac(SubtleHmacImportParams),
     Hkdf(Algorithm),
     Pbkdf2(Algorithm),
-    AesOcb(SubtleAesDerivedKeyParams),
+    AesOcb(AesDerivedKeyParams),
     ChaCha20Poly1305(Algorithm),
     Kmac(SubtleKmacImportParams),
     Argon2(Algorithm),

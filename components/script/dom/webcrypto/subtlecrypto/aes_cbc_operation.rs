@@ -16,7 +16,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, SubtleAesCbcParams, SubtleAesDerivedKeyParams, AesKeyGenParams, aes_common,
+    ExportedKey, SubtleAesCbcParams, AesDerivedKeyParams, AesKeyGenParams, aes_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
@@ -174,7 +174,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
 ) -> Result<Option<u32>, Error> {
     aes_common::get_key_length(normalized_derived_key_algorithm)
 }

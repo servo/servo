@@ -18,7 +18,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams,
+    AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams,
 };
 
 #[expect(clippy::enum_variant_names)]
@@ -757,7 +757,7 @@ pub(crate) fn export_key(
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-get-key-length>
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256, then
     // throw an OperationError.
