@@ -7,9 +7,11 @@ use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::event::Event;
 use crate::dom::event::inputevent::InputEvent;
@@ -17,6 +19,7 @@ use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::execcommand::commands::fontsize::maybe_normalize_pixels;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
+use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#miscellaneous-commands>
@@ -30,6 +33,34 @@ fn is_command_listed_in_miscellaneous_section(command_name: CommandName) -> bool
             CommandName::Undo |
             CommandName::Usecss
     )
+}
+
+fn bump_selection_out_of_invalid_node(selection: &Selection) -> Result<(), ()> {
+    // Note: Here we make sure that if the selection range starts or ends inside of an HTML
+    //       comment or PI, we get it out of there before trying to edit things. Trying to
+    //       perform text editing inside of these nodes doesn't make any sense anyways and
+    //       some commands aren't prepared to handle that. Picking the boundary point right
+    //       before the problematic node is vaguely consistent with other browsers.
+    let active_range = selection
+        .active_range()
+        .expect("Must always have an active range");
+    if let start_container = active_range.start_container() &&
+        (start_container.is::<Comment>() || start_container.is::<ProcessingInstruction>())
+    {
+        let Some(parent) = start_container.GetParentNode() else {
+            return Err(());
+        };
+        active_range.set_start(&parent, start_container.index());
+    }
+    if let end_container = active_range.end_container() &&
+        (end_container.is::<Comment>() || end_container.is::<ProcessingInstruction>())
+    {
+        let Some(parent) = end_container.GetParentNode() else {
+            return Err(());
+        };
+        active_range.set_end(&parent, end_container.index());
+    }
+    Ok(())
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#dfn-map-an-edit-command-to-input-type-value>
@@ -293,6 +324,12 @@ impl DocumentExecCommandSupport for Document {
         } else {
             None
         };
+
+        if affected_editing_host.is_some() &&
+            bump_selection_out_of_invalid_node(&selection).is_err()
+        {
+            return false;
+        }
 
         // Step 5. Take the action for command, passing value to the instructions as an argument.
         let result = command.execute(cx, self, &selection, value);
