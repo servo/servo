@@ -17,8 +17,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
+    AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, CryptoAlgorithm, ExportedKey,
+    JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
 };
 
 #[expect(clippy::enum_variant_names)]
@@ -42,7 +42,7 @@ pub(crate) fn generate_key(
     aes_algorithm: AesAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
+    normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
@@ -138,7 +138,7 @@ pub(crate) fn generate_key(
             CryptoAlgorithm::AesOcb
         },
     };
-    let algorithm = SubtleAesKeyAlgorithm {
+    let algorithm = AesKeyAlgorithm {
         name: algorithm_name,
         length: normalized_algorithm.length,
     };
@@ -480,7 +480,7 @@ pub(crate) fn import_key(
             )));
         },
     };
-    let algorithm = SubtleAesKeyAlgorithm {
+    let algorithm = AesKeyAlgorithm {
         name: match &aes_algorithm {
             AesAlgorithm::AesCtr => {
                 // Step 6. Set the name attribute of algorithm to "AES-CTR".
@@ -757,7 +757,7 @@ pub(crate) fn export_key(
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-get-key-length>
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1. If the length member of normalizedDerivedKeyAlgorithm is not 128, 192 or 256, then
     // throw an OperationError.
