@@ -613,6 +613,13 @@ impl App {
         }
     }
 
+    pub fn key_event(&self, event: keyboard_types::KeyboardEvent) {
+        if let Some(webview) = self.active_or_newest_webview() {
+            webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::new(event)));
+            self.spin_event_loop();
+        }
+    }
+
     pub fn ime_insert_text(&self, text: String) {
         // In OHOS, we get empty text after the intended text.
         if text.is_empty() {

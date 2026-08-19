@@ -64,7 +64,7 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{LazyLock, Once, OnceLock, mpsc};
+use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
 use std::{fs, thread};
 
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -89,9 +89,12 @@ use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
     MediaSessionPlaybackState, PrefValue, SelectElement, WebViewId, Zero,
 };
+use xcomponent_sys::keyboard_types_compat::{KeyEventConverter, ModifierState};
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_Callback, OH_NativeXComponent_GetKeyEvent,
-    OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetKeyEventCode,
+    OH_NativeXComponent_GetKeyEventAction, OH_NativeXComponent_GetKeyEventCapsLockState,
+    OH_NativeXComponent_GetKeyEventCode, OH_NativeXComponent_GetKeyEventModifierKeyStates,
+    OH_NativeXComponent_GetKeyEventNumLockState, OH_NativeXComponent_GetKeyEventScrollLockState,
     OH_NativeXComponent_GetTouchEvent, OH_NativeXComponent_GetXComponentOffset,
     OH_NativeXComponent_GetXComponentSize, OH_NativeXComponent_KeyAction,
     OH_NativeXComponent_KeyCode, OH_NativeXComponent_KeyEvent,
@@ -124,6 +127,8 @@ static PROMPT_TOAST: OnceLock<
     ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
 > = OnceLock::new();
 static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
+
+static KEY_EVENT_CONVERTER: Mutex<KeyEventConverter> = Mutex::new(KeyEventConverter::new());
 
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
 
@@ -371,8 +376,7 @@ pub(super) enum ServoAction {
         y: f32,
         pointer_id: i32,
     },
-    KeyUp(Key),
-    KeyDown(Key),
+    KeyEvent(keyboard_types::KeyboardEvent),
     InsertText(String),
     ImeDeleteForward(usize),
     ImeDeleteBackward(usize),
@@ -407,8 +411,7 @@ impl std::fmt::Debug for ServoAction {
                 .field("y", y)
                 .field("pointer_id", pointer_id)
                 .finish(),
-            Self::KeyUp(arg0) => f.debug_tuple("KeyUp").field(arg0).finish(),
-            Self::KeyDown(arg0) => f.debug_tuple("KeyDown").field(arg0).finish(),
+            Self::KeyEvent(_) => f.debug_struct("KeyEvent").finish(),
             Self::InsertText(arg0) => f.debug_tuple("InsertText").field(arg0).finish(),
             Self::ImeDeleteForward(arg0) => f.debug_tuple("ImeDeleteForward").field(arg0).finish(),
             Self::ImeDeleteBackward(arg0) => {
@@ -467,8 +470,7 @@ impl ServoAction {
                 y,
                 pointer_id,
             } => Self::dispatch_touch_event(servo, *kind, *x, *y, *pointer_id),
-            KeyUp(k) => servo.key_up(k.clone()),
-            KeyDown(k) => servo.key_down(k.clone()),
+            KeyEvent(k) => servo.key_event(k.clone()),
             InsertText(text) => servo.ime_insert_text(text.clone()),
             ImeDeleteForward(len) => {
                 for _ in 0..*len {
@@ -755,6 +757,11 @@ extern "C" fn on_dispatch_touch_event_cb(component: *mut OH_NativeXComponent, wi
 }
 
 extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut c_void) {
+    // See <https://docs.rs/arkui-sys/latest/arkui_sys/ui_input_event/struct.ArkUI_ModifierKeyName.html#impl-ArkUI_ModifierKeyName>
+    const MODIFIER_KEY_CTRL: u64 = 1;
+    const MODIFIER_KEY_SHIFT: u64 = 2;
+    const MODIFIER_KEY_ALT: u64 = 4;
+
     info!("DispatchKeyEvent");
     let mut event: *mut OH_NativeXComponent_KeyEvent = core::ptr::null_mut();
     let res = unsafe { OH_NativeXComponent_GetKeyEvent(xc, &mut event as *mut *mut _) };
@@ -768,22 +775,40 @@ extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut 
     let res = unsafe { OH_NativeXComponent_GetKeyEventCode(event, &mut keycode as *mut _) };
     assert_eq!(res, 0);
 
-    // Simplest possible impl, just for testing purposes
-    let code: keyboard_types::Code = keycode.into();
-    // There currently doesn't seem to be an API to query keymap / keyboard layout, so
-    // we don't even bother implementing modifier support for now, since we expect to be using the
-    // IME most of the time anyway. We can revisit this when someone has an OH device with a
-    // physical keyboard.
-    let char = code.to_string();
-    let key = Key::Character(char);
-    match action {
-        OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_UP => {
-            call(ServoAction::KeyUp(key)).expect("Call failed")
+    let mut modifier_bits: u64 = 0;
+    let res =
+        unsafe { OH_NativeXComponent_GetKeyEventModifierKeyStates(event, &raw mut modifier_bits) };
+    if res != 0 {
+        warn!("GetKeyEventModifierKeyStates failed with {res}");
+    }
+    let mut caps_lock = false;
+    let mut num_lock = false;
+    let mut scroll_lock = false;
+    unsafe {
+        OH_NativeXComponent_GetKeyEventCapsLockState(event, &raw mut caps_lock);
+        OH_NativeXComponent_GetKeyEventNumLockState(event, &raw mut num_lock);
+        OH_NativeXComponent_GetKeyEventScrollLockState(event, &raw mut scroll_lock);
+    }
+    let modifiers = ModifierState {
+        shift: modifier_bits & MODIFIER_KEY_SHIFT != 0,
+        ctrl: modifier_bits & MODIFIER_KEY_CTRL != 0,
+        alt: modifier_bits & MODIFIER_KEY_ALT != 0,
+        meta: None,
+        caps_lock,
+        num_lock,
+        scroll_lock,
+    };
+
+    let converted = KEY_EVENT_CONVERTER
+        .lock()
+        .unwrap()
+        .convert(action, keycode, modifiers);
+    match converted {
+        Some(key_event) => {
+            debug!("Dispatching key event {key_event:?}");
+            call(ServoAction::KeyEvent(key_event)).expect("Call failed")
         },
-        OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_DOWN => {
-            call(ServoAction::KeyDown(key)).expect("Call failed")
-        },
-        _ => error!("Unknown key action {:?}", action),
+        None => error!("Unknown key action {:?}", action),
     }
 }
 
