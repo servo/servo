@@ -11,7 +11,7 @@ use kurbo::{Ellipse, Shape};
 use layout_api::{HitTestFlags, HitTestResult, HitTestResultItem};
 use rustc_hash::FxHashMap;
 use servo_base::id::ScrollTreeNodeId;
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_geometry::FastLayoutTransform;
 use style::computed_values::backface_visibility::T as BackfaceVisibility;
 use style::computed_values::pointer_events::T as PointerEvents;
@@ -84,8 +84,16 @@ impl<'a> HitTest<'a> {
         // fragments.
         hit_test.items.reverse();
 
+        let dom_position_for_selection = if flags.contains(HitTestFlags::IncludeDomPosition) {
+            hit_test
+                .dom_position()
+                .map(|(node, offset)| (node, Utf32CodeUnitsOrNodeOffset(offset.0)))
+        } else {
+            None
+        };
+
         HitTestResult {
-            dom_position_for_selection: hit_test.dom_position(),
+            dom_position_for_selection,
             items: hit_test.items,
         }
     }
@@ -289,7 +297,11 @@ impl Fragment {
                     cursor: cursor(style.get_inherited_ui().cursor.keyword, auto_cursor),
                 });
 
-                if hit_test.flags.intersects(HitTestFlags::IncludeDomPosition) {
+                // Selection boundaries cannot intersect generated content, which is what
+                // the pseudo_element_chain check does here.
+                if hit_test.flags.intersects(HitTestFlags::IncludeDomPosition) &&
+                    tag.pseudo_element_chain.is_empty()
+                {
                     hit_test.dom_position_candidate = Some(DomPositionCandidate {
                         fragment: self.clone(),
                         node: tag.node,
@@ -463,6 +475,7 @@ impl ClosestFragmentSearch {
         };
 
         if let Some(tag) = text_fragment.base.tag.as_ref() &&
+            tag.pseudo_element_chain.is_empty() &&
             self.closest.as_ref().is_none_or(|closest_fragment| {
                 closest_fragment.should_replace(distance, point_in_vertical_bounds)
             })

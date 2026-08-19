@@ -68,6 +68,7 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -1985,30 +1986,6 @@ impl HTMLInputElement {
                 );
         }
     }
-
-    fn handle_mouse_event(&self, mouse_event: &MouseEvent) {
-        let event = mouse_event.upcast::<Event>();
-        if event.DefaultPrevented() {
-            return;
-        }
-
-        // Only respond to mouse events if we are displayed as text input or a password. If the
-        // placeholder is displayed, also don't do any interactive mouse event handling.
-        if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
-            return;
-        }
-        if event.type_() != atom!("mousedown") {
-            return;
-        }
-
-        if self
-            .textinput
-            .borrow_mut()
-            .handle_mousedown_event(self.upcast(), mouse_event)
-        {
-            self.maybe_update_shared_selection();
-        }
-    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -2315,10 +2292,7 @@ impl VirtualMethods for HTMLInputElement {
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if let Some(mouse_event) = event.downcast::<MouseEvent>() {
-            self.handle_mouse_event(mouse_event);
-            event.mark_as_handled();
-        } else if event.type_() == atom!("keydown") &&
+        if event.type_() == atom!("keydown") &&
             !event.DefaultPrevented() &&
             self.input_type().is_textual_or_password()
         {
@@ -2390,6 +2364,31 @@ impl VirtualMethods for HTMLInputElement {
 
         if let Some(super_type) = self.super_type() {
             super_type.handle_event(cx, event);
+        }
+    }
+
+    fn handle_mousedown_event(
+        &self,
+        cx: &mut JSContext,
+        mouse_event: &MouseEvent,
+        hit_test_result: &HitTestResult,
+    ) {
+        // Only respond to mouse events if we are displayed as text input or a password. If the
+        // placeholder is displayed, also don't do any interactive mouse event handling.
+        if !self.input_type().is_textual_or_password() || self.textinput.borrow().is_empty() {
+            if let Some(super_type) = self.super_type() {
+                super_type.handle_mousedown_event(cx, mouse_event, hit_test_result);
+            }
+            return;
+        }
+
+        if self.textinput.borrow_mut().handle_mousedown_event(
+            self.upcast(),
+            mouse_event,
+            hit_test_result,
+        ) {
+            self.maybe_update_shared_selection();
+            mouse_event.upcast::<Event>().mark_as_handled();
         }
     }
 
