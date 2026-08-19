@@ -67,7 +67,9 @@ use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
-use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
+use crate::dom::workerglobalscope::{
+    ScriptFetchContext, WorkerDevtoolsControlMsg, WorkerGlobalScope,
+};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::script_module::fetch_a_module_script_graph;
 use crate::realms::enter_auto_realm;
@@ -314,7 +316,7 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -373,7 +375,7 @@ impl DedicatedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         parent_event_loop_sender: ScriptEventLoopSender,
         own_sender: Sender<DedicatedWorkerScriptMsg>,
@@ -528,7 +530,9 @@ impl DedicatedWorkerGlobalScope {
                 let _ = context_sender.send(context_for_interrupt);
 
                 #[cfg(feature = "devtools")]
-                let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
+                let devtools_mpsc_port = Some(from_devtools_receiver.route_preserving_errors());
+                #[cfg(not(feature = "devtools"))]
+                let devtools_mpsc_port = None;
                 let animation_frame_channel = init
                     .animation_frame_provider_supported
                     .then(|| generic_channel::channel().expect("Failed to create generic channel"));
@@ -565,7 +569,7 @@ impl DedicatedWorkerGlobalScope {
                     worker_name.into(),
                     worker_type,
                     worker_url.url(),
-                    Some(devtools_mpsc_port),
+                    devtools_mpsc_port,
                     runtime,
                     parent_event_loop_sender,
                     own_sender,
