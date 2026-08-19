@@ -36,7 +36,6 @@ use style::Atom;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
 use style::computed_values::font_variant_caps;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
-use style::font_face::FontStyleRange;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
@@ -100,10 +99,6 @@ pub(crate) const TNUM: Tag = Tag::new(b"tnum");
 pub(crate) const TRAD: Tag = Tag::new(b"trad");
 pub(crate) const ZERO: Tag = Tag::new(b"zero");
 
-/// The number of degrees to slant the font face by if the `font-style` is `italic`
-/// but the font does not support native italic.
-const SLNT_VALUE_FOR_ITALIC_STYLE: f32 = 14.0;
-
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
 // PlatformFont encapsulates access to the platform's font API,
@@ -159,7 +154,8 @@ pub trait PlatformFontMethods: Sized {
         _font_identifer: &FontIdentifier,
         _variations: &[FontVariation],
     ) -> Result<Self, &'static str> {
-        Err("not implemented")
+        // TODO: Get rid of this default implementation once windows support is added.
+        Ok(self)
     }
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
@@ -365,10 +361,13 @@ impl Font {
             &data,
             synthetic_bold,
         )?;
+        let variation_axes = VariationAxes::from_platform_font(&handle);
 
         // Compute and apply the OpenType variations
-        let handle = if servo_config::pref!(layout_variable_fonts_enabled) {
-            let used_variations = compute_variations(&descriptor, &template, &handle);
+        let handle = if servo_config::pref!(layout_variable_fonts_enabled) &&
+            variation_axes.contains(VariationAxes::IS_VARIABLE)
+        {
+            let used_variations = compute_variations(&descriptor, &template, variation_axes);
             handle.copy_with_variations(&template.identifier(), &used_variations)?
         } else {
             handle
@@ -1140,7 +1139,7 @@ pub(crate) fn map_platform_values_to_style_values(mapping: &[(f64, f64)], value:
 fn compute_variations(
     descriptor: &FontDescriptor,
     template: &FontTemplateRef,
-    platform_font: &PlatformFont,
+    variation_axes: VariationAxes,
 ) -> Vec<FontVariation> {
     let font_face_rule = template.font_face_rule();
 
@@ -1209,56 +1208,60 @@ fn compute_variations(
         value: descriptor.stretch.0.to_float(),
     });
 
-    let fvar_table = platform_font.table_for_tag(FVAR);
-    let has_ital_axis = fvar_table
-        .as_ref()
-        .and_then(|table| table.parse_as_specific_table::<Fvar<'_>>().ok())
-        .and_then(|fvar: Fvar<'_>| fvar.axis_instance_arrays().ok())
-        .is_some_and(|axis_instance_arrays| {
-            axis_instance_arrays
-                .axes()
-                .iter()
-                .any(|axis| axis.axis_tag() == ITAL)
-        });
+    if variation_axes.intersects(VariationAxes::ITAL | VariationAxes::SLNT) {
+        let clamped_font_style = font_face_rule
+            .as_ref()
+            .and_then(|descriptor| descriptor.font_style.as_ref())
+            .map(|font_style_range| {
+                let computed_font_style_range =
+                    font_style_range.compute().expect("never returns None");
 
-    let clamped_font_style = font_face_rule
-        .as_ref()
-        .and_then(|descriptor| descriptor.font_style.as_ref())
-        .map(|font_style_range| match font_style_range {
-            FontStyleRange::Italic => FontStyle::ITALIC,
-            FontStyleRange::Oblique(min_angle, max_angle) => {
+                if computed_font_style_range.0 == FontStyle::ITALIC {
+                    debug_assert_eq!(computed_font_style_range.1, FontStyle::ITALIC);
+                    return FontStyle::ITALIC;
+                }
+                debug_assert_ne!(computed_font_style_range.1, FontStyle::ITALIC);
+
                 let specified_angle = if descriptor.style == FontStyle::ITALIC {
-                    SLNT_VALUE_FOR_ITALIC_STYLE
+                    FontStyle::DEFAULT_OBLIQUE_DEGREES as f32
                 } else {
                     descriptor.style.oblique_degrees()
                 };
+
                 let clamped_angle = specified_angle
-                    .min(max_angle.degrees().unwrap_or(f32::INFINITY))
-                    .max(min_angle.degrees().unwrap_or(f32::NEG_INFINITY));
+                    .min(computed_font_style_range.1.oblique_degrees())
+                    .max(computed_font_style_range.0.oblique_degrees());
                 FontStyle::oblique(clamped_angle)
-            },
-        })
-        .unwrap_or(descriptor.style);
-    // TODO: We should recognize when a font has neither a ital nor a slnt axis and then
-    // synthesize an appropriate font face if allowed by font-synthesis.
-    if has_ital_axis {
-        add_variation(FontVariation {
-            tag: ITAL.to_u32(),
-            value: (clamped_font_style != FontStyle::NORMAL) as u32 as f32,
-        });
-    } else {
-        // Note: CSS and OpenType measure slnt in opposite directions, so we need to negate the
-        // angles.
-        if clamped_font_style == FontStyle::ITALIC {
+            })
+            .unwrap_or(descriptor.style);
+
+        // TODO: We should recognize when a font has neither a ital nor a slnt axis and then
+        // synthesize an appropriate font face if allowed by font-synthesis.
+
+        // When both a `ital` and a `slnt` axis are available then we prefer `ital` for
+        // `font-style: italic` and `slnt` for `font-style: oblique`.
+        let use_ital_axis = (variation_axes.contains(VariationAxes::ITAL) &&
+            clamped_font_style == FontStyle::ITALIC) ||
+            !variation_axes.contains(VariationAxes::SLNT);
+        if use_ital_axis {
             add_variation(FontVariation {
-                tag: SLNT.to_u32(),
-                value: -SLNT_VALUE_FOR_ITALIC_STYLE,
+                tag: ITAL.to_u32(),
+                value: (clamped_font_style != FontStyle::NORMAL) as u32 as f32,
             });
         } else {
-            add_variation(FontVariation {
-                tag: SLNT.to_u32(),
-                value: -clamped_font_style.oblique_degrees(),
-            });
+            // Note: CSS and OpenType measure slnt in opposite directions, so we need to negate the
+            // angles.
+            if clamped_font_style == FontStyle::ITALIC {
+                add_variation(FontVariation {
+                    tag: SLNT.to_u32(),
+                    value: (-FontStyle::DEFAULT_OBLIQUE_DEGREES) as f32,
+                });
+            } else {
+                add_variation(FontVariation {
+                    tag: SLNT.to_u32(),
+                    value: -clamped_font_style.oblique_degrees(),
+                });
+            }
         }
     }
 
@@ -1271,4 +1274,56 @@ fn compute_variations(
     }
 
     variations
+}
+
+bitflags! {
+    #[derive(Clone, Copy, Debug)]
+    struct VariationAxes: u8 {
+        /// Whether the font has any variation axes at all.
+        const IS_VARIABLE = 1;
+
+        /// Whether the font as a `ital` axis.
+        ///
+        /// Never set without `IS_VARIABLE`.
+        const ITAL = 1 << 1;
+
+        /// Whether the font as a `slnt` axis.
+        ///
+        /// Never set without `IS_VARIABLE`.
+        const SLNT = 1 << 2;
+    }
+}
+
+impl VariationAxes {
+    fn from_platform_font(platform_font: &PlatformFont) -> Self {
+        let Some(fvar_table) = platform_font.table_for_tag(FVAR) else {
+            // This is not a variable font.
+            return VariationAxes::empty();
+        };
+
+        let Some(variation_axes) = fvar_table
+            .parse_as_specific_table::<Fvar<'_>>()
+            .ok()
+            .and_then(|fvar: Fvar<'_>| fvar.axis_instance_arrays().ok())
+            .map(|instance_arrays| instance_arrays.axes())
+        else {
+            // The fvar table is malformed.
+            return VariationAxes::empty();
+        };
+
+        if variation_axes.is_empty() {
+            return VariationAxes::empty();
+        }
+
+        let mut result = VariationAxes::IS_VARIABLE;
+        for axis in variation_axes {
+            match axis.axis_tag() {
+                ITAL => result |= VariationAxes::ITAL,
+                SLNT => result |= VariationAxes::SLNT,
+                _ => {},
+            }
+        }
+
+        result
+    }
 }

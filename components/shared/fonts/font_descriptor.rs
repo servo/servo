@@ -62,15 +62,6 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
     }
 }
 
-impl FontDescriptor {
-    pub fn with_variation_settings(&self, variation_settings: Vec<FontVariation>) -> Self {
-        FontDescriptor {
-            variation_settings,
-            ..*self
-        }
-    }
-}
-
 /// This data structure represents the various optional descriptors that can be
 /// applied to a `@font-face` rule in CSS. These are used to create a [`FontTemplate`]
 /// from the given font data used as the source of the `@font-face` rule. If values
