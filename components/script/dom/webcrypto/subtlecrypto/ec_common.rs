@@ -20,9 +20,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256,
-    NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, EcKeyAlgorithm,
-    EcKeyGenParams, EcKeyImportParams,
+    CryptoAlgorithm, EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, ExportedKey,
+    JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
+    NAMED_CURVE_P521, SUPPORTED_CURVES,
 };
 use crate::dom::webcrypto::subtlecrypto::JsonWebKeyExt;
 

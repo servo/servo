@@ -17,8 +17,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams,
+    AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, CryptoAlgorithm, ExportedKey,
+    JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
 };
 
 #[expect(clippy::enum_variant_names)]

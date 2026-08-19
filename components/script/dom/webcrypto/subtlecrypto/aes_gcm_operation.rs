@@ -18,7 +18,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, AesDerivedKeyParams, AesGcmParams, AesKeyGenParams, aes_common,
+    AesDerivedKeyParams, AesGcmParams, AesKeyGenParams, ExportedKey, aes_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>

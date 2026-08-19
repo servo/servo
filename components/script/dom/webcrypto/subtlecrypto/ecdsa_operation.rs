@@ -19,8 +19,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
-    EcKeyGenParams, EcKeyImportParams, EcdsaParams, ec_common,
+    EcKeyGenParams, EcKeyImportParams, EcdsaParams, ExportedKey, KeyAlgorithmAndDerivatives,
+    NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-sign>

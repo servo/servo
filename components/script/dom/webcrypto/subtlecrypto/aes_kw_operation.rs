@@ -13,9 +13,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
-use crate::dom::subtlecrypto::{
-    ExportedKey, AesDerivedKeyParams, AesKeyGenParams, aes_common,
-};
+use crate::dom::subtlecrypto::{AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common};
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-wrap-key>
 pub(crate) fn wrap_key(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {

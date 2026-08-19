@@ -4825,9 +4825,9 @@ fn normalize_algorithm<Op: Operation>(
 // implement the [`Operation`] trait for it. The associated type [`RegisteredAlgorithm`] of
 // [`Operation`]  is set to the [`EncryptAlgorithm`] enum, whose variants are cryptographic
 // algorithms that support the "encrypt" operation. The variant [`EncryptAlgorithm::AesCtr`] has an
-// inner type [`AesCtrParams`] since the desired input IDL dictionary type for "encrypt"
-// operation of AES-CTR algorithm is the `AesCtrParams` dictionary. The [`EncryptAlgorithm`] enum
-// also implements the [`NormalizedAlgorithm`] trait accordingly.
+// inner type [`AesCtrParams`] since the desired input IDL dictionary type for "encrypt" operation
+// of AES-CTR algorithm is the `AesCtrParams` dictionary. The [`EncryptAlgorithm`] enum also
+// implements the [`NormalizedAlgorithm`] trait accordingly.
 //
 // The algorithm registrations are specified in:
 // RSASSA-PKCS1-v1_5: <https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>

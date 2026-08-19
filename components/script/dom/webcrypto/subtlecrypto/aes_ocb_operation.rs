@@ -22,7 +22,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, SubtleAeadParams, AesDerivedKeyParams, AesKeyGenParams, aes_common,
+    AesDerivedKeyParams, AesKeyGenParams, ExportedKey, SubtleAeadParams, aes_common,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-encrypt>

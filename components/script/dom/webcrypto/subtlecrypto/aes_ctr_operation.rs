@@ -16,7 +16,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, AesCtrParams, AesDerivedKeyParams, AesKeyGenParams, aes_common,
+    AesCtrParams, AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common,
 };
 
 /// Use aes::Ctr128BE by default. According to the WebCrypto API specification, the counter MUST be
