@@ -13,8 +13,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{Sender, select, unbounded};
-#[cfg(feature = "devtools")]
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use fonts::FontContext;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use servo_base::generic_channel::{self, GenericCallback, GenericSender, RoutedReceiver};
@@ -721,6 +719,8 @@ fn update_serviceworker(
     let (sender, receiver) = unbounded();
     #[cfg(feature = "devtools")]
     let devtools_receiver = {
+        use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
+
         let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
 
         scope_things.init.from_devtools_sender = Some(devtools_sender);
