@@ -575,6 +575,8 @@ impl Event {
                     .and_then(|activatable| activatable.legacy_pre_activation_behavior(cx));
             }
 
+            #[cfg(not(feature = "devtools"))]
+            let timeline_window: Option<DomRoot<Window>> = None;
             #[cfg(feature = "devtools")]
             let timeline_window = DomRoot::downcast::<Window>(target.global())
                 .filter(|window| window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent));
@@ -598,7 +600,6 @@ impl Event {
                     index,
                     self,
                     ListenerPhase::Capturing,
-                    #[cfg(feature = "devtools")]
                     timeline_window.as_deref(),
                     legacy_output_did_listeners_throw,
                 )
@@ -629,7 +630,6 @@ impl Event {
                     index,
                     self,
                     ListenerPhase::Bubbling,
-                    #[cfg(feature = "devtools")]
                     timeline_window.as_deref(),
                     legacy_output_did_listeners_throw,
                 );
@@ -1274,7 +1274,7 @@ fn invoke(
     segment_index_in_path: usize,
     event: &Event,
     phase: ListenerPhase,
-    #[cfg(feature = "devtools")] timeline_window: Option<&Window>,
+    timeline_window: Option<&Window>,
     legacy_output_did_listeners_throw: Option<&Cell<bool>>,
 ) {
     // Step 1. Set event’s target to the shadow-adjusted target of the last struct in event’s path,
