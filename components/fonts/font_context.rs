@@ -242,13 +242,6 @@ impl FontContext {
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
     ) -> Option<FontRef> {
-        let font_descriptor = if servo_config::pref!(layout_variable_fonts_enabled) {
-            let variation_settings = font_template.borrow().compute_variations(font_descriptor);
-            &font_descriptor.with_variation_settings(variation_settings)
-        } else {
-            font_descriptor
-        };
-
         self.get_font_maybe_synthesizing_small_caps(
             font_template,
             font_descriptor,
@@ -556,8 +549,7 @@ impl FontContext {
         );
 
         let identifier = FontIdentifier::Web(url);
-        let Ok(handle) =
-            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false)
+        let Ok(handle) = PlatformFont::new_from_data(identifier.clone(), &font_data, None, false)
         else {
             return false;
         };
@@ -974,7 +966,7 @@ impl FontContext {
 
         let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
         let handle =
-            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false).ok()?;
+            PlatformFont::new_from_data(identifier.clone(), &font_data, None, false).ok()?;
 
         let new_template = FontTemplate::new(identifier.clone(), handle.descriptor(), None);
 

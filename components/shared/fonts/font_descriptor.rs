@@ -28,6 +28,9 @@ pub struct FontDescriptor {
     pub style: FontStyle,
     pub variant: font_variant_caps::T,
     pub pt_size: Au,
+    /// The value of the `@font-variation-settings` property.
+    ///
+    /// This does not include synthesized variations from `font-style`, `font-stretch` etc.
     pub variation_settings: Vec<FontVariation>,
     pub synthesis_weight: FontSynthesis,
     pub optical_sizing: FontOpticalSizing,
@@ -55,15 +58,6 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
             variation_settings,
             synthesis_weight: style.clone_font_synthesis_weight(),
             optical_sizing: style.clone_font_optical_sizing(),
-        }
-    }
-}
-
-impl FontDescriptor {
-    pub fn with_variation_settings(&self, variation_settings: Vec<FontVariation>) -> Self {
-        FontDescriptor {
-            variation_settings,
-            ..*self
         }
     }
 }

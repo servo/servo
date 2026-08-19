@@ -182,20 +182,18 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
             .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
+        Self::new_with_variations(font_face, pt_size, &[], synthetic_bold)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
@@ -204,7 +202,7 @@ impl PlatformFontMethods for PlatformFont {
             .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
-        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
+        Self::new_with_variations(font_face, pt_size, &[], synthetic_bold)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {

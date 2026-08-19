@@ -63,7 +63,7 @@ pub struct PlatformFont {
     pub(crate) ctfont: CFRetained<CTFont>,
     variations: Vec<FontVariation>,
     h_kern_subtable: Option<CachedKernTable>,
-    synthetic_bold: bool,
+    pub(crate) synthetic_bold: bool,
 }
 
 // From https://developer.apple.com/documentation/coretext:
@@ -110,20 +110,15 @@ impl PlatformFont {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let size = match requested_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
-        let Some(mut platform_font) = CoreTextFontCache::core_text_font(
-            font_identifier,
-            data,
-            size,
-            variations,
-            synthetic_bold,
-        ) else {
+        let Some(mut platform_font) =
+            CoreTextFontCache::core_text_font(font_identifier, data, size, synthetic_bold)
+        else {
             return Err("Could not generate CTFont for FontTemplateData");
         };
 
@@ -252,31 +247,38 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(
-            font_identifier,
-            Some(data),
-            requested_size,
-            variations,
-            synthetic_bold,
-        )
+        Self::new(font_identifier, Some(data), requested_size, synthetic_bold)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(
             FontIdentifier::Local(font_identifier),
             None,
             requested_size,
-            variations,
             synthetic_bold,
         )
+    }
+
+    /// Create a platform font with the given variations from a existing font.
+    ///
+    /// `self` is consumed to work around platform differences. On some platforms, changing the
+    /// variations requires creating an entirely new font face, whereas on others the returned
+    /// font is `self`.
+    fn copy_with_variations(
+        self,
+        font_identifier: &FontIdentifier,
+        variations: &[FontVariation],
+    ) -> Result<Self, &'static str> {
+        let mut platform_font =
+            CoreTextFontCache::add_variations_to_font(self, font_identifier, variations);
+        platform_font.load_h_kern_subtable();
+        Ok(platform_font)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
