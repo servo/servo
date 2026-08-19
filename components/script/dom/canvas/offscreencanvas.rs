@@ -578,7 +578,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
 
                 // Step 7.2.2. Otherwise, resolve result with a new Blob object,
                 // created in global's relevant realm, representing file.
-                let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
+                let blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type().to_owned());
                 let blob = Blob::new(cx, &this.global(), blob_impl);
 
                 promise.resolve_native(cx, &blob);

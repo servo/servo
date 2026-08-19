@@ -627,7 +627,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                        // Step 4.2.1: If result is non-null, then set result to a new Blob
                        // object, created in the relevant realm of this canvas element,
                        // representing result. [FILEAPI]
-                       blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type());
+                       blob_impl = BlobImpl::new_from_bytes(encoded, image_type.as_mime_type().to_owned());
                        blob = Blob::new(cx, &this.global(), blob_impl);
                        Some(&*blob)
                    }
