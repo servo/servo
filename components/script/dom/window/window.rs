@@ -21,8 +21,6 @@ use content_security_policy::Violation;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
-#[cfg(feature = "devtools")]
-use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
@@ -327,10 +325,11 @@ pub(crate) struct Window {
     /// no devtools server
     #[no_trace]
     #[cfg(feature = "devtools")]
-    devtools_markers: DomRefCell<FxHashSet<TimelineMarkerType>>,
+    devtools_markers: DomRefCell<std::collections::FxHashSet<devtools_traits::TimelineMarkerType>>,
     #[no_trace]
     #[cfg(feature = "devtools")]
-    devtools_marker_sender: DomRefCell<Option<GenericSender<Option<TimelineMarker>>>>,
+    devtools_marker_sender:
+        DomRefCell<Option<GenericSender<Option<devtools_traits::TimelineMarker>>>>,
 
     /// Most recent unhandled resize event, if any.
     #[no_trace]
@@ -2668,8 +2667,9 @@ impl Window {
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
         #[cfg(feature = "devtools")]
-        let marker = if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
-            Some(TimelineMarker::start("Reflow".to_owned()))
+        let marker = if self.need_emit_timeline_marker(devtools_traits::TimelineMarkerType::Reflow)
+        {
+            Some(devtools_traits::TimelineMarker::start("Reflow".to_owned()))
         } else {
             None
         };
@@ -4024,12 +4024,15 @@ impl Window {
 
 #[cfg(feature = "devtools")]
 impl Window {
-    pub(crate) fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
+    pub(crate) fn need_emit_timeline_marker(
+        &self,
+        timeline_type: devtools_traits::TimelineMarkerType,
+    ) -> bool {
         let markers = self.devtools_markers.borrow();
         markers.contains(&timeline_type)
     }
 
-    pub(crate) fn emit_timeline_marker(&self, marker: TimelineMarker) {
+    pub(crate) fn emit_timeline_marker(&self, marker: devtools_traits::TimelineMarker) {
         let sender = self.devtools_marker_sender.borrow();
         let sender = sender.as_ref().expect("There is no marker sender");
         sender.send(Some(marker)).unwrap();
@@ -4037,14 +4040,17 @@ impl Window {
 
     pub(crate) fn set_devtools_timeline_markers(
         &self,
-        markers: Vec<TimelineMarkerType>,
-        reply: GenericSender<Option<TimelineMarker>>,
+        markers: Vec<devtools_traits::TimelineMarkerType>,
+        reply: GenericSender<Option<devtools_traits::TimelineMarker>>,
     ) {
         *self.devtools_marker_sender.borrow_mut() = Some(reply);
         self.devtools_markers.borrow_mut().extend(markers);
     }
 
-    pub(crate) fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
+    pub(crate) fn drop_devtools_timeline_markers(
+        &self,
+        markers: Vec<devtools_traits::TimelineMarkerType>,
+    ) {
         let mut devtools_markers = self.devtools_markers.borrow_mut();
         for marker in markers {
             devtools_markers.remove(&marker);

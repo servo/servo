@@ -4750,10 +4750,13 @@ where
         self.unload_document(old_pipeline_id);
 
         if let Some(new_pipeline) = self.pipelines.get_mut(&new_pipeline_id) {
-            self.notify_devtools_navigation_start(browsing_context_id, new_pipeline.url.clone());
-
             #[cfg(feature = "devtools")]
             if let Some(ref chan) = self.devtools_sender {
+                let state = NavigationState::Start(new_pipeline.url.clone());
+                let _ = chan.send(DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
+                ));
+
                 let page_info = DevtoolsPageInfo {
                     title: new_pipeline.title.clone(),
                     url: new_pipeline.url.clone(),
@@ -6333,28 +6336,6 @@ where
         {
             warn!("Could not send pinch zoom update to pipeline: {pipeline_id:?}: {error:?}");
         }
-    }
-
-    #[cfg(feature = "devtools")]
-    fn notify_devtools_navigation_start(
-        &self,
-        browsing_context_id: BrowsingContextId,
-        url: ServoUrl,
-    ) {
-        if let Some(chan) = &self.devtools_sender {
-            let state = NavigationState::Start(url);
-            let _ = chan.send(DevtoolsControlMsg::FromScript(
-                ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
-            ));
-        }
-    }
-
-    #[cfg(not(feature = "devtools"))]
-    fn notify_devtools_navigation_start(
-        &self,
-        _browsing_context_id: BrowsingContextId,
-        _url: ServoUrl,
-    ) {
     }
 
     #[cfg(feature = "devtools")]
