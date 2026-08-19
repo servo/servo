@@ -590,13 +590,12 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
     fn SetCssText(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
-        let window = self.owner.window();
-
-        // Step 1
+        // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
             return Err(Error::NoModificationAllowed(None));
         }
 
+        let window = self.owner.window();
         let quirks_mode = window.Document().quirks_mode();
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
         self.owner.mutate_associated_block(cx, |pdb, _changed| {
