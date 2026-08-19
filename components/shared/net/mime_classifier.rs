@@ -1105,7 +1105,7 @@ impl ByteMatcher {
     // The string "Rar " followed by SUB BEL NUL, the RAR archive signature.
     fn application_x_rar_compressed() -> ByteMatcher {
         ByteMatcher {
-            pattern: b"Rar \x1A\x07\x00",
+            pattern: b"Rar!\x1A\x07\x00",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
             content_type: "application/x-rar-compressed".parse().unwrap(),
             leading_ignore: &[],
