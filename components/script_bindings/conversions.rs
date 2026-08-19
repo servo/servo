@@ -8,7 +8,7 @@ use js::context::JSContext;
 use js::conversions::{
     ConversionResult, FromJSValConvertible, ToJSValConvertible, jsstr_to_string,
 };
-use js::error::throw_type_error;
+use js::error::throw_type_error_safe;
 use js::glue::{
     GetProxyHandlerExtra, GetProxyReservedSlot, IsProxyHandlerFamily, IsWrapper, JS_GetReservedSlot,
 };
@@ -156,7 +156,7 @@ impl FromJSValConvertible for ByteString {
             let char_vec = slice::from_raw_parts(chars, length);
 
             if char_vec.iter().any(|&c| c > 0xFF) {
-                throw_type_error(cx.raw_cx(), c"Invalid ByteString");
+                throw_type_error_safe(cx, c"Invalid ByteString");
                 Err(())
             } else {
                 Ok(ConversionResult::Success(ByteString::new(
@@ -404,19 +404,14 @@ impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Fini
             ConversionResult::Success(v) => v,
             ConversionResult::Failure(error) => {
                 // FIXME(emilio): Why throwing instead of propagating the error?
-                unsafe { throw_type_error(cx.raw_cx(), &error) };
+                throw_type_error_safe(cx, &error);
                 return Err(());
             },
         };
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
             None => {
-                unsafe {
-                    throw_type_error(
-                        cx.raw_cx(),
-                        c"this argument is not a finite floating-point value",
-                    )
-                };
+                throw_type_error_safe(cx, c"this argument is not a finite floating-point value");
                 Err(())
             },
         }

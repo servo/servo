@@ -5,7 +5,7 @@
 use std::ffi::CString;
 
 use js::context::JSContext;
-use js::error::throw_type_error;
+use js::error::throw_type_error_safe;
 use js::rust::wrappers2::JS_IsExceptionPending;
 
 use crate::codegen::PrototypeList::proto_id_to_name;
@@ -104,7 +104,7 @@ pub fn throw_invalid_this(cx: &mut JSContext, proto_id: u16) {
         .to_vec();
     vec.extend_from_slice(proto_id_to_name(proto_id).as_bytes());
     let error = CString::new(vec).expect("WebIDL name should not contain nul byte");
-    unsafe { throw_type_error(cx.raw_cx(), &error) };
+    throw_type_error_safe(cx, &error);
 }
 
 pub fn throw_constructor_without_new(cx: &mut JSContext, name: &str) {
@@ -112,7 +112,7 @@ pub fn throw_constructor_without_new(cx: &mut JSContext, name: &str) {
     let mut error = name.as_bytes().to_vec();
     error.extend_from_slice(b" constructor: 'new' is required");
     let error = CString::new(error).expect("WebIDL name should not contain nul byte");
-    unsafe { throw_type_error(cx.raw_cx(), &error) };
+    throw_type_error_safe(cx, &error);
 }
 
 #[macro_export]
