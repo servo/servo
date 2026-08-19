@@ -75,7 +75,16 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::RethrowErrors;
+#[cfg(feature = "devtools")]
+pub(crate) type WorkerDevtoolsControlMsg = DevtoolScriptControlMsg;
+#[cfg(not(feature = "devtools"))]
+pub(crate) type WorkerDevtoolsControlMsg = ();
+
+#[cfg(feature = "devtools")]
+pub(crate) type WorkerDebuggerGlobalScope = DebuggerGlobalScope;
+#[cfg(not(feature = "devtools"))]
+pub(crate) type WorkerDebuggerGlobalScope = ();
+use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -400,7 +409,7 @@ impl WorkerGlobalScope {
         worker_type: WorkerType,
         worker_url: ServoUrl,
         runtime: Runtime,
-        devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
+        devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         closing: Arc<AtomicBool>,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         insecure_requests_policy: InsecureRequestsPolicy,

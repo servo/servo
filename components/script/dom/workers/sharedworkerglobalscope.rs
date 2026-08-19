@@ -12,8 +12,6 @@ use content_security_policy::Violation;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 #[cfg(feature = "devtools")]
 use devtools_traits::DevtoolScriptControlMsg;
-#[cfg(not(feature = "devtools"))]
-type DevtoolScriptControlMsg = ();
 use dom_struct::dom_struct;
 use fonts::FontContext;
 use js::context::JSContext;
@@ -57,11 +55,11 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::sharedworker::{SharedWorker, SharedWorkerStorageKey, TrustedSharedWorkerAddress};
 #[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
-#[cfg(not(feature = "devtools"))]
-type DebuggerGlobalScope = ();
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::workerglobalscope::{
+    WorkerDebuggerGlobalScope, WorkerDevtoolsControlMsg, WorkerGlobalScope,
+};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::script_module::fetch_a_module_script_graph;
 use crate::runtime::script_runtime::ScriptThreadEventCategory::WorkerEvent;
@@ -250,7 +248,7 @@ impl SharedWorkerGlobalScope {
         worker_url: ServoUrl,
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
-        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
@@ -261,7 +259,7 @@ impl SharedWorkerGlobalScope {
         control_receiver: Receiver<SharedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
-        debugger_global: Option<&DebuggerGlobalScope>,
+        debugger_global: Option<&WorkerDebuggerGlobalScope>,
         storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
@@ -315,9 +313,7 @@ impl SharedWorkerGlobalScope {
         worker_url: ServoUrl,
         worker: TrustedSharedWorkerAddress,
         parent_event_loop_sender: ScriptEventLoopSender,
-        #[cfg(feature = "devtools")] from_devtools_receiver: RoutedReceiver<
-            DevtoolScriptControlMsg,
-        >,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
         receiver: Receiver<SharedWorkerScriptMsg>,
@@ -328,7 +324,7 @@ impl SharedWorkerGlobalScope {
         control_receiver: Receiver<SharedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Arc<FontContext>,
-        #[cfg(feature = "devtools")] debugger_global: &DebuggerGlobalScope,
+        debugger_global: Option<&WorkerDebuggerGlobalScope>,
         storage_key: SharedWorkerStorageKey,
         constructor_origin: ImmutableOrigin,
         constructor_url: ServoUrl,
@@ -345,7 +341,7 @@ impl SharedWorkerGlobalScope {
             worker_url,
             worker,
             parent_event_loop_sender,
-            Some(from_devtools_receiver),
+            from_devtools_receiver,
             runtime,
             own_sender,
             receiver,
@@ -357,7 +353,7 @@ impl SharedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
             font_context,
-            Some(debugger_global),
+            debugger_global,
             storage_key,
             constructor_origin,
             constructor_url,
@@ -469,7 +465,13 @@ impl SharedWorkerGlobalScope {
                 #[cfg(feature = "devtools")]
                 debugger_global.execute(cx);
                 #[cfg(feature = "devtools")]
-                let devtools_mpsc_port = from_devtools_receiver.route_preserving_errors();
+                let devtools_mpsc_port = Some(from_devtools_receiver.route_preserving_errors());
+                #[cfg(not(feature = "devtools"))]
+                let devtools_mpsc_port = None;
+                #[cfg(feature = "devtools")]
+                let debugger_global_for_scope = Some(&*debugger_global);
+                #[cfg(not(feature = "devtools"))]
+                let debugger_global_for_scope: Option<&WorkerDebuggerGlobalScope> = None;
                 #[cfg(feature = "devtools")]
                 let devtools_enabled = init.to_devtools_sender.is_some();
 
@@ -491,7 +493,6 @@ impl SharedWorkerGlobalScope {
                     worker_url.url(),
                     worker,
                     parent_event_loop_sender,
-                    #[cfg(feature = "devtools")]
                     devtools_mpsc_port,
                     runtime,
                     own_sender,
@@ -504,8 +505,7 @@ impl SharedWorkerGlobalScope {
                     control_receiver,
                     insecure_requests_policy,
                     font_context,
-                    #[cfg(feature = "devtools")]
-                    &debugger_global,
+                    debugger_global_for_scope,
                     storage_key,
                     constructor_origin,
                     constructor_url,

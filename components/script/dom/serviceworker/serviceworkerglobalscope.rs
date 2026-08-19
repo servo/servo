@@ -60,7 +60,9 @@ use crate::dom::script_execution::ScriptOptions;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
-use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::workerglobalscope::{
+    WorkerDebuggerGlobalScope, WorkerDevtoolsControlMsg, WorkerGlobalScope,
+};
 use crate::fetch::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::ScriptFetchOptions;
@@ -242,7 +244,7 @@ impl ServiceWorkerGlobalScope {
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -284,7 +286,7 @@ impl ServiceWorkerGlobalScope {
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        from_devtools_receiver: Option<RoutedReceiver<DevtoolScriptControlMsg>>,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -294,7 +296,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
-        debugger_global: Option<&DebuggerGlobalScope>,
+        debugger_global: Option<&WorkerDebuggerGlobalScope>,
         worker_id: ServiceWorkerId,
         cx: &mut JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
@@ -333,7 +335,7 @@ impl ServiceWorkerGlobalScope {
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
-        devtools_receiver: Option<GenericReceiver<DevtoolScriptControlMsg>>,
+        devtools_receiver: Option<GenericReceiver<WorkerDevtoolsControlMsg>>,
         swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
@@ -398,6 +400,12 @@ impl ServiceWorkerGlobalScope {
                 #[cfg(feature = "devtools")]
                 let devtools_mpsc_port =
                     devtools_receiver.map(|receiver| receiver.route_preserving_errors());
+                #[cfg(not(feature = "devtools"))]
+                let devtools_mpsc_port = None;
+                #[cfg(feature = "devtools")]
+                let debugger_global_for_scope = Some(&*debugger_global);
+                #[cfg(not(feature = "devtools"))]
+                let debugger_global_for_scope: Option<&WorkerDebuggerGlobalScope> = None;
 
                 let resource_threads_sender = init.resource_threads.sender();
                 #[cfg(feature = "devtools")]
@@ -415,7 +423,7 @@ impl ServiceWorkerGlobalScope {
                     control_receiver,
                     closing,
                     font_context,
-                    Some(&debugger_global),
+                    debugger_global_for_scope,
                     worker_id,
                     cx,
                 );

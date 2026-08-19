@@ -644,19 +644,17 @@ async fn obtain_response(
         .timing
         .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
-    // #[cfg(feature = "devtools")]
-    // {
-    let request_id = request_id.map(|v| v.to_owned());
-    let pipeline_id = *pipeline_id;
-    let closure_url = url.clone();
-    let method = method.clone();
-    let send_start = CrossProcessInstant::now();
-    // }
-
     let host = request.uri().host().unwrap_or("").to_owned();
     let override_manager = context.state.override_manager.clone();
     #[cfg(feature = "devtools")]
-    let headers = headers.clone();
+    let (request_id, pipeline_id, closure_url, method, send_start, headers) = (
+        request_id.map(|value| value.to_owned()),
+        *pipeline_id,
+        url.clone(),
+        method.clone(),
+        CrossProcessInstant::now(),
+        headers.clone(),
+    );
     let is_secure_scheme = url.is_secure_scheme();
 
     // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
@@ -2331,8 +2329,6 @@ async fn http_network_fetch(
     let (done_sender, done_receiver) = unbounded_channel();
     *done_chan = Some((done_sender.clone(), done_receiver));
 
-    #[cfg(feature = "devtools")]
-    let devtools_sender = context.devtools_chan.clone();
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
         return Response::network_error(NetworkError::LoadCancelled);
@@ -2342,11 +2338,23 @@ async fn http_network_fetch(
     let response_body2 = response_body.clone();
 
     #[cfg(feature = "devtools")]
-    if let Some(ref sender) = devtools_sender &&
-        let Some(m) = msg
     {
-        send_request_to_devtools(m, sender);
+        if let Some(ref sender) = context.devtools_chan &&
+            let Some(msg) = msg
+        {
+            send_request_to_devtools(msg, sender);
+        }
     }
+
+
+    #[cfg(feature = "devtools")]
+    let (devtools_request, status, headers, devtools_chan) = (
+        request.clone(),
+        response.status.clone(),
+        response.headers.clone(),
+        context.devtools_chan.clone(),
+    );
+
     #[cfg(not(feature = "devtools"))]
     let _ = msg;
 
@@ -2356,15 +2364,6 @@ async fn http_network_fetch(
     let timing_ptr3 = context.timing.clone();
     let url1 = request.url();
     let url2 = url1.clone();
-
-    #[cfg(feature = "devtools")]
-    let devtools_request = request.clone();
-    #[cfg(feature = "devtools")]
-    let status = response.status.clone();
-    #[cfg(feature = "devtools")]
-    let headers = response.headers.clone();
-    #[cfg(feature = "devtools")]
-    let devtools_chan = context.devtools_chan.clone();
 
     if let Some(possible_length) = response_stream
         .headers()
