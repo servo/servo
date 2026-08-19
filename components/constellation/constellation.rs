@@ -160,14 +160,13 @@ use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
-    DocumentState, EmbedderToConstellationMessage, HistoryTraversalSource, IFrameLoadInfo,
-    IFrameLoadInfoWithData, IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg,
-    NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask, PortTransferInfo,
-    RemoteFocusOperation, SWManagerSenders, ScreenshotReadinessResponse,
-    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerAlgorithm,
-    ServiceWorkerManagerFactory, ServiceWorkerMsg, SessionHistoryTraversalRequest,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
-    WindowSizeType, WorkerAnimationFrameTick,
+    EmbedderToConstellationMessage, HistoryTraversalSource, IFrameLoadInfo, IFrameLoadInfoWithData,
+    IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
+    PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
+    ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
+    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
+    TraversalDirection, UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -447,9 +446,6 @@ pub struct Constellation<STF, SWF> {
     /// A [`GenericSender`] to notify navigation events to webdriver.
     webdriver_load_status_sender: Option<(GenericSender<WebDriverLoadStatus>, PipelineId)>,
 
-    /// Document states for loaded pipelines (used only when writing screenshots).
-    document_states: FxHashMap<PipelineId, DocumentState>,
-
     /// Are we shutting down?
     shutting_down: bool,
 
@@ -723,7 +719,6 @@ where
                     mem_profiler_chan: state.mem_profiler_chan.clone(),
                     phantom: PhantomData,
                     webdriver_load_status_sender: None,
-                    document_states: Default::default(),
                     #[cfg(feature = "webgpu")]
                     webrender_wgpu,
                     shutting_down: false,
@@ -1870,9 +1865,6 @@ where
             },
             ScriptToConstellationMessage::CreateCanvasPaintThread(size, response_sender) => {
                 self.handle_create_canvas_paint_thread_msg(size, response_sender)
-            },
-            ScriptToConstellationMessage::SetDocumentState(state) => {
-                self.document_states.insert(source_pipeline_id, state);
             },
             ScriptToConstellationMessage::LogEntry(event_loop_id, thread_name, entry) => {
                 self.handle_log_entry(event_loop_id, thread_name, entry);
