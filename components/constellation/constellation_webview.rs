@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
-use log::warn;
+use log::{debug, warn};
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use servo_base::Epoch;
@@ -17,7 +17,7 @@ use style_traits::CSSPixel;
 
 use crate::browsingcontext::BrowsingContext;
 use crate::pipeline::Pipeline;
-use crate::session_history::JointSessionHistory;
+use crate::session_history::{JointSessionHistory, SessionHistoryChange};
 
 /// The `Constellation`'s view of a `WebView` in the embedding layer. This tracks all of the
 /// `Constellation` state for this `WebView`.
@@ -27,8 +27,16 @@ pub(crate) struct ConstellationWebView {
 
     /// The [`PipelineId`] of the currently active pipeline at the top level of this WebView.
     pub active_top_level_pipeline_id: Option<PipelineId>,
+
     /// A counter for changes to [`Self::active_top_level_pipeline_id`].
     pub active_top_level_pipeline_epoch: Epoch,
+
+    /// When a navigation is performed, we do not immediately update
+    /// the session history, instead we ask the event loop to begin loading
+    /// the new document, and do not update the browsing context until the
+    /// document is active. Between starting the load and it activating,
+    /// we store a `SessionHistoryChange` object for the navigation in progress.
+    pub pending_changes: Vec<SessionHistoryChange>,
 
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
@@ -85,6 +93,7 @@ impl ConstellationWebView {
             user_content_manager_id,
             active_top_level_pipeline_id: None,
             active_top_level_pipeline_epoch: Epoch::default(),
+            pending_changes: Default::default(),
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),
@@ -209,9 +218,14 @@ impl ConstellationWebView {
     /// case unset the ongoing request and return it.
     pub(crate) fn maybe_finish_ongoing_session_history_traversal_request(
         &mut self,
-        pipelines_with_pending_changes: &FxHashSet<PipelineId>,
     ) -> Option<SessionHistoryTraversalRequest> {
         let ongoing_history_traversal_request = self.ongoing_history_traversal_request.as_mut()?;
+
+        let pipelines_with_pending_changes = self
+            .pending_changes
+            .iter()
+            .map(|change| change.new_pipeline_id)
+            .collect::<FxHashSet<_>>();
         ongoing_history_traversal_request
             .pipelines_awaiting_activation
             .retain(|pipeline_id| pipelines_with_pending_changes.contains(pipeline_id));
@@ -228,6 +242,39 @@ impl ConstellationWebView {
                 .expect("Guaranteed above")
                 .traversal_request,
         )
+    }
+
+    pub(crate) fn has_pending_change(&self) -> bool {
+        !self.pending_changes.is_empty()
+    }
+
+    pub(crate) fn pipeline_is_pending(&self, pipeline_id: PipelineId) -> bool {
+        self.pending_changes
+            .iter()
+            .any(|pending_change| pending_change.new_pipeline_id == pipeline_id)
+    }
+
+    pub(crate) fn add_pending_change(&mut self, change: SessionHistoryChange) {
+        debug!(
+            "adding pending session history change with {}",
+            if change.replace.is_some() {
+                "replacement"
+            } else {
+                "no replacement"
+            },
+        );
+        self.pending_changes.push(change);
+    }
+
+    pub(crate) fn remove_pending_change_for_pipeline(
+        &mut self,
+        pipeline_id: PipelineId,
+    ) -> Option<SessionHistoryChange> {
+        let pending_index = self
+            .pending_changes
+            .iter()
+            .rposition(|change| change.new_pipeline_id == pipeline_id)?;
+        Some(self.pending_changes.swap_remove(pending_index))
     }
 }
 
