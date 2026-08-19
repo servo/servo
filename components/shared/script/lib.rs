@@ -387,6 +387,14 @@ bitflags! {
     }
 }
 
+impl MouseButtons {
+    /// Returns whether exactly one button is pressed.
+    pub fn exactly_one_button_pressed(&self) -> bool {
+        // Exactly one button is pressed iff mouse_button_state is a power of 2
+        !self.is_empty() && (self.bits() & (self.bits() - 1)) == 0
+    }
+}
+
 malloc_size_of_is_0!(MouseButtons);
 
 impl TryFrom<MouseButton> for MouseButtons {
