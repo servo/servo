@@ -14,7 +14,7 @@ use script_bindings::str::DOMString;
 use crate::dom::GlobalScope;
 use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::DebuggerGetEnvironmentEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::event::Event;
 use crate::dom::pipelineid::PipelineId;
 use crate::dom::types::DebuggerGlobalScope;
@@ -24,7 +24,7 @@ use crate::dom::types::DebuggerGlobalScope;
 pub(crate) struct DebuggerGetEnvironmentEvent {
     event: Event,
     frame_actor_id: Option<DOMString>,
-    pipeline_id: Option<DomRoot<PipelineId>>,
+    pipeline_id: Option<Dom<PipelineId>>,
 }
 
 impl DebuggerGetEnvironmentEvent {
@@ -40,15 +40,12 @@ impl DebuggerGetEnvironmentEvent {
                 pipeline_id: None,
             },
             GetEnvironmentRequest::Global(debuggee_pipeline_id) => {
-                let debuggee_pipeline_id = crate::dom::pipelineid::PipelineId::new(
-                    cx,
-                    debugger_global_scope.upcast(),
-                    debuggee_pipeline_id,
-                );
+                let debuggee_pipeline_id =
+                    PipelineId::new(cx, debugger_global_scope.upcast(), debuggee_pipeline_id);
                 Self {
                     event: Event::new_inherited(),
                     frame_actor_id: None,
-                    pipeline_id: Some(debuggee_pipeline_id),
+                    pipeline_id: Some(Dom::from_ref(&debuggee_pipeline_id)),
                 }
             },
         });
@@ -68,10 +65,8 @@ impl DebuggerGetEnvironmentEventMethods<crate::DomTypeHolder> for DebuggerGetEnv
         self.frame_actor_id.clone()
     }
 
-    fn GetPipelineId(
-        &self,
-    ) -> Option<DomRoot<<crate::DomTypeHolder as script_bindings::DomTypes>::PipelineId>> {
-        self.pipeline_id.clone()
+    fn GetPipelineId(&self) -> Option<DomRoot<PipelineId>> {
+        self.pipeline_id.as_deref().map(DomRoot::from_ref)
     }
 
     fn IsTrusted(&self) -> bool {
