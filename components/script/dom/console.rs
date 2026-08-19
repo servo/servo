@@ -75,7 +75,6 @@ impl Console {
             Self::send_to_devtools(global, console_message);
         }
 
-        #[cfg(not(feature = "devtools"))]
         let _ = cx;
     }
 
@@ -142,7 +141,6 @@ impl Console {
             );
         }
 
-        #[cfg(not(feature = "devtools"))]
         let _ = include_stacktrace;
 
         let prefix = global.current_group_label().unwrap_or_default();
@@ -921,7 +919,6 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             }
         }
 
-        #[cfg(not(feature = "devtools"))]
         let _ = global;
     }
 

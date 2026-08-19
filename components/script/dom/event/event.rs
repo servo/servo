@@ -1356,7 +1356,6 @@ fn invoke(
         &listeners,
         phase,
         invocation_target_in_shadow_tree,
-        #[cfg(feature = "devtools")]
         timeline_window,
         legacy_output_did_listeners_throw,
     );
@@ -1387,7 +1386,6 @@ fn invoke(
             &listeners,
             phase,
             invocation_target_in_shadow_tree,
-            #[cfg(feature = "devtools")]
             timeline_window,
             legacy_output_did_listeners_throw,
         );
@@ -1404,7 +1402,7 @@ fn inner_invoke(
     listeners: &EventListeners,
     phase: ListenerPhase,
     invocation_target_in_shadow_tree: bool,
-    #[cfg(feature = "devtools")] timeline_window: Option<&Window>,
+    _timeline_window: Option<&Window>,
     legacy_output_did_listeners_throw: Option<&Cell<bool>>,
 ) -> bool {
     // Step 1. Let found be false.
@@ -1481,7 +1479,7 @@ fn inner_invoke(
             flag.set(true);
         }
         #[cfg(feature = "devtools")]
-        if let Some(window) = timeline_window {
+        if let Some(window) = _timeline_window {
             window.emit_timeline_marker(marker.end());
         }
 
