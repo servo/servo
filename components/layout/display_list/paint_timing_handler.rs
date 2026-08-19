@@ -242,7 +242,7 @@ impl PaintTimingHandler {
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#compute-a-new-largest-contentful-paint-candidate>
-    pub(crate) fn compute_new_lcp_candidate(&mut self) {
+    fn compute_new_lcp_candidate(&mut self) {
         // Step 1. Let currentSize be currentCandidate’s size if
         // currentCandidate is not null or 0 otherwise.
         // Step 2. Let largestSize be currentSize.
@@ -254,19 +254,6 @@ impl PaintTimingHandler {
 
         // Step 4. For each record of paintedImages:
         for record in std::mem::take(&mut self.painted_images) {
-            // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
-            // > Note: Each pending image record in paintedImages and text
-            // > element in paintedTextNodes will only be reported exactly
-            // > once, from mark paint timing, for the first paint where the
-            // > element is considered paintable (i.e. has opacity and
-            // > visibility) and contentful (i.e. image resource or blocking
-            // > fonts are sufficiently loaded).
-            // TODO(shubhamg13): Move to mark_paint_timing
-            if let Some(node) = record.tag.map(|tag| tag.node) &&
-                !self.reported_image_nodes.insert(node)
-            {
-                return;
-            }
             // Step 4.1. Let imageElement be record’s element.
 
             // TODO Step 4.2. If imageElement is not exposed for paint timing,
@@ -311,18 +298,7 @@ impl PaintTimingHandler {
         }
 
         // Step 5. For each textNode of paintedTextNodes,
-        for (node, record) in std::mem::take(&mut self.painted_text_nodes) {
-            // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
-            // > Note: Each pending image record in paintedImages and text
-            // > element in paintedTextNodes will only be reported exactly
-            // > once, from mark paint timing, for the first paint where the
-            // > element is considered paintable (i.e. has opacity and
-            // > visibility) and contentful (i.e. image resource or blocking
-            // > fonts are sufficiently loaded).
-            // TODO(shubhamg13): Move to mark_paint_timing
-            if !self.reported_text_nodes.insert(node) {
-                continue;
-            }
+        for (_, record) in std::mem::take(&mut self.painted_text_nodes) {
             // TODO Step 5.1. If textNode is not exposed for paint timing,
             // given document, continue.
             // TODO Step 5.2. If textNode has alpha channel value <=0 or
@@ -378,6 +354,26 @@ impl PaintTimingHandler {
 
         // Step 7. Return newCandidate.
         // Note: We use flag lcp_candidate_updated for updating, needs revisit
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#mark-paint-timing>
+    pub(crate) fn mark_paint_timing(&mut self) {
+        // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
+        // > Note: Each pending image record in paintedImages and text
+        // > element in paintedTextNodes will only be reported exactly
+        // > once, from mark paint timing, for the first paint where the
+        // > element is considered paintable (i.e. has opacity and
+        // > visibility) and contentful (i.e. image resource or blocking
+        // > fonts are sufficiently loaded).
+        self.painted_images.retain(|record| {
+            record
+                .tag
+                .is_none_or(|tag| self.reported_image_nodes.insert(tag.node))
+        });
+        self.painted_text_nodes
+            .retain(|node, _record| self.reported_text_nodes.insert(*node));
+
+        self.compute_new_lcp_candidate();
     }
 
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {
