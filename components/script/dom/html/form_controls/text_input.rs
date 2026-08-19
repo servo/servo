@@ -1005,7 +1005,6 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.rope = Rope::new(
             content
                 .str()
-                .to_string()
                 .replace("\r\n", "\n")
                 .replace("\r", "\n"),
         );
