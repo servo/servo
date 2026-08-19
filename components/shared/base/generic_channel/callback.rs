@@ -68,7 +68,6 @@ use ipc_channel::router::ROUTER;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_config::opts;
 
 use crate::generic_channel::{
     GenericReceiver, GenericReceiverVariants, SendError, SendResult, use_ipc,
@@ -211,7 +210,7 @@ where
             // Long-term we can remove this branch in the code again and replace it with
             // unreachable, since likely all IPC channels would be GenericChannels.
             GenericCallbackVariants::InProcess(wrapped_callback) => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::ser::Error::custom(
                         "InProcess callback can't be serialized in multiprocess mode",
                     ));

@@ -108,7 +108,9 @@ pub use crate::gamepad_delegate::{
     GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
 };
 pub use crate::network_manager::{CacheEntry, NetworkManager};
-pub use crate::servo::{Servo, ServoBuilder, run_content_process};
+#[cfg(feature = "ipc")]
+pub use crate::servo::run_content_process;
+pub use crate::servo::{Servo, ServoBuilder};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};
 pub use crate::user_content_manager::UserContentManager;

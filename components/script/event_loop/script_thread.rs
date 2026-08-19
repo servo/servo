@@ -50,7 +50,6 @@ use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
 use hyper_serde::Serde;
-use ipc_channel::router::ROUTER;
 use js::context::{JSContext, NoGC};
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{GCReason, JSContext as UnsafeJSContext};
@@ -3301,9 +3300,10 @@ impl ScriptThread {
         self.background_hang_monitor.unregister();
 
         // If we're in multiprocess mode, shut-down the IPC router for this process.
+        #[cfg(feature = "ipc")]
         if opts::get().multiprocess {
             debug!("Exiting IPC router thread in script thread.");
-            ROUTER.shutdown();
+            ipc_channel::router::ROUTER.shutdown();
         }
 
         debug!("Exited script thread.");

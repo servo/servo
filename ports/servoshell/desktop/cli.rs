@@ -20,7 +20,15 @@ pub fn main() {
     // Skip the first argument, which is the binary name.
     let args: Vec<String> = env::args().skip(1).collect();
     let (opts, preferences, servoshell_preferences) = match parse_command_line_arguments(&*args) {
-        ArgumentParsingResult::ContentProcess(token) => return servo::run_content_process(token),
+        #[cfg(not(feature = "ipc"))]
+        ArgumentParsingResult::ContentProcess(_) => {
+            log::error!("IPC not enabled, cannot use contentprocesses");
+            return;
+        },
+        #[cfg(feature = "ipc")]
+        ArgumentParsingResult::ContentProcess(token) => {
+            return servo::run_content_process(token);
+        },
         ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
             (opts, preferences, servoshell_preferences)
         },

@@ -18,14 +18,15 @@ use log::error;
 use media::WindowGLContext;
 use script_traits::{InitialScriptState, ScriptThreadMessage};
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::{self, GenericReceiver, GenericSender, SendError};
+use servo_base::generic_channel::{GenericReceiver, GenericSender, SendError};
 use servo_base::id::ScriptEventLoopId;
+#[cfg(feature = "ipc")]
 use servo_config::opts::{self, Opts};
+#[cfg(feature = "ipc")]
 use servo_config::prefs::{self, Preferences};
 use servo_constellation_traits::ServiceWorkerManagerFactory;
 
-use crate::sandboxing::spawn_multiprocess;
-use crate::{Constellation, UnprivilegedContent};
+use crate::Constellation;
 
 /// <https://html.spec.whatwg.org/multipage/#event-loop>
 pub struct EventLoop {
@@ -114,11 +115,14 @@ impl EventLoop {
             user_contents_for_manager_id: constellation.user_contents_for_manager_id.clone(),
         };
 
+        #[cfg(feature = "ipc")]
         let event_loop = if opts::get().multiprocess {
             Self::spawn_in_process(constellation, initial_script_state)?
         } else {
             Self::spawn_in_thread(constellation, initial_script_state)
         };
+        #[cfg(not(feature = "ipc"))]
+        let event_loop = Self::spawn_in_thread(constellation, initial_script_state);
 
         let event_loop = Rc::new(event_loop);
         constellation.add_event_loop(&event_loop);
@@ -151,6 +155,7 @@ impl EventLoop {
         }
     }
 
+    #[cfg(feature = "ipc")]
     fn spawn_in_process<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         initial_script_state: InitialScriptState,
@@ -159,21 +164,23 @@ impl EventLoop {
         let id = initial_script_state.id;
 
         let (background_hand_monitor_sender, backgrond_hand_monitor_receiver) =
-            generic_channel::channel().expect("Sampler chan");
+            servo_base::generic_channel::channel().expect("Sampler chan");
         let (lifeline_sender, lifeline_receiver) =
-            generic_channel::channel().expect("Failed to create lifeline channel");
+            servo_base::generic_channel::channel().expect("Failed to create lifeline channel");
 
-        let process = spawn_multiprocess(UnprivilegedContent::ScriptEventLoop(
-            NewScriptEventLoopProcessInfo {
+        let process = crate::sandboxing::spawn_multiprocess(
+            crate::UnprivilegedContent::ScriptEventLoop(NewScriptEventLoopProcessInfo {
                 initial_script_state,
                 constellation_to_bhm_receiver: backgrond_hand_monitor_receiver,
                 bhm_to_constellation_sender: constellation.background_hang_monitor_sender.clone(),
                 lifeline_sender,
+                #[cfg(feature = "ipc")]
                 opts: (*opts::get()).clone(),
+                #[cfg(feature = "ipc")]
                 prefs: Box::new(prefs::get().clone()),
                 broken_image_icon_data: constellation.broken_image_icon_data.clone(),
-            },
-        ))?;
+            }),
+        )?;
 
         let crossbeam_receiver = lifeline_receiver.route_preserving_errors();
         constellation
@@ -218,7 +225,9 @@ pub struct NewScriptEventLoopProcessInfo {
     pub constellation_to_bhm_receiver: GenericReceiver<BackgroundHangMonitorControlMsg>,
     pub bhm_to_constellation_sender: GenericSender<HangAlert>,
     pub lifeline_sender: GenericSender<()>,
+    #[cfg(feature = "ipc")]
     pub opts: Opts,
+    #[cfg(feature = "ipc")]
     pub prefs: Box<Preferences>,
     /// The broken image icon data that is used to create an image to show in place of broken images.
     pub broken_image_icon_data: Vec<u8>,
