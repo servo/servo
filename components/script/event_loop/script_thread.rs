@@ -122,7 +122,6 @@ use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
@@ -1801,6 +1800,12 @@ impl ScriptThread {
             ScriptThreadMessage::GetDocumentOrigin(pipeline_id, result_sender) => {
                 self.handle_get_document_origin(pipeline_id, result_sender);
             },
+            ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
+                pipeline_id,
+                result_sender,
+            ) => {
+                self.handle_get_internal_ancestor_origin_objects_list(pipeline_id, result_sender);
+            },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
                 self.handle_set_document_activity_msg(cx, pipeline_id, activity)
@@ -2740,15 +2745,27 @@ impl ScriptThread {
     fn handle_get_document_origin(
         &self,
         id: PipelineId,
-        result_sender: GenericSender<Option<String>>,
+        result_sender: GenericSender<Option<OriginSnapshot>>,
     ) {
-        let _ = result_sender.send(self.documents.borrow().find_document(id).map(|document| {
-            document
-                .origin()
-                .immutable()
-                .ascii_serialization()
-                .into_owned()
-        }));
+        let _ = result_sender.send(
+            self.documents
+                .borrow()
+                .find_document(id)
+                .map(|document| document.origin().snapshot()),
+        );
+    }
+
+    fn handle_get_internal_ancestor_origin_objects_list(
+        &self,
+        id: PipelineId,
+        result_sender: GenericSender<Option<Vec<ImmutableOrigin>>>,
+    ) {
+        let _ = result_sender.send(
+            self.documents
+                .borrow()
+                .find_document(id)
+                .and_then(|document| document.internal_ancestor_origin_objects_list().clone()),
+        );
     }
 
     // exit_fullscreen creates a new JS promise object, so we need to have entered a realm
@@ -3658,21 +3675,42 @@ impl ScriptThread {
         }
         window.init_window_proxy(&window_proxy);
 
-        // For any similar-origin iframe, ensure that the contentWindow/contentDocument
-        // APIs resolve to the new window/document as soon as parsing starts.
-        if let Some(frame) = window_proxy
-            .frame_element()
-            .and_then(|e| e.downcast::<HTMLIFrameElement>())
-        {
-            let parent_pipeline = frame.global().pipeline_id();
-            self.handle_update_pipeline_id(
-                parent_pipeline,
-                window_proxy.browsing_context_id(),
-                window_proxy.webview_id(),
-                incomplete.pipeline_id,
-                UpdatePipelineIdReason::Navigation,
-                cx,
-            );
+        if let Some(parent_pipeline) = incomplete.parent_info {
+            if window_proxy.frame_element().is_some() {
+                // For any similar-origin iframe, ensure that the contentWindow/contentDocument
+                // APIs resolve to the new window/document as soon as parsing starts.
+                self.handle_update_pipeline_id(
+                    parent_pipeline,
+                    window_proxy.browsing_context_id(),
+                    window_proxy.webview_id(),
+                    incomplete.pipeline_id,
+                    UpdatePipelineIdReason::Navigation,
+                    cx,
+                );
+            } else {
+                // For any cross-origin iframe, we need to ask the constellation whether the
+                // pipeline is fully active or not. This is required so that during initial
+                // document creation, the parent proxy can be queried for information such
+                // as document origin and document ancestor origin location.
+                let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+                let msg = ScriptToConstellationMessage::IsCurrentlyFullyActive(
+                    parent_pipeline,
+                    result_sender,
+                );
+                self.senders
+                    .pipeline_to_constellation_sender
+                    .send((incomplete.webview_id, incomplete.pipeline_id, msg))
+                    .expect("Failed to send to constellation.");
+                let is_parent_fully_active = result_receiver
+                    .recv()
+                    .expect("Failed to get top-level id from constellation.");
+                if is_parent_fully_active {
+                    window_proxy
+                        .parent()
+                        .expect("Must either have a frame element or remote proxy")
+                        .set_pipeline_id(parent_pipeline);
+                }
+            }
         }
 
         self.senders
