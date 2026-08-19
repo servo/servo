@@ -39,6 +39,7 @@ impl DocumentCollection {
         self.map
             .get(&pipeline_id)
             .map(|doc| DomRoot::from_ref(&**doc))
+            .filter(|document| !document.window_detached())
     }
 
     pub(crate) fn find_window(&self, pipeline_id: PipelineId) -> Option<DomRoot<Window>> {

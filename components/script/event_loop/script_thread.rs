@@ -3228,7 +3228,7 @@ impl ScriptThread {
                 parser.abort(cx);
             }
 
-            if document.is_window_relevant() {
+            if !document.window_detached() {
                 debug!("{pipeline_id}: Shutting down layout");
                 document.window().layout_mut().exit_now();
             }
@@ -3237,7 +3237,7 @@ impl ScriptThread {
             debug!("{pipeline_id}: Clearing animations");
             document.animations().clear();
 
-            if document.is_window_relevant() {
+            if !document.window_detached() {
                 // We discard the browsing context after requesting layout shut down,
                 // to avoid running layout on detached iframes.
                 let window = document.window();
@@ -4524,7 +4524,7 @@ fn window_for_replacement(
     browsing_context
         .and_then(|window_proxy| window_proxy.document())
         .filter(|document| {
-            document.is_initial_about_blank() && document.origin().same_origin(origin)
+            document.is_initial_about_blank() && document.origin().same_origin_domain(origin)
         })
         .map(|document| DomRoot::from_ref(document.window()))
 }

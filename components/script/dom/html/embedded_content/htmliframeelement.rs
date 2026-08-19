@@ -555,12 +555,7 @@ impl HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-child-navigable>
-    /// Synchronously create a new browsing context(This is not a navigation).
-    /// The pipeline started here should remain unnoticeable to script, but this is not easy
-    /// to refactor because it appears other features have come to rely on the current behavior.
-    /// For now only the iframe load event steps are skipped in some cases for this initial document,
-    /// and we still fire load and pageshow events as part of `maybe_queue_document_completion`.
-    /// Also, some controversy spec-wise remains: <https://github.com/whatwg/html/issues/4965>
+    /// Synchronously create a new browsing context; this is not a navigation.
     fn create_nested_browsing_context(&self, cx: &mut JSContext) {
         // Step 1. Let parentNavigable be element's node navigable.
         let document = self.owner_document();

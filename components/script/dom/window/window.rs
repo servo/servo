@@ -4066,7 +4066,7 @@ impl Window {
         global.set_creation_url(creation_url);
         global.set_top_level_creation_url(top_level_creation_url);
 
-        self.Document().disown_window();
+        self.Document().detach_window();
     }
 }
 

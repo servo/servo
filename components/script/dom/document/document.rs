@@ -722,7 +722,7 @@ pub(crate) struct Document {
 
     /// True if this document is no longer the active document of its associated
     /// window.
-    window_replaced: Cell<bool>,
+    window_detached: Cell<bool>,
 }
 
 impl Document {
@@ -778,7 +778,7 @@ impl Document {
         // TODO
 
         // Step 4. If document's salvageable state is false, then:
-        if !self.salvageable.get() && self.is_window_relevant() {
+        if !self.salvageable.get() && !self.window_detached() {
             let global_scope = self.window.as_global_scope();
 
             // Step 4.1. For each EventSource object eventSource whose relevant global object is equal to window, forcibly close eventSource.
@@ -1027,7 +1027,7 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            if self.is_window_relevant() {
+            if !self.window_detached() {
                 self.window().suspend(cx);
             }
             media.suspend(&client_context_id);
@@ -2225,7 +2225,7 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
     pub(crate) fn unload(&self, cx: &mut JSContext, recursive_flag: bool) {
-        if !self.is_window_relevant() {
+        if self.window_detached() {
             return;
         }
 
@@ -2394,7 +2394,7 @@ impl Document {
                 let document = document.root();
                 // Step 9.3. Let window be the Document's relevant global object.
                 let window = document.window();
-                if !window.is_alive() || !document.is_window_relevant() {
+                if !window.is_alive() || document.window_detached() {
                     return;
                 }
 
@@ -3982,16 +3982,16 @@ impl Document {
             image_cache,
             history: Default::default(),
             theme: Default::default(),
-            window_replaced: Default::default(),
+            window_detached: Default::default(),
         }
     }
 
-    pub(crate) fn disown_window(&self) {
-        self.window_replaced.set(true);
+    pub(crate) fn detach_window(&self) {
+        self.window_detached.set(true);
     }
 
-    pub(crate) fn is_window_relevant(&self) -> bool {
-        !self.window_replaced.get()
+    pub(crate) fn window_detached(&self) -> bool {
+        self.window_detached.get()
     }
 
     /// Returns a policy value that should be used for fetches initiated by this document.
