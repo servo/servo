@@ -186,7 +186,6 @@ pub(crate) fn handle_get_event_listener_info(
         return;
     };
 
-    #[cfg(feature = "devtools")]
     let event_listeners = node
         .upcast::<EventTarget>()
         .summarize_event_listeners_for_devtools();

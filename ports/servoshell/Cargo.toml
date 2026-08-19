@@ -49,7 +49,7 @@ default_without_allocator = ["bundled", "default_web_features", "default_tooling
 # Default web features should be kept in sync with the list in servo/Cargo.toml.
 # We also need to enable our own features, since we also have `cfg` gated code here.
 default_web_features = ["servo/default_web_features", "gamepad", "webgpu", "webxr"]
-default_tooling = ["servo/default_tooling"]
+default_tooling = ["servo/default_tooling", "devtools"]
 # Bundle required resources in the binary.
 bundled = ["servo/bundled"]
 
