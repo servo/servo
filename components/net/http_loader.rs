@@ -2348,7 +2348,6 @@ async fn http_network_fetch(
         }
     }
 
-
     #[cfg(feature = "devtools")]
     let (devtools_request, status, headers, devtools_chan) = (
         request.clone(),
