@@ -18,12 +18,12 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, AesDerivedKeyParams, SubtleAesGcmParams, AesKeyGenParams, aes_common,
+    ExportedKey, AesDerivedKeyParams, AesGcmParams, AesKeyGenParams, aes_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleAesGcmParams,
+    normalized_algorithm: &AesGcmParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -236,7 +236,7 @@ where
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleAesGcmParams,
+    normalized_algorithm: &AesGcmParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
