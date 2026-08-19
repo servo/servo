@@ -381,6 +381,14 @@ xpath = { package = "servo-xpath", version = "=0.5.0", path = "components/xpath"
 [profile.dev.package.crypto-bigint]
 opt-level = 3
 
+[profile.dev.package.servo-script]
+# On windows builds the default 256 codegen units cause the script rlib file
+# to exceed 4 GB, whichs causes build errors due to
+# https://github.com/rust-lang/rust/issues/151184.
+# Reducing the codegen-units seems to significantly decrease the rlib size and
+# avoids the issue.
+codegen-units = 16
+
 # Force tikv-jemalloc-sys to build with at least -O1.
 # This can help with build environments that force _FORTIFY_SOURCE, such as Nix.
 # More details: <https://github.com/tikv/jemallocator/issues/108>
