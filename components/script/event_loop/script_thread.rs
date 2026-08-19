@@ -1137,11 +1137,9 @@ impl ScriptThread {
         // that needs to be sorted out to fix this.
         let mut painters_generating_frames = FxHashSet::default();
         for pipeline_id in documents_in_order.iter() {
-            let document = self
-                .documents
-                .borrow()
-                .find_document(*pipeline_id)
-                .expect("Got pipeline for Document not managed by this ScriptThread.");
+            let Some(document) = self.documents.borrow().find_document(*pipeline_id) else {
+                continue;
+            };
 
             if !document.is_fully_active() {
                 continue;

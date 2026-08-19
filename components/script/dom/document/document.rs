@@ -994,11 +994,11 @@ impl Document {
     }
 
     pub(crate) fn is_fully_active(&self) -> bool {
-        self.activity.get() == DocumentActivity::FullyActive
+        !self.window_detached() && self.activity.get() == DocumentActivity::FullyActive
     }
 
     pub(crate) fn is_active(&self) -> bool {
-        self.activity.get() != DocumentActivity::Inactive
+        !self.window_detached() && self.activity.get() != DocumentActivity::Inactive
     }
 
     #[inline]
@@ -1031,6 +1031,10 @@ impl Document {
                 self.window().suspend(cx);
             }
             media.suspend(&client_context_id);
+            return;
+        }
+
+        if self.window_detached() {
             return;
         }
 
