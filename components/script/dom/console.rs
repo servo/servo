@@ -8,13 +8,11 @@ use std::slice;
 
 #[cfg(feature = "devtools")]
 use devtools_traits::{
-    ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields, DebuggerValue, FunctionPreview,
-    ObjectPreview, PropertyDescriptor as DevtoolsPropertyDescriptor, ScriptToDevtoolsControlMsg,
-    StackFrame, get_time_stamp,
+    ConsoleMessage, ConsoleMessageFields, DebuggerValue, FunctionPreview, ObjectPreview,
+    PropertyDescriptor as DevtoolsPropertyDescriptor, ScriptToDevtoolsControlMsg, StackFrame,
+    get_time_stamp,
 };
-#[cfg(not(feature = "devtools"))]
-use embedder_traits::ConsoleLogLevel;
-use embedder_traits::EmbedderMsg;
+use embedder_traits::{ConsoleLogLevel, EmbedderMsg};
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{self, ESClass, PropertyDescriptor};
