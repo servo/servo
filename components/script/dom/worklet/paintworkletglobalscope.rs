@@ -324,11 +324,11 @@ impl PaintWorkletGlobalScope {
             return Err(self.invalid_image(size_in_dpx, vec![]));
         }
         // Step 5.4
-        let value = Box::<Heap<Value>>::default();
-        value.set(paint_instance.get());
         self.paint_class_instances
             .safe_borrow_mut(cx)
-            .insert(name, value);
+            .entry(name)
+            .or_default()
+            .set(paint_instance.get());
         Ok(())
     }
 
