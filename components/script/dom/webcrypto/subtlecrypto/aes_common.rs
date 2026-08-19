@@ -18,7 +18,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAesDerivedKeyParams, AesKeyAlgorithm, SubtleAesKeyGenParams,
+    SubtleAesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams,
 };
 
 #[expect(clippy::enum_variant_names)]
@@ -42,7 +42,7 @@ pub(crate) fn generate_key(
     aes_algorithm: AesAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
+    normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {

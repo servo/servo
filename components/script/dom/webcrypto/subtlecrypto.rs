@@ -3400,7 +3400,7 @@ impl From<&AesKeyAlgorithm> for SerializableAesKeyAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesKeyGenParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleAesKeyGenParams {
+struct AesKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3408,7 +3408,7 @@ struct SubtleAesKeyGenParams {
     length: u16,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3416,7 +3416,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesKeyGenParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleAesKeyGenParams {
+        Ok(AesKeyGenParams {
             name: algorithm_name,
             length: get_required_parameter(
                 cx,
@@ -5553,14 +5553,14 @@ enum GenerateKeyAlgorithm {
     X25519(Algorithm),
     Ed448(Algorithm),
     X448(Algorithm),
-    AesCtr(SubtleAesKeyGenParams),
-    AesCbc(SubtleAesKeyGenParams),
-    AesGcm(SubtleAesKeyGenParams),
-    AesKw(SubtleAesKeyGenParams),
+    AesCtr(AesKeyGenParams),
+    AesCbc(AesKeyGenParams),
+    AesGcm(AesKeyGenParams),
+    AesKw(AesKeyGenParams),
     Hmac(SubtleHmacKeyGenParams),
     MlKem(Algorithm),
     MlDsa(Algorithm),
-    AesOcb(SubtleAesKeyGenParams),
+    AesOcb(AesKeyGenParams),
     ChaCha20Poly1305(Algorithm),
     Kmac(SubtleKmacKeyGenParams),
 }

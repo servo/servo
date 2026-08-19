@@ -18,7 +18,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, SubtleAesDerivedKeyParams, SubtleAesGcmParams, SubtleAesKeyGenParams, aes_common,
+    ExportedKey, SubtleAesDerivedKeyParams, SubtleAesGcmParams, AesKeyGenParams, aes_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
@@ -463,7 +463,7 @@ where
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
+    normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
