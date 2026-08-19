@@ -1002,12 +1002,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Newline stripping only happens for incremental updates to the [`Rope`] as `<input>`
     /// elements currently need to store unsanitized values while being created.
     pub fn set_content(&mut self, content: DOMString) {
-        self.rope = Rope::new(
-            content
-                .str()
-                .replace("\r\n", "\n")
-                .replace("\r", "\n"),
-        );
+        self.rope = Rope::new(content.str().replace("\r\n", "\n").replace("\r", "\n"));
         self.was_last_change_by_set_content = true;
 
         self.edit_point = self.rope.normalize_index(self.edit_point());
