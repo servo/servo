@@ -256,7 +256,10 @@ impl PlatformFontMethods for PlatformFont {
 
         // anything that we calculate and don't just pull out of self.face.metrics
         // is pulled out here for clarity
-        let leading = dm.ascent - dm.capHeight;
+        // Values may be negative, so we convert to signed integers, see
+        // <https://learn.microsoft.com/en-us/windows/win32/api/dwrite/ns-dwrite-dwrite_font_metrics>
+        let leading = i32::from(dm.lineGap);
+        let line_height = i32::from(dm.ascent) + i32::from(dm.descent) + leading;
 
         let zero_horizontal_advance = self
             .glyph_index('0')
@@ -283,14 +286,14 @@ impl PlatformFontMethods for PlatformFont {
             underline_offset: au_from_du_s(dm.underlinePosition as i32),
             strikeout_size: au_from_du(dm.strikethroughThickness as i32),
             strikeout_offset: au_from_du_s(dm.strikethroughPosition as i32),
-            leading: au_from_du_s(leading as i32),
+            leading: au_from_du_s(leading),
             x_height: au_from_du_s(dm.xHeight as i32),
             em_size: au_from_em(self.em_size as f64),
             ascent: au_from_du_s(dm.ascent as i32),
             descent: au_from_du_s(dm.descent as i32),
             max_advance,
             average_advance,
-            line_gap: au_from_du_s((dm.ascent + dm.descent + dm.lineGap as u16) as i32),
+            line_gap: au_from_du_s(line_height),
             zero_horizontal_advance,
             ic_horizontal_advance,
             space_advance,
