@@ -3317,7 +3317,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdhKeyDeriveParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesCtrParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleAesCtrParams {
+struct AesCtrParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3328,7 +3328,7 @@ struct SubtleAesCtrParams {
     length: u8,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesCtrParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesCtrParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3336,7 +3336,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesCtrParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleAesCtrParams {
+        Ok(AesCtrParams {
             name: algorithm_name,
             counter: get_required_buffer_source(cx, object, c"counter")?,
             length: get_required_parameter(
@@ -4825,7 +4825,7 @@ fn normalize_algorithm<Op: Operation>(
 // implement the [`Operation`] trait for it. The associated type [`RegisteredAlgorithm`] of
 // [`Operation`]  is set to the [`EncryptAlgorithm`] enum, whose variants are cryptographic
 // algorithms that support the "encrypt" operation. The variant [`EncryptAlgorithm::AesCtr`] has an
-// inner type [`SubtleAesCtrParams`] since the desired input IDL dictionary type for "encrypt"
+// inner type [`AesCtrParams`] since the desired input IDL dictionary type for "encrypt"
 // operation of AES-CTR algorithm is the `AesCtrParams` dictionary. The [`EncryptAlgorithm`] enum
 // also implements the [`NormalizedAlgorithm`] trait accordingly.
 //
@@ -4883,7 +4883,7 @@ impl Operation for EncryptOperation {
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum EncryptAlgorithm {
     RsaOaep(RsaOaepParams),
-    AesCtr(SubtleAesCtrParams),
+    AesCtr(AesCtrParams),
     AesCbc(SubtleAesCbcParams),
     AesGcm(SubtleAesGcmParams),
     AesOcb(SubtleAeadParams),
@@ -4970,7 +4970,7 @@ impl Operation for DecryptOperation {
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum DecryptAlgorithm {
     RsaOaep(RsaOaepParams),
-    AesCtr(SubtleAesCtrParams),
+    AesCtr(AesCtrParams),
     AesCbc(SubtleAesCbcParams),
     AesGcm(SubtleAesGcmParams),
     AesOcb(SubtleAeadParams),

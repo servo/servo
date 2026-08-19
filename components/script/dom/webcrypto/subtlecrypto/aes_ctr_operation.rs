@@ -16,7 +16,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, SubtleAesCtrParams, SubtleAesDerivedKeyParams, SubtleAesKeyGenParams, aes_common,
+    ExportedKey, AesCtrParams, SubtleAesDerivedKeyParams, SubtleAesKeyGenParams, aes_common,
 };
 
 /// Use aes::Ctr128BE by default. According to the WebCrypto API specification, the counter MUST be
@@ -25,7 +25,7 @@ type Ctr<T> = Ctr128BE<T>;
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleAesCtrParams,
+    normalized_algorithm: &AesCtrParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -85,7 +85,7 @@ pub(crate) fn encrypt(
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleAesCtrParams,
+    normalized_algorithm: &AesCtrParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
