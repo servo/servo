@@ -18,7 +18,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
+    SubtleAesDerivedKeyParams, AesKeyAlgorithm, SubtleAesKeyGenParams,
 };
 
 #[expect(clippy::enum_variant_names)]
@@ -138,7 +138,7 @@ pub(crate) fn generate_key(
             CryptoAlgorithm::AesOcb
         },
     };
-    let algorithm = SubtleAesKeyAlgorithm {
+    let algorithm = AesKeyAlgorithm {
         name: algorithm_name,
         length: normalized_algorithm.length,
     };
@@ -480,7 +480,7 @@ pub(crate) fn import_key(
             )));
         },
     };
-    let algorithm = SubtleAesKeyAlgorithm {
+    let algorithm = AesKeyAlgorithm {
         name: match &aes_algorithm {
             AesAlgorithm::AesCtr => {
                 // Step 6. Set the name attribute of algorithm to "AES-CTR".

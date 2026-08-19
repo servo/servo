@@ -3351,7 +3351,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesCtrParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleAesKeyAlgorithm {
+pub(crate) struct AesKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
     name: CryptoAlgorithm,
 
@@ -3359,7 +3359,7 @@ pub(crate) struct SubtleAesKeyAlgorithm {
     length: u16,
 }
 
-impl ToJSValConvertible for SubtleAesKeyAlgorithm {
+impl ToJSValConvertible for AesKeyAlgorithm {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -3378,19 +3378,19 @@ impl ToJSValConvertible for SubtleAesKeyAlgorithm {
     }
 }
 
-impl TryFrom<SerializableAesKeyAlgorithm> for SubtleAesKeyAlgorithm {
+impl TryFrom<SerializableAesKeyAlgorithm> for AesKeyAlgorithm {
     type Error = ();
 
     fn try_from(value: SerializableAesKeyAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleAesKeyAlgorithm {
+        Ok(AesKeyAlgorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             length: value.length,
         })
     }
 }
 
-impl From<&SubtleAesKeyAlgorithm> for SerializableAesKeyAlgorithm {
-    fn from(value: &SubtleAesKeyAlgorithm) -> Self {
+impl From<&AesKeyAlgorithm> for SerializableAesKeyAlgorithm {
+    fn from(value: &AesKeyAlgorithm) -> Self {
         SerializableAesKeyAlgorithm {
             name: value.name.as_str().into(),
             length: value.length,
@@ -4303,7 +4303,7 @@ pub(crate) enum KeyAlgorithmAndDerivatives {
     KeyAlgorithm(KeyAlgorithm),
     RsaHashedKeyAlgorithm(RsaHashedKeyAlgorithm),
     EcKeyAlgorithm(EcKeyAlgorithm),
-    AesKeyAlgorithm(SubtleAesKeyAlgorithm),
+    AesKeyAlgorithm(AesKeyAlgorithm),
     HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
     KmacKeyAlgorithm(SubtleKmacKeyAlgorithm),
 }
