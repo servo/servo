@@ -153,10 +153,7 @@ pub trait PlatformFontMethods: Sized {
         self,
         _font_identifer: &FontIdentifier,
         _variations: &[FontVariation],
-    ) -> Result<Self, &'static str> {
-        // TODO: Get rid of this default implementation once windows support is added.
-        Ok(self)
-    }
+    ) -> Result<Self, &'static str>;
 
     /// Get a [`FontTemplateDescriptor`] from a [`PlatformFont`]. This is used to get
     /// descriptors for web fonts.
