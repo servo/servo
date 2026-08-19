@@ -3460,7 +3460,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesDerivedKeyParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesCbcParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleAesCbcParams {
+struct AesCbcParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3468,7 +3468,7 @@ struct SubtleAesCbcParams {
     iv: Vec<u8>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesCbcParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesCbcParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3476,7 +3476,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesCbcParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleAesCbcParams {
+        Ok(AesCbcParams {
             name: algorithm_name,
             iv: get_required_buffer_source(cx, object, c"iv")?,
         })
@@ -4884,7 +4884,7 @@ impl Operation for EncryptOperation {
 enum EncryptAlgorithm {
     RsaOaep(RsaOaepParams),
     AesCtr(AesCtrParams),
-    AesCbc(SubtleAesCbcParams),
+    AesCbc(AesCbcParams),
     AesGcm(SubtleAesGcmParams),
     AesOcb(SubtleAeadParams),
     ChaCha20Poly1305(SubtleAeadParams),
@@ -4971,7 +4971,7 @@ impl Operation for DecryptOperation {
 enum DecryptAlgorithm {
     RsaOaep(RsaOaepParams),
     AesCtr(AesCtrParams),
-    AesCbc(SubtleAesCbcParams),
+    AesCbc(AesCbcParams),
     AesGcm(SubtleAesGcmParams),
     AesOcb(SubtleAeadParams),
     ChaCha20Poly1305(SubtleAeadParams),
