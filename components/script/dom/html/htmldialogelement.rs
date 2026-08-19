@@ -23,6 +23,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::htmlbuttonelement::{CommandState, HTMLButtonElement};
 use crate::dom::iterators::ShadowIncluding;
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::toggleevent::ToggleEvent;
@@ -248,7 +249,7 @@ impl HTMLDialogElement {
             {
                 element
                     .upcast::<Node>()
-                    .run_the_focusing_steps(cx, None, None);
+                    .run_the_focusing_steps(cx, None, FocusTrigger::Other);
             }
         }
 
@@ -314,7 +315,10 @@ impl HTMLDialogElement {
 
         // Step 3. If subject has the autofocus attribute, then set control to subject.
         if self.upcast::<HTMLElement>().Autofocus() {
-            control.set(self.upcast::<Node>().get_the_focusable_area(cx, None));
+            control.set(
+                self.upcast::<Node>()
+                    .get_the_focusable_area(cx, FocusTrigger::Other),
+            );
         }
 
         // Step 4. If control is null, then set control to the focus delegate of subject.
@@ -324,7 +328,10 @@ impl HTMLDialogElement {
 
         // Step 5. If control is null, then set control to subject.
         if control.is_none() {
-            control.set(self.upcast::<Node>().get_the_focusable_area(cx, None));
+            control.set(
+                self.upcast::<Node>()
+                    .get_the_focusable_area(cx, FocusTrigger::Other),
+            );
         }
 
         // Step 6. Run the focusing steps for control.

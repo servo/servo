@@ -181,6 +181,7 @@ use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::treewalker::TreeWalker;
 use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits};
@@ -1393,7 +1394,11 @@ impl Document {
 
         // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback
         // target.
-        indicated_part.run_the_focusing_steps(cx, Some(FocusableArea::Viewport), None);
+        indicated_part.run_the_focusing_steps(
+            cx,
+            Some(FocusableArea::Viewport),
+            FocusTrigger::Other,
+        );
 
         // Step 3.7. Move the sequential focus navigation starting point to target.
         self.focus_handler()
