@@ -73,6 +73,9 @@ pub(crate) struct HTMLTrackElement {
     /// <https://html.spec.whatwg.org/multipage/#track-url>
     #[no_trace]
     track_url: DomRefCell<Option<ServoUrl>>,
+    /// The track_url used for the last load that was successful.
+    #[no_trace]
+    last_successful_load: DomRefCell<Option<ServoUrl>>,
     /// Used as part of
     /// <https://html.spec.whatwg.org/multipage/#start-the-track-processing-model>
     /// whether the algorithm is running or not.
@@ -91,6 +94,7 @@ impl HTMLTrackElement {
             readiness_state: Default::default(),
             track: Dom::from_ref(track),
             track_url: Default::default(),
+            last_successful_load: Default::default(),
             is_running_processing_model_algorithm: Default::default(),
         }
     }
@@ -348,6 +352,15 @@ impl MicrotaskRunnable for TrackElementMicrotask {
         match self {
             // https://html.spec.whatwg.org/multipage/#start-the-track-processing-model
             TrackElementMicrotask::ProcessingModel { elem } => {
+                // Not specced, but required for browser compatibility:
+                // https://github.com/whatwg/html/issues/12796
+                if elem.readiness_state.get() == TextTrackReadinessState::Loaded &&
+                    *elem.track_url.borrow() == *elem.last_successful_load.borrow()
+                {
+                    elem.is_running_processing_model_algorithm.set(false);
+                    return;
+                }
+
                 let media_parent = elem
                     .upcast::<Node>()
                     .GetParentNode()
@@ -496,12 +509,14 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
                 // > then the final task that is queued by the networking task source,
                 // > after it has finished parsing the data, must change the text track readiness state to loaded,
                 // > and fire an event named load at the track element.
+                let url = self.url.clone();
                 element
                     .global()
                     .task_manager()
                     .networking_task_source()
                     .queue(task!(successfully_loaded: move |cx| {
                         let track = track.root();
+                        *track.last_successful_load.borrow_mut() = Some(url);
                         track.readiness_state.set(TextTrackReadinessState::Loaded);
                         track.upcast::<EventTarget>().fire_event(cx, atom!("load"));
                     }));
