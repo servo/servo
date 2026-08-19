@@ -11,8 +11,6 @@ use std::time::{Duration, SystemTime};
 
 use async_recursion::async_recursion;
 use content_security_policy::percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
-#[cfg(feature = "devtools")]
-use devtools_traits::ChromeToDevtoolsControlMsg;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
@@ -101,7 +99,7 @@ use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
 
 #[cfg(feature = "devtools")]
-type DevtoolsResponse = Option<ChromeToDevtoolsControlMsg>;
+type DevtoolsResponse = Option<devtools_traits::ChromeToDevtoolsControlMsg>;
 
 #[cfg(not(feature = "devtools"))]
 type DevtoolsResponse = Option<()>;
