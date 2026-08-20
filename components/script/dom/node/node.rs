@@ -55,7 +55,6 @@ use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
 
 use crate::conversions::Convert;
-use crate::dom::ChildrenMutation;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -122,6 +121,10 @@ use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
 use crate::dom::window::Window;
+use crate::dom::{
+    ChildrenMutation, Range, live_range_insert_steps, live_range_normalization_steps,
+    live_range_pre_remove_steps_for_parent, live_range_pre_remove_steps_for_removed_subtree,
+};
 use crate::event_loop::document_loader::DocumentLoader;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
@@ -830,27 +833,27 @@ impl Node {
         self.children_count.get()
     }
 
-    pub(crate) fn weak_ranges_mut(&self) -> Option<RefMut<'_, WeakRangeVec>> {
-        let rare_data = self.rare_data.borrow_mut();
-        if rare_data.is_none() {
-            return None;
-        }
-        Some(RefMut::map(rare_data, |rare_data| {
-            &mut rare_data.as_mut().unwrap().weak_ranges
-        }))
-    }
-
     pub(crate) fn ensure_weak_ranges(&self) -> RefMut<'_, WeakRangeVec> {
         RefMut::map(self.ensure_rare_data(), |rare_data| {
             &mut rare_data.weak_ranges
         })
     }
 
-    pub(crate) fn weak_ranges_is_empty(&self) -> bool {
+    /// Whether or not this node has any live ranges.
+    pub(crate) fn has_live_ranges(&self) -> bool {
         self.rare_data
             .borrow()
             .as_ref()
-            .is_none_or(|data| data.weak_ranges.is_empty())
+            .is_some_and(|data| !data.weak_ranges.is_empty())
+    }
+
+    /// Return a `SmallVec` of all live ranges registered on this node.
+    pub(crate) fn live_ranges(&self) -> SmallVec<[DomRoot<Range>; 4]> {
+        let rare_data = self.rare_data.borrow();
+        let Some(rare_data) = &*rare_data else {
+            return Default::default();
+        };
+        rare_data.weak_ranges.live_ranges()
     }
 
     #[inline]
@@ -1456,7 +1459,8 @@ impl Node {
             .expect("old_parent should always be initialized");
 
         // Step 9. Run the live range pre-remove steps, given node.
-        let cached_index = Node::live_range_pre_remove_steps(node, &old_parent);
+        let mut cached_index = None;
+        live_range_pre_remove_steps_for_parent(node, &old_parent, &mut cached_index);
 
         // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
         // node document: run the NodeIterator pre-remove steps given node and iterator.
@@ -1529,14 +1533,9 @@ impl Node {
         }
 
         // Step 17. If child is non-null:
-        if let Some(child) = child &&
-            let Some(new_parent_ranges) = new_parent.weak_ranges_mut()
-        {
-            // Step 17.1. For each live range whose start node is newParent and start offset is
-            // greater than child’s index: increase its start offset by 1.
-            // Step 17.2. For each live range whose end node is newParent and end offset is greater
-            // than child’s index: increase its end offset by 1.
-            new_parent_ranges.increase_above(new_parent, child.index(), 1)
+        if let Some(child) = child {
+            // Steps 17.1-17.2: The live range move steps.
+            live_range_insert_steps(new_parent, child, 1);
         }
 
         // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
@@ -2673,14 +2672,9 @@ impl Node {
         }
 
         // Step 5. If child is non-null:
-        //     1. For each live range whose start node is parent and start offset is
-        //        greater than child’s index, increase its start offset by count.
-        //     2. For each live range whose end node is parent and end offset is
-        //        greater than child’s index, increase its end offset by count.
-        if let Some(child) = child &&
-            let Some(parent_weak_ranges) = parent.weak_ranges_mut()
-        {
-            parent_weak_ranges.increase_above(parent, child.index(), count.try_into().unwrap());
+        if let Some(child) = child {
+            // Step 5.1. The live range insert steps.
+            live_range_insert_steps(parent, child, count.try_into().unwrap());
         }
 
         // Step 6. Let previousSibling be child’s previous sibling or parent’s last child if child is null.
@@ -2977,8 +2971,8 @@ impl Node {
         );
 
         // Step 3. Run the live range pre-remove steps.
-        // https://dom.spec.whatwg.org/#live-range-pre-remove-steps
-        let cached_index = Node::live_range_pre_remove_steps(node, parent);
+        let mut cached_index = None;
+        live_range_pre_remove_steps_for_parent(node, parent, &mut cached_index);
 
         // TODO: Step 4. Pre-removing steps for node iterators
 
@@ -3043,35 +3037,6 @@ impl Node {
             MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker(cx);
-    }
-
-    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
-    fn live_range_pre_remove_steps(node: &Node, parent: &Node) -> Option<u32> {
-        if parent.weak_ranges_is_empty() {
-            return None;
-        }
-
-        // Step 1. Let parent be node’s parent.
-        // Step 2. Assert: parent is not null.
-        // NOTE: We already have the parent.
-
-        // Step 3. Let index be node’s index.
-        let index = node.index();
-
-        // Steps 4-5 are handled in Node::unbind_from_tree.
-
-        // Step 6. For each live range whose start node is parent and start offset is greater than index,
-        // decrease its start offset by 1.
-        // Step 7. For each live range whose end node is parent and end offset is greater than index,
-        // decrease its end offset by 1.
-        if let Some(parent_weak_ranges) = parent.weak_ranges_mut() {
-            parent_weak_ranges.decrease_above(parent, index, 1);
-        }
-
-        // Parent had ranges, we needed the index, let's keep track of
-        // it to avoid computing it for other ranges when calling
-        // unbind_from_tree recursively.
-        Some(index)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
@@ -4056,36 +4021,82 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
     fn Normalize(&self, cx: &mut JSContext) {
-        let mut children = self.children().enumerate().peekable();
-        while let Some((_, node)) = children.next() {
-            if let Some(text) = node.downcast::<Text>() {
-                if text.is::<CDATASection>() {
-                    continue;
-                }
-                let cdata = text.upcast::<CharacterData>();
-                let mut length = cdata.Length();
-                if length == 0 {
-                    Node::remove(cx, &node, self, SuppressObserver::Unsuppressed);
-                    continue;
-                }
-                while children.peek().is_some_and(|(_, sibling)| {
-                    sibling.is::<Text>() && !sibling.is::<CDATASection>()
-                }) {
-                    let (index, sibling) = children.next().unwrap();
-                    if let Some(sibling_weak_ranges) = sibling.weak_ranges_mut() {
-                        sibling_weak_ranges
-                            .drain_to_preceding_text_sibling(&sibling, &node, length);
-                    }
-                    if let Some(weak_ranges) = self.weak_ranges_mut() {
-                        weak_ranges.move_to_text_child_at(self, index as u32, &node, length);
-                    }
-                    let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
-                    length += sibling_cdata.Length();
-                    cdata.append_data(cx, &sibling_cdata.data());
-                    Node::remove(cx, &sibling, self, SuppressObserver::Unsuppressed);
-                }
-            } else {
+        let mut children = self.children().peekable();
+        while let Some(node) = children.next() {
+            // The normalize() method steps are to run these steps for each descendant
+            // exclusive Text node node of this:
+            let Some(text) = node.downcast::<Text>() else {
                 node.Normalize(cx);
+                continue;
+            };
+            if text.is::<CDATASection>() {
+                continue;
+            }
+
+            // Step 1: Let length be node’s length.
+            let cdata = text.upcast::<CharacterData>();
+            let mut length = cdata.Length();
+
+            // Step 2: If length is zero, then remove node and continue with the next
+            // exclusive Text node, if any.
+            if length == 0 {
+                Node::remove(cx, &node, self, SuppressObserver::Unsuppressed);
+                continue;
+            }
+
+            // Collect siblings that need to be merged ahead of time so that we can
+            // avoid multiple mutation records.
+            let mut siblings_to_merge: SmallVec<[DomRoot<CharacterData>; 4]> = SmallVec::new();
+            let mut new_data_length = 0;
+            while let Some(sibling) = children.peek() {
+                if !sibling.is::<Text>() || sibling.is::<CDATASection>() {
+                    break;
+                }
+                let sibling: DomRoot<CharacterData> =
+                    DomRoot::downcast(children.next().expect("Guaranteed by the peek above"))
+                        .expect("Guaranteed by check above");
+                new_data_length += sibling.Length();
+                siblings_to_merge.push(sibling);
+            }
+
+            if siblings_to_merge.is_empty() {
+                continue;
+            }
+
+            // Step 3: Let data be the concatenation of the data of node’s contiguous
+            // exclusive Text nodes (excluding itself), in tree order.
+            let data = siblings_to_merge.iter().fold(
+                String::with_capacity(new_data_length as usize),
+                |mut data, character_data| {
+                    data.push_str(character_data.data().as_str());
+                    data
+                },
+            );
+
+            // Step 4: Replace data of node with length, 0, and data.
+            cdata.append_data(cx, &data);
+
+            // Step 5: Let currentNode be node’s next sibling.
+            // Step 6: While currentNode is an exclusive Text node:
+            // Note: Condition guaranteed by collection loop above.
+            for current_node in siblings_to_merge.iter() {
+                // Steps 6.1-6.4: The live range update steps.
+                live_range_normalization_steps(self, &node, current_node.upcast(), length);
+                // Step 6.5:  Add currentNode’s length to length.
+                length += current_node.Length();
+                // Step 6.6 Set currentNode to its next sibling.
+                // This is handled by the loop.
+            }
+
+            // Step 7: Remove node’s contiguous exclusive Text nodes (excluding itself),
+            // in tree order.
+            for current_node in siblings_to_merge.into_iter() {
+                Node::remove(
+                    cx,
+                    current_node.upcast(),
+                    self,
+                    SuppressObserver::Unsuppressed,
+                );
             }
         }
     }
@@ -4494,21 +4505,10 @@ impl VirtualMethods for Node {
             .content_and_heritage_changed(cx.no_gc(), self);
     }
 
-    // This handles the ranges mentioned in steps 2-3 when removing a node.
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(cx, context);
-
-        // Ranges should only drain to the parent from inclusive non-shadow
-        // including descendants. If we're in a shadow tree at this point then the
-        // unbind operation happened further up in the tree and we should not
-        // drain any ranges.
-        if !self.is_in_a_shadow_tree() &&
-            let Some(weak_ranges) = self.weak_ranges_mut() &&
-            !weak_ranges.is_empty()
-        {
-            weak_ranges.drain_to_parent(context.parent, context.index(), self);
-        }
+        live_range_pre_remove_steps_for_removed_subtree(self, context.parent, &|| context.index());
     }
 
     fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
@@ -4516,16 +4516,8 @@ impl VirtualMethods for Node {
             super_type.moving_steps(cx, context);
         }
 
-        // Ranges should only drain to the parent from inclusive non-shadow
-        // including descendants. If we're in a shadow tree at this point then the
-        // unbind operation happened further up in the tree and we should not
-        // drain any ranges.
-        if let Some(old_parent) = context.old_parent &&
-            !self.is_in_a_shadow_tree() &&
-            let Some(weak_ranges) = self.weak_ranges_mut() &&
-            !weak_ranges.is_empty()
-        {
-            weak_ranges.drain_to_parent(old_parent, context.index(), self);
+        if let Some(parent) = context.old_parent {
+            live_range_pre_remove_steps_for_removed_subtree(self, parent, &|| context.index());
         }
 
         self.owner_doc_unrooted(cx.no_gc())

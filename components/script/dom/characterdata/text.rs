@@ -18,6 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
+use crate::dom::live_range_text_split_steps;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 
@@ -73,47 +74,30 @@ impl TextMethods<crate::DomTypeHolder> for Text {
     /// <https://dom.spec.whatwg.org/#concept-text-split>
     fn SplitText(&self, cx: &mut JSContext, offset: u32) -> Fallible<DomRoot<Text>> {
         let cdata = self.upcast::<CharacterData>();
-        // Step 1.
+        // Step 1: Let length be node’s length.
         let length = cdata.Length();
+        // Step 2: If offset is greater than length, then throw an "IndexSizeError" DOMException.
         if offset > length {
-            // Step 2.
             return Err(Error::IndexSize(None));
         }
-        // Step 3.
+        // Step 3: Let count be length − offset.
         let count = length - offset;
-        // Step 4.
+        // Step 4: Let newData be the result of substringing data of node with offset and count.
         let new_data = cdata.SubstringData(offset, count).unwrap();
-        // Step 5.
+        // Step 5: Let newNode be the result of creating a text node given node’s node document and newData.
         let node = self.upcast::<Node>();
         let owner_doc = node.owner_doc();
         let new_node = owner_doc.CreateTextNode(cx, new_data);
-        // Step 6.
+        // Step 6: Let parent be node’s parent.
         let parent = node.GetParentNode();
+        // Step 7: If parent is non-null:
         if let Some(ref parent) = parent {
-            // Step 7.1.
+            // Step 7.1: Insert newNode into parent before node’s next sibling.
             parent
                 .InsertBefore(cx, new_node.upcast(), node.GetNextSibling().as_deref())
                 .unwrap();
-
-            // Step 7.2. For each live range whose start node is node and start offset is
-            // greater than offset, set its start node to newNode and decrease its start
-            // offset by offset.
-            //
-            // Step 7.3. For each live range whose end node is node and end offset is
-            // greater than offset, set its end node to newNode and decrease its end
-            // offset by offset.
-            if let Some(weak_ranges) = node.weak_ranges_mut() {
-                weak_ranges.move_to_following_text_sibling_above(node, offset, new_node.upcast());
-            }
-
-            // Step 7.4. For each live range whose start node is parent and start offset
-            // is equal to the index of node plus 1, increase its start offset by 1.
-            //
-            // Step 7.5. For each live range whose end node is parent and end offset is
-            // equal to the index of node plus 1, increase its end offset by 1.
-            if let Some(parent_weak_ranges) = parent.weak_ranges_mut() {
-                parent_weak_ranges.increment_at(parent, node.index() + 1);
-            }
+            // Steps 7.2-7.5: The live range update steps.
+            live_range_text_split_steps(parent, node, offset, new_node.upcast());
         }
         // Step 8.
         cdata.DeleteData(cx, offset, count).unwrap();
