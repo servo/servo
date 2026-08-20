@@ -48,19 +48,20 @@ impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
         view: Option<&Window>,
         data: DOMString,
     ) {
-        // If this’s dispatch flag is set, then return.
+        // 1. If this’s dispatch flag is set, then return.
         if self.upcast::<Event>().dispatching() {
             return;
         }
 
-        // Initialize a UIEvent with this, type and eventTarget
-        // Set this.bubbles = bubbles
-        // Set this.cancelable = cancelable
-        // Set this.view = view
+        // 2. Initialize a UIEvent with this, type and eventTarget
+        // 3. Set this.bubbles = bubbles
+        // 4. Set this.cancelable = cancelable
+        // 5. Set this.view = view
+        // note: The bubbles/cancelable/view should be parameters to "Initialize a UIEvent" instead of being set twice.
         self.uievent
             .init_event(type_.into(), bubbles, cancelable, view, 0);
 
-        // Set this.data = data
+        // 6. Set this.data = data
         *self.data.borrow_mut() = data;
     }
 
