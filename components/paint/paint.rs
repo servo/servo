@@ -587,11 +587,6 @@ impl Paint {
                     painter.append_lcp_candidate(lcp_candidate, webview_id, pipeline_id, epoch);
                 }
             },
-            PaintMessage::EnableLCPCalculation(webview_id) => {
-                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
-                    painter.enable_lcp_calculation(&webview_id);
-                }
-            },
         }
     }
 
