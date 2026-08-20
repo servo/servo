@@ -61,6 +61,7 @@ use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCacheFactory, ImageCacheResponseMessage};
+use net_traits::pub_domains::is_same_site;
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::{
@@ -3491,7 +3492,7 @@ impl ScriptThread {
             Some(window) => {
                 window.set_up_a_window_environment_settings_object(
                     self.layout_factory.create(layout_config),
-                    creation_url.clone(),
+                    creation_url,
                     // TODO(37417): Set correct top-level URL here.
                     final_url.clone(),
                     incomplete.navigation_start,
@@ -3521,7 +3522,7 @@ impl ScriptThread {
                     incomplete.parent_info,
                     incomplete.viewport_details,
                     origin.clone(),
-                    creation_url.clone(),
+                    creation_url,
                     // TODO(37417): Set correct top-level URL here. Currently, we only specify the
                     // url of the current window. However, in case this is an iframe, we should
                     // pass in the URL from the frame that includes the iframe (which potentially
@@ -4513,7 +4514,7 @@ fn window_for_replacement(
 ) -> Option<DomRoot<Window>> {
     // Step 1. Let browsingContext be the result of obtaining a browsing context
     //   to use for a navigation response given navigationParams.
-    let browsing_context = obtain_a_browsing_context(script_window_proxies, id);
+    let browsing_context = obtain_a_browsing_context(script_window_proxies, id, origin);
 
     // Step 5. Let window be null.
     // Step 6. If browsingContext's active document's is initial about:blank is true,
@@ -4531,10 +4532,58 @@ fn window_for_replacement(
 fn obtain_a_browsing_context(
     script_window_proxies: &ScriptWindowProxies,
     id: BrowsingContextId,
+    destination_origin: &MutableOrigin,
 ) -> Option<DomRoot<WindowProxy>> {
     // Step 1. Let browsingContext be navigationParams's navigable's active browsing context.
+    let browsing_context = script_window_proxies.find_window_proxy(id)?;
     // Step 2. If browsingContext is not a top-level browsing context, then return browsingContext.
-    // TODO: Every following step for top-level browsing contexts.
-    // Right now this code is only used by the code that handles initial about:blank iframes.
-    script_window_proxies.find_window_proxy(id)
+    if browsing_context.parent().is_none() {
+        return Some(browsing_context);
+    }
+    // Step 3. Let coopEnforcementResult be navigationParams's COOP enforcement result.
+    // TODO
+    // Step 4. Let swapGroup be coopEnforcementResult's needs a browsing context group switch.
+    // TODO
+    let swap_group = false;
+    // Step 5. Let sourceOrigin be browsingContext's active document's origin.
+    let document = browsing_context.document()?;
+    let source_origin = document.origin();
+    // Step 6. Let destinationOrigin be navigationParams's origin.
+    // Passed as `destination_origin`.
+    // Step 7. If sourceOrigin is not same site with destinationOrigin:
+    if !is_same_site(source_origin.immutable(), destination_origin.immutable()) {
+        // Step 7.1. If either of sourceOrigin or destinationOrigin have a scheme that is not an
+        //   HTTP(S) scheme and the user agent considers it necessary for sourceOrigin and
+        //   destinationOrigin to be isolated from each other (for implementation-defined reasons),
+        //   optionally set swapGroup to true.
+        // TODO
+        // Step 7.2. If navigationParams's user involvement is "browser UI", optionally set
+        //   swapGroup to true.
+        // TODO
+    }
+    // Step 8. If browsingContext's group's browsing context set's size is 1, optionally set
+    //   swapGroup to true.
+    // TODO
+    // Step 9. If swapGroup is false:
+    if !swap_group {
+        // Step 9.1. If coopEnforcementResult's would need a browsing context group switch due to
+        //   report-only is true, set browsingContext's virtual browsing context group ID to a new
+        //   unique identifier.
+        // TODO
+        // Step 9.2. Return browsingContext.
+        return Some(browsing_context);
+    }
+    // Step 10. Let newBrowsingContext be the first return value of creating a new top-level browsing context and document.
+    // Step 11. Let navigationCOOP be navigationParams's cross-origin opener policy.
+    // Step 12. If navigationCOOP's value is "same-origin-plus-COEP", then set newBrowsingContext's
+    //   group's cross-origin isolation mode to either "logical" or "concrete". The choice of which
+    //   is implementation-defined.
+    // Step 13. Let sandboxFlags be a clone of navigationParams's final sandboxing flag set.
+    // Step 14. If sandboxFlags is not empty:
+    // Step 14.1. Assert: navigationCOOP's value is "unsafe-none".
+    // Step 14.2. Assert: newBrowsingContext's popup sandboxing flag set is empty.
+    // Step 14.3. Set newBrowsingContext's popup sandboxing flag set to sandboxFlags.
+    // Step 15. Return newBrowsingContext.
+    // TODO
+    Some(browsing_context)
 }
