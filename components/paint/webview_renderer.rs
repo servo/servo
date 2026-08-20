@@ -843,6 +843,10 @@ impl WebViewRenderer {
         let pinch_zoom_result = self.set_pinch_zoom(new_pinch_zoom);
         if pinch_zoom_result == PinchZoomResult::DidPinchZoom {
             self.send_pinch_zoom_infos_to_script();
+            // Pinch zoom changes the viewport transform without touching the pipeline, so no reflow
+            // will occur. Notify the embedding layer so it can refresh the accessibility root node,
+            // whose transform scales by the pinch zoom.
+            self.webview.notify_viewport_updated();
         }
 
         (pinch_zoom_result, scroll_result)
@@ -1000,15 +1004,18 @@ impl WebViewRenderer {
         PinchZoomResult::DidPinchZoom
     }
 
+    /// Set the page zoom for this renderer, returning `true` if the value actually changed.
     pub(crate) fn set_page_zoom(
         &mut self,
         new_page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
-    ) {
+    ) -> bool {
         let new_page_zoom = new_page_zoom.clamp(MIN_PAGE_ZOOM, MAX_PAGE_ZOOM);
         let old_zoom = std::mem::replace(&mut self.page_zoom, new_page_zoom);
-        if old_zoom != self.page_zoom {
-            self.send_window_size_message();
+        if old_zoom == self.page_zoom {
+            return false;
         }
+        self.send_window_size_message();
+        true
     }
 
     /// The scale to use when displaying this [`WebViewRenderer`] in WebRender
