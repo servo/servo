@@ -18,8 +18,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    NormalizedAlgorithm, SubtleHmacImportParams, SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams,
+    CryptoAlgorithm, ExportedKey, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
+    JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
@@ -89,7 +89,7 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleHmacKeyGenParams,
+    normalized_algorithm: &HmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
@@ -139,7 +139,7 @@ pub(crate) fn generate_key(
     // Step 10. Set the name attribute of hash to equal the name member of the hash member of
     // normalizedAlgorithm.
     // Step 11. Set the hash attribute of algorithm to hash.
-    let algorithm = SubtleHmacKeyAlgorithm {
+    let algorithm = HmacKeyAlgorithm {
         name: CryptoAlgorithm::Hmac,
         hash: normalized_algorithm.hash.clone(),
         length,
@@ -168,7 +168,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleHmacImportParams,
+    normalized_algorithm: &HmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -339,7 +339,7 @@ pub(crate) fn import_key(
     // Step 11. Set the name attribute of algorithm to "HMAC".
     // Step 12. Set the length attribute of algorithm to length.
     // Step 13. Set the hash attribute of algorithm to hash.
-    let algorithm = SubtleHmacKeyAlgorithm {
+    let algorithm = HmacKeyAlgorithm {
         name: CryptoAlgorithm::Hmac,
         hash: hash.clone(),
         length,
@@ -444,7 +444,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleHmacImportParams,
+    normalized_derived_key_algorithm: &HmacImportParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1.
     let length = match normalized_derived_key_algorithm.length {

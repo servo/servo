@@ -20,12 +20,12 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, SubtleKmacKeyGenParams, SubtleKmacParams,
+    KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, KmacParams,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
 pub(crate) fn sign(
-    normalized_algorithm: &SubtleKmacParams,
+    normalized_algorithm: &KmacParams,
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -86,7 +86,7 @@ pub(crate) fn sign(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-verify>
 pub(crate) fn verify(
-    normalized_algorithm: &SubtleKmacParams,
+    normalized_algorithm: &KmacParams,
     key: &CryptoKey,
     message: &[u8],
     signature: &[u8],
@@ -152,7 +152,7 @@ pub(crate) fn verify(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleKmacKeyGenParams,
+    normalized_algorithm: &KmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
@@ -213,7 +213,7 @@ pub(crate) fn generate_key(
     // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 11. Set the [[extractable]] internal slot of key to be extractable.
     // Step 12. Set the [[usages]] internal slot of key to be the normalized value of usages.
-    let algorithm = SubtleKmacKeyAlgorithm {
+    let algorithm = KmacKeyAlgorithm {
         name: normalized_algorithm.name,
         length,
     };
@@ -235,7 +235,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleKmacImportParams,
+    normalized_algorithm: &KmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -378,7 +378,7 @@ pub(crate) fn import_key(
             *last_byte &= mask;
         }
     }
-    let algorithm = SubtleKmacKeyAlgorithm {
+    let algorithm = KmacKeyAlgorithm {
         name: normalized_algorithm.name,
         length,
     };
@@ -473,7 +473,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_algorithm: &SubtleKmacImportParams,
+    normalized_algorithm: &KmacImportParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1.
     // If the length member of normalizedAlgorithm is present:
