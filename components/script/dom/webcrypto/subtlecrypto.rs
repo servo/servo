@@ -3611,7 +3611,7 @@ impl From<&HmacKeyAlgorithm> for SerializableHmacKeyAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleHmacKeyGenParams {
+struct HmacKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3622,7 +3622,7 @@ struct SubtleHmacKeyGenParams {
     length: Option<u32>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HmacKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3632,7 +3632,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacKeyGenParams {
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtleHmacKeyGenParams {
+        Ok(HmacKeyGenParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
             length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
@@ -5557,7 +5557,7 @@ enum GenerateKeyAlgorithm {
     AesCbc(AesKeyGenParams),
     AesGcm(AesKeyGenParams),
     AesKw(AesKeyGenParams),
-    Hmac(SubtleHmacKeyGenParams),
+    Hmac(HmacKeyGenParams),
     MlKem(Algorithm),
     MlDsa(Algorithm),
     AesOcb(AesKeyGenParams),

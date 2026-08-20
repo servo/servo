@@ -19,7 +19,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    NormalizedAlgorithm, HmacImportParams, HmacKeyAlgorithm, SubtleHmacKeyGenParams,
+    NormalizedAlgorithm, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
@@ -89,7 +89,7 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleHmacKeyGenParams,
+    normalized_algorithm: &HmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
