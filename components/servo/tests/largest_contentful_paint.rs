@@ -166,7 +166,13 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     // Observe all largest-contentful-paint entries (buffered).
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), OBSERVER_SCRIPT) {
+    let observer_script = "
+        window.lcpEntries = [];
+        new PerformanceObserver(list => {
+            window.lcpEntries.push(...list.getEntries());
+        }).observe({type: 'largest-contentful-paint', buffered: true});
+    ";
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), observer_script) {
         panic!("Failed to evaluate LCP observer script: {:?}", err);
     }
 
@@ -178,8 +184,21 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
     click_at_point(&webview, Point2D::new(1., 1.));
 
     // Append a larger image; it should not be reported because LCP is halted.
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), APPEND_LARGER_IMAGE_SCRIPT)
-    {
+    let append_image_script = r#"
+        window.image2Done = false;
+        (async () => {
+            const img = document.createElement('img');
+            img.id = 'image2';
+            img.style.width = '100px';
+            img.style.height = '100px';
+            img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFElEQVR4nGP4z8DwnxjMMKqQvgoBksPHOas6/LEAAAAASUVORK5CYII=';
+            document.body.appendChild(img);
+            await new Promise(resolve => { img.addEventListener('load', resolve); });
+            await new Promise(resolve => requestAnimationFrame(() => resolve()));
+            window.image2Done = true;
+        })();
+    "#;
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), append_image_script) {
         panic!("Failed to evaluate append image script: {:?}", err);
     }
 
@@ -200,7 +219,7 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
     webview.reload();
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), OBSERVER_SCRIPT) {
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), observer_script) {
         panic!("Failed to evaluate LCP observer script: {:?}", err);
     }
 
