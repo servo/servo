@@ -3301,7 +3301,7 @@ impl ScriptThread {
 
         // If we're in multiprocess mode, shut-down the IPC router for this process.
         #[cfg(feature = "ipc")]
-        if opts::get().multiprocess {
+        if opts::get().multiprocess || opts.get().force_ipc {
             debug!("Exiting IPC router thread in script thread.");
             ipc_channel::router::ROUTER.shutdown();
         }
