@@ -7,6 +7,7 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
@@ -16,6 +17,7 @@ use style::computed_values::position::T as Position;
 use style::logical_geometry::{Direction, WritingMode};
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
+use taffy::GridItemStyle;
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
@@ -23,6 +25,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment, LayoutRootFragment,
+    SpecificLayoutInfo,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -31,6 +34,7 @@ use crate::geom::{
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
+use crate::taffy::{SpecificTaffyGridInfo, TaffyStyloStyle};
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
     PropagatedBoxTreeData,
@@ -298,6 +302,27 @@ impl PositioningContext {
             style: &style,
         };
 
+        let rare_data = new_fragment
+            .rare_data
+            .get()
+            .map(|ref_cell| ref_cell.borrow());
+        // let grid_info = rare_data.as_ref().and_then(|rare_data| AtomicRef::map(rare_data, |rare_data| .specific_layout_info)
+        let grid_info = rare_data.and_then(|rare_data| {
+            if matches!(
+                rare_data.specific_layout_info,
+                Some(SpecificLayoutInfo::Grid(_))
+            ) {
+                Some(AtomicRef::map(rare_data, |rd| {
+                    match &rd.specific_layout_info {
+                        Some(SpecificLayoutInfo::Grid(grid_info)) => &**grid_info,
+                        _ => unreachable!(),
+                    }
+                }))
+            } else {
+                None
+            }
+        });
+
         let mut fixed_position_boxes_to_hoist = Vec::new();
         let mut boxes_to_layout = Vec::new();
         self.take_boxes_for_fragment(
@@ -317,8 +342,10 @@ impl PositioningContext {
                 std::mem::take(&mut boxes_to_layout),
                 &mut new_fragment.children,
                 &mut self.absolutes,
+                grid_info.as_deref(),
                 &containing_block,
                 new_fragment.padding,
+                new_fragment.border,
             );
 
             self.take_boxes_for_fragment(
@@ -366,7 +393,9 @@ impl PositioningContext {
                 mem::take(&mut self.absolutes),
                 fragments,
                 &mut self.absolutes,
+                None,
                 initial_containing_block,
+                Default::default(),
                 Default::default(),
             )
         }
@@ -411,13 +440,16 @@ impl HoistedAbsolutelyPositionedBox {
         position
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
         mut boxes: Vec<Self>,
         fragments: &mut Vec<Fragment>,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
+        grid_info: Option<&SpecificTaffyGridInfo>,
         containing_block: &DefiniteContainingBlock,
         containing_block_padding: PhysicalSides<Au>,
+        containing_block_border: PhysicalSides<Au>,
     ) {
         let job_sizes = boxes.iter().map(|hoisted_box| {
             hoisted_box
@@ -437,8 +469,10 @@ impl HoistedAbsolutelyPositionedBox {
                     let new_fragment = hoisted_box.layout(
                         layout_context,
                         &mut new_hoisted_boxes,
+                        grid_info,
                         containing_block,
                         containing_block_padding,
+                        containing_block_border,
                     );
                     (new_fragment, new_hoisted_boxes)
                 })
@@ -452,8 +486,10 @@ impl HoistedAbsolutelyPositionedBox {
                 hoisted_box.layout(
                     layout_context,
                     for_nearest_containing_block_for_all_descendants,
+                    grid_info,
                     containing_block,
                     containing_block_padding,
+                    containing_block_border,
                 )
             }))
         }
@@ -463,31 +499,106 @@ impl HoistedAbsolutelyPositionedBox {
         &mut self,
         layout_context: &LayoutContext,
         hoisted_absolutes_from_children: &mut Vec<HoistedAbsolutelyPositionedBox>,
+        grid_info: Option<&SpecificTaffyGridInfo>,
         containing_block: &DefiniteContainingBlock,
         containing_block_padding: PhysicalSides<Au>,
+        containing_block_border: PhysicalSides<Au>,
     ) -> Fragment {
-        // The static position rect was calculated assuming that the containing block would be
-        // established by the content box of some ancestor, but the actual containing block is
-        // established by the padding box. So we need to translate the rect by the padding of
-        // that ancestor.
-        let mut static_position_rect = self.static_position_rect().translate(PhysicalVec::new(
-            containing_block_padding.left,
-            containing_block_padding.top,
-        ));
-        static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
-        let fully_adjusted_static_position_rect =
-            static_position_rect.to_logical(&containing_block.into());
-
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
         let independent_formatting_context = &absolutely_positioned_box.context;
+        let writing_mode = containing_block.style.writing_mode;
+
+        // If the container laying out the hoisted nodes is a grid container, then resolve the hoisted
+        // node's grid area (as a concrete rect in Au units) using it's own grid position styles.
+        let grid_area = grid_info.map(|grid_info| {
+            let item_style = TaffyStyloStyle::new(&**independent_formatting_context.style(), false);
+            let physical_containing_block_size =
+                containing_block.size.to_physical_size(writing_mode);
+
+            // Convert direction to Taffy type
+            let direction = if writing_mode.is_bidi_ltr() {
+                taffy::Direction::Ltr
+            } else {
+                taffy::Direction::Rtl
+            };
+
+            // Convert padding box to Taffy type
+            let border_left = containing_block_border.left.to_f32_px();
+            let border_top = containing_block_border.top.to_f32_px();
+
+            let padding_box = taffy::Rect {
+                left: border_left,
+                right: border_left + physical_containing_block_size.width.to_f32_px(),
+                top: border_top,
+                bottom: border_top + physical_containing_block_size.height.to_f32_px(),
+            };
+
+            // Call into Taffy to resolve grid area
+            let area = grid_info.info.resolve_absolute_grid_area(
+                item_style.grid_row(),
+                item_style.grid_column(),
+                direction,
+                padding_box,
+            );
+
+            // Convert grid area into a PhysicalRect, and adjust it to be relative to the padding box
+            PhysicalRect::new(
+                PhysicalPoint::new(
+                    Au::from_f32_px(area.left) - containing_block_border.left,
+                    Au::from_f32_px(area.top) - containing_block_border.top,
+                ),
+                PhysicalSize::new(
+                    Au::from_f32_px(area.right - area.left),
+                    Au::from_f32_px(area.bottom - area.top),
+                ),
+            )
+        });
+
+        // Compute a containing_block_origin relative to the padding-box. This is either the origin of the
+        // grid area relative to the padding-box, or simply (0, 0) for non-grid containers.
+        let containing_block_origin = grid_area
+            .as_ref()
+            .map(|grid_area| grid_area.origin.to_vector())
+            .unwrap_or_default();
+
+        // Override the size of the containing block the grid area computed above in the case of a grid container.
+        let containing_block = DefiniteContainingBlock {
+            size: grid_area
+                .as_ref()
+                .map(|grid_area| grid_area.size.to_logical(writing_mode))
+                .unwrap_or(containing_block.size),
+            style: containing_block.style,
+        };
+
+        // Static position adjustment: content box -> containing block
+        //
+        // The static position rect is in coordinates relative to the content box of some ancestor. Convert it into
+        // coordinates relative to it's containing block. For grid containers, we resolve the node's grid area.
+        // For all other containers, the containing block is just the padding box.
+        let fully_adjusted_static_position_rect = {
+            let mut static_position_rect = self.static_position_rect().translate(
+                PhysicalVec::new(containing_block_padding.left, containing_block_padding.top) -
+                    containing_block_origin,
+            );
+            static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
+            static_position_rect.to_logical(&(&containing_block).into())
+        };
+
         let (box_fragment, mut positioning_context) = independent_formatting_context
             .layout_as_absolute(
                 layout_context,
                 &fully_adjusted_static_position_rect,
-                containing_block,
+                &containing_block,
                 self.resolved_alignment,
                 self.original_parent_writing_mode,
             );
+
+        // Translate the output to be relative to the padding box rather than the
+        // containing block origin. In most cases this is noop, but for grid containers
+        // this applies the grid area to the box's position.
+        box_fragment
+            .base
+            .translate_rect(containing_block_origin.to_size());
 
         // An absolutely-positioned box can be a layout root if it does not hoist any
         // fixed positioned boxes out of it. This condition ensures isolation from parent
@@ -528,6 +639,7 @@ impl HoistedAbsolutelyPositionedBox {
                 resolved_alignment: self.resolved_alignment,
                 containing_block_size: containing_block.size,
                 containing_block_style: containing_block.style.clone(),
+                containing_block_origin,
                 original_parent_writing_mode: self.original_parent_writing_mode,
             })
         });
@@ -1065,10 +1177,15 @@ pub(crate) struct LayoutRootLayoutInputs {
     /// This is the containing block size of the absolute's containing block. This is
     /// stored here because it's easier to access than the parent box.
     containing_block_size: LogicalVec2<Au>,
+    /// This is the containing block origin of the absolute's containing block (relative to the
+    /// containing block element's padding box). This is stored here because it's easier to access
+    /// than the parent box.
+    containing_block_origin: PhysicalVec<Au>,
     /// This is the style of the containing block. This is stored here because it's easier
     /// to access than the parent box.
     #[conditional_malloc_size_of]
     containing_block_style: ServoArc<ComputedValues>,
+
     /// This is the writing mode of the absolute's tree parent.
     original_parent_writing_mode: WritingMode,
 }
@@ -1101,6 +1218,13 @@ impl LayoutRootLayoutInputs {
             self.resolved_alignment,
             self.original_parent_writing_mode,
         );
+
+        // Translate the output to be relative to the padding box rather than the
+        // containing block origin. In most cases this is noop, but for grid containers
+        // this applies the grid area to the box's position.
+        box_fragment
+            .base
+            .translate_rect(self.containing_block_origin.to_size());
 
         if !positioning_context.is_empty() {
             return Err(());
