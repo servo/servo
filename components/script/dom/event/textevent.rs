@@ -39,7 +39,7 @@ impl TextEvent {
 }
 
 impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
-    /// <https://w3c.github.io/uievents/#textevent>
+    /// <https://w3c.github.io/uievents/event-algo.html#textevent>
     fn InitTextEvent(
         &self,
         type_: DOMString,
@@ -48,12 +48,19 @@ impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
         view: Option<&Window>,
         data: DOMString,
     ) {
+        // If this’s dispatch flag is set, then return.
         if self.upcast::<Event>().dispatching() {
             return;
         }
 
+        // Initialize a UIEvent with this, type and eventTarget
+        // Set this.bubbles = bubbles
+        // Set this.cancelable = cancelable
+        // Set this.view = view
         self.uievent
             .init_event(type_.into(), bubbles, cancelable, view, 0);
+
+        // Set this.data = data
         *self.data.borrow_mut() = data;
     }
 
