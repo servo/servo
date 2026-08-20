@@ -100,48 +100,34 @@ impl CacheStorage {
             // the steps resolving the promise with the result.
             // Note: spec forgets to queue a task see https://github.com/w3c/ServiceWorker/issues/1831
             CacheStorageThreadResponse::HasCacheResult(result) => {
-                let promise = self.pending_promises.borrow_mut().pop_front();
-                if let Some(promise) = promise {
-                    match result {
-                        Ok(has_cache) => {
-                            // Step 2.1:For each key → value of the relevant name to cache map:
-                            // Step 2.1.1: If cacheName matches key, resolve promise with true and abort these steps.
-                            // Step 2.2: Resolve promise with false.
-                            // Note: promise resolved with the result obtained in parallel.
-                            promise.resolve_native(cx, &has_cache);
-                        },
-                        Err(err) => promise.reject_error(cx, Error::Operation(Some(err))),
-                    }
-                } else {
-                    error!("No pending promise for HasCacheResult response.");
-                }
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending promise for HasCacheResult response.");
+                    return;
+                };
+                let Ok(has_cache) = result else {
+                    promise.reject_error(cx, Error::Operation(Some(result.err().unwrap())));
+                    return;
+                };
+                // Step 2.1:For each key → value of the relevant name to cache map:
+                // Step 2.1.1: If cacheName matches key, resolve promise with true and abort these steps.
+                // Step 2.2: Resolve promise with false.
+                // Note: promise resolved with the result obtained in parallel.
+                promise.resolve_native(cx, &has_cache);
             },
             // https://w3c.github.io/ServiceWorker/#cache-storage-open
             // the steps resolving the promise with the result.
             CacheStorageThreadResponse::OpenCacheResult { opened, cache_name } => {
-                let promise = self.pending_promises.borrow_mut().pop_front();
-                if let Some(promise) = promise {
-                    match opened {
-                        Ok(opened) => {
-                            if opened {
-                                // Resolve promise with a new Cache object that represents value.
-                                let cache =
-                                    Cache::new(cx, &self.global(), DOMString::from(cache_name));
-                                promise.resolve_native(cx, &cache);
-                            } else {
-                                // reject promise with a QuotaExceededError and abort these steps.
-                                // Note: just a generic error for now, no quota checks exist storage side at this point.
-                                promise.reject_error(
-                                    cx,
-                                    Error::Operation(Some("Failed to open cache".to_string())),
-                                );
-                            }
-                        },
-                        Err(err) => promise.reject_error(cx, Error::Operation(Some(err))),
-                    }
-                } else {
-                    error!("No pending promise for OpenCacheResult response.");
-                }
+                let Some(promise) = self.pending_promises.borrow_mut().pop_front() else {
+                    debug_assert!(false, "No pending promise for OpenCacheResult response.");
+                    return;
+                };
+                let Ok(opened) = opened else {
+                    promise.reject_error(cx, Error::Operation(Some(opened.err().unwrap())));
+                    return;
+                };
+                // Resolve promise with a new Cache object that represents value.
+                let cache = Cache::new(cx, &self.global(), DOMString::from(cache_name));
+                promise.resolve_native(cx, &cache);
             },
         }
     }
