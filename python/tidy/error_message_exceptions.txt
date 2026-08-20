@@ -76,7 +76,7 @@
 ./components/script/dom/node/customelementregistry.rs 7
 ./components/script/dom/performance/performanceobserver.rs 4
 ./components/script/dom/range/range.rs 20
-./components/script/dom/selection.rs 14
+./components/script/dom/selection.rs 11
 ./components/script/dom/serviceworker/extendableevent.rs 1
 ./components/script/dom/serviceworker/serviceworker.rs 1
 ./components/script/dom/serviceworker/serviceworkercontainer.rs 2

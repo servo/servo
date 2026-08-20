@@ -304,6 +304,7 @@ pub(crate) use self::resizeobserver::*;
 pub(crate) mod security;
 pub(crate) use self::security::*;
 pub(crate) mod selection;
+pub(crate) mod selection_range;
 pub(crate) mod serviceworker;
 pub(crate) use self::serviceworker::*;
 pub(crate) mod servointernals;
