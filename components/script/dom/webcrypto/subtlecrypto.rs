@@ -3954,7 +3954,7 @@ impl From<&SubtleKangarooTwelveParams> for SerializableKangarooTwelveParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacKeyGenParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleKmacKeyGenParams {
+struct KmacKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3962,7 +3962,7 @@ struct SubtleKmacKeyGenParams {
     length: Option<u32>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3970,7 +3970,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacKeyGenParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleKmacKeyGenParams {
+        Ok(KmacKeyGenParams {
             name: algorithm_name,
             length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
         })
@@ -5562,7 +5562,7 @@ enum GenerateKeyAlgorithm {
     MlDsa(Algorithm),
     AesOcb(AesKeyGenParams),
     ChaCha20Poly1305(Algorithm),
-    Kmac(SubtleKmacKeyGenParams),
+    Kmac(KmacKeyGenParams),
 }
 
 impl NormalizedAlgorithm for GenerateKeyAlgorithm {

@@ -20,7 +20,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, SubtleKmacKeyGenParams, SubtleKmacParams,
+    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, KmacKeyGenParams, SubtleKmacParams,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
@@ -152,7 +152,7 @@ pub(crate) fn verify(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleKmacKeyGenParams,
+    normalized_algorithm: &KmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
