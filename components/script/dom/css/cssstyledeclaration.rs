@@ -32,6 +32,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::types::CSSFontFaceDescriptors;
 use crate::dom::window::Window;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -477,15 +478,25 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue>
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
-            Ok(id) => id,
-            Err(..) => return DOMString::new(),
-        };
-        self.get_property_value(id)
+        if let Some(css_font_face_descriptors) = self.downcast::<CSSFontFaceDescriptors>() {
+            css_font_face_descriptors.get_property_value(&property.str())
+        } else {
+            let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
+                Ok(id) => id,
+                Err(..) => return DOMString::new(),
+            };
+            self.get_property_value(id)
+        }
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority>
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
+        if self.is::<CSSFontFaceDescriptors>() {
+            // Font face descriptors do not have priorities.
+            // https://searchfox.org/firefox-main/rev/91c8ca3faa6ccbb72d65d89401fd31fd3313afc4/layout/style/CSSFontFaceRule.cpp#84-89
+            return DOMString::new();
+        }
+
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             return DOMString::new();

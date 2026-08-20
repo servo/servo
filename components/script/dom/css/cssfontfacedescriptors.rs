@@ -46,6 +46,14 @@ impl CSSFontFaceDescriptors {
             cx,
         )
     }
+
+    /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-getpropertyvalue>
+    pub(crate) fn get_property_value(&self, property: &str) -> DOMString {
+        let Ok(descriptor_id) = DescriptorId::from_ident(property) else {
+            return Default::default();
+        };
+        self.font_face_rule.get_descriptor(descriptor_id)
+    }
 }
 
 impl CSSFontFaceDescriptorsMethods<crate::DomTypeHolder> for CSSFontFaceDescriptors {
