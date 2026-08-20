@@ -3979,7 +3979,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacKeyGenParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacImportParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleKmacImportParams {
+struct KmacImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3987,7 +3987,7 @@ struct SubtleKmacImportParams {
     length: Option<u32>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3995,7 +3995,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacImportParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleKmacImportParams {
+        Ok(KmacImportParams {
             name: algorithm_name,
             length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
         })
@@ -5788,7 +5788,7 @@ enum ImportKeyAlgorithm {
     MlDsa(Algorithm),
     AesOcb(Algorithm),
     ChaCha20Poly1305(Algorithm),
-    Kmac(SubtleKmacImportParams),
+    Kmac(KmacImportParams),
     Argon2(Algorithm),
 }
 
@@ -6230,7 +6230,7 @@ enum GetKeyLengthAlgorithm {
     Pbkdf2(Algorithm),
     AesOcb(AesDerivedKeyParams),
     ChaCha20Poly1305(Algorithm),
-    Kmac(SubtleKmacImportParams),
+    Kmac(KmacImportParams),
     Argon2(Algorithm),
 }
 

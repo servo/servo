@@ -20,7 +20,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, KmacKeyGenParams, SubtleKmacParams,
+    KmacImportParams, SubtleKmacKeyAlgorithm, KmacKeyGenParams, SubtleKmacParams,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
@@ -235,7 +235,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleKmacImportParams,
+    normalized_algorithm: &KmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -473,7 +473,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_algorithm: &SubtleKmacImportParams,
+    normalized_algorithm: &KmacImportParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1.
     // If the length member of normalizedAlgorithm is present:
