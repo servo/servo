@@ -85,6 +85,7 @@ impl WebGLFramebufferAttachment {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
 pub(crate) enum WebGLFramebufferAttachmentRoot {
     Renderbuffer(DomRoot<WebGLRenderbuffer>),
     Texture(DomRoot<WebGLTexture>),
