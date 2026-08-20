@@ -7,8 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from typing import TypeGuard
-import errno
+from typing import List, Tuple, TypeGuard
 import json
 import os
 import pathlib
@@ -286,6 +285,73 @@ class AndroidTarget(CrossBuildTarget):
 
 class OpenHarmonyTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-unknown-linux-ohos"
+    # The minimum SDK level we support.
+    MINIMUM_OHOS_API_LEVEL = 20
+    # The layout of the dict might change in the future, and backwords incompatible changes
+    # will bump the schema version in cargo-ohos.
+    CARGO_OHOS_EXPECTED_SCHEMA_VERSION = 1
+    # Pin a cargo-ohos semver version for bootstrap
+    REQUESTED_CARGO_OHOS_VERSION = "0.3"
+
+    @classmethod
+    def is_cargo_ohos_compatible(cls) -> Tuple[bool, Optional[str]]:
+        """Returns true if the cargo-ohos version is compatible. False if we need to reinstall.
+        When false, the second return parameter is a string with error information.
+        """
+
+        def cargo_ohos_version() -> Optional[str]:
+            if shutil.which("cargo-ohos") is None:
+                return None
+            result = subprocess.run(["cargo-ohos", "ohos", "--version"], encoding="utf-8", capture_output=True)
+            if result.returncode != 0:
+                return None
+            version = result.stdout.strip().split(" ")[-1]
+            return version
+
+        found_version = cargo_ohos_version()
+        if found_version is None:
+            return (False, "cargo-ohos not installed")
+        found_version = parse_version(found_version)
+        required_version = parse_version(cls.REQUESTED_CARGO_OHOS_VERSION)
+        semver_incompatible_error_msg = (
+            f"The installed cargo-ohos version {found_version} is not SemVer compatible"
+            + f" with the required cargo-ohos version {required_version}"
+        )
+        if required_version > found_version:
+            return (False, f"The installed cargo-ohos version {found_version} is too old.")
+        if required_version.major == 0:
+            if required_version.minor != found_version.minor:
+                return (False, semver_incompatible_error_msg)
+        else:
+            if required_version.major != found_version.major:
+                return (False, semver_incompatible_error_msg)
+        return (True, None)
+
+    def get_cargo_ohos_env(self, input_env: dict[str, str]) -> dict[str, Any]:
+        (compatible, error_msg) = self.is_cargo_ohos_compatible()
+        if not compatible:
+            print(f"Building for OpenHarmony requires `cargo-ohos`: {error_msg}", file=sys.stderr)
+            print("Please rerun `./mach bootstrap --ohos`.", file=sys.stderr)
+            sys.exit(1)
+        command = ["cargo", "ohos", "env", "--format", "json", "--target", self.triple()]
+        try:
+            output = subprocess.run(command, check=True, capture_output=True, encoding="utf8", env=input_env).stdout
+        except subprocess.CalledProcessError as exception:
+            print(exception.stderr, end="", file=sys.stderr)
+            print("Failed to determine the OpenHarmony toolchain environment via `cargo ohos env`.", file=sys.stderr)
+            sys.exit(1)
+        try:
+            ohos_env = json.loads(output)
+        except json.JSONDecodeError as error:
+            print(f"Failed to parse `cargo ohos env` output as JSON: {error}", file=sys.stderr)
+            sys.exit(1)
+        schema_version = ohos_env.get("schema_version")
+        if schema_version is None or schema_version != self.CARGO_OHOS_EXPECTED_SCHEMA_VERSION:
+            # This shouldn't happen if cargo-ohos releases follow semver, but still better
+            # to check.
+            raise RuntimeError("Unexpected schema-version mismatch.")
+
+        return ohos_env
 
     def configure_build_environment(self, env: dict[str, str], config: dict[str, Any], topdir: pathlib.Path) -> None:
         # Paths to OpenHarmony SDK and build tools:
@@ -294,149 +360,59 @@ class OpenHarmonyTarget(CrossBuildTarget):
         if "OHOS_SDK_NATIVE" not in env and config["ohos"]["ndk"]:
             env["OHOS_SDK_NATIVE"] = config["ohos"]["ndk"]
 
-        if "OHOS_SDK_NATIVE" not in env:
-            print(
-                "Please set the OHOS_SDK_NATIVE environment variable to the location of the `native` directory "
-                "in the OpenHarmony SDK.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+        ohos_info = self.get_cargo_ohos_env(env)
+        ohos_env = ohos_info["env"]
 
-        ndk_root = pathlib.Path(env["OHOS_SDK_NATIVE"])
-
-        if not ndk_root.is_dir():
-            print(f"OHOS_SDK_NATIVE is not set to a valid directory: `{ndk_root}`", file=sys.stderr)
-            sys.exit(1)
-
-        ndk_root = ndk_root.resolve()
-        package_info = ndk_root.joinpath("oh-uni-package.json")
+        sdk_info: dict[str, str] = ohos_info["sdk"]
+        ohos_api_version: Optional[int] = None
         try:
-            with open(package_info) as meta_file:
-                meta = json.load(meta_file)
-            ohos_api_version = int(meta["apiVersion"])
-            ohos_sdk_version = parse_version(meta["version"])
-            if ohos_sdk_version < parse_version("5.0") or ohos_api_version < 14:
-                raise RuntimeError("Building servo for OpenHarmony requires SDK version 5.0.2 (API-14) or newer.")
-            print(
-                f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}",
-                file=sys.stderr,
-            )
-        except (OSError, json.JSONDecodeError) as e:
-            print(f"Failed to read metadata information from {package_info}", file=sys.stderr)
-            print(f"Exception: {e}", file=sys.stderr)
+            ohos_api_version = int(sdk_info["api_version"])
+        except TypeError:
+            print("Error: cargo-ohos was unable to determine the SDK API version", file=sys.stderr)
+            sys.exit(1)
 
-        llvm_toolchain = ndk_root.joinpath("llvm")
-        llvm_bin = llvm_toolchain.joinpath("bin")
-        ohos_sysroot = ndk_root.joinpath("sysroot")
-        if not (llvm_toolchain.is_dir() and llvm_bin.is_dir()):
+        ohos_sdk_version = sdk_info["version"]
+
+        print(
+            f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}",
+            file=sys.stderr,
+        )
+
+        if ohos_api_version < self.MINIMUM_OHOS_API_LEVEL:
             print(
-                f"Expected to find `llvm` and `llvm/bin` folder under $OHOS_SDK_NATIVE at `{llvm_toolchain}`",
+                "Error: Building servo for OpenHarmony requires an SDK version with"
+                f"API level {self.MINIMUM_OHOS_API_LEVEL} or newer",
                 file=sys.stderr,
             )
             sys.exit(1)
-        if not ohos_sysroot.is_dir():
-            print(f"Could not find OpenHarmony sysroot in {ndk_root}", file=sys.stderr)
-            sys.exit(1)
-        # When passing the sysroot to Rust crates such as `cc-rs` or bindgen, we should pass
-        # POSIX paths, since otherwise the backslashes in windows paths may be interpreted as
-        # escapes and lead to errors.
-        ohos_sysroot_posix = ohos_sysroot.as_posix()
 
-        # Note: We don't use the `<target_triple>-clang` wrappers on purpose, since
-        # a) the OH 4.0 SDK does not have them yet AND
-        # b) the wrappers in the newer SDKs are bash scripts, which can cause problems
-        # on windows, depending on how the wrapper is called.
-        # Instead, we ensure that all the necessary flags for the c-compiler are set
-        # via environment variables such as `TARGET_CFLAGS`.
-        def to_sdk_llvm_bin(prog: str) -> str:
-            if sys.platform == "win32":
-                prog = prog + ".exe"
-            llvm_prog = llvm_bin.joinpath(prog)
-            if not llvm_prog.is_file():
-                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), llvm_prog)
-            return llvm_bin.joinpath(prog).as_posix()
+        # Cargo prefers `CARGO_ENCODED_RUSTFLAGS` if set, but mach currently uses `RUSTFLAGS`
+        # instead, so we remove this from the environment. It probably would make sense to migrate
+        # mach towards also using the encoded form.
+        del ohos_env["CARGO_ENCODED_RUSTFLAGS"]
+
+        env.update(ohos_env)
+        # `cargo ohos` currently doesn't set RUSTFLAGS in the environment (since it uses the encoded rustflags),
+        # So we explicitly add the flags here and preserve any existing rustflags.
+        env["RUSTFLAGS"] += " " + " ".join(ohos_info["flags"]["rustflags"])
 
         # CC and CXX should already be set to appropriate host compilers by `build_env()`
+        # TODO: HOST_CC and HOST_CXX are needed for mozjs, and should be set in the mozjs
+        # buildscript in the future (also for android).
         env["HOST_CC"] = env["CC"]
         env["HOST_CXX"] = env["CXX"]
-        env["TARGET_AR"] = to_sdk_llvm_bin("llvm-ar")
-        env["TARGET_RANLIB"] = to_sdk_llvm_bin("llvm-ranlib")
-        env["TARGET_READELF"] = to_sdk_llvm_bin("llvm-readelf")
-        env["TARGET_OBJCOPY"] = to_sdk_llvm_bin("llvm-objcopy")
-        env["TARGET_STRIP"] = to_sdk_llvm_bin("llvm-strip")
-
-        target_triple = self.triple()
-        rust_target_triple = str(target_triple).replace("-", "_")
-        ndk_clang = to_sdk_llvm_bin("clang")
-        ndk_clangxx = to_sdk_llvm_bin("clang++")
-        env[f"CC_{rust_target_triple}"] = ndk_clang
-        env[f"CXX_{rust_target_triple}"] = ndk_clangxx
-        # The clang target name is different from the LLVM target name
-        clang_target_triple = str(target_triple).replace("-unknown-", "-")
-        clang_target_triple_underscore = clang_target_triple.replace("-", "_")
-        env[f"CC_{clang_target_triple_underscore}"] = ndk_clang
-        env[f"CXX_{clang_target_triple_underscore}"] = ndk_clangxx
-        # rustc linker
-        env[f"CARGO_TARGET_{rust_target_triple.upper()}_LINKER"] = ndk_clang
-
-        link_args = [
-            "-fuse-ld=lld",
-            f"--target={clang_target_triple}",
-            f"--sysroot={ohos_sysroot_posix}",
-            "-Wl,--build-id",
-        ]
-
         env["HOST_CFLAGS"] = ""
         env["HOST_CXXFLAGS"] = ""
-        ohos_cflags = [
-            "-D__MUSL__",
-            "-DMDB_USE_ROBUST=0",
-            f" --target={clang_target_triple}",
-            f" --sysroot={ohos_sysroot_posix}",
-            "-Wno-error=unused-command-line-argument",
-        ]
-        if clang_target_triple.startswith("armv7-"):
-            ohos_cflags.extend(["-march=armv7-a", "-mfloat-abi=softfp", "-mtune=generic-armv7-a", "-mthumb"])
-        ohos_cflags_str = " ".join(ohos_cflags)
-
-        env["TARGET_CFLAGS"] = env.get("TARGET_CFLAGS", "") + " " + ohos_cflags_str
-        env["TARGET_CPPFLAGS"] = env.get("TARGET_CPPFLAGS", "") + " " + "-D__MUSL__"
-        env["TARGET_CXXFLAGS"] = env.get("TARGET_CXXFLAGS", "") + " " + ohos_cflags_str
-
-        # CMake related flags
-        env["CMAKE"] = ndk_root.joinpath("build-tools", "cmake", "bin", "cmake").as_posix()
-        cmake_toolchain_file = ndk_root.joinpath("build", "cmake", "ohos.toolchain.cmake")
-        if cmake_toolchain_file.is_file():
-            env[f"CMAKE_TOOLCHAIN_FILE_{rust_target_triple}"] = cmake_toolchain_file.as_posix()
-        else:
-            print(
-                f"Warning: Failed to find the OpenHarmony CMake Toolchain file - Expected it at {cmake_toolchain_file}"
-            )
-        env[f"CMAKE_C_COMPILER_{rust_target_triple}"] = ndk_clang
-        env[f"CMAKE_CXX_COMPILER_{rust_target_triple}"] = ndk_clangxx
-
-        # pkg-config
-        pkg_config_path = "{}:{}".format(
-            ohos_sysroot.joinpath("usr", "lib", "pkgconfig").as_posix(),
-            ohos_sysroot.joinpath("usr", "share", "pkgconfig").as_posix(),
-        )
-        env[f"PKG_CONFIG_SYSROOT_DIR_{rust_target_triple}"] = ohos_sysroot_posix
-        env[f"PKG_CONFIG_PATH_{rust_target_triple}"] = pkg_config_path
-
-        # bindgen / libclang-sys
-        env["LIBCLANG_PATH"] = path.join(llvm_toolchain, "lib")
-        env["CLANG_PATH"] = ndk_clangxx
-        env[f"CXXSTDLIB_{clang_target_triple_underscore}"] = "c++"
-        bindgen_extra_clangs_args_var = f"BINDGEN_EXTRA_CLANG_ARGS_{rust_target_triple}"
-        bindgen_extra_clangs_args = env.get(bindgen_extra_clangs_args_var, "")
-        bindgen_extra_clangs_args = bindgen_extra_clangs_args + " " + ohos_cflags_str
-        env[bindgen_extra_clangs_args_var] = bindgen_extra_clangs_args
 
         sanitizer: SanitizerKind = config["build"]["sanitizer"]
         san_compile_flags = []
         if sanitizer.is_some():
+            # TODO: Probably this could also be done by cargo-ohos in the future
+            san_compile_flags: List[str] = []
+            link_args: List[str] = []
+            clang_target_triple = ohos_info["target"]["clang_triple"]
             # Lookup `<sdk>/native/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos/libclang_rt.asan.so`
-            lib_clang = llvm_toolchain.joinpath("lib", "clang")
+            lib_clang = pathlib.Path(ohos_info["toolchain"]["libclang_dir"], "clang")
             children = [f.path for f in os.scandir(lib_clang) if f.is_dir()]
             if len(children) != 1:
                 raise RuntimeError(f"Expected exactly 1 libclang version: `{children}`")
@@ -486,10 +462,11 @@ class OpenHarmonyTarget(CrossBuildTarget):
                 )
                 san_compile_flags.append("-shared-libsan")
 
-        link_args = [f"-Clink-arg={arg}" for arg in link_args]
-        env["RUSTFLAGS"] += " " + " ".join(link_args)
-        env["TARGET_CFLAGS"] += " " + " ".join(san_compile_flags)
-        env["TARGET_CXXFLAGS"] += " " + " ".join(san_compile_flags)
+            link_args = [f"-Clink-arg={arg}" for arg in link_args]
+            env["RUSTFLAGS"] += " " + " ".join(link_args)
+            # If a non-SDK LLVM is used with cargo-ohos, then these flags will not be set.
+            env["TARGET_CFLAGS"] = env.get("TARGET_CFLAGS", "") + " " + " ".join(san_compile_flags)
+            env["TARGET_CXXFLAGS"] = env.get("TARGET_CXXFLAGS", "") + " " + " ".join(san_compile_flags)
 
     def binary_name(self) -> str:
         return "libservoshell.so"
