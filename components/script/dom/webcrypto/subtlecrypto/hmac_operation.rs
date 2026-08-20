@@ -18,8 +18,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    NormalizedAlgorithm, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
+    CryptoAlgorithm, ExportedKey, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
+    JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
