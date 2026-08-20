@@ -166,8 +166,8 @@ where
     let end_container = active_range.end_container();
     let end_offset = active_range.end_offset();
 
-    let should_adjust_start = node.is_inclusive_ancestor_of(&start_container);
-    let should_adjust_end = node.is_inclusive_ancestor_of(&end_container);
+    let should_adjust_start = !node.is_inclusive_ancestor_of(&start_container);
+    let should_adjust_end = !node.is_inclusive_ancestor_of(&end_container);
 
     if move_(cx).is_err() {
         unreachable!("Must always be able to move");
