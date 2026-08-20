@@ -3549,7 +3549,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HmacImportParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleHmacKeyAlgorithm {
+pub(crate) struct HmacKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
     name: CryptoAlgorithm,
 
@@ -3560,7 +3560,7 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
     length: u32,
 }
 
-impl ToJSValConvertible for SubtleHmacKeyAlgorithm {
+impl ToJSValConvertible for HmacKeyAlgorithm {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -3587,11 +3587,11 @@ impl ToJSValConvertible for SubtleHmacKeyAlgorithm {
     }
 }
 
-impl TryFrom<SerializableHmacKeyAlgorithm> for SubtleHmacKeyAlgorithm {
+impl TryFrom<SerializableHmacKeyAlgorithm> for HmacKeyAlgorithm {
     type Error = ();
 
     fn try_from(value: SerializableHmacKeyAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleHmacKeyAlgorithm {
+        Ok(HmacKeyAlgorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             hash: value.hash.try_into()?,
             length: value.length,
@@ -3599,8 +3599,8 @@ impl TryFrom<SerializableHmacKeyAlgorithm> for SubtleHmacKeyAlgorithm {
     }
 }
 
-impl From<&SubtleHmacKeyAlgorithm> for SerializableHmacKeyAlgorithm {
-    fn from(value: &SubtleHmacKeyAlgorithm) -> Self {
+impl From<&HmacKeyAlgorithm> for SerializableHmacKeyAlgorithm {
+    fn from(value: &HmacKeyAlgorithm) -> Self {
         SerializableHmacKeyAlgorithm {
             name: value.name.as_str().into(),
             hash: (&value.hash).into(),
@@ -4304,7 +4304,7 @@ pub(crate) enum KeyAlgorithmAndDerivatives {
     RsaHashedKeyAlgorithm(RsaHashedKeyAlgorithm),
     EcKeyAlgorithm(EcKeyAlgorithm),
     AesKeyAlgorithm(AesKeyAlgorithm),
-    HmacKeyAlgorithm(SubtleHmacKeyAlgorithm),
+    HmacKeyAlgorithm(HmacKeyAlgorithm),
     KmacKeyAlgorithm(SubtleKmacKeyAlgorithm),
 }
 

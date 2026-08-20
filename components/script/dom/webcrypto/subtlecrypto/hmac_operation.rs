@@ -19,7 +19,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    NormalizedAlgorithm, HmacImportParams, SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams,
+    NormalizedAlgorithm, HmacImportParams, HmacKeyAlgorithm, SubtleHmacKeyGenParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
@@ -139,7 +139,7 @@ pub(crate) fn generate_key(
     // Step 10. Set the name attribute of hash to equal the name member of the hash member of
     // normalizedAlgorithm.
     // Step 11. Set the hash attribute of algorithm to hash.
-    let algorithm = SubtleHmacKeyAlgorithm {
+    let algorithm = HmacKeyAlgorithm {
         name: CryptoAlgorithm::Hmac,
         hash: normalized_algorithm.hash.clone(),
         length,
@@ -339,7 +339,7 @@ pub(crate) fn import_key(
     // Step 11. Set the name attribute of algorithm to "HMAC".
     // Step 12. Set the length attribute of algorithm to length.
     // Step 13. Set the hash attribute of algorithm to hash.
-    let algorithm = SubtleHmacKeyAlgorithm {
+    let algorithm = HmacKeyAlgorithm {
         name: CryptoAlgorithm::Hmac,
         hash: hash.clone(),
         length,
