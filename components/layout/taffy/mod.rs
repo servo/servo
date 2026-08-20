@@ -5,13 +5,14 @@ mod layout;
 mod stylo_taffy;
 use std::fmt;
 
-use app_units::Au;
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc;
+use style::Atom;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use stylo_taffy::TaffyStyloStyle;
+use taffy::DetailedGridInfo;
 
 use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
@@ -188,34 +189,11 @@ impl TaffyItemBox {
 /// Details from Taffy grid layout that will be stored
 #[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SpecificTaffyGridInfo {
-    pub rows: SpecificTaffyGridTrackInfo,
-    pub columns: SpecificTaffyGridTrackInfo,
+    pub info: DetailedGridInfo<Atom>,
 }
 
 impl SpecificTaffyGridInfo {
-    fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo) -> Self {
-        Self {
-            rows: SpecificTaffyGridTrackInfo {
-                sizes: grid_info
-                    .rows
-                    .sizes
-                    .iter()
-                    .map(|size| Au::from_f32_px(*size))
-                    .collect(),
-            },
-            columns: SpecificTaffyGridTrackInfo {
-                sizes: grid_info
-                    .columns
-                    .sizes
-                    .iter()
-                    .map(|size| Au::from_f32_px(*size))
-                    .collect(),
-            },
-        }
+    fn from_detailed_grid_layout(grid_info: taffy::DetailedGridInfo<Atom>) -> Self {
+        Self { info: grid_info }
     }
-}
-
-#[derive(Clone, Debug, MallocSizeOf)]
-pub(crate) struct SpecificTaffyGridTrackInfo {
-    pub sizes: Box<[Au]>,
 }
