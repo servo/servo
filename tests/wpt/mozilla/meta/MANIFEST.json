@@ -11388,42 +11388,42 @@
   "testharness": {
    "accessibility-tree": {
     "accessibility-update-basic-mutation.html": [
-     "67ef9b7e69a56c5b50920b4a1bc987cab81d6114",
+     "29f6c8d5c9c46e1134b9a0bb5ad1636554e1cf44",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-children-of-heading-change.html": [
-     "f3fcc102de641f065058123fee7305bce52ab7c5",
+     "a5147a6a8f6745f6e30e18afdf5da3bc9ce8f7c2",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-descendants-of-heading-change.html": [
-     "7cd9409f391adfff42f97623beafb6604c9fa3da",
+     "bd8c0e35509d8d32038e1b5df7e06fa19c0c7ff9",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-mutation-move-nodes.html": [
-     "b6fc6ef97291bdd67957e202c3a9b14e0e74f013",
+     "71e749f898ce0e731986dbdef48bc7f76ce20932",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-partial-subtree-move-and-delete.html": [
-     "81a6dcf0f7e5d7eb6fa5938d04696b783e02526f",
+     "8e61b0b1f2484d387efe2aebbaf81331fae4faf4",
      [
       null,
       {}
      ]
     ],
     "accessibility-update-text-change.html": [
-     "12db168a263d741f5ef4404012eea670a20c0681",
+     "c39136e64d3ced27ef7d04c0e722bc90f3af469a",
      [
       null,
       {}
