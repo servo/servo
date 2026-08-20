@@ -5,7 +5,6 @@
 //! WebView API unit tests.
 mod common;
 
-use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
