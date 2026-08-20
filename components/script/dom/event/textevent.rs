@@ -9,10 +9,8 @@ use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object_with_cx;
 use script_bindings::str::DOMString;
-use stylo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::TextEventBinding::{self, TextEventMethods};
-use crate::dom::bindings::codegen::DomTypeHolder;
+use crate::dom::bindings::codegen::Bindings::TextEventBinding::TextEventMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::Event;
 use crate::dom::uievent::UIEvent;
