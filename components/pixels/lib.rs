@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod decoding;
+pub mod encoding;
+#[cfg(target_env = "ohos")]
+mod encoding_ohos;
 mod snapshot;
 
 use std::borrow::Cow;
@@ -230,41 +233,6 @@ pub fn clip(
     Rect::new(origin, size)
         .intersection(&Rect::from_size(surface))
         .filter(|rect| !rect.is_empty())
-}
-
-#[derive(PartialEq)]
-pub enum EncodedImageType {
-    Png,
-    Jpeg,
-    Webp,
-}
-
-impl From<&str> for EncodedImageType {
-    // From: https://html.spec.whatwg.org/multipage/#serialising-bitmaps-to-a-file
-    // User agents must support PNG ("image/png"). User agents may support other
-    // types. If the user agent does not support the requested type, then it
-    // must create the file using the PNG format.
-    // Anything different than image/jpeg or image/webp is thus treated as PNG.
-    fn from(mime_string: &str) -> Self {
-        if mime_string.eq_ignore_ascii_case("image/jpeg") {
-            Self::Jpeg
-        } else if mime_string.eq_ignore_ascii_case("image/webp") {
-            Self::Webp
-        } else {
-            Self::Png
-        }
-    }
-}
-
-impl EncodedImageType {
-    pub fn as_mime_type(&self) -> String {
-        match self {
-            Self::Png => "image/png",
-            Self::Jpeg => "image/jpeg",
-            Self::Webp => "image/webp",
-        }
-        .to_owned()
-    }
 }
 
 /// Whether this response passed any CORS checks, and is thus safe to read from

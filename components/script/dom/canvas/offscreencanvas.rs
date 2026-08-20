@@ -11,7 +11,8 @@ use euclid::default::Size2D;
 use js::error::throw_type_error_safe;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue};
-use pixels::{EncodedImageType, Snapshot};
+use pixels::Snapshot;
+use pixels::encoding::EncodedImageType;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
 #[cfg(feature = "webgl")]

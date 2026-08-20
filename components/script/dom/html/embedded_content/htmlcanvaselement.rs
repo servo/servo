@@ -13,7 +13,8 @@ use js::context::NoGC;
 use js::error::throw_type_error_safe;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
-use pixels::{EncodedImageType, Snapshot};
+use pixels::Snapshot;
+use pixels::encoding::EncodedImageType;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
 #[cfg(feature = "webgl")]
