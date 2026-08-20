@@ -417,7 +417,7 @@ fn get_property_declarations(
     // The spec tells us to iterate over all animatable properties and see if they're defined
     // on the object. Instead we can iterate over the own properties of the object and see
     // if they're animated properties, that's easier.
-    let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+    let mut ids = IdVector::new(cx);
     if !unsafe { GetPropertyKeys(cx, object, JSITER_OWNONLY, ids.handle_mut()) } {
         return Ok(Vec::new());
     }

@@ -553,7 +553,7 @@ fn clone_an_object(
     } else {
         let mut result = HashMap::new();
 
-        let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+        let mut ids = IdVector::new(cx);
         let succeeded =
             unsafe { GetPropertyKeys(cx, object_handle, JSITER_OWNONLY, ids.handle_mut()) };
         if !succeeded {
