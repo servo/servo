@@ -15,9 +15,8 @@ use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::ptr::NonNull;
 use std::rc::{Rc, Weak};
-use std::sync::Mutex;
-use std::time::{Duration, Instant};
-use std::{os, ptr, thread};
+use std::time::Instant;
+use std::{os, ptr};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::context::JSContext;
@@ -53,8 +52,8 @@ use js::rust::wrappers2::{
     SetPreserveWrapperCallbacks, SetPromiseRejectionTrackerCallback, SetUpEventLoopDispatch,
 };
 use js::rust::{
-    Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, JSEngine, JSEngineHandle,
-    ParentRuntime, Runtime as RustRuntime, Trace,
+    Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle, ParentRuntime,
+    Runtime as RustRuntime, Trace,
 };
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
@@ -94,6 +93,7 @@ use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
+use crate::engine::handle::current_js_engine_handle;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, MicrotaskQueue};
 use crate::modules::script_module::EnsureModuleHooksInitialized;
@@ -778,7 +778,7 @@ impl Runtime {
         let mut runtime = if let Some(parent) = parent {
             unsafe { RustRuntime::create_with_parent(parent) }
         } else {
-            RustRuntime::new(JS_ENGINE.lock().unwrap().as_ref().unwrap().clone())
+            RustRuntime::new(current_js_engine_handle())
         };
         let cx = runtime.cx();
 
@@ -1081,28 +1081,6 @@ impl DerefMut for Runtime {
         &mut self.rt
     }
 }
-
-pub struct JSEngineSetup(JSEngine);
-
-impl Default for JSEngineSetup {
-    fn default() -> Self {
-        let engine = JSEngine::init().unwrap();
-        *JS_ENGINE.lock().unwrap() = Some(engine.handle());
-        Self(engine)
-    }
-}
-
-impl Drop for JSEngineSetup {
-    fn drop(&mut self) {
-        *JS_ENGINE.lock().unwrap() = None;
-
-        while !self.0.can_shutdown() {
-            thread::sleep(Duration::from_millis(50));
-        }
-    }
-}
-
-static JS_ENGINE: Mutex<Option<JSEngineHandle>> = Mutex::new(None);
 
 fn in_range<T: PartialOrd + Copy>(val: T, min: T, max: T) -> Option<T> {
     if val < min || val >= max {

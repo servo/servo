@@ -42,7 +42,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortState};
 use crate::dom::indexeddb::idbrequest::IDBRequest;
-use crate::indexeddb::map_backend_error_to_dom_error;
+use crate::dom::indexeddb::key::map_backend_error_to_dom_error;
 
 #[dom_struct]
 pub struct IDBTransaction {

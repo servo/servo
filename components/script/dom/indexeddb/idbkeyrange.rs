@@ -13,7 +13,7 @@ use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::globalscope::GlobalScope;
-use crate::indexeddb::{convert_value_to_key, key_type_to_jsval};
+use crate::dom::indexeddb::key::{convert_value_to_key, key_type_to_jsval};
 
 #[dom_struct]
 pub struct IDBKeyRange {

@@ -29,7 +29,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortState};
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
-use crate::indexeddb::is_valid_key_path;
+use crate::dom::indexeddb::key::is_valid_key_path;
 
 #[dom_struct]
 pub struct IDBDatabase {

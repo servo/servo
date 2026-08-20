@@ -30,7 +30,7 @@ use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::indexeddb::idbversionchangeevent::IDBVersionChangeEvent;
-use crate::indexeddb::map_backend_error_to_dom_error;
+use crate::dom::indexeddb::key::map_backend_error_to_dom_error;
 use crate::realms::enter_auto_realm;
 
 #[derive(Clone)]

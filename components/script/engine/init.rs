@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use js::jsapi::JSObject;
 use script_bindings::proxyhandler;
 use servo_config::pref;
@@ -8,7 +9,7 @@ use servo_config::pref;
 use crate::dom::bindings::codegen::RegisterBindings;
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::utils::is_platform_object_static;
-use crate::script_runtime::JSEngineSetup;
+use crate::engine::handle::JSEngineSetup;
 
 #[cfg(target_os = "linux")]
 #[expect(unsafe_code)]
