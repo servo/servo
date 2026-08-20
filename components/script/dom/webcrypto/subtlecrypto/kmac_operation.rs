@@ -20,7 +20,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    KmacImportParams, SubtleKmacKeyAlgorithm, KmacKeyGenParams, SubtleKmacParams,
+    KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, SubtleKmacParams,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
@@ -213,7 +213,7 @@ pub(crate) fn generate_key(
     // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 11. Set the [[extractable]] internal slot of key to be extractable.
     // Step 12. Set the [[usages]] internal slot of key to be the normalized value of usages.
-    let algorithm = SubtleKmacKeyAlgorithm {
+    let algorithm = KmacKeyAlgorithm {
         name: normalized_algorithm.name,
         length,
     };
@@ -378,7 +378,7 @@ pub(crate) fn import_key(
             *last_byte &= mask;
         }
     }
-    let algorithm = SubtleKmacKeyAlgorithm {
+    let algorithm = KmacKeyAlgorithm {
         name: normalized_algorithm.name,
         length,
     };

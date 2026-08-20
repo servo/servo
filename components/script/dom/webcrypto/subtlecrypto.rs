@@ -4004,7 +4004,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacImportParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacKeyAlgorithm>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleKmacKeyAlgorithm {
+pub(crate) struct KmacKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
     name: CryptoAlgorithm,
 
@@ -4012,7 +4012,7 @@ pub(crate) struct SubtleKmacKeyAlgorithm {
     length: u32,
 }
 
-impl ToJSValConvertible for SubtleKmacKeyAlgorithm {
+impl ToJSValConvertible for KmacKeyAlgorithm {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -4031,19 +4031,19 @@ impl ToJSValConvertible for SubtleKmacKeyAlgorithm {
     }
 }
 
-impl TryFrom<SerializableKmacKeyAlgorithm> for SubtleKmacKeyAlgorithm {
+impl TryFrom<SerializableKmacKeyAlgorithm> for KmacKeyAlgorithm {
     type Error = ();
 
     fn try_from(value: SerializableKmacKeyAlgorithm) -> Result<Self, Self::Error> {
-        Ok(SubtleKmacKeyAlgorithm {
+        Ok(KmacKeyAlgorithm {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             length: value.length,
         })
     }
 }
 
-impl From<&SubtleKmacKeyAlgorithm> for SerializableKmacKeyAlgorithm {
-    fn from(value: &SubtleKmacKeyAlgorithm) -> Self {
+impl From<&KmacKeyAlgorithm> for SerializableKmacKeyAlgorithm {
+    fn from(value: &KmacKeyAlgorithm) -> Self {
         SerializableKmacKeyAlgorithm {
             name: value.name.as_str().into(),
             length: value.length,
@@ -4305,7 +4305,7 @@ pub(crate) enum KeyAlgorithmAndDerivatives {
     EcKeyAlgorithm(EcKeyAlgorithm),
     AesKeyAlgorithm(AesKeyAlgorithm),
     HmacKeyAlgorithm(HmacKeyAlgorithm),
-    KmacKeyAlgorithm(SubtleKmacKeyAlgorithm),
+    KmacKeyAlgorithm(KmacKeyAlgorithm),
 }
 
 impl KeyAlgorithmAndDerivatives {
