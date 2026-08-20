@@ -1,0 +1,66 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
+use script_bindings::inheritance::Castable;
+use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::str::DOMString;
+use stylo_atoms::Atom;
+
+use crate::dom::bindings::codegen::Bindings::TextEventBinding::{self, TextEventMethods};
+use crate::dom::bindings::codegen::DomTypeHolder;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::event::Event;
+use crate::dom::uievent::UIEvent;
+use crate::dom::window::Window;
+
+#[dom_struct]
+pub(crate) struct TextEvent {
+    uievent: UIEvent,
+    data: DomRefCell<DOMString>,
+}
+
+impl TextEvent {
+    pub(crate) fn new_inherited() -> TextEvent {
+        TextEvent {
+            uievent: UIEvent::new_inherited(),
+            data: DomRefCell::new(DOMString::new()),
+        }
+    }
+
+    pub(crate) fn new_uninitialized(cx: &mut JSContext, window: &Window) -> DomRoot<TextEvent> {
+        reflect_dom_object_with_cx(Box::new(TextEvent::new_inherited()), window, cx)
+    }
+}
+
+impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
+    /// <https://w3c.github.io/uievents/#textevent>
+    fn InitTextEvent(
+        &self,
+        type_: DOMString,
+        bubbles: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        data: DOMString,
+    ) {
+        if self.upcast::<Event>().dispatching() {
+            return;
+        }
+
+        self.uievent
+            .init_event(type_.into(), bubbles, cancelable, view, 0);
+        *self.data.borrow_mut() = data;
+    }
+
+    fn Data(&self) -> DOMString {
+        self.data.borrow().clone()
+    }
+
+    fn IsTrusted(&self) -> bool {
+        self.uievent.IsTrusted()
+    }
+}
