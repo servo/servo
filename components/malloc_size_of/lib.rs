@@ -1236,6 +1236,7 @@ malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(std::net::TcpStream);
 
 malloc_size_of_is_0!(taffy::Layout);
+malloc_size_of_is_0!(taffy::Baselines);
 malloc_size_of_is_0!(taffy::DetailedGridItemsInfo);
 impl<T> MallocSizeOf for taffy::Line<T>
 where
