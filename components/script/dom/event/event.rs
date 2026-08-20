@@ -301,13 +301,21 @@ impl Event {
         legacy_target_override: bool,
         legacy_output_did_listeners_throw: Option<&Cell<bool>>,
     ) -> bool {
-        // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
-        // > must perform the following activation notification steps before dispatching the event:
-        // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
+        // From <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>:
+        // > When a user interaction causes firing of an activation triggering
+        // > input event in a Document document, the user agent must perform
+        // > the following activation notification steps before dispatching the event:
         if self.is_an_activation_triggering_input_event() {
             // TODO: it is not quite clear what does the spec mean by in a `Document`. https://github.com/whatwg/html/issues/12126
             if let Some(document) = target.downcast::<Node>().map(|node| node.owner_doc()) {
                 UserActivation::handle_user_activation_notification(&document);
+            }
+            // From <https://w3c.github.io/event-timing/#set-event-timing-entry-duration>:
+            // Step 6.4. Set window’s has dispatched input event to true.
+            // Note: Spec refers use of interactionId for this,
+            // HTML "activation triggering input event" is a close approximation
+            if let Some(window) = target.global().downcast::<Window>() {
+                window.mark_has_dispatched_input_event();
             }
         }
 
@@ -319,6 +327,18 @@ impl Event {
 
         // Step 1. Set event’s dispatch flag.
         self.set_flags(EventFlags::Dispatch);
+
+        // From <https://www.w3.org/TR/largest-contentful-paint/#sec-modifications-DOM>
+        // > Right after step 1, we add the following step:
+        // > > If target’s relevant global object is a Window object, event’s
+        // > > type is scroll and its isTrusted is true, set target’s relevant
+        // > > global object’s has dispatched scroll event to true.
+        if let Some(window) = target.global().downcast::<Window>() &&
+            self.type_() == *"scroll" &&
+            self.is_trusted.get()
+        {
+            window.mark_has_dispatched_scroll_event();
+        }
 
         // Step 2. Let targetOverride be target, if legacy target override flag is not given,
         // and target’s associated Document otherwise.
