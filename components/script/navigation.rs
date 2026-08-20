@@ -499,6 +499,14 @@ pub(crate) fn navigate(
                     .script_to_constellation_chan()
                     .send(ScriptToConstellationMessage::LoadUrl(load_data, history_handling, target_snapshot_params))
                     .unwrap();
+            } else {
+                // Note: not in the spec, but required to avoid timeouts in
+                // tests that navigate to javascript: URLs that don't result
+                // in documents: https://github.com/whatwg/html/issues/12773
+                let window_proxy = target_window.window_proxy();
+                if window_proxy.parent().is_some() {
+                    window_proxy.stop_delaying_load_events_mode();
+                }
             }
         });
         window

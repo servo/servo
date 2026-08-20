@@ -720,6 +720,10 @@ pub(crate) struct Document {
     /// Theme specific for this document, set by a meta element
     #[no_trace]
     theme: Cell<Option<Theme>>,
+
+    /// True if this document is no longer the active document of its associated
+    /// window.
+    window_detached: Cell<bool>,
 }
 
 impl Document {
@@ -775,7 +779,7 @@ impl Document {
         // TODO
 
         // Step 4. If document's salvageable state is false, then:
-        if !self.salvageable.get() {
+        if !self.salvageable.get() && !self.window_detached() {
             let global_scope = self.window.as_global_scope();
 
             // Step 4.1. For each EventSource object eventSource whose relevant global object is equal to window, forcibly close eventSource.
@@ -991,11 +995,11 @@ impl Document {
     }
 
     pub(crate) fn is_fully_active(&self) -> bool {
-        self.activity.get() == DocumentActivity::FullyActive
+        !self.window_detached() && self.activity.get() == DocumentActivity::FullyActive
     }
 
     pub(crate) fn is_active(&self) -> bool {
-        self.activity.get() != DocumentActivity::Inactive
+        !self.window_detached() && self.activity.get() != DocumentActivity::Inactive
     }
 
     #[inline]
@@ -1024,8 +1028,14 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend(cx);
+            if !self.window_detached() {
+                self.window().suspend(cx);
+            }
             media.suspend(&client_context_id);
+            return;
+        }
+
+        if self.window_detached() {
             return;
         }
 
@@ -2224,6 +2234,10 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
     pub(crate) fn unload(&self, cx: &mut JSContext, recursive_flag: bool) {
+        if self.window_detached() {
+            return;
+        }
+
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2340,6 +2354,13 @@ impl Document {
     // https://html.spec.whatwg.org/multipage/#the-end
     // TODO(43149): Remove when document replacement is implemented
     pub(crate) fn maybe_queue_document_completion(&self, cx: &mut JSContext) {
+        // The initial about:blank document passes through
+        // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
+        // instead of the steps used by other documents.
+        if self.is_initial_about_blank() {
+            return;
+        }
+
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
@@ -2382,7 +2403,7 @@ impl Document {
                 let document = document.root();
                 // Step 9.3. Let window be the Document's relevant global object.
                 let window = document.window();
-                if !window.is_alive() {
+                if !window.is_alive() || document.window_detached() {
                     return;
                 }
 
@@ -3973,7 +3994,16 @@ impl Document {
             image_cache,
             history: Default::default(),
             theme: Default::default(),
+            window_detached: Default::default(),
         }
+    }
+
+    pub(crate) fn detach_window(&self) {
+        self.window_detached.set(true);
+    }
+
+    pub(crate) fn window_detached(&self) -> bool {
+        self.window_detached.get()
     }
 
     /// Returns a policy value that should be used for fetches initiated by this document.

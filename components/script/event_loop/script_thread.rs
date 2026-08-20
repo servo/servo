@@ -61,6 +61,7 @@ use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
 use net_traits::image_cache::{ImageCacheFactory, ImageCacheResponseMessage};
+use net_traits::pub_domains::is_same_site;
 use net_traits::request::{Referrer, RequestId};
 use net_traits::response::ResponseInit;
 use net_traits::{
@@ -1137,11 +1138,9 @@ impl ScriptThread {
         // that needs to be sorted out to fix this.
         let mut painters_generating_frames = FxHashSet::default();
         for pipeline_id in documents_in_order.iter() {
-            let document = self
-                .documents
-                .borrow()
-                .find_document(*pipeline_id)
-                .expect("Got pipeline for Document not managed by this ScriptThread.");
+            let Some(document) = self.documents.borrow().find_document(*pipeline_id) else {
+                continue;
+            };
 
             if !document.is_fully_active() {
                 continue;
@@ -3228,26 +3227,30 @@ impl ScriptThread {
                 parser.abort(cx);
             }
 
-            debug!("{pipeline_id}: Shutting down layout");
-            document.window().layout_mut().exit_now();
+            if !document.window_detached() {
+                debug!("{pipeline_id}: Shutting down layout");
+                document.window().layout_mut().exit_now();
+            }
 
             // Clear any active animations and unroot all of the associated DOM objects.
             debug!("{pipeline_id}: Clearing animations");
             document.animations().clear();
 
-            // We discard the browsing context after requesting layout shut down,
-            // to avoid running layout on detached iframes.
-            let window = document.window();
-            if discard_bc == DiscardBrowsingContext::Yes {
-                window.discard_browsing_context();
+            if !document.window_detached() {
+                // We discard the browsing context after requesting layout shut down,
+                // to avoid running layout on detached iframes.
+                let window = document.window();
+                if discard_bc == DiscardBrowsingContext::Yes {
+                    window.discard_browsing_context();
+                }
+
+                // Clear the image cache now, instead of waiting for the Window to be
+                // garbage collected. See servo/servo#45239.
+                window.image_cache().clear();
+
+                debug!("{pipeline_id}: Clearing JavaScript runtime");
+                window.clear_js_runtime();
             }
-
-            // Clear the image cache now, instead of waiting for the Window to be
-            // garbage collected. See servo/servo#45239.
-            window.image_cache().clear();
-
-            debug!("{pipeline_id}: Clearing JavaScript runtime");
-            window.clear_js_runtime();
         }
 
         // Prevent any further work for this Pipeline.
@@ -3477,50 +3480,73 @@ impl ScriptThread {
         };
 
         // Create the window and document objects.
-        let window = Window::new(
-            cx,
-            incomplete.webview_id,
-            self.js_runtime.clone(),
-            self.senders.self_sender.clone(),
-            self.layout_factory.create(layout_config),
-            self.senders.image_cache_sender.clone(),
-            self.resource_threads.clone(),
-            self.storage_threads.clone(),
-            #[cfg(feature = "bluetooth")]
-            self.senders.bluetooth_sender.clone(),
-            self.senders.memory_profiler_sender.clone(),
-            self.senders.time_profiler_sender.clone(),
-            self.senders.devtools_server_sender.clone(),
-            self.senders.pipeline_to_constellation_sender.clone(),
-            self.senders.pipeline_to_embedder_sender.clone(),
-            self.senders.constellation_sender.clone(),
-            incomplete.pipeline_id,
-            incomplete.parent_info,
-            incomplete.viewport_details,
-            origin.clone(),
-            final_url.clone(),
-            // TODO(37417): Set correct top-level URL here. Currently, we only specify the
-            // url of the current window. However, in case this is an iframe, we should
-            // pass in the URL from the frame that includes the iframe (which potentially
-            // is another nested iframe in a frame).
-            final_url.clone(),
-            incomplete.navigation_start,
-            #[cfg(feature = "webgl")]
-            self.webgl_chan.as_ref().map(|chan| chan.channel()),
-            #[cfg(feature = "webxr")]
-            self.webxr_registry.clone(),
-            self.paint_api.clone(),
-            self.unminify_js,
-            self.unminify_css,
-            self.local_script_source.clone(),
-            user_contents,
-            self.player_context.clone(),
-            #[cfg(feature = "webgpu")]
-            self.gpu_id_hub.clone(),
-            incomplete.load_data.inherited_secure_context,
-            incomplete.embedder_theme,
-            self.this.clone(),
-        );
+        // <https://html.spec.whatwg.org/multipage/#set-up-a-window-environment-settings-object>
+        // <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
+        // Step 3. Let creationURL be navigationParams's response's URL.
+        let creation_url = final_url.clone();
+        let window = match window_for_replacement(
+            &self.window_proxies,
+            incomplete.browsing_context_id,
+            &origin,
+        ) {
+            Some(window) => {
+                window.set_up_a_window_environment_settings_object(
+                    self.layout_factory.create(layout_config),
+                    creation_url,
+                    // TODO(37417): Set correct top-level URL here.
+                    final_url.clone(),
+                    incomplete.navigation_start,
+                    incomplete.viewport_details,
+                );
+                window
+            },
+            None => {
+                Window::new(
+                    cx,
+                    incomplete.webview_id,
+                    self.js_runtime.clone(),
+                    self.senders.self_sender.clone(),
+                    self.layout_factory.create(layout_config),
+                    self.senders.image_cache_sender.clone(),
+                    self.resource_threads.clone(),
+                    self.storage_threads.clone(),
+                    #[cfg(feature = "bluetooth")]
+                    self.senders.bluetooth_sender.clone(),
+                    self.senders.memory_profiler_sender.clone(),
+                    self.senders.time_profiler_sender.clone(),
+                    self.senders.devtools_server_sender.clone(),
+                    self.senders.pipeline_to_constellation_sender.clone(),
+                    self.senders.pipeline_to_embedder_sender.clone(),
+                    self.senders.constellation_sender.clone(),
+                    incomplete.pipeline_id,
+                    incomplete.parent_info,
+                    incomplete.viewport_details,
+                    origin.clone(),
+                    creation_url,
+                    // TODO(37417): Set correct top-level URL here. Currently, we only specify the
+                    // url of the current window. However, in case this is an iframe, we should
+                    // pass in the URL from the frame that includes the iframe (which potentially
+                    // is another nested iframe in a frame).
+                    final_url.clone(),
+                    incomplete.navigation_start,
+                    #[cfg(feature = "webgl")]
+                    self.webgl_chan.as_ref().map(|chan| chan.channel()),
+                    #[cfg(feature = "webxr")]
+                    self.webxr_registry.clone(),
+                    self.paint_api.clone(),
+                    self.unminify_js,
+                    self.unminify_css,
+                    self.local_script_source.clone(),
+                    user_contents,
+                    self.player_context.clone(),
+                    #[cfg(feature = "webgpu")]
+                    self.gpu_id_hub.clone(),
+                    incomplete.load_data.inherited_secure_context,
+                    incomplete.embedder_theme,
+                    self.this.clone(),
+                )
+            },
+        };
         if self.senders.devtools_server_sender.is_some() {
             self.debugger_global.fire_add_debuggee(
                 cx,
@@ -3574,6 +3600,12 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
+        // Step 14. If navigationParams's request is non-null:
+        // Step 14.1. Set document's referrer to the empty string.
+        // Step 14.2. Let referrer be navigationParams's request's referrer.
+        // Step 14.3. If referrer is a URL record, then set document's referrer
+        //   to the serialization of referrer.
+        // TODO: verify that this actually matches the specification.
         let referrer = metadata
             .referrer
             .as_ref()
@@ -3585,6 +3617,14 @@ impl ScriptThread {
             DocumentSource::FromParser
         };
 
+        // Step 9. Let document be a new Document, with
+        // - content type: contentType
+        // - origin: navigationParams's origin
+        // - active sandboxing set: navigationParams's final sandboxing flag set
+        // - load timing info: loadTimingInfo
+        // - URL: creationURL
+        // - current document readiness: "loading"
+        // - about base URL: navigationParams's about base URL
         let document = Document::new(
             cx,
             &window,
@@ -3611,6 +3651,13 @@ impl ScriptThread {
             image_cache,
         );
 
+        document.set_ready_state(cx, DocumentReadyState::Loading);
+
+        // Step 8. Let loadTimingInfo be a new document load timing info with its
+        //   navigation start time set to navigationParams's response's timing
+        //   info's start time.
+        document.set_navigation_start(incomplete.navigation_start);
+
         let referrer_policy = metadata
             .headers
             .as_deref()
@@ -3618,21 +3665,11 @@ impl ScriptThread {
             .into();
         document.set_referrer_policy(referrer_policy);
 
-        let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
-        if let Some(refresh_val) = refresh_header {
-            // There are tests that this header handles Unicode code points
-            document.shared_declarative_refresh_steps(
-                refresh_val.as_bytes(),
-                /* from_meta_element */ false,
-            );
-        }
-
-        document.set_ready_state(cx, DocumentReadyState::Loading);
-
         self.documents
             .borrow_mut()
             .insert(incomplete.pipeline_id, &document);
 
+        // Step 10. Set window's associated Document to document.
         window.init_document(&document);
 
         // Initialize the browsing context for the window.
@@ -3675,6 +3712,19 @@ impl ScriptThread {
             );
         }
 
+        let refresh_header = metadata.headers.as_deref().and_then(|h| h.get(REFRESH));
+        // Step 17. If navigationParams's response has a `Refresh` header:
+        if let Some(refresh_val) = refresh_header {
+            // Step 17.1. Let value be the isomorphic decoding of the value of the header.
+            // Step 17.2. Run the shared declarative refresh steps with document and value.
+
+            // There are tests that this header handles Unicode code points
+            document.shared_declarative_refresh_steps(
+                refresh_val.as_bytes(),
+                /* from_meta_element */ false,
+            );
+        }
+
         self.senders
             .pipeline_to_constellation_sender
             .send((
@@ -3698,8 +3748,6 @@ impl ScriptThread {
                 incomplete.webview_id,
             ),
         );
-
-        document.set_navigation_start(incomplete.navigation_start);
 
         if !incomplete.load_data.is_initial_about_blank {
             if is_html_document == IsHTMLDocument::NonHTMLDocument {
@@ -4456,4 +4504,86 @@ impl Drop for ScriptThread {
             root.set(None);
         });
     }
+}
+
+/// Steps 1, 5, and 6 of <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
+fn window_for_replacement(
+    script_window_proxies: &ScriptWindowProxies,
+    id: BrowsingContextId,
+    origin: &MutableOrigin,
+) -> Option<DomRoot<Window>> {
+    // Step 1. Let browsingContext be the result of obtaining a browsing context
+    //   to use for a navigation response given navigationParams.
+    let browsing_context = obtain_a_browsing_context(script_window_proxies, id, origin);
+
+    // Step 5. Let window be null.
+    // Step 6. If browsingContext's active document's is initial about:blank is true,
+    //   and browsingContext's active document's origin is same origin-domain with
+    //   navigationParams's origin, then set window to browsingContext's active window.
+    browsing_context
+        .and_then(|window_proxy| window_proxy.document())
+        .filter(|document| {
+            document.is_initial_about_blank() && document.origin().same_origin_domain(origin)
+        })
+        .map(|document| DomRoot::from_ref(document.window()))
+}
+
+/// <https://html.spec.whatwg.org/multipage/#obtain-browsing-context-navigation>
+fn obtain_a_browsing_context(
+    script_window_proxies: &ScriptWindowProxies,
+    id: BrowsingContextId,
+    destination_origin: &MutableOrigin,
+) -> Option<DomRoot<WindowProxy>> {
+    // Step 1. Let browsingContext be navigationParams's navigable's active browsing context.
+    let browsing_context = script_window_proxies.find_window_proxy(id)?;
+    // Step 2. If browsingContext is not a top-level browsing context, then return browsingContext.
+    if browsing_context.parent().is_none() {
+        return Some(browsing_context);
+    }
+    // Step 3. Let coopEnforcementResult be navigationParams's COOP enforcement result.
+    // TODO
+    // Step 4. Let swapGroup be coopEnforcementResult's needs a browsing context group switch.
+    // TODO
+    let swap_group = false;
+    // Step 5. Let sourceOrigin be browsingContext's active document's origin.
+    let document = browsing_context.document()?;
+    let source_origin = document.origin();
+    // Step 6. Let destinationOrigin be navigationParams's origin.
+    // Passed as `destination_origin`.
+    // Step 7. If sourceOrigin is not same site with destinationOrigin:
+    if !is_same_site(source_origin.immutable(), destination_origin.immutable()) {
+        // Step 7.1. If either of sourceOrigin or destinationOrigin have a scheme that is not an
+        //   HTTP(S) scheme and the user agent considers it necessary for sourceOrigin and
+        //   destinationOrigin to be isolated from each other (for implementation-defined reasons),
+        //   optionally set swapGroup to true.
+        // TODO
+        // Step 7.2. If navigationParams's user involvement is "browser UI", optionally set
+        //   swapGroup to true.
+        // TODO
+    }
+    // Step 8. If browsingContext's group's browsing context set's size is 1, optionally set
+    //   swapGroup to true.
+    // TODO
+    // Step 9. If swapGroup is false:
+    if !swap_group {
+        // Step 9.1. If coopEnforcementResult's would need a browsing context group switch due to
+        //   report-only is true, set browsingContext's virtual browsing context group ID to a new
+        //   unique identifier.
+        // TODO
+        // Step 9.2. Return browsingContext.
+        return Some(browsing_context);
+    }
+    // Step 10. Let newBrowsingContext be the first return value of creating a new top-level browsing context and document.
+    // Step 11. Let navigationCOOP be navigationParams's cross-origin opener policy.
+    // Step 12. If navigationCOOP's value is "same-origin-plus-COEP", then set newBrowsingContext's
+    //   group's cross-origin isolation mode to either "logical" or "concrete". The choice of which
+    //   is implementation-defined.
+    // Step 13. Let sandboxFlags be a clone of navigationParams's final sandboxing flag set.
+    // Step 14. If sandboxFlags is not empty:
+    // Step 14.1. Assert: navigationCOOP's value is "unsafe-none".
+    // Step 14.2. Assert: newBrowsingContext's popup sandboxing flag set is empty.
+    // Step 14.3. Set newBrowsingContext's popup sandboxing flag set to sandboxFlags.
+    // Step 15. Return newBrowsingContext.
+    // TODO
+    Some(browsing_context)
 }
