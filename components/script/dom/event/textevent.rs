@@ -19,6 +19,7 @@ use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 
 #[dom_struct]
+/// <https://w3c.github.io/uievents/#textevent>
 pub(crate) struct TextEvent {
     uievent: UIEvent,
     data: DomRefCell<DOMString>,
