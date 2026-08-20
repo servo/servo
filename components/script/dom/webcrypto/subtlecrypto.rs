@@ -4052,7 +4052,7 @@ impl From<&KmacKeyAlgorithm> for SerializableKmacKeyAlgorithm {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KmacParams>
-struct SubtleKmacParams {
+struct KmacParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -4063,7 +4063,7 @@ struct SubtleKmacParams {
     customization: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -4071,7 +4071,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKmacParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleKmacParams {
+        Ok(KmacParams {
             name: algorithm_name,
             output_length: get_required_parameter(
                 cx,
@@ -5063,7 +5063,7 @@ enum SignAlgorithm {
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
     MlDsa(SubtleContextParams),
-    Kmac(SubtleKmacParams),
+    Kmac(KmacParams),
 }
 
 impl NormalizedAlgorithm for SignAlgorithm {
@@ -5152,7 +5152,7 @@ enum VerifyAlgorithm {
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
     MlDsa(SubtleContextParams),
-    Kmac(SubtleKmacParams),
+    Kmac(KmacParams),
 }
 
 impl NormalizedAlgorithm for VerifyAlgorithm {

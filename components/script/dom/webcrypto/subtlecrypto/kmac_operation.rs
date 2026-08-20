@@ -20,12 +20,12 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, SubtleKmacParams,
+    KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, KmacParams,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
 pub(crate) fn sign(
-    normalized_algorithm: &SubtleKmacParams,
+    normalized_algorithm: &KmacParams,
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -86,7 +86,7 @@ pub(crate) fn sign(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-verify>
 pub(crate) fn verify(
-    normalized_algorithm: &SubtleKmacParams,
+    normalized_algorithm: &KmacParams,
     key: &CryptoKey,
     message: &[u8],
     signature: &[u8],
