@@ -1020,6 +1020,8 @@ impl ReadableByteStreamController {
                     .transfer_array_buffer(cx)
                     .expect("TransferArrayBuffer failed")
             };
+
+            drop(pending_pull_intos);
             // Set firstPendingPullInto’s buffer to ! TransferArrayBuffer(firstPendingPullInto’s buffer).
 
             self.pending_pull_intos
