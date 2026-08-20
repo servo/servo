@@ -157,88 +157,73 @@ where
         .active_range()
         .expect("Must always have an active range");
 
-    // Relevant only in the case where we have a single text node that is partially/fully selected.
-    // In that case, the spec algorithm would update the selection to the parent of the text node.
-    // However, this then breaks the algorithm to compute "effectively contained" nodes. To remedy
-    // that, we record the values here and reset them as part of step 2.
-    let end_offsets_if_previously_selected_single_text_node = if active_range.start_container() ==
-        active_range.end_container() &&
-        active_range.start_container().is::<Text>()
-    {
-        Some((
-            active_range.start_container(),
-            active_range.start_offset(),
-            active_range.end_offset(),
-        ))
-    } else {
-        None
-    };
+    // Selection is currently implemented as a live range (not great!), which means that
+    // we need to record the old boundary point (container and offset) before actually
+    // performing the move operation and then apply the editing spec's range update
+    // algorithm to this original boundary point.
+    let start_container = active_range.start_container();
+    let start_offset = active_range.start_offset();
+    let end_container = active_range.end_container();
+    let end_offset = active_range.end_offset();
+
+    let should_adjust_start = node.is_inclusive_ancestor_of(&start_container);
+    let should_adjust_end = node.is_inclusive_ancestor_of(&end_container);
 
     if move_(cx).is_err() {
         unreachable!("Must always be able to move");
     }
 
-    // Step 2. If a boundary point's node is the same as or a descendant of node, leave it unchanged,
-    // so it moves to the new location.
-    //
-    // From the spec:
-    // > This is actually implicit, but I state it anyway for completeness.
-    //
-    // However, this is not actually implicit. The caveat here are text nodes that are
-    // partially/fully selected. In these cases, we shouldn't update the offsets to the new parent,
-    // but instead retain them on the original text node. Therefore, if that's the case,
-    // update them here and immediately return.
-    if let Some((selected_text_node, previous_start_offset, previous_end_offset)) =
-        end_offsets_if_previously_selected_single_text_node
-    {
-        active_range.set_start(&selected_text_node, previous_start_offset);
-        active_range.set_end(&selected_text_node, previous_end_offset);
-        return;
-    }
-
     let new_parent = node.GetParentNode().expect("Must always have a new parent");
     let new_index = node.index();
 
-    let mut start_node = active_range.start_container();
-    let mut start_offset = active_range.start_offset();
-    let mut end_node = active_range.end_container();
-    let mut end_offset = active_range.end_offset();
-
-    // Step 3. If a boundary point's node is new parent and its offset is greater than new index, add one to its offset.
-    if start_node == new_parent && start_offset > new_index {
-        start_offset += 1;
-    }
-    if end_node == new_parent && end_offset > new_index {
-        end_offset += 1;
-    }
-
-    if let Some(old_parent) = old_parent {
-        // Step 4. If a boundary point's node is old parent and its offset is old index or old index + 1,
-        // set its node to new parent and add new index − old index to its offset.
-        if start_node == old_parent && (start_offset == old_index || start_offset == old_index + 1)
-        {
-            start_node = new_parent.clone();
-            start_offset += new_index;
-            start_offset -= old_index;
-        }
-        if end_node == old_parent && (end_offset == old_index || end_offset == old_index + 1) {
-            end_node = new_parent;
-            end_offset += new_index;
-            end_offset -= old_index;
+    let adjust_boundary_point = |mut container, mut offset, should_adjust: bool| {
+        // Step 2. If a boundary point's node is the same as or a descendant of node, leave it
+        // unchanged, so it moves to the new location.
+        //
+        // From the spec:
+        // > This is actually implicit, but I state it anyway for completeness.
+        //
+        // However, this does not seem to be implicit for text nodes that are partially/fully
+        // selected. In these cases, we shouldn't update the offsets to the new parent, but
+        // instead retain them on the original text node. Therefore, if that's the case,
+        // update them here and immediately return.
+        if !should_adjust {
+            return (container, offset);
         }
 
-        // Step 5. If a boundary point's node is old parent and its offset is greater than old index + 1,
-        // subtract one from its offset.
-        if start_node == old_parent && (start_offset > old_index + 1) {
-            start_offset -= 1;
+        // Step 3. If a boundary point's node is new parent and its offset is greater than new
+        // index, add one to its offset.
+        if container == new_parent && offset > new_index {
+            offset += 1;
         }
-        if end_node == old_parent && (end_offset > old_index + 1) {
-            end_offset -= 1;
-        }
-    }
 
-    active_range.set_start(&start_node, start_offset);
-    active_range.set_end(&end_node, end_offset);
+        if let Some(old_parent) = old_parent.as_ref() {
+            // Step 4. If a boundary point's node is old parent and its offset is old
+            // index or old index + 1, set its node to new parent and add new index −
+            // old index to its offset.
+            if container == *old_parent && (offset == old_index || offset == old_index + 1) {
+                container = new_parent.clone();
+                offset += new_index;
+                offset -= old_index;
+            }
+
+            // Step 5. If a boundary point's node is old parent and its offset is
+            // greater than old index + 1, subtract one from its offset.
+            if container == *old_parent && (offset > old_index + 1) {
+                offset -= 1;
+            }
+        }
+
+        (container, offset)
+    };
+
+    let (new_start_container, new_start_offset) =
+        adjust_boundary_point(start_container, start_offset, should_adjust_start);
+    let (new_end_container, new_end_offset) =
+        adjust_boundary_point(end_container, end_offset, should_adjust_end);
+
+    active_range.set_start(&new_start_container, new_start_offset);
+    active_range.set_end(&new_end_container, new_end_offset);
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#allowed-child>
