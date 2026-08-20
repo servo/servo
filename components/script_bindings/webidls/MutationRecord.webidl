@@ -7,7 +7,7 @@
  */
 
 // https://dom.spec.whatwg.org/#mutationrecord
-[Pref="dom_mutation_observer_enabled", Exposed=Window]
+[Exposed=Window]
 interface MutationRecord {
     readonly attribute DOMString type;
     [SameObject]

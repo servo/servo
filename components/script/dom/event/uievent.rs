@@ -9,7 +9,6 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
-use servo_config::pref;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -203,10 +202,6 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
 
     /// <https://w3c.github.io/uievents/#dom-uievent-which>
     fn Which(&self) -> u32 {
-        if pref!(dom_uievent_which_enabled) {
-            self.which.get()
-        } else {
-            0
-        }
+        self.which.get()
     }
 }
