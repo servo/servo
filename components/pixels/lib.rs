@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-mod decoding;
+mod default_decoding;
+pub mod image_encoder_decoder_factory;
 #[cfg(target_env = "ohos")]
 mod ohos_decoder;
 mod snapshot;
@@ -11,13 +12,13 @@ use std::borrow::Cow;
 use std::fmt;
 use std::num::NonZeroU32;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
 use image::{ImageBuffer, Rgba};
-use log::error;
+use log::{error, info};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
@@ -27,7 +28,31 @@ use webrender_api::{
     ImageDescriptor, ImageDescriptorFlags, ImageFormat as WebRenderImageFormat, ImageKey,
 };
 
-use crate::decoding::ServoImageDecoder;
+#[cfg(not(target_env = "ohos"))]
+pub use crate::default_decoding::DefaultImageEncoderDecoderFactory;
+use crate::image_encoder_decoder_factory::ServoImageEncoderDecoderFactory;
+#[cfg(target_env = "ohos")]
+pub use crate::ohos_decoder::OhosImageEncoderDecoderFactory as DefaultImageEncoderDecoderFactory;
+
+static ENCODER_DECODER_FACTORY: OnceLock<Arc<dyn ServoImageEncoderDecoderFactory>> =
+    OnceLock::new();
+
+/// Sets the encoder decoder factory. Can be called multiple times but only the first call is valid.
+pub fn install_encoder_decoder_factory(factory: Arc<dyn ServoImageEncoderDecoderFactory>) {
+    if ENCODER_DECODER_FACTORY.get().is_some() {
+        info!("Setting the encoder decoder factory multiple times.");
+        return;
+    }
+    ENCODER_DECODER_FACTORY.get_or_init(|| factory);
+}
+
+fn get_encoder_decoder_factory() -> Option<&'static Arc<dyn ServoImageEncoderDecoderFactory>> {
+    let factory = ENCODER_DECODER_FACTORY.get();
+    if factory.is_none() {
+        error!("Encoder decoder factory is not setup. Images will not work.");
+    }
+    factory
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {
@@ -534,22 +559,14 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
         return None;
     }
 
-    cfg_if::cfg_if! {
-       if #[cfg(target_env = "ohos")] {
-           let image_decoder_result = ohos_decoder::OhosImageDecoder::make_decoder(buffer);
-       } else {
-           let image_decoder_result = decoding::DefaultImageDecoder::make_decoder(buffer);
-       }
-    };
+    let installed_factory = get_encoder_decoder_factory()?;
 
-    let Ok(image_decoder) = image_decoder_result else {
-        return None;
-    };
+    let image_decoder = installed_factory.make_from_bytes(buffer).ok()?;
 
     if image_decoder.is_animated() {
-        decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
+        default_decoding::decode_animated_image(cors_status, image_decoder.get_animated_decoder())
     } else {
-        decoding::decode_static_image(cors_status, image_decoder.decoder())
+        default_decoding::decode_static_image(cors_status, image_decoder)
     }
 }
 

@@ -4,11 +4,11 @@
 
 use std::num::NonZeroU32;
 use std::vec::IntoIter;
-use std::{fmt, ptr, slice};
+use std::{ptr, slice};
 
 use image::error::ImageFormatHint;
 use image::metadata::LoopCount;
-use image::{AnimationDecoder, Frame, Frames, ImageDecoder, ImageError, ImageResult, RgbaImage};
+use image::{Frame, Frames, ImageDecoder, ImageError, ImageResult, RgbaImage};
 use ohos_image_kit_sys::native_image::common::{Image_String, ImageResult as OhosImageResult};
 use ohos_image_kit_sys::native_image::image_source::{
     OH_DecodingOptions, OH_DecodingOptions_Create, OH_DecodingOptions_Release,
@@ -23,21 +23,56 @@ use ohos_image_kit_sys::native_image::pixelmap::{
     OH_PixelmapNative, OH_PixelmapNative_GetByteCount, OH_PixelmapNative_ReadPixels,
     OH_PixelmapNative_Release, PIXEL_FORMAT,
 };
+use serde::{Deserialize, Serialize};
 
-use crate::decoding::ServoImageDecoder;
+use crate::image_encoder_decoder_factory::{
+    ServoAnimationTrait, ServoImageDecoder, ServoImageEncoderDecoderFactory,
+};
 
-pub(crate) struct OhosImageDecoder<'a> {
+#[derive(Default, Serialize, Deserialize)]
+pub struct OhosImageEncoderDecoderFactory {}
+
+#[typetag::serde]
+impl ServoImageEncoderDecoderFactory for OhosImageEncoderDecoderFactory {
+    fn make_from_bytes<'a>(
+        &self,
+        buffer: &'a [u8],
+    ) -> ImageResult<Box<dyn ServoImageDecoder<'a> + 'a>> {
+        OhosImageDecoder::new(buffer)
+            .map(|decoder| Box::new(decoder) as Box<dyn ServoImageDecoder>)
+            .map_err(|_| ImageError::Unsupported(ImageFormatHint::Unknown.into()))
+    }
+}
+
+impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
+    fn get(self: Box<Self>) -> Box<dyn ImageDecoder + 'a> {
+        self
+    }
+
+    fn is_animated(&self) -> bool {
+        let mut frame_count = 0;
+        unsafe {
+            if OH_ImageSourceNative_GetFrameCount(self.image_source, &mut frame_count) !=
+                OhosImageResult::SUCCESS
+            {
+                log::error!("Frame call failed. Just going to abort");
+                return false;
+            }
+        }
+        frame_count > 1
+    }
+
+    fn get_animated_decoder(self: Box<Self>) -> Box<dyn ServoAnimationTrait<'a> + 'a> {
+        self
+    }
+}
+
+struct OhosImageDecoder<'a> {
     /// The data needs to be alive according to documentation on `OH_ImageSourceNative_CreateFromDataWithUserBuffer`.
     _data: &'a [u8],
     image_source: *mut OH_ImageSourceNative,
     decoding_option: *mut OH_DecodingOptions,
     image_info: *mut OH_ImageSource_Info,
-}
-
-impl<'a> std::fmt::Debug for OhosImageDecoder<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("OhosImageDecoder").finish()
-    }
 }
 
 impl<'a> OhosImageDecoder<'a> {
@@ -163,7 +198,8 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
     }
 
     fn read_image_boxed(self: Box<Self>, buf: &mut [u8]) -> ImageResult<()> {
-        self.read_image(buf)
+        // the dereference here is important.
+        (*self).read_image(buf)
     }
 }
 
@@ -193,34 +229,6 @@ unsafe fn write_pixmap_to_buffer(
         }
     }
     Ok(())
-}
-
-impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
-    fn make_decoder(buffer: &'a [u8]) -> ImageResult<Self> {
-        OhosImageDecoder::new(buffer)
-            .map_err(|_| ImageError::Unsupported(ImageFormatHint::Unknown.into()))
-    }
-
-    fn is_animated(&self) -> bool {
-        let mut frame_count = 0;
-        unsafe {
-            if OH_ImageSourceNative_GetFrameCount(self.image_source, &mut frame_count) !=
-                OhosImageResult::SUCCESS
-            {
-                log::error!("Frame call failed. Just going to abort");
-                return false;
-            }
-        }
-        frame_count > 1
-    }
-
-    fn decoder(self) -> impl ImageDecoder {
-        self
-    }
-
-    fn animated_decoder(self) -> impl AnimationDecoder<'a> {
-        self
-    }
 }
 
 /// Wrapper struct for the ptr.
@@ -262,8 +270,8 @@ impl Iterator for OhosAnimationIterator {
     }
 }
 
-impl<'a> AnimationDecoder<'a> for OhosImageDecoder<'a> {
-    fn into_frames(self) -> image::Frames<'a> {
+impl<'a> ServoAnimationTrait<'a> for OhosImageDecoder<'a> {
+    fn boxed_into_frames(self: Box<Self>) -> Frames<'a> {
         unsafe {
             let (width, height) = self.dimensions();
             let mut frame_count = 0;
@@ -294,7 +302,7 @@ impl<'a> AnimationDecoder<'a> for OhosImageDecoder<'a> {
         }
     }
 
-    fn loop_count(&self) -> image::metadata::LoopCount {
+    fn loop_count(&self) -> LoopCount {
         let mut loop_count_str = "LoopCount".to_owned();
         let mut image_string = Image_String {
             data: loop_count_str.as_mut_ptr(),

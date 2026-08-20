@@ -36,6 +36,7 @@ use net_traits::{FetchThread, ResourceThreads};
 use paint::{InitialPaintState, Paint};
 pub use paint_api::rendering_context::RenderingContext;
 use paint_api::{CrossProcessPaintApi, PaintMessage, PaintProxy};
+use pixels::image_encoder_decoder_factory::ServoImageEncoderDecoderFactory;
 use profile::{mem as profile_mem, system_reporter, time as profile_time};
 use profile_traits::mem::{MemoryReportResult, ProfilerMsg, Reporter};
 use profile_traits::{mem, time};
@@ -978,6 +979,10 @@ impl Servo {
             opts.temporary_storage,
         );
 
+        let image_decoder_encoder_factory = builder.image_decoder_encoder_factory.unwrap_or(
+            Arc::new(pixels::DefaultImageEncoderDecoderFactory::default()),
+        );
+
         create_constellation(
             embedder_to_constellation_receiver,
             &paint.borrow(),
@@ -993,6 +998,7 @@ impl Servo {
             async_runtime,
             public_storage_threads.clone(),
             private_storage_threads.clone(),
+            image_decoder_encoder_factory,
         );
 
         net::connector::prewarm_tls();
@@ -1200,6 +1206,7 @@ fn create_constellation(
     async_runtime: Box<dyn net_traits::AsyncRuntime>,
     public_storage_threads: StorageThreads,
     private_storage_threads: StorageThreads,
+    image_encoder_decoder_factory: Arc<dyn ServoImageEncoderDecoderFactory>,
 ) {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -1244,6 +1251,7 @@ fn create_constellation(
         async_runtime,
         privileged_urls,
         wake_lock_provider: Box::new(DefaultWakeLockDelegate),
+        image_encoder_decoder_factory,
     };
 
     let layout_factory = Arc::new(LayoutFactoryImpl());
@@ -1341,6 +1349,7 @@ pub fn run_content_process(token: String) {
                 layout_factory,
                 Arc::new(ImageCacheFactoryImpl::new(
                     new_event_loop_info.broken_image_icon_data,
+                    new_event_loop_info.image_encoder_decoder_factory,
                 )),
                 background_hang_monitor_register,
             );
@@ -1409,6 +1418,7 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
+    image_decoder_encoder_factory: Option<Arc<dyn ServoImageEncoderDecoderFactory>>,
 }
 
 impl Default for ServoBuilder {
@@ -1418,6 +1428,7 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
+            image_decoder_encoder_factory: None,
         }
     }
 }
@@ -1444,6 +1455,14 @@ impl ServoBuilder {
 
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
+        self
+    }
+
+    pub fn set_image_decoder_encoder_factory(
+        mut self,
+        factory: Arc<dyn ServoImageEncoderDecoderFactory>,
+    ) -> Self {
+        self.image_decoder_encoder_factory = Some(factory);
         self
     }
 }
