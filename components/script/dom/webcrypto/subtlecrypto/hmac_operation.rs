@@ -19,7 +19,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    NormalizedAlgorithm, SubtleHmacImportParams, SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams,
+    NormalizedAlgorithm, HmacImportParams, SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
@@ -168,7 +168,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleHmacImportParams,
+    normalized_algorithm: &HmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -444,7 +444,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleHmacImportParams,
+    normalized_derived_key_algorithm: &HmacImportParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1.
     let length = match normalized_derived_key_algorithm.length {

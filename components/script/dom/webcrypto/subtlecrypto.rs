@@ -3518,7 +3518,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AesGcmParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleHmacImportParams {
+struct HmacImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3529,7 +3529,7 @@ struct SubtleHmacImportParams {
     length: Option<u32>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HmacImportParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3539,7 +3539,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacImportParams {
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtleHmacImportParams {
+        Ok(HmacImportParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
             length: get_property(cx, object, c"length", ConversionBehavior::EnforceRange)?,
@@ -5781,7 +5781,7 @@ enum ImportKeyAlgorithm {
     AesCbc(Algorithm),
     AesGcm(Algorithm),
     AesKw(Algorithm),
-    Hmac(SubtleHmacImportParams),
+    Hmac(HmacImportParams),
     Hkdf(Algorithm),
     Pbkdf2(Algorithm),
     MlKem(Algorithm),
@@ -6225,7 +6225,7 @@ enum GetKeyLengthAlgorithm {
     AesCbc(AesDerivedKeyParams),
     AesGcm(AesDerivedKeyParams),
     AesKw(AesDerivedKeyParams),
-    Hmac(SubtleHmacImportParams),
+    Hmac(HmacImportParams),
     Hkdf(Algorithm),
     Pbkdf2(Algorithm),
     AesOcb(AesDerivedKeyParams),
