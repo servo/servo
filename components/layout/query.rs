@@ -590,7 +590,7 @@ fn shorthand_to_css_string(
         );
     }
     match block.shorthand_to_css(id, &mut dest) {
-        Ok(_) => dest.to_owned(),
+        Ok(_) => dest,
         Err(_) => String::new(),
     }
 }
