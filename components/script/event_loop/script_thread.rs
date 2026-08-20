@@ -35,9 +35,10 @@ use background_hang_monitor_api::{
 use chrono::{DateTime, Local};
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
+#[cfg(feature = "devtools")]
 use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
-    ScriptToDevtoolsControlMsg, WorkerId,
+    ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScript};
 use embedder_traits::{
@@ -84,6 +85,7 @@ use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId, WebViewId,
+    WorkerId,
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_base::{Epoch, generic_channel};
@@ -112,7 +114,8 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
-use crate::devtools::DevtoolsState;
+#[cfg(feature = "devtools")]
+use crate::devtools;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -138,6 +141,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
+#[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -162,8 +166,8 @@ use crate::script_runtime::{
     IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
 };
 use crate::tasks::task_queue::TaskQueue;
+use crate::webdriver_handlers;
 use crate::webdriver_handlers::jsval_to_webdriver;
-use crate::{devtools, webdriver_handlers};
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
@@ -412,6 +416,7 @@ pub struct ScriptThread {
     /// change that requires a rendering update.
     needs_rendering_update: Arc<AtomicBool>,
 
+    #[cfg(feature = "devtools")]
     debugger_global: Dom<DebuggerGlobalScope>,
 
     debugger_paused: Cell<bool>,
@@ -420,7 +425,8 @@ pub struct ScriptThread {
     #[no_trace]
     privileged_urls: Vec<ServoUrl>,
 
-    devtools_state: DevtoolsState,
+    #[cfg(feature = "devtools")]
+    devtools_state: crate::devtools::DevtoolsState,
 }
 
 struct BHMExitSignal {
@@ -884,8 +890,11 @@ impl ScriptThread {
             .route_preserving_errors();
 
         // Ask the router to proxy IPC messages from the devtools to us.
+        #[cfg(feature = "devtools")]
         let devtools_server_sender = state.devtools_server_sender;
+        #[cfg(feature = "devtools")]
         let (ipc_devtools_sender, ipc_devtools_receiver) = generic_channel::channel().unwrap();
+        #[cfg(feature = "devtools")]
         let devtools_server_receiver = ipc_devtools_receiver.route_preserving_errors();
 
         let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
@@ -910,6 +919,7 @@ impl ScriptThread {
         let receivers = ScriptThreadReceivers {
             constellation_receiver,
             image_cache_receiver,
+            #[cfg(feature = "devtools")]
             devtools_server_receiver,
             // Initialized to `never` until WebGPU is initialized.
             #[cfg(feature = "webgpu")]
@@ -927,7 +937,9 @@ impl ScriptThread {
             image_cache_sender,
             time_profiler_sender: state.time_profiler_sender,
             memory_profiler_sender: state.memory_profiler_sender,
+            #[cfg(feature = "devtools")]
             devtools_server_sender,
+            #[cfg(feature = "devtools")]
             devtools_client_to_script_thread_sender: ipc_devtools_sender,
         };
 
@@ -935,6 +947,7 @@ impl ScriptThread {
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
+        #[cfg(feature = "devtools")]
         let debugger_global = DebuggerGlobalScope::new(
             PipelineId::new(),
             senders.devtools_server_sender.clone(),
@@ -950,6 +963,7 @@ impl ScriptThread {
             &mut cx,
         );
 
+        #[cfg(feature = "devtools")]
         debugger_global.execute(&mut cx);
 
         let shared_style_locks = Default::default();
@@ -1009,10 +1023,12 @@ impl ScriptThread {
                     layout_factory,
                     scheduled_update_the_rendering: Default::default(),
                     needs_rendering_update: Arc::new(AtomicBool::new(false)),
+                    #[cfg(feature = "devtools")]
                     debugger_global: debugger_global.as_traced(),
                     debugger_paused: Cell::new(false),
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
+                    #[cfg(feature = "devtools")]
                     devtools_state: Default::default(),
                 }
             }),
@@ -1483,6 +1499,7 @@ impl ScriptThread {
                             MixedMessage::FromScript(inner_msg) => {
                                 self.handle_msg_from_script(inner_msg, $cx)
                             },
+                            #[cfg(feature = "devtools")]
                             MixedMessage::FromDevtools(inner_msg) => {
                                 self.handle_msg_from_devtools(inner_msg, $cx)
                             },
@@ -1565,6 +1582,7 @@ impl ScriptThread {
                 ScriptThreadMessage::SendInputEvent(..) => ScriptThreadEventCategory::InputEvent,
                 _ => ScriptThreadEventCategory::ConstellationMsg,
             },
+            #[cfg(feature = "devtools")]
             MixedMessage::FromDevtools(_) => ScriptThreadEventCategory::DevtoolsMsg,
             MixedMessage::FromImageCache(_) => ScriptThreadEventCategory::ImageCacheMsg,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -1896,6 +1914,7 @@ impl ScriptThread {
             ) => {
                 self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value, cx)
             },
+            #[cfg(feature = "devtools")]
             ScriptThreadMessage::ReportCSSError(pipeline_id, filename, line, column, msg) => {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
@@ -2133,6 +2152,7 @@ impl ScriptThread {
         }
     }
 
+    #[cfg(feature = "devtools")]
     fn handle_msg_from_devtools(
         &self,
         msg: DevtoolScriptControlMsg,
@@ -2321,6 +2341,7 @@ impl ScriptThread {
 
     /// Enter a nested event loop for debugger pause.
     /// TODO: This should also be called when manual pause is triggered.
+    #[cfg(feature = "devtools")]
     pub(crate) fn enter_debugger_pause_loop(&self) {
         self.debugger_paused.set(true);
 
@@ -2769,6 +2790,7 @@ impl ScriptThread {
             ScriptThreadEventCategory::SpawnPipeline,
             Some(new_pipeline_info.new_pipeline_id),
             || {
+                #[cfg(feature = "devtools")]
                 self.devtools_state
                     .notify_pipeline_created(new_pipeline_info.new_pipeline_id);
 
@@ -3266,6 +3288,7 @@ impl ScriptThread {
         self.paint_api
             .pipeline_exited(webview_id, pipeline_id, PipelineExitSource::Script);
 
+        #[cfg(feature = "devtools")]
         self.devtools_state.notify_pipeline_exited(pipeline_id);
 
         debug!("{pipeline_id}: Finished pipeline exit");
@@ -3490,6 +3513,7 @@ impl ScriptThread {
             self.senders.bluetooth_sender.clone(),
             self.senders.memory_profiler_sender.clone(),
             self.senders.time_profiler_sender.clone(),
+            #[cfg(feature = "devtools")]
             self.senders.devtools_server_sender.clone(),
             self.senders.pipeline_to_constellation_sender.clone(),
             self.senders.pipeline_to_embedder_sender.clone(),
@@ -3521,6 +3545,7 @@ impl ScriptThread {
             incomplete.embedder_theme,
             self.this.clone(),
         );
+        #[cfg(feature = "devtools")]
         if self.senders.devtools_server_sender.is_some() {
             self.debugger_global.fire_add_debuggee(
                 cx,
@@ -3687,6 +3712,7 @@ impl ScriptThread {
         // Notify devtools that a new script global exists.
         let incomplete_browsing_context_id: BrowsingContextId = incomplete.webview_id.into();
         let is_top_level_global = incomplete_browsing_context_id == incomplete.browsing_context_id;
+        #[cfg(feature = "devtools")]
         self.notify_devtools(
             document.Title(),
             final_url.clone(),
@@ -3735,6 +3761,7 @@ impl ScriptThread {
         document
     }
 
+    #[cfg(feature = "devtools")]
     fn notify_devtools(
         &self,
         title: DOMString,
@@ -4209,6 +4236,7 @@ impl ScriptThread {
         );
     }
 
+    #[cfg(feature = "devtools")]
     fn handle_css_error_reporting(
         &self,
         pipeline_id: PipelineId,
@@ -4441,6 +4469,7 @@ impl ScriptThread {
         window.maybe_update_visual_viewport(cx, pinch_zoom_infos);
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn devtools_want_updates_for_node(pipeline: PipelineId, node: &Node) -> bool {
         with_script_thread(|script_thread| {
             script_thread

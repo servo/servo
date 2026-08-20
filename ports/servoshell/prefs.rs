@@ -419,6 +419,7 @@ struct CmdArgs {
 
     /// Start remote devtools server on port listening on this address. <address>:<port> and <port> are valid values.
     #[bpaf(argument("127.0.0.1:7000"))]
+    #[cfg(feature = "devtools")]
     devtools: Option<String>,
 
     ///
@@ -585,6 +586,7 @@ fn update_preferences_from_command_line_arguments(
     preferences: &mut Preferences,
     cmd_args: &CmdArgs,
 ) {
+    #[cfg(feature = "devtools")]
     if let Some(listen_address) = &cmd_args.devtools {
         preferences.devtools_server_enabled = true;
         preferences.devtools_server_listen_address = listen_address.clone();

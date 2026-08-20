@@ -100,9 +100,10 @@ use background_hang_monitor_api::{
 };
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
+#[cfg(feature = "devtools")]
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
-    ScriptToDevtoolsControlMsg, WorkerId,
+    ScriptToDevtoolsControlMsg,
 };
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
@@ -148,7 +149,7 @@ use servo_base::id::{
     BrowsingContextGroupId, BrowsingContextId, CONSTELLATION_PIPELINE_NAMESPACE_ID,
     FIRST_CONTENT_PIPELINE_NAMESPACE_ID, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
-    ScriptEventLoopId, WebViewId,
+    ScriptEventLoopId, WebViewId, WorkerId,
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_base::{Epoch, generic_channel};
@@ -377,10 +378,12 @@ pub struct Constellation<STF, SWF> {
 
     /// A channel for the constellation to send messages to the
     /// devtools thread.
+    #[cfg(feature = "devtools")]
     pub(crate) devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A (potentially) IPC-based channel to the developer tools, if enabled. This allows
     /// `EventLoop`s to send messages to then. Shared with all `EventLoop`s.
+    #[cfg(feature = "devtools")]
     pub script_to_devtools_callback: OnceCell<Option<GenericCallback<ScriptToDevtoolsControlMsg>>>,
 
     /// An IPC channel for the constellation to send messages to the
@@ -539,6 +542,7 @@ pub struct InitialConstellationState {
     pub paint_proxy: PaintProxy,
 
     /// A channel to the developer tools, if applicable.
+    #[cfg(feature = "devtools")]
     pub devtools_sender: Option<Sender<DevtoolsControlMsg>>,
 
     /// A channel to the bluetooth thread.
@@ -687,7 +691,9 @@ where
                     constellation_to_embedder_proxy: state.constellation_to_embedder_proxy,
                     paint_proxy: state.paint_proxy,
                     webviews: Default::default(),
+                    #[cfg(feature = "devtools")]
                     devtools_sender: state.devtools_sender,
+                    #[cfg(feature = "devtools")]
                     script_to_devtools_callback: Default::default(),
                     #[cfg(feature = "bluetooth")]
                     bluetooth_ipc_sender: state.bluetooth_thread,
@@ -2745,6 +2751,7 @@ where
             warn!("Exit resource thread failed ({})", e);
         }
 
+        #[cfg(feature = "devtools")]
         if let Some(ref chan) = self.devtools_sender {
             debug!("Exiting devtools.");
             let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg);
@@ -4143,6 +4150,7 @@ where
                 },
             };
 
+        #[cfg(feature = "devtools")]
         if let Some(ref chan) = self.devtools_sender {
             let state = NavigationState::Start(load_data.url.clone());
             let _ = chan.send(DevtoolsControlMsg::FromScript(
@@ -4684,11 +4692,13 @@ where
         self.unload_document(old_pipeline_id);
 
         if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
+            #[cfg(feature = "devtools")]
             if let Some(ref chan) = self.devtools_sender {
                 let state = NavigationState::Start(new_pipeline.url.clone());
                 let _ = chan.send(DevtoolsControlMsg::FromScript(
                     ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
                 ));
+
                 let page_info = DevtoolsPageInfo {
                     title: new_pipeline.title.clone(),
                     url: new_pipeline.url.clone(),
@@ -6413,6 +6423,7 @@ where
         }
     }
 
+    #[cfg(feature = "devtools")]
     pub(crate) fn script_to_devtools_callback(
         &self,
     ) -> Option<GenericCallback<ScriptToDevtoolsControlMsg>> {

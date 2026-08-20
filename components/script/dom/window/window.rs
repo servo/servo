@@ -4,7 +4,6 @@
 
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, RefMut};
-use std::collections::HashSet;
 use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::ffi::c_void;
@@ -20,7 +19,6 @@ use content_security_policy::Violation;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
-use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
@@ -327,9 +325,12 @@ pub(crate) struct Window {
     /// For sending timeline markers. Will be ignored if
     /// no devtools server
     #[no_trace]
-    devtools_markers: DomRefCell<HashSet<TimelineMarkerType>>,
+    #[cfg(feature = "devtools")]
+    devtools_markers: DomRefCell<std::collections::HashSet<devtools_traits::TimelineMarkerType>>,
     #[no_trace]
-    devtools_marker_sender: DomRefCell<Option<GenericSender<Option<TimelineMarker>>>>,
+    #[cfg(feature = "devtools")]
+    devtools_marker_sender:
+        DomRefCell<Option<GenericSender<Option<devtools_traits::TimelineMarker>>>>,
 
     /// Most recent unhandled resize event, if any.
     #[no_trace]
@@ -2671,8 +2672,10 @@ impl Window {
         }
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
-        let marker = if self.need_emit_timeline_marker(TimelineMarkerType::Reflow) {
-            Some(TimelineMarker::start("Reflow".to_owned()))
+        #[cfg(feature = "devtools")]
+        let marker = if self.need_emit_timeline_marker(devtools_traits::TimelineMarkerType::Reflow)
+        {
+            Some(devtools_traits::TimelineMarker::start("Reflow".to_owned()))
         } else {
             None
         };
@@ -2754,6 +2757,7 @@ impl Window {
         };
 
         debug!("script: layout complete");
+        #[cfg(feature = "devtools")]
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
         }
@@ -3470,36 +3474,6 @@ impl Window {
         self.Document().title_changed();
     }
 
-    pub(crate) fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
-        let markers = self.devtools_markers.borrow();
-        markers.contains(&timeline_type)
-    }
-
-    pub(crate) fn emit_timeline_marker(&self, marker: TimelineMarker) {
-        let sender = self.devtools_marker_sender.borrow();
-        let sender = sender.as_ref().expect("There is no marker sender");
-        sender.send(Some(marker)).unwrap();
-    }
-
-    pub(crate) fn set_devtools_timeline_markers(
-        &self,
-        markers: Vec<TimelineMarkerType>,
-        reply: GenericSender<Option<TimelineMarker>>,
-    ) {
-        *self.devtools_marker_sender.borrow_mut() = Some(reply);
-        self.devtools_markers.borrow_mut().extend(markers);
-    }
-
-    pub(crate) fn drop_devtools_timeline_markers(&self, markers: Vec<TimelineMarkerType>) {
-        let mut devtools_markers = self.devtools_markers.borrow_mut();
-        for marker in markers {
-            devtools_markers.remove(&marker);
-        }
-        if devtools_markers.is_empty() {
-            *self.devtools_marker_sender.borrow_mut() = None;
-        }
-    }
-
     pub(crate) fn set_webdriver_script_chan(&self, chan: Option<GenericSender<WebDriverJSResult>>) {
         *self.webdriver_script_chan.borrow_mut() = chan;
     }
@@ -3884,7 +3858,9 @@ impl Window {
         #[cfg(feature = "bluetooth")] bluetooth_thread: GenericSender<BluetoothRequest>,
         mem_profiler_chan: MemProfilerChan,
         time_profiler_chan: TimeProfilerChan,
-        devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
+        #[cfg(feature = "devtools")] devtools_chan: Option<
+            GenericCallback<devtools_traits::ScriptToDevtoolsControlMsg>,
+        >,
         script_to_constellation_sender: ScriptToConstellationSender,
         embedder_chan: ScriptToEmbedderChan,
         control_chan: GenericSender<ScriptThreadMessage>,
@@ -3916,6 +3892,7 @@ impl Window {
         let win = Box::new(Self {
             webview_id,
             globalscope: GlobalScope::new_inherited(
+                #[cfg(feature = "devtools")]
                 devtools_chan,
                 mem_profiler_chan,
                 time_profiler_chan,
@@ -3960,7 +3937,9 @@ impl Window {
             viewport_details: Cell::new(viewport_details),
             layout_blocker: Cell::new(LayoutBlocker::WaitingForParse),
             current_state: Cell::new(WindowState::Alive),
+            #[cfg(feature = "devtools")]
             devtools_marker_sender: Default::default(),
+            #[cfg(feature = "devtools")]
             devtools_markers: Default::default(),
             webdriver_script_chan: Default::default(),
             webdriver_load_status_sender: Default::default(),
@@ -4033,6 +4012,44 @@ impl Window {
     }
 }
 
+#[cfg(feature = "devtools")]
+impl Window {
+    pub(crate) fn need_emit_timeline_marker(
+        &self,
+        timeline_type: devtools_traits::TimelineMarkerType,
+    ) -> bool {
+        let markers = self.devtools_markers.borrow();
+        markers.contains(&timeline_type)
+    }
+
+    pub(crate) fn emit_timeline_marker(&self, marker: devtools_traits::TimelineMarker) {
+        let sender = self.devtools_marker_sender.borrow();
+        let sender = sender.as_ref().expect("There is no marker sender");
+        sender.send(Some(marker)).unwrap();
+    }
+
+    pub(crate) fn set_devtools_timeline_markers(
+        &self,
+        markers: Vec<devtools_traits::TimelineMarkerType>,
+        reply: GenericSender<Option<devtools_traits::TimelineMarker>>,
+    ) {
+        *self.devtools_marker_sender.borrow_mut() = Some(reply);
+        self.devtools_markers.borrow_mut().extend(markers);
+    }
+
+    pub(crate) fn drop_devtools_timeline_markers(
+        &self,
+        markers: Vec<devtools_traits::TimelineMarkerType>,
+    ) {
+        let mut devtools_markers = self.devtools_markers.borrow_mut();
+        for marker in markers {
+            devtools_markers.remove(&marker);
+        }
+        if devtools_markers.is_empty() {
+            *self.devtools_marker_sender.borrow_mut() = None;
+        }
+    }
+}
 /// An instance of a value associated with a particular snapshot of layout. This stored
 /// value can only be read as long as the associated layout marker that is considered
 /// valid. It will automatically become unavailable when the next layout operation is
@@ -4148,6 +4165,7 @@ impl ParseErrorReporter for CSSErrorReporter {
         }
 
         // TODO: report a real filename
+        #[cfg(feature = "devtools")]
         let _ = self.script_chan.send(ScriptThreadMessage::ReportCSSError(
             self.pipelineid,
             url.0.to_string(),

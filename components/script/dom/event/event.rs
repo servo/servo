@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::default::Default;
 
 use bitflags::bitflags;
+#[cfg(feature = "devtools")]
 use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::InputEventResult;
@@ -554,6 +555,9 @@ impl Event {
                     .and_then(|activatable| activatable.legacy_pre_activation_behavior(cx));
             }
 
+            #[cfg(not(feature = "devtools"))]
+            let timeline_window: Option<DomRoot<Window>> = None;
+            #[cfg(feature = "devtools")]
             let timeline_window = DomRoot::downcast::<Window>(target.global())
                 .filter(|window| window.need_emit_timeline_marker(TimelineMarkerType::DOMEvent));
 
@@ -1337,7 +1341,7 @@ fn inner_invoke(
     listeners: &EventListeners,
     phase: ListenerPhase,
     invocation_target_in_shadow_tree: bool,
-    timeline_window: Option<&Window>,
+    _timeline_window: Option<&Window>,
     legacy_output_did_listeners_throw: Option<&Cell<bool>>,
 ) -> bool {
     // Step 1. Let found be false.
@@ -1404,6 +1408,7 @@ fn inner_invoke(
         //     Step 2.10.1 Report exception for listener’s callback’s corresponding JavaScript object’s
         //     associated realm’s global object.
         //     Step 2.10.2 Set legacyOutputDidListenersThrowFlag if given.
+        #[cfg(feature = "devtools")]
         let marker = TimelineMarker::start("DOMEvent".to_owned());
         if compiled_listener
             .call_or_handle_event(cx, &event_target, event, ExceptionHandling::Report)
@@ -1412,7 +1417,8 @@ fn inner_invoke(
         {
             flag.set(true);
         }
-        if let Some(window) = timeline_window {
+        #[cfg(feature = "devtools")]
+        if let Some(window) = _timeline_window {
             window.emit_timeline_marker(marker.end());
         }
 

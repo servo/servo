@@ -708,6 +708,7 @@ impl<'dom> LayoutDom<'dom, ShadowRoot> {
     }
 }
 
+#[cfg(feature = "devtools")]
 impl Convert<devtools_traits::ShadowRootMode> for ShadowRootMode {
     fn convert(self) -> devtools_traits::ShadowRootMode {
         match self {
