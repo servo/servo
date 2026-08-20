@@ -955,6 +955,16 @@ impl LayoutThread {
         };
 
         let accessibility_tree = &mut *accessibility_tree;
+
+        // Check for the stacking context tree before draining any state out of `reflow_request`, so
+        // that we don't discard accessibility damage if it is missing. In practice it is always
+        // present here, since we only reach this method for an `UpdateTheRendering` reflow.
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let Some(stacking_context_tree) = stacking_context_tree.as_ref() else {
+            return false;
+        };
+        debug_assert!(!self.need_new_stacking_context_tree.get());
+
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
@@ -965,11 +975,6 @@ impl LayoutThread {
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-        let Some(stacking_context_tree) = stacking_context_tree.as_ref() else {
-            return false;
-        };
-        debug_assert!(!self.need_new_stacking_context_tree.get());
         let accessibility_context = AccessibilityContext {
             layout_thread: self,
             stacking_context_tree,
