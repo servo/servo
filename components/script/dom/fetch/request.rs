@@ -72,7 +72,7 @@ impl Request {
         }
     }
 
-    fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
