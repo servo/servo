@@ -12,7 +12,6 @@ use std::sync::Arc;
 use app_units::Au;
 use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, Size2D};
-use itertools::Itertools;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
     LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, PhysicalSides,
@@ -41,7 +40,7 @@ use style::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
 use style::values::computed::transform::Matrix3D;
-use style::values::computed::{CSSPixelLength, Float, Size};
+use style::values::computed::{Float, Size};
 use style::values::generics::font::LineHeight;
 use style::values::generics::position::AspectRatio;
 use style::values::specified::GenericGridTemplateComponent;
@@ -468,32 +467,6 @@ fn resolve_grid_template(
     style: &ComputedValues,
     longhand_id: LonghandId,
 ) -> Option<String> {
-    /// <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
-    fn serialize_standalone_non_subgrid_track_list(
-        positions: &[taffy::Line<f32>],
-    ) -> Option<String> {
-        match positions.is_empty() {
-            // Standalone non subgrid grids with empty track lists should compute to `none`.
-            // As of current standard, this behaviour should only invoked by `none` computed value,
-            // therefore we can fallback into computed value resolving.
-            true => None,
-            // <https://drafts.csswg.org/css-grid/#resolved-track-list-standalone>
-            // > - Every track listed individually, whether implicitly or explicitly created,
-            //     without using the repeat() notation.
-            // > - Every track size given as a length in pixels, regardless of sizing function.
-            // > - Adjacent line names collapsed into a single bracketed set.
-            // TODO: implement line names
-            false => Some(
-                positions
-                    .iter()
-                    .map(|position| {
-                        CSSPixelLength::new(position.end - position.start).to_css_string()
-                    })
-                    .join(" "),
-            ),
-        }
-    }
-
     let (track_info, computed_value) = match longhand_id {
         LonghandId::GridTemplateRows => (
             &grid_info.info.rows,
@@ -513,7 +486,7 @@ fn resolve_grid_template(
         GenericGridTemplateComponent::None |
         GenericGridTemplateComponent::TrackList(_) |
         GenericGridTemplateComponent::Masonry => {
-            serialize_standalone_non_subgrid_track_list(&track_info.positions)
+            (!track_info.positions.is_empty()).then(|| track_info.to_track_list_string())
         },
 
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
