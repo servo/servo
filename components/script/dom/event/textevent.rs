@@ -39,7 +39,7 @@ impl TextEvent {
 }
 
 impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
-    /// <https://w3c.github.io/uievents/event-algo.html#textevent>
+    /// <https://w3c.github.io/uievents/event-algo.html#dom-textevent-inittextevent>
     fn InitTextEvent(
         &self,
         type_: DOMString,
