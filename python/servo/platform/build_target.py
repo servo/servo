@@ -285,6 +285,8 @@ class AndroidTarget(CrossBuildTarget):
 
 class OpenHarmonyTarget(CrossBuildTarget):
     DEFAULT_TRIPLE = "aarch64-unknown-linux-ohos"
+    # The minimum SDK level we support.
+    MINIMUM_OHOS_API_LEVEL = 20
     # The layout of the dict might change in the future, and backwords incompatible changes
     # will bump the schema version in cargo-ohos.
     CARGO_OHOS_EXPECTED_SCHEMA_VERSION = 1
@@ -376,8 +378,12 @@ class OpenHarmonyTarget(CrossBuildTarget):
             file=sys.stderr,
         )
 
-        if ohos_api_version < 20:
-            print("Error: Building servo for OpenHarmony requires SDK version 6.0 (API-20) or newer", file=sys.stderr)
+        if ohos_api_version < self.MINIMUM_OHOS_API_LEVEL:
+            print(
+                "Error: Building servo for OpenHarmony requires an SDK version with"
+                f"API level {self.MINIMUM_OHOS_API_LEVEL} or newer",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         # Cargo prefers `CARGO_ENCODED_RUSTFLAGS` if set, but mach currently uses `RUSTFLAGS`
