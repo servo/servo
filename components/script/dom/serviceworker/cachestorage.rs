@@ -22,8 +22,9 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::serviceworker::cache::Cache;
 
-/// <https://w3c.github.io/ServiceWorker/#cachestorage-interface>
+/// <https://w3c.github.io/ServiceWorker/#cachestorage>
 #[dom_struct]
 pub(crate) struct CacheStorage {
     reflector_: Reflector,
@@ -115,6 +116,33 @@ impl CacheStorage {
                     error!("No pending promise for HasCacheResult response.");
                 }
             },
+            // https://w3c.github.io/ServiceWorker/#cache-storage-open
+            // the steps resolving the promise with the result.
+            CacheStorageThreadResponse::OpenCacheResult { opened, cache_name } => {
+                let promise = self.pending_promises.borrow_mut().pop_front();
+                if let Some(promise) = promise {
+                    match opened {
+                        Ok(opened) => {
+                            if opened {
+                                // Resolve promise with a new Cache object that represents value.
+                                let cache =
+                                    Cache::new(cx, &self.global(), DOMString::from(cache_name));
+                                promise.resolve_native(cx, &cache);
+                            } else {
+                                // reject promise with a QuotaExceededError and abort these steps.
+                                // Note: just a generic error for now, no quota checks exist storage side at this point.
+                                promise.reject_error(
+                                    cx,
+                                    Error::Operation(Some("Failed to open cache".to_string())),
+                                );
+                            }
+                        },
+                        Err(err) => promise.reject_error(cx, Error::Operation(Some(err))),
+                    }
+                } else {
+                    error!("No pending promise for OpenCacheResult response.");
+                }
+            },
         }
     }
 }
@@ -171,6 +199,43 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
                 callback,
                 proxy: proxy_map,
                 origin,
+            })
+            .is_err()
+        {
+            promise.reject_error(cx, Error::Operation(None));
+            return promise;
+        }
+
+        self.pending_promises
+            .borrow_mut()
+            .push_back(promise.clone());
+
+        promise
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-open>
+    fn Open(&self, cx: &mut JSContext, cache_name: DOMString) -> Rc<Promise> {
+        // Step 1: Let promise be a new promise.
+        let global = self.global();
+        let promise = Promise::new(cx, &global);
+
+        // Step 2: Run the following substeps in parallel:
+        let callback = self.get_or_setup_callback();
+        let proxy_map =
+            match relevant_name_to_cache_map(&global, global.origin().immutable().clone()) {
+                Ok(proxy_map) => proxy_map,
+                Err(err) => {
+                    promise.reject_error(cx, err);
+                    return promise;
+                },
+            };
+        if global
+            .storage_threads()
+            .send(CacheStorageThreadMessage::OpenCache {
+                cache_name: cache_name.to_string(),
+                callback,
+                proxy: proxy_map,
+                origin: global.origin().immutable().clone(),
             })
             .is_err()
         {
