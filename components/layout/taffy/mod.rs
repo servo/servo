@@ -11,7 +11,7 @@ use servo_arc::Arc;
 use style::Atom;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
-use stylo_taffy::TaffyStyloStyle;
+pub(crate) use stylo_taffy::TaffyStyloStyle;
 use taffy::DetailedGridInfo;
 
 use crate::PropagatedBoxTreeData;
