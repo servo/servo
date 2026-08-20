@@ -56,6 +56,10 @@ ignore = [
     # `rustybuzz` is unmaintained. Switch to harfrust.
     # However, this is a dependecy of `resvg`, there's nothing we can do.
     "RUSTSEC-2026-0206",
+    # Addressed by updating `h2` to 0.4.16 or newer. We still pull in an
+    # older version via `webdriver`, but the vulnerability should not
+    # be exploitable from that path.
+    "RUSTSEC-2026-0258",
 ]
 
 # This section is considered when running `cargo deny check licenses`
