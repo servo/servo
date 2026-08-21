@@ -629,4 +629,16 @@ impl script_bindings::interfaces::PromiseHelpers<crate::DomTypeHolder> for Promi
     fn reject_error(&self, cx: &mut js::context::JSContext, error: script_bindings::error::Error) {
         Promise::reject_error(self, cx, error);
     }
+
+    fn is_rejected(&self) -> bool {
+        self.is_rejected()
+    }
+
+    fn is_pending(&self) -> bool {
+        self.is_pending()
+    }
+
+    fn resolve_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T) {
+        self.resolve_native(cx, val);
+    }
 }

@@ -6,7 +6,23 @@ use std::borrow::Cow;
 use std::num::NonZeroU64;
 
 use js::context::JSContext;
-use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUQueryType;
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::PredefinedColorSpace;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
+    GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
+    GPUCompareFunction, GPUComputePassDescriptor, GPUComputePassTimestampWrites, GPUCullMode,
+    GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
+    GPUObjectDescriptorBase, GPUOrigin2D, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
+    GPUProgrammableStage, GPUQuerySetDescriptor, GPUQueryType, GPURenderPassTimestampWrites,
+    GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
+    GPUTexelCopyBufferInfo, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo, GPUTextureAspect,
+    GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat, GPUTextureSampleType,
+    GPUTextureViewDimension, GPUVertexFormat,
+};
+use script_bindings::codegen::GenericUnionTypes::GPUTextureOrGPUTextureView;
+use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::reflector::DomGlobalGeneric;
 use webgpu_traits::WebGPUTextureView;
 use wgpu_core::binding_model::{BindGroupEntry, BindingResource, BufferBinding};
 use wgpu_core::command::{self as wgpu_com, ComputePassDescriptor, PassTimestampWrites};
@@ -14,25 +30,34 @@ use wgpu_core::pipeline::ProgrammableStageDescriptor;
 use wgpu_core::resource::{QuerySetDescriptor, TextureDescriptor};
 use wgpu_types::{self, AstcBlock, AstcChannel, IndexFormat};
 
-use crate::conversions::{Convert, TryConvert};
-use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::PredefinedColorSpace;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUAddressMode, GPUBindGroupEntry, GPUBindGroupLayoutEntry, GPUBindingResource,
-    GPUBlendComponent, GPUBlendFactor, GPUBlendOperation, GPUBufferBindingType, GPUColor,
-    GPUCompareFunction, GPUComputePassDescriptor, GPUComputePassTimestampWrites, GPUCullMode,
-    GPUExtent3D, GPUFilterMode, GPUFrontFace, GPUIndexFormat, GPULoadOp, GPUMipmapFilterMode,
-    GPUObjectDescriptorBase, GPUOrigin2D, GPUOrigin3D, GPUPrimitiveState, GPUPrimitiveTopology,
-    GPUProgrammableStage, GPUQuerySetDescriptor, GPURenderPassTimestampWrites,
-    GPUSamplerBindingType, GPUStencilOperation, GPUStorageTextureAccess, GPUStoreOp,
-    GPUTexelCopyBufferInfo, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo, GPUTextureAspect,
-    GPUTextureDescriptor, GPUTextureDimension, GPUTextureFormat, GPUTextureSampleType,
-    GPUTextureViewDimension, GPUVertexFormat,
-};
-use crate::dom::bindings::codegen::UnionTypes::GPUTextureOrGPUTextureView;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::types::GPUDevice;
+use crate::gpubuffer::GPUBuffer;
+use crate::traits::{
+    GPUDeviceTrait, GPUExternalTextureTrait, GPUQuerySetTrait, GPUSamplerTrait,
+    GPUShaderModuleTrait, GPUTextureTrait, GPUTextureViewTrait, WebGPUGlobalTrait,
+};
 
-impl Convert<wgpu_types::TextureFormat> for GPUTextureFormat {
+/// A version of the `Into<T>` trait from the standard library that can be used
+/// to convert between two types that are not defined in the script crate.
+/// This is intended to be used on dict/enum types generated from WebIDL once
+/// those types are moved out of the script crate.
+/// Only for WebGPU.
+pub trait WebGPUConvert<T> {
+    fn convert(self) -> T;
+}
+
+/// A version of the `TryInto<T>` trait from the standard library that can be used
+/// to convert between two types that are not defined in the script crate.
+/// This is intended to be used on dict/enum types generated from WebIDL once
+/// those types are moved out of the script crate.
+/// Only for WebGPU.
+pub trait WebGPUTryConvert<T> {
+    type Error;
+
+    fn try_convert(self) -> Result<T, Self::Error>;
+}
+
+impl WebGPUConvert<wgpu_types::TextureFormat> for GPUTextureFormat {
     fn convert(self) -> wgpu_types::TextureFormat {
         match self {
             // 8-bit formats
@@ -244,7 +269,7 @@ impl Convert<wgpu_types::TextureFormat> for GPUTextureFormat {
     }
 }
 
-impl TryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
+impl WebGPUTryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
     type Error = Error;
 
     fn try_convert(self) -> Result<wgpu_types::Extent3d, Self::Error> {
@@ -272,7 +297,7 @@ impl TryConvert<wgpu_types::Extent3d> for &GPUExtent3D {
     }
 }
 
-impl Convert<wgpu_types::TexelCopyBufferLayout> for &GPUTexelCopyBufferLayout {
+impl WebGPUConvert<wgpu_types::TexelCopyBufferLayout> for &GPUTexelCopyBufferLayout {
     fn convert(self) -> wgpu_types::TexelCopyBufferLayout {
         wgpu_types::TexelCopyBufferLayout {
             offset: self.offset as wgpu_types::BufferAddress,
@@ -282,7 +307,7 @@ impl Convert<wgpu_types::TexelCopyBufferLayout> for &GPUTexelCopyBufferLayout {
     }
 }
 
-impl Convert<wgpu_types::VertexFormat> for GPUVertexFormat {
+impl WebGPUConvert<wgpu_types::VertexFormat> for GPUVertexFormat {
     fn convert(self) -> wgpu_types::VertexFormat {
         match self {
             GPUVertexFormat::Uint8 => wgpu_types::VertexFormat::Uint8,
@@ -330,7 +355,7 @@ impl Convert<wgpu_types::VertexFormat> for GPUVertexFormat {
     }
 }
 
-impl Convert<wgpu_types::PrimitiveState> for &GPUPrimitiveState {
+impl WebGPUConvert<wgpu_types::PrimitiveState> for &GPUPrimitiveState {
     fn convert(self) -> wgpu_types::PrimitiveState {
         wgpu_types::PrimitiveState {
             topology: self.topology.convert(),
@@ -355,7 +380,7 @@ impl Convert<wgpu_types::PrimitiveState> for &GPUPrimitiveState {
     }
 }
 
-impl Convert<wgpu_types::PrimitiveTopology> for &GPUPrimitiveTopology {
+impl WebGPUConvert<wgpu_types::PrimitiveTopology> for &GPUPrimitiveTopology {
     fn convert(self) -> wgpu_types::PrimitiveTopology {
         match self {
             GPUPrimitiveTopology::Point_list => wgpu_types::PrimitiveTopology::PointList,
@@ -367,7 +392,7 @@ impl Convert<wgpu_types::PrimitiveTopology> for &GPUPrimitiveTopology {
     }
 }
 
-impl Convert<wgpu_types::AddressMode> for GPUAddressMode {
+impl WebGPUConvert<wgpu_types::AddressMode> for GPUAddressMode {
     fn convert(self) -> wgpu_types::AddressMode {
         match self {
             GPUAddressMode::Clamp_to_edge => wgpu_types::AddressMode::ClampToEdge,
@@ -377,7 +402,7 @@ impl Convert<wgpu_types::AddressMode> for GPUAddressMode {
     }
 }
 
-impl Convert<wgpu_types::FilterMode> for GPUFilterMode {
+impl WebGPUConvert<wgpu_types::FilterMode> for GPUFilterMode {
     fn convert(self) -> wgpu_types::FilterMode {
         match self {
             GPUFilterMode::Nearest => wgpu_types::FilterMode::Nearest,
@@ -386,7 +411,7 @@ impl Convert<wgpu_types::FilterMode> for GPUFilterMode {
     }
 }
 
-impl Convert<wgpu_types::MipmapFilterMode> for GPUMipmapFilterMode {
+impl WebGPUConvert<wgpu_types::MipmapFilterMode> for GPUMipmapFilterMode {
     fn convert(self) -> wgpu_types::MipmapFilterMode {
         match self {
             GPUMipmapFilterMode::Nearest => wgpu_types::MipmapFilterMode::Nearest,
@@ -395,7 +420,7 @@ impl Convert<wgpu_types::MipmapFilterMode> for GPUMipmapFilterMode {
     }
 }
 
-impl Convert<wgpu_types::TextureViewDimension> for GPUTextureViewDimension {
+impl WebGPUConvert<wgpu_types::TextureViewDimension> for GPUTextureViewDimension {
     fn convert(self) -> wgpu_types::TextureViewDimension {
         match self {
             GPUTextureViewDimension::_1d => wgpu_types::TextureViewDimension::D1,
@@ -408,7 +433,7 @@ impl Convert<wgpu_types::TextureViewDimension> for GPUTextureViewDimension {
     }
 }
 
-impl Convert<wgpu_types::CompareFunction> for GPUCompareFunction {
+impl WebGPUConvert<wgpu_types::CompareFunction> for GPUCompareFunction {
     fn convert(self) -> wgpu_types::CompareFunction {
         match self {
             GPUCompareFunction::Never => wgpu_types::CompareFunction::Never,
@@ -423,7 +448,7 @@ impl Convert<wgpu_types::CompareFunction> for GPUCompareFunction {
     }
 }
 
-impl Convert<wgpu_types::BlendFactor> for &GPUBlendFactor {
+impl WebGPUConvert<wgpu_types::BlendFactor> for &GPUBlendFactor {
     fn convert(self) -> wgpu_types::BlendFactor {
         match self {
             GPUBlendFactor::Zero => wgpu_types::BlendFactor::Zero,
@@ -447,7 +472,7 @@ impl Convert<wgpu_types::BlendFactor> for &GPUBlendFactor {
     }
 }
 
-impl Convert<wgpu_types::BlendComponent> for &GPUBlendComponent {
+impl WebGPUConvert<wgpu_types::BlendComponent> for &GPUBlendComponent {
     fn convert(self) -> wgpu_types::BlendComponent {
         wgpu_types::BlendComponent {
             src_factor: self.srcFactor.convert(),
@@ -463,14 +488,14 @@ impl Convert<wgpu_types::BlendComponent> for &GPUBlendComponent {
     }
 }
 
-pub(crate) fn convert_load_op<T>(load: &GPULoadOp, clear: T) -> wgpu_com::LoadOp<T> {
+pub fn convert_load_op<T>(load: &GPULoadOp, clear: T) -> wgpu_com::LoadOp<T> {
     match load {
         GPULoadOp::Load => wgpu_com::LoadOp::Load,
         GPULoadOp::Clear => wgpu_com::LoadOp::Clear(clear),
     }
 }
 
-impl Convert<wgpu_com::StoreOp> for &GPUStoreOp {
+impl WebGPUConvert<wgpu_com::StoreOp> for &GPUStoreOp {
     fn convert(self) -> wgpu_com::StoreOp {
         match self {
             GPUStoreOp::Store => wgpu_com::StoreOp::Store,
@@ -479,7 +504,7 @@ impl Convert<wgpu_com::StoreOp> for &GPUStoreOp {
     }
 }
 
-impl Convert<wgpu_types::StencilOperation> for GPUStencilOperation {
+impl WebGPUConvert<wgpu_types::StencilOperation> for GPUStencilOperation {
     fn convert(self) -> wgpu_types::StencilOperation {
         match self {
             GPUStencilOperation::Keep => wgpu_types::StencilOperation::Keep,
@@ -494,7 +519,13 @@ impl Convert<wgpu_types::StencilOperation> for GPUStencilOperation {
     }
 }
 
-impl Convert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo {
+impl<D> WebGPUConvert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo<D>
+where
+    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    D::Promise: PromiseHelpers<D>,
+{
     fn convert(self) -> wgpu_com::TexelCopyBufferInfo {
         wgpu_com::TexelCopyBufferInfo {
             buffer: self.buffer.id().0,
@@ -503,7 +534,7 @@ impl Convert<wgpu_com::TexelCopyBufferInfo> for &GPUTexelCopyBufferInfo {
     }
 }
 
-impl TryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
+impl WebGPUTryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
     type Error = Error;
 
     fn try_convert(self) -> Result<wgpu_types::Origin3d, Self::Error> {
@@ -531,7 +562,7 @@ impl TryConvert<wgpu_types::Origin3d> for &GPUOrigin3D {
     }
 }
 
-impl TryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
+impl WebGPUTryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
     type Error = Error;
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-validate-gpuorigin2d-shape>
@@ -554,7 +585,11 @@ impl TryConvert<wgpu_types::Origin2d> for &GPUOrigin2D {
     }
 }
 
-impl TryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo {
+impl<D> WebGPUTryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo<D>
+where
+    D: DomTypes,
+    D::GPUTexture: GPUTextureTrait,
+{
     type Error = Error;
 
     fn try_convert(self) -> Result<wgpu_com::TexelCopyTextureInfo, Self::Error> {
@@ -564,7 +599,7 @@ impl TryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo {
             origin: self
                 .origin
                 .as_ref()
-                .map(TryConvert::<wgpu_types::Origin3d>::try_convert)
+                .map(WebGPUTryConvert::<wgpu_types::Origin3d>::try_convert)
                 .transpose()?
                 .unwrap_or_default(),
             aspect: match self.aspect {
@@ -576,7 +611,7 @@ impl TryConvert<wgpu_com::TexelCopyTextureInfo> for &GPUTexelCopyTextureInfo {
     }
 }
 
-impl<'a> Convert<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
+impl<'a> WebGPUConvert<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
     fn convert(self) -> Option<Cow<'a, str>> {
         if self.label.is_empty() {
             None
@@ -586,10 +621,14 @@ impl<'a> Convert<Option<Cow<'a, str>>> for &GPUObjectDescriptorBase {
     }
 }
 
-pub(crate) fn convert_bind_group_layout_entry(
+pub(crate) fn convert_bind_group_layout_entry<D>(
     bgle: &GPUBindGroupLayoutEntry,
-    device: &GPUDevice,
-) -> Fallible<Result<wgpu_types::BindGroupLayoutEntry, webgpu_traits::Error>> {
+    device: &D::GPUDevice,
+) -> Fallible<Result<wgpu_types::BindGroupLayoutEntry, webgpu_traits::Error>>
+where
+    D: DomTypes,
+    D::GPUDevice: GPUDeviceTrait<D>,
+{
     let number_of_provided_bindings = bgle.buffer.is_some() as u8 +
         bgle.sampler.is_some() as u8 +
         bgle.storageTexture.is_some() as u8 +
@@ -663,10 +702,14 @@ pub(crate) fn convert_bind_group_layout_entry(
     }))
 }
 
-pub(crate) fn convert_texture_descriptor(
+pub fn convert_texture_descriptor<D>(
     descriptor: &GPUTextureDescriptor,
-    device: &GPUDevice,
-) -> Fallible<(TextureDescriptor<'static>, wgpu_types::Extent3d)> {
+    device: &D::GPUDevice,
+) -> Fallible<(TextureDescriptor<'static>, wgpu_types::Extent3d)>
+where
+    D: DomTypes,
+    D::GPUDevice: GPUDeviceTrait<D>,
+{
     let size = (&descriptor.size).try_convert()?;
     let desc = TextureDescriptor {
         label: (&descriptor.parent).convert(),
@@ -685,7 +728,7 @@ pub(crate) fn convert_texture_descriptor(
     Ok((desc, size))
 }
 
-impl TryConvert<wgpu_types::Color> for &GPUColor {
+impl WebGPUTryConvert<wgpu_types::Color> for &GPUColor {
     type Error = Error;
 
     fn try_convert(self) -> Result<wgpu_types::Color, Self::Error> {
@@ -713,7 +756,11 @@ impl TryConvert<wgpu_types::Color> for &GPUColor {
     }
 }
 
-impl<'a> Convert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage {
+impl<'a, D> WebGPUConvert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage<D>
+where
+    D: DomTypes,
+    D::GPUShaderModule: GPUShaderModuleTrait,
+{
     fn convert(self) -> ProgrammableStageDescriptor<'a> {
         ProgrammableStageDescriptor {
             module: self.module.id().0,
@@ -731,20 +778,35 @@ impl<'a> Convert<ProgrammableStageDescriptor<'a>> for &GPUProgrammableStage {
     }
 }
 
-pub(crate) fn convert_texture_for_wgpu_with_cx(
+pub fn convert_texture_for_wgpu_with_cx<D>(
     cx: &mut JSContext,
-    texture_view: &GPUTextureOrGPUTextureView,
-) -> WebGPUTextureView {
+    texture_view: &GPUTextureOrGPUTextureView<D>,
+) -> WebGPUTextureView
+where
+    D: DomTypes,
+    D::GPUTexture: GPUTextureTrait,
+    D::GPUTextureView: GPUTextureViewTrait,
+{
     match texture_view {
         GPUTextureOrGPUTextureView::GPUTextureView(view) => view.id(),
         GPUTextureOrGPUTextureView::GPUTexture(texture) => texture.get_default_view(cx),
     }
 }
 
-pub(crate) fn convert_bind_group_entry<'a>(
+pub(crate) fn convert_bind_group_entry<'a, D>(
     cx: &mut JSContext,
-    bind_group: &GPUBindGroupEntry,
-) -> BindGroupEntry<'a> {
+    bind_group: &GPUBindGroupEntry<D>,
+) -> BindGroupEntry<'a>
+where
+    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D::GPUTexture: GPUTextureTrait,
+    D::GPUTextureView: GPUTextureViewTrait,
+    D::GPUSampler: GPUSamplerTrait,
+    D::GPUExternalTexture: GPUExternalTextureTrait,
+    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    D::Promise: PromiseHelpers<D>,
+{
     BindGroupEntry {
         binding: bind_group.binding,
         resource: match bind_group.resource {
@@ -770,7 +832,7 @@ pub(crate) fn convert_bind_group_entry<'a>(
     }
 }
 
-impl Convert<wgpu_types::TextureDimension> for GPUTextureDimension {
+impl WebGPUConvert<wgpu_types::TextureDimension> for GPUTextureDimension {
     fn convert(self) -> wgpu_types::TextureDimension {
         match self {
             GPUTextureDimension::_1d => wgpu_types::TextureDimension::D1,
@@ -780,7 +842,7 @@ impl Convert<wgpu_types::TextureDimension> for GPUTextureDimension {
     }
 }
 
-impl Convert<wgpu_types::PredefinedColorSpace> for PredefinedColorSpace {
+impl WebGPUConvert<wgpu_types::PredefinedColorSpace> for PredefinedColorSpace {
     fn convert(self) -> wgpu_types::PredefinedColorSpace {
         match self {
             PredefinedColorSpace::Srgb => wgpu_types::PredefinedColorSpace::Srgb,
@@ -788,7 +850,7 @@ impl Convert<wgpu_types::PredefinedColorSpace> for PredefinedColorSpace {
     }
 }
 
-impl Convert<QuerySetDescriptor<'static>> for &GPUQuerySetDescriptor {
+impl WebGPUConvert<QuerySetDescriptor<'static>> for &GPUQuerySetDescriptor {
     fn convert(self) -> QuerySetDescriptor<'static> {
         QuerySetDescriptor {
             label: (&self.parent).convert(),
@@ -801,7 +863,11 @@ impl Convert<QuerySetDescriptor<'static>> for &GPUQuerySetDescriptor {
     }
 }
 
-impl Convert<PassTimestampWrites> for &GPUComputePassTimestampWrites {
+impl<D> WebGPUConvert<PassTimestampWrites> for &GPUComputePassTimestampWrites<D>
+where
+    D: DomTypes,
+    D::GPUQuerySet: GPUQuerySetTrait,
+{
     fn convert(self) -> PassTimestampWrites {
         PassTimestampWrites {
             query_set: self.querySet.id().0,
@@ -811,7 +877,11 @@ impl Convert<PassTimestampWrites> for &GPUComputePassTimestampWrites {
     }
 }
 
-impl Convert<PassTimestampWrites> for &GPURenderPassTimestampWrites {
+impl<D> WebGPUConvert<PassTimestampWrites> for &GPURenderPassTimestampWrites<D>
+where
+    D: DomTypes,
+    D::GPUQuerySet: GPUQuerySetTrait,
+{
     fn convert(self) -> PassTimestampWrites {
         PassTimestampWrites {
             query_set: self.querySet.id().0,
@@ -821,16 +891,20 @@ impl Convert<PassTimestampWrites> for &GPURenderPassTimestampWrites {
     }
 }
 
-impl Convert<ComputePassDescriptor<'static>> for &GPUComputePassDescriptor {
+impl<D> WebGPUConvert<ComputePassDescriptor<'static>> for &GPUComputePassDescriptor<D>
+where
+    D: DomTypes,
+    D::GPUQuerySet: GPUQuerySetTrait,
+{
     fn convert(self) -> ComputePassDescriptor<'static> {
         ComputePassDescriptor {
             label: (&self.parent).convert(),
-            timestamp_writes: self.timestampWrites.as_ref().map(Convert::convert),
+            timestamp_writes: self.timestampWrites.as_ref().map(WebGPUConvert::convert),
         }
     }
 }
 
-impl Convert<IndexFormat> for GPUIndexFormat {
+impl WebGPUConvert<IndexFormat> for GPUIndexFormat {
     fn convert(self) -> IndexFormat {
         match self {
             GPUIndexFormat::Uint16 => IndexFormat::Uint16,

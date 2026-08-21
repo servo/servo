@@ -9,6 +9,7 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::traits::GPUShaderModuleTrait;
 use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
 
 use super::gpucompilationinfo::GPUCompilationInfo;
@@ -165,5 +166,11 @@ impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
     ) {
         let info = GPUCompilationInfo::from(cx, &self.global(), response);
         promise.resolve_native(cx, &info);
+    }
+}
+
+impl GPUShaderModuleTrait for GPUShaderModule {
+    fn id(&self) -> WebGPUShaderModule {
+        self.id()
     }
 }

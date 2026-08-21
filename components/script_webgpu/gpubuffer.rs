@@ -4,35 +4,33 @@
 
 use std::ops::Range;
 use std::rc::Rc;
-use std::string::String;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use js::typedarray::HeapArrayBuffer;
+use jstraceable_derive::JSTraceable;
+use log::{error, warn};
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
-use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUMapModeConstants;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUBufferDescriptor, GPUBufferMapState, GPUBufferMethods, GPUBufferWrap, GPUFlagsConstant,
+    GPUMapModeConstants, GPUMapModeFlags, GPUSize64,
+};
+use script_bindings::error::{Error, Fallible};
+use script_bindings::interfaces::PromiseHelpers;
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{Mapping, WebGPU, WebGPUBuffer, WebGPURequest};
 use wgpu_core::device::HostMap;
-use wgpu_core::resource::BufferAccessError;
 
-use crate::conversions::Convert;
-use crate::dom::bindings::buffer_source::DataBlock;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUBufferDescriptor, GPUBufferMapState, GPUBufferMethods, GPUFlagsConstant, GPUMapModeFlags,
-    GPUSize64,
-};
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomGlobal;
+use crate::datablock::DataBlock;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
-use crate::dom::webgpu::gpudevice::GPUDevice;
-use crate::routed_promise::{RoutedPromiseListener, callback_promise};
+use crate::gpuconvert::WebGPUConvert;
+use crate::traits::{GPUDeviceTrait, WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -94,27 +92,31 @@ impl Drop for DroppableGPUBuffer {
 }
 
 #[dom_struct]
-pub(crate) struct GPUBuffer {
+pub struct GPUBuffer<D: DomTypes> {
     reflector_: Reflector,
     droppable: DroppableGPUBuffer,
     label: DomRefCell<USVString>,
-    device: Dom<GPUDevice>,
+    device: Dom<D::GPUDevice>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-size>
     size: GPUSize64,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage>
     usage: GPUFlagsConstant,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
     #[conditional_malloc_size_of]
-    pending_map: DomRefCell<Option<Rc<Promise>>>,
+    pending_map: DomRefCell<Option<Rc<D::Promise>>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
     mapping: DomRefCell<Option<ActiveBufferMapping>>,
 }
 
-impl GPUBuffer {
+impl<D> GPUBuffer<D>
+where
+    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D::Promise: PromiseHelpers<D>,
+{
     fn new_inherited(
         channel: WebGPU,
         buffer: WebGPUBuffer,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
         mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
@@ -135,43 +137,52 @@ impl GPUBuffer {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         channel: WebGPU,
         buffer: WebGPUBuffer,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         size: GPUSize64,
         usage: GPUFlagsConstant,
         mapping: Option<RootedTraceableBox<ActiveBufferMapping>>,
         label: USVString,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object_with_wrap::<D, _, _>(
             Box::new(GPUBuffer::new_inherited(
                 channel, buffer, device, size, usage, mapping, label,
             )),
             global,
             cx,
+            GPUBufferWrap::<D>,
         )
     }
 }
 
-impl GPUBuffer {
-    pub(crate) fn id(&self) -> WebGPUBuffer {
+impl<D> GPUBuffer<D>
+where
+    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    D::Promise: PromiseHelpers<D>,
+{
+    pub fn id(&self) -> WebGPUBuffer {
         self.droppable.buffer
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer>
-    pub(crate) fn create(
+    pub fn create(
         cx: &mut js::context::JSContext,
-        device: &GPUDevice,
+        device: &D::GPUDevice,
         descriptor: &GPUBufferDescriptor,
-    ) -> Fallible<DomRoot<GPUBuffer>> {
+    ) -> Fallible<DomRoot<GPUBuffer<D>>> {
         let desc = wgpu_types::BufferDescriptor {
             label: (&descriptor.parent).convert(),
             size: descriptor.size as wgpu_types::BufferAddress,
             usage: wgpu_types::BufferUsages::from_bits_retain(descriptor.usage),
             mapped_at_creation: descriptor.mappedAtCreation,
         };
-        let id = device.global().wgpu_id_hub().create_buffer_id();
+        let id = <D::GPUDevice as DomGlobalGeneric<D>>::global_from_reflector(device)
+            .global_wgpu_id_hub()
+            .create_buffer_id();
 
         device
             .channel()
@@ -193,9 +204,10 @@ impl GPUBuffer {
             None
         };
 
+        let global = <D::GPUDevice as DomGlobalGeneric<D>>::global_from_reflector(device);
         Ok(GPUBuffer::new(
             cx,
-            &device.global(),
+            &*global,
             device.channel(),
             buffer,
             device,
@@ -207,13 +219,21 @@ impl GPUBuffer {
     }
 }
 
-impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
+impl<D> GPUBufferMethods<D> for GPUBuffer<D>
+where
+    D: DomTypes<GPUBuffer = GPUBuffer<D>>,
+    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D> + PartialEq,
+    D::GPUDevice: GPUDeviceTrait<D>,
+    D::GPUDevice: DomGlobalGeneric<D> + GPUDeviceTrait<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+    D::Promise: PromiseHelpers<D>,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap>
     fn Unmap(&self, cx: &mut js::context::JSContext) {
         // Step 1
         let promise = self.pending_map.safe_borrow_mut(cx).take();
         if let Some(promise) = promise {
-            promise.reject_error(cx, Error::Abort(None));
+            promise.reject_error(cx, Error::Abort(Some("No pending map".into())));
         }
         // Step 2
         let mut mapping = RootedTraceableBox::new(self.mapping.safe_borrow_mut(cx).take());
@@ -270,11 +290,14 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
         mode: u32,
         offset: GPUSize64,
         size: Option<GPUSize64>,
-    ) -> Rc<Promise> {
-        let promise = Promise::new_in_realm(cx);
+    ) -> Rc<D::Promise> {
+        let promise = D::Promise::new_in_realm(cx);
         // Step 2
         if self.pending_map.borrow().is_some() {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("There is already an active map".into())),
+            );
             return promise;
         }
         // Step 4
@@ -293,11 +316,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             },
         };
 
-        let callback = callback_promise(
-            &promise,
-            self,
-            self.global().task_manager().dom_manipulation_task_source(),
-        );
+        let callback = D::Promise::callback_promise_gpubuffer(&promise, self);
         if let Err(e) = self
             .droppable
             .channel
@@ -340,7 +359,7 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .safe_borrow_mut(cx)
             .take()
             .map(RootedTraceableBox::new)
-            .ok_or(Error::Operation(None))?;
+            .ok_or(Error::Operation(Some("No active buffer map".into())))?;
 
         let valid = offset.is_multiple_of(wgpu_types::MAP_ALIGNMENT) &&
             range_size % wgpu_types::COPY_BUFFER_ALIGNMENT == 0 &&
@@ -350,7 +369,9 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             self.mapping
                 .safe_borrow_mut(cx)
                 .replace(*mapping.into_box());
-            return Err(Error::Operation(None));
+            return Err(Error::Operation(Some(
+                "Buffer Mapping is not active".into(),
+            )));
         }
 
         // Step 4
@@ -361,7 +382,11 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
             .data
             .view(cx, rebased_offset..rebased_offset + range_size as usize)
             .map(|view| view.array_buffer())
-            .map_err(|()| Error::Operation(None));
+            .map_err(|()| {
+                Error::Operation(Some(
+                    "Mapped range overlaps with others or is out of bounds.".into(),
+                ))
+            });
 
         self.mapping
             .safe_borrow_mut(cx)
@@ -402,8 +427,13 @@ impl GPUBufferMethods<crate::DomTypeHolder> for GPUBuffer {
     }
 }
 
-impl GPUBuffer {
-    fn map_failure(&self, cx: &mut JSContext, p: &Rc<Promise>) {
+impl<D> GPUBuffer<D>
+where
+    D: DomTypes,
+    D::Promise: PromiseHelpers<D> + PartialEq,
+    D::GPUDevice: GPUDeviceTrait<D>,
+{
+    pub fn map_failure(&self, cx: &mut JSContext, p: &Rc<D::Promise>) {
         // Step 1
         if self.pending_map.borrow().as_ref() != Some(p) {
             assert!(p.is_rejected());
@@ -416,13 +446,18 @@ impl GPUBuffer {
         // Step 4
         let is_lost = self.device.is_lost();
         if is_lost {
-            p.reject_error(cx, Error::Abort(None));
+            p.reject_error(cx, Error::Abort(Some("GPUDevice is lost".into())));
         } else {
-            p.reject_error(cx, Error::Operation(None));
+            p.reject_error(cx, Error::Operation(Some("Mapping failure".into())));
         }
     }
 
-    fn map_success(&self, cx: &mut js::context::JSContext, p: &Rc<Promise>, wgpu_mapping: Mapping) {
+    pub fn map_success(
+        &self,
+        cx: &mut js::context::JSContext,
+        p: &Rc<D::Promise>,
+        wgpu_mapping: Mapping,
+    ) {
         // Step 1
         if self.pending_map.borrow().as_ref() != Some(p) {
             assert!(p.is_rejected());
@@ -457,20 +492,6 @@ impl GPUBuffer {
                 self.pending_map.safe_borrow_mut(cx).take();
                 p.resolve_native(cx, &());
             },
-        }
-    }
-}
-
-impl RoutedPromiseListener<Result<Mapping, BufferAccessError>> for GPUBuffer {
-    fn handle_response(
-        &self,
-        cx: &mut js::context::JSContext,
-        response: Result<Mapping, BufferAccessError>,
-        promise: &Rc<Promise>,
-    ) {
-        match response {
-            Ok(mapping) => self.map_success(cx, promise, mapping),
-            Err(_) => self.map_failure(cx, promise),
         }
     }
 }

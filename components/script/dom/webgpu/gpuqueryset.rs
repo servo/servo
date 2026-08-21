@@ -9,9 +9,10 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{GPUDeviceMethods,
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use script_bindings::root::DomRoot;
+use script_webgpu::gpuconvert::WebGPUConvert;
+use script_webgpu::traits::GPUQuerySetTrait;
 use webgpu_traits::{WebGPU, WebGPUQuerySet, WebGPURequest};
 
-use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUQuerySetDescriptor, GPUQuerySetMethods,
 };
@@ -169,5 +170,11 @@ impl GPUQuerySetMethods<crate::DomTypeHolder> for GPUQuerySet {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueryset-count>
     fn Count(&self) -> u32 {
         self.count
+    }
+}
+
+impl GPUQuerySetTrait for GPUQuerySet {
+    fn id(&self) -> WebGPUQuerySet {
+        self.id()
     }
 }

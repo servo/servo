@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::traits::GPUTextureViewTrait;
 use webgpu_traits::{WebGPU, WebGPURequest, WebGPUTextureView};
 
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::GPUTextureViewMethods;
@@ -100,5 +101,11 @@ impl GPUTextureViewMethods<crate::DomTypeHolder> for GPUTextureView {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
         *self.label.safe_borrow_mut(no_gc) = value;
+    }
+}
+
+impl GPUTextureViewTrait for GPUTextureView {
+    fn id(&self) -> WebGPUTextureView {
+        self.id()
     }
 }

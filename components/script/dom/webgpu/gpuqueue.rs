@@ -15,10 +15,10 @@ use script_bindings::codegen::GenericBindings::HTMLVideoElementBinding::HTMLVide
 use script_bindings::codegen::GenericBindings::ImageBitmapBinding::ImageBitmapMethods;
 use script_bindings::codegen::GenericBindings::OffscreenCanvasBinding::OffscreenCanvasMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::gpuconvert::{WebGPUConvert, WebGPUTryConvert};
 use servo_base::generic_channel::GenericSharedMemory;
 use webgpu_traits::{WebGPU, WebGPUQueue, WebGPURequest};
 
-use crate::conversions::{Convert, TryConvert};
 use crate::dom::bindings::buffer_source::get_buffer_source_slice;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUCopyExternalImageDestInfo, GPUCopyExternalImageSourceInfo, GPUExtent3D, GPUQueueMethods,

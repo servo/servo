@@ -16,14 +16,3 @@ pub(crate) trait Convert<T> {
 pub(crate) trait ConvertWithCx<T> {
     fn convert(&self, cx: &mut JSContext) -> T;
 }
-
-/// A version of the `TryInto<T>` trait from the standard library that can be used
-/// to convert between two types that are not defined in the script crate.
-/// This is intended to be used on dict/enum types generated from WebIDL once
-/// those types are moved out of the script crate.
-#[cfg(feature = "webgpu")]
-pub(crate) trait TryConvert<T> {
-    type Error;
-
-    fn try_convert(self) -> Result<T, Self::Error>;
-}

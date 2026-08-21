@@ -6,9 +6,9 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_webgpu::gpuconvert::WebGPUTryConvert;
 use webgpu_traits::{RenderCommand, WebGPU, WebGPURenderPass, WebGPURequest};
 
-use crate::conversions::TryConvert;
 use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
     GPUColor, GPUIndexFormat, GPURenderPassEncoderMethods,
 };

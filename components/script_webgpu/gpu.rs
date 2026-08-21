@@ -2,71 +2,89 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::HandleObject;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use jstraceable_derive::JSTraceable;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUMethods, GPUPowerPreference, GPURequestAdapterOptions, GPUTextureFormat, GPUWrap,
+};
+use script_bindings::dom::MutNullableDom;
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::root::DomRoot;
 use servo_constellation_traits::ScriptToConstellationMessage;
-use webgpu_traits::WebGPUAdapterResponse;
 use wgpu_types::PowerPreference;
 
 use super::wgsllanguagefeatures::WGSLLanguageFeatures;
-use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
-    GPUMethods, GPUPowerPreference, GPURequestAdapterOptions, GPUTextureFormat,
-};
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
-use crate::dom::webgpu::gpuadapter::GPUAdapter;
-use crate::routed_promise::{RoutedPromiseListener, callback_promise};
+use crate::gpuadapter::GPUAdapter;
+use crate::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
 
 #[dom_struct]
-#[expect(clippy::upper_case_acronyms)]
-pub(crate) struct GPU {
+pub struct GPU<D: DomTypes> {
     reflector_: Reflector,
     /// Same object for <https://www.w3.org/TR/webgpu/#dom-gpu-wgsllanguagefeatures>
-    wgsl_language_features: MutNullableDom<WGSLLanguageFeatures>,
+    wgsl_language_features: MutNullableDom<WGSLLanguageFeatures<D>>,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl GPU {
-    pub(crate) fn new_inherited() -> GPU {
+impl<D> GPU<D>
+where
+    D: DomTypes<GPU = GPU<D>>,
+{
+    pub(crate) fn new_inherited() -> GPU<D> {
         GPU {
             reflector_: Reflector::new(),
             wgsl_language_features: MutNullableDom::default(),
+            phantom: PhantomData,
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<GPU> {
-        reflect_dom_object_with_cx(Box::new(GPU::new_inherited()), global, cx)
+    pub fn new(cx: &mut JSContext, global: &D::GlobalScope) -> DomRoot<GPU<D>> {
+        reflect_dom_object_with_wrap::<D, _, _>(
+            Box::new(GPU::new_inherited()),
+            global,
+            cx,
+            GPUWrap::<D>,
+        )
+    }
+
+    fn global(&self) -> DomRoot<D::GlobalScope> {
+        <D::GPU as DomGlobalGeneric<D>>::global_from_reflector(self)
     }
 }
 
-impl GPUMethods<crate::DomTypeHolder> for GPU {
+impl<D: DomTypes> GPUMethods<D> for GPU<D>
+where
+    D: DomTypes<GPU = GPU<D>, WGSLLanguageFeatures = WGSLLanguageFeatures<D>>,
+    D::Promise: PromiseHelpers<D> + WebGPUPromiseTrait<D>,
+    D::GPU: DomGlobalGeneric<D>,
+    D::GlobalScope: WebGPUGlobalTrait,
+{
     /// <https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter>
     fn RequestAdapter(
         &self,
         cx: &mut CurrentRealm,
         options: &GPURequestAdapterOptions,
-    ) -> Rc<Promise> {
+    ) -> Rc<D::Promise> {
         let global = &self.global();
         // 1. Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
-        let task_manager = global.task_manager();
-        let task_source = task_manager.dom_manipulation_task_source();
-        let callback = callback_promise(&promise, self, task_source);
+        let promise = D::Promise::new_in_realm(cx);
+        let callback = D::Promise::callback_promise_gpu(&promise, self);
 
         let power_preference = match options.powerPreference {
             Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
             Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
             None => PowerPreference::default(),
         };
-        let ids = global.wgpu_id_hub().create_adapter_id();
+        let ids = global.global_wgpu_id_hub().create_adapter_id();
 
         // 3. Issue the initialization steps on the Device timeline of this
 
@@ -85,7 +103,7 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
                 // and wgpu does not support "compatibility" yet so we return core for now
             },
             _ => {
-                promise.resolve_native(cx, &None::<GPUAdapter>);
+                promise.resolve_native(cx, &None::<GPUAdapter<D>>);
                 return promise;
             },
         }
@@ -103,7 +121,10 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
             ))
             .is_err()
         {
-            promise.reject_error(cx, Error::Operation(None));
+            promise.reject_error(
+                cx,
+                Error::Operation(Some("Could not request adapter".into())),
+            );
         }
         // 4. Return promise
         promise
@@ -123,45 +144,8 @@ impl GPUMethods<crate::DomTypeHolder> for GPU {
     fn WgslLanguageFeatures(
         &self,
         cx: &mut js::context::JSContext,
-    ) -> DomRoot<WGSLLanguageFeatures> {
+    ) -> DomRoot<WGSLLanguageFeatures<D>> {
         self.wgsl_language_features
-            .or_init(|| WGSLLanguageFeatures::new(cx, &self.global(), None))
-    }
-}
-
-impl RoutedPromiseListener<WebGPUAdapterResponse> for GPU {
-    fn handle_response(
-        &self,
-        cx: &mut js::context::JSContext,
-        response: WebGPUAdapterResponse,
-        promise: &Rc<Promise>,
-    ) {
-        match response {
-            Some(Ok(adapter)) => {
-                let adapter = GPUAdapter::new(
-                    cx,
-                    &self.global(),
-                    adapter.channel,
-                    DOMString::from(format!(
-                        "{} ({:?})",
-                        adapter.adapter_info.name, adapter.adapter_id.0
-                    )),
-                    HandleObject::null(),
-                    adapter.features,
-                    adapter.limits,
-                    adapter.adapter_info,
-                    adapter.adapter_id,
-                );
-                promise.resolve_native(cx, &adapter);
-            },
-            Some(Err(e)) => {
-                warn!("Could not get GPUAdapter ({:?})", e);
-                promise.resolve_native(cx, &None::<GPUAdapter>);
-            },
-            None => {
-                warn!("Couldn't get a response, because WebGPU is disabled");
-                promise.resolve_native(cx, &None::<GPUAdapter>);
-            },
-        }
+            .or_init(|| WGSLLanguageFeatures::new(cx, &*self.global(), None))
     }
 }

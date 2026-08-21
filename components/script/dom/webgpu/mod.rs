@@ -5,14 +5,21 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use script_webgpu::promise::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use script_webgpu::traits::{WebGPUGlobalTrait, WebGPUPromiseTrait};
+use webgpu_traits::Mapping;
+use wgpu_core::resource::BufferAccessError;
 
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::types::GPUAdapter;
+use crate::dom::gpu::GPU;
+use crate::dom::types::{GPUAdapter, GPUBuffer};
 use crate::dom::{GlobalScope, Promise};
 use crate::routed_promise::callback_promise;
 
-pub(crate) mod gpu;
+pub(crate) mod gpu_promise_listener;
+pub(crate) mod gpu {
+    #[expect(clippy::upper_case_acronyms)]
+    pub(crate) type GPU = script_webgpu::gpu::GPU<crate::DomTypeHolder>;
+}
 pub(crate) mod gpuadapter_promise_listener;
 pub(crate) mod gpuadapter {
     pub(crate) type GPUAdapter = script_webgpu::gpuadapter::GPUAdapter<crate::DomTypeHolder>;
@@ -21,15 +28,26 @@ pub(crate) mod gpuadapterinfo {
     pub(crate) type GPUAdapterInfo =
         script_webgpu::gpuadapterinfo::GPUAdapterInfo<crate::DomTypeHolder>;
 }
-pub(crate) mod gpubindgroup;
-pub(crate) mod gpubindgrouplayout;
-pub(crate) mod gpubuffer;
+pub(crate) mod gpubindgroup {
+    pub(crate) type GPUBindGroup = script_webgpu::gpubindgroup::GPUBindGroup<crate::DomTypeHolder>;
+}
+pub(crate) mod gpubindgrouplayout {
+    pub(crate) type GPUBindGroupLayout =
+        script_webgpu::gpubindgrouplayout::GPUBindGroupLayout<crate::DomTypeHolder>;
+}
+pub(crate) mod gpubuffer_promise_listener;
+pub(crate) mod gpubuffer {
+    pub(crate) type GPUBuffer = script_webgpu::gpubuffer::GPUBuffer<crate::DomTypeHolder>;
+}
 pub(crate) mod gpubufferusage {
     pub(crate) type GPUBufferUsage =
         script_webgpu::gpubufferusage::GPUBufferUsage<crate::DomTypeHolder>;
 }
 pub(crate) mod gpucanvascontext;
-pub(crate) mod gpucolorwrite;
+pub(crate) mod gpucolorwrite {
+    pub(crate) type GPUColorWrite =
+        script_webgpu::gpucolorwrite::GPUColorWrite<crate::DomTypeHolder>;
+}
 pub(crate) mod gpucommandbuffer {
     pub(crate) type GPUCommandBuffer =
         script_webgpu::gpucommandbuffer::GPUCommandBuffer<crate::DomTypeHolder>;
@@ -45,7 +63,6 @@ pub(crate) mod gpucompilationmessage {
 }
 pub(crate) mod gpucomputepassencoder;
 pub(crate) mod gpucomputepipeline;
-pub(crate) mod gpuconvert;
 pub(crate) mod gpudevice;
 pub(crate) mod gpudevicelostinfo {
     pub(crate) type GPUDeviceLostInfo =
@@ -101,11 +118,27 @@ pub(crate) mod wgsllanguagefeatures {
 }
 
 impl WebGPUPromiseTrait<crate::DomTypeHolder> for Promise {
-    fn callback_promise(
+    fn callback_promise_adapter(
         self: &Rc<Self>,
         d: &GPUAdapter,
     ) -> servo_base::generic_channel::GenericCallback<webgpu_traits::WebGPUDeviceResponse> {
         let task_manager = <GPUAdapter as DomGlobal>::global(d).task_manager();
+        callback_promise(self, d, task_manager.dom_manipulation_task_source())
+    }
+
+    fn callback_promise_gpubuffer(
+        self: &Rc<Self>,
+        d: &GPUBuffer,
+    ) -> servo_base::generic_channel::GenericCallback<Result<Mapping, BufferAccessError>> {
+        let task_manager = <GPUBuffer as DomGlobal>::global(d).task_manager();
+        callback_promise(self, d, task_manager.dom_manipulation_task_source())
+    }
+
+    fn callback_promise_gpu(
+        self: &Rc<Self>,
+        d: &GPU,
+    ) -> servo_base::generic_channel::GenericCallback<webgpu_traits::WebGPUAdapterResponse> {
+        let task_manager = <GPU as DomGlobal>::global(d).task_manager();
         callback_promise(self, d, task_manager.dom_manipulation_task_source())
     }
 }
