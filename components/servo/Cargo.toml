@@ -33,10 +33,9 @@ background_hang_monitor = ["servo-background-hang-monitor/sampler"]
 # Allow brotli to be used for compression and decompression in TransportStream JavaScript API
 brotli-compression-stream = ["script/brotli-compression-stream"]
 
-# Shaping backend
+# Shaping backends
 harfrust = ["servo-fonts/harfrust"]
 harfbuzz = ["servo-fonts/harfbuzz"]
-compare_shapers = ["servo-fonts/compare"]
 
 # This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
 # which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
