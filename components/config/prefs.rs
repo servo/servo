@@ -118,13 +118,9 @@ pub struct Preferences {
     pub fonts_default_monospace_size: i64,
     /// Shaping backend:
     ///
-    /// - harfbuzz
-    /// - harfrust
-    /// - auto
-    /// - compare
-    ///
-    /// `auto` (the default) will choose in order (if available): compare, harfrust, harfbuzz.
-    /// `compare` is a debug setting which runs both shaping backends concurrently and diffs output and compares performance.
+    /// - harfrust - Use HarfRust shaper
+    /// - harfbuzz - Use HarfBuzz shaper
+    /// - compare  - debug setting which runs both shaping backends, diffs output and compares performance.
     pub fonts_shaping_backend: String,
     /// The amount of time that a half cycle of a text caret blink takes in milliseconds.
     /// If this value is less than or equal to zero, then caret blink is disabled.
