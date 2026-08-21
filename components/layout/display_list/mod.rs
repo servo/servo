@@ -235,7 +235,6 @@ impl DisplayListBuilder<'_> {
 
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
-        builder.paint_timing_handler.mark_paint_timing();
 
         webrender_display_list_builder.end().1
     }

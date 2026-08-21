@@ -356,8 +356,33 @@ impl PaintTimingHandler {
         // Note: We use flag lcp_candidate_updated for updating, needs revisit
     }
 
+    /// <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
+    fn report_largest_contentful_paint(&mut self, halt_lcp: bool) {
+        // Step 1. Let window be document’s relevant global object.
+        // Step 2. If either of window’s has dispatched scroll event or has
+        // dispatched input event is true, return.
+        if halt_lcp {
+            return;
+        }
+
+        // Step 3. Let newCandidate be the result of computing a new largest
+        // contentful paint candidate given document, paintedImages,
+        // paintedTextNodes, and document’s current largest contentful paint
+        // candidate.
+        self.compute_new_lcp_candidate();
+
+        // Step 4. If newCandidate is null, return.
+        // Step 5. Set document’s current largest contentful paint candidate to
+        // newCandidate.
+        // TODO: Make it return and store here following specs.
+        // Step 6. Let entry be the result of creating a LargestContentfulPaint
+        // entry with newCandidate, paintTimingInfo, and document.
+        // Step 7. Queue the PerformanceEntry entry.
+        // Note: Step 6-7 are handled in script.
+    }
+
     /// <https://www.w3.org/TR/paint-timing/#mark-paint-timing>
-    pub(crate) fn mark_paint_timing(&mut self) {
+    pub(crate) fn mark_paint_timing(&mut self, halt_lcp: bool) {
         // > From: <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>
         // > Note: Each pending image record in paintedImages and text
         // > element in paintedTextNodes will only be reported exactly
@@ -373,7 +398,10 @@ impl PaintTimingHandler {
         self.painted_text_nodes
             .retain(|node, _record| self.reported_text_nodes.insert(*node));
 
-        self.compute_new_lcp_candidate();
+        // Step 10. Let flushPaintTimings be the following steps:
+        // Step 10.3. Report largest contentful paint given document,
+        // paintTimingInfo, paintedImages and paintedTextNodes.
+        self.report_largest_contentful_paint(halt_lcp);
     }
 
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {

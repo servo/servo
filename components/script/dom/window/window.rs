@@ -502,6 +502,12 @@ pub(crate) struct Window {
     /// A flag to indicate whether the developer tools has requested
     /// live updates from the window.
     devtools_wants_updates: Cell<bool>,
+
+    /// <https://www.w3.org/TR/largest-contentful-paint/#has-dispatched-scroll-event>
+    has_dispatched_scroll_event: Cell<bool>,
+
+    /// <https://wicg.github.io/event-timing/#has-dispatched-input-event>
+    has_dispatched_input_event: Cell<bool>,
 }
 
 impl Window {
@@ -516,6 +522,16 @@ impl Window {
 
     pub(crate) fn as_global_scope(&self) -> &GlobalScope {
         self.upcast::<GlobalScope>()
+    }
+
+    /// <https://www.w3.org/TR/largest-contentful-paint/#has-dispatched-scroll-event>
+    pub(crate) fn mark_has_dispatched_scroll_event(&self) {
+        self.has_dispatched_scroll_event.set(true);
+    }
+
+    /// <https://wicg.github.io/event-timing/#has-dispatched-input-event>
+    pub(crate) fn mark_has_dispatched_input_event(&self) {
+        self.has_dispatched_input_event.set(true);
     }
 
     pub(crate) fn layout(&self) -> Ref<'_, Box<dyn Layout>> {
@@ -2744,6 +2760,8 @@ impl Window {
             animations: document.animations().sets.clone(),
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
+            halt_lcp: self.has_dispatched_scroll_event.get() ||
+                self.has_dispatched_input_event.get(),
             document_context,
             accessibility_damage,
             rooted_nodes_for_accessibility_integrity_check,
@@ -4011,6 +4029,8 @@ impl Window {
             pending_media_query_evaluation: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
             devtools_wants_updates: Default::default(),
+            has_dispatched_scroll_event: Cell::new(false),
+            has_dispatched_input_event: Cell::new(false),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, &origin, win)
