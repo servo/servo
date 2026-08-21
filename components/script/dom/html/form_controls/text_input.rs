@@ -7,17 +7,21 @@
 use std::default::Default;
 use std::ops::Range;
 
+use app_units::Au;
 use bitflags::bitflags;
-use embedder_traits::{EmbedderMsg, ScriptToEmbedderChan};
+use embedder_traits::{EmbedderMsg, MouseButton, ScriptToEmbedderChan};
+use euclid::Point2D;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
-use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
+use script_bindings::root::Dom;
 use script_bindings::trace::CustomTraceable;
+use script_traits::MouseButtons;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
 use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
+use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -30,8 +34,11 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::inputevent::InputEvent;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::types::{ClipboardEvent, UIEvent};
-use crate::drag_data_store::Kind;
+use crate::dom::text_control::TextControlElement;
+use crate::dom::types::{ClipboardEvent, HTMLInputElement, HTMLTextAreaElement, UIEvent};
+use crate::dom::{Element, NodeTraits};
+use crate::drag::drag_data_store::Kind;
+use crate::drag::drag_gesture::{DragGesture, DragHandler};
 
 /// A trait which abstracts access to the embedder's clipboard in order to allow unit
 /// testing clipboard-dependent parts of `script`.
@@ -158,9 +165,6 @@ pub struct TextInput<T: ClipboardProvider> {
 
     /// Was last change made by set_content?
     was_last_change_by_set_content: bool,
-
-    /// Whether or not we are currently dragging in this [`TextInput`].
-    currently_dragging: bool,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -296,7 +300,6 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: Default::default(),
             selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
-            currently_dragging: Default::default(),
         }
     }
 
@@ -903,63 +906,54 @@ impl<T: ClipboardProvider> TextInput<T> {
             .unwrap_or_else(|| self.rope.last_index())
     }
 
-    /// Handle a mouse even that has happened in this [`TextInput`]. Returns `true` if the selection
-    /// in the input may have changed and `false` otherwise.
-    pub(crate) fn handle_mouse_event(&mut self, mouse_event: &MouseEvent) -> bool {
-        // Cancel any ongoing drags if we see a mouseup of any kind or notice
-        // that a button other than the primary button is pressed.
-        let event_type = mouse_event.upcast::<Event>().type_();
-        if event_type == atom!("mouseup") || mouse_event.Buttons() & 1 != 1 {
-            self.currently_dragging = false;
-        }
+    fn drag_moved(
+        &mut self,
+        element: &impl TextControlElement,
+        point_in_viewport: Point2D<Au, CSSPixel>,
+    ) {
+        self.edit_point = element
+            .owner_window()
+            .text_index_query_on_node_for_event(element.upcast(), point_in_viewport)
+            .map(|(_, character_offset)| {
+                self.rope.move_by(
+                    Default::default(),
+                    RopeMovement::Character,
+                    character_offset.0 as isize,
+                )
+            })
+            .unwrap_or_else(|| self.rope.last_index());
 
-        if event_type == atom!("mousedown") {
-            return self.handle_mousedown(mouse_event);
-        }
-
-        if event_type == atom!("mousemove") && self.currently_dragging {
-            self.edit_point = self.edit_point_for_mouse_event(mouse_event);
-            self.update_selection_direction();
-            return true;
-        }
-
-        false
+        self.update_selection_direction();
     }
 
     /// Handle a "mousedown" event that happened on this [`TextInput`], belonging to the
     /// given [`Node`].
     ///
     /// Returns `true` if the [`TextInput`] changed at all or `false` otherwise.
-    fn handle_mousedown(&mut self, mouse_event: &MouseEvent) -> bool {
+    pub(crate) fn handle_mousedown_event(
+        &mut self,
+        element: &Element,
+        mouse_event: &MouseEvent,
+    ) -> bool {
         assert_eq!(mouse_event.upcast::<Event>().type_(), atom!("mousedown"));
 
-        // Only update the cursor in text fields when the primary buton is pressed.
-        //
-        // From <https://w3c.github.io/uievents/#dom-mouseevent-button>:
-        // > 0 MUST indicate the primary button of the device (in general, the left button
-        // > or the only button on single-button devices, used to activate a user interface
-        // > control or select text) or the un-initialized value.
-        if mouse_event.Button() != 0 {
-            return false;
-        }
-
-        self.currently_dragging = true;
-        match mouse_event.upcast::<UIEvent>().Detail() {
-            3 => {
+        let button = mouse_event.button();
+        let selection_changed = match mouse_event.upcast::<UIEvent>().Detail() {
+            3 if button == MouseButton::Primary => {
                 let word_boundaries = self.rope.line_boundaries(self.edit_point);
                 self.edit_point = word_boundaries.end;
                 self.selection_origin = Some(word_boundaries.start);
                 self.update_selection_direction();
                 true
             },
-            2 => {
+            2 if button == MouseButton::Primary => {
                 let word_boundaries = self.rope.relevant_word_boundaries(self.edit_point);
                 self.edit_point = word_boundaries.end;
                 self.selection_origin = Some(word_boundaries.start);
                 self.update_selection_direction();
                 true
             },
-            1 => {
+            1 if matches!(button, MouseButton::Primary | MouseButton::Auxiliary) => {
                 self.clear_selection();
                 self.edit_point = self.edit_point_for_mouse_event(mouse_event);
                 self.selection_origin = Some(self.edit_point);
@@ -972,7 +966,18 @@ impl<T: ClipboardProvider> TextInput<T> {
                 // behaviors.
                 false
             },
+        };
+
+        if selection_changed && mouse_event.buttons().contains(MouseButtons::Primary) {
+            element
+                .owner_document()
+                .event_handler()
+                .install_drag_gesture(DragGesture::new(DragHandler::TextInput(
+                    TextInputDragHandler(Dom::from_ref(element)),
+                )));
         }
+
+        selection_changed
     }
 
     /// Whether the content is empty.
@@ -997,13 +1002,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Newline stripping only happens for incremental updates to the [`Rope`] as `<input>`
     /// elements currently need to store unsanitized values while being created.
     pub fn set_content(&mut self, content: DOMString) {
-        self.rope = Rope::new(
-            content
-                .str()
-                .to_string()
-                .replace("\r\n", "\n")
-                .replace("\r", "\n"),
-        );
+        self.rope = Rope::new(content.str().replace("\r\n", "\n").replace("\r", "\n"));
         self.was_last_change_by_set_content = true;
 
         self.edit_point = self.rope.normalize_index(self.edit_point());
@@ -1193,5 +1192,35 @@ impl<T: ClipboardProvider> TextInput<T> {
                 event.fire(cx, &target);
             }),
         );
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct TextInputDragHandler(Dom<Element>);
+
+impl TextInputDragHandler {
+    pub(crate) fn still_connected(&self) -> bool {
+        self.0.is_connected()
+    }
+
+    pub(crate) fn moved(&self, point_in_viewport: Point2D<Au, CSSPixel>) -> bool {
+        if !self.0.is_connected() {
+            return false;
+        }
+
+        if let Some(input) = self.0.downcast::<HTMLInputElement>() {
+            input.textinput_mut().drag_moved(input, point_in_viewport);
+            input.maybe_update_shared_selection();
+            true
+        } else if let Some(text_area) = self.0.downcast::<HTMLTextAreaElement>() {
+            text_area
+                .textinput_mut()
+                .drag_moved(text_area, point_in_viewport);
+            text_area.maybe_update_shared_selection();
+            true
+        } else {
+            false
+        }
     }
 }

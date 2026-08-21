@@ -4,7 +4,7 @@
 
 // https://dom.spec.whatwg.org/#abortsignal
 
-[Exposed=*, Pref="dom_abort_controller_enabled"]
+[Exposed=*]
 interface AbortSignal : EventTarget {
   [NewObject] static AbortSignal abort(optional any reason);
   [Exposed=(Window,Worker), NewObject] static AbortSignal timeout([EnforceRange] unsigned long long milliseconds);

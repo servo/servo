@@ -9,8 +9,6 @@ interface HTMLTextAreaElement : HTMLElement {
 
   // [CEReactions]
   //          attribute DOMString autocomplete;
-  // [CEReactions]
-  //          attribute boolean autofocus;
   [CEReactions, SetterThrows]
            attribute unsigned long cols;
   [CEReactions]

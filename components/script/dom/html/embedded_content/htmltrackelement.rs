@@ -9,7 +9,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
-use net_traits::request::{CorsSettings, RequestId};
+use net_traits::request::RequestId;
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use servo_url::ServoUrl;
@@ -73,6 +73,9 @@ pub(crate) struct HTMLTrackElement {
     /// <https://html.spec.whatwg.org/multipage/#track-url>
     #[no_trace]
     track_url: DomRefCell<Option<ServoUrl>>,
+    /// The track_url used for the last load that was successful.
+    #[no_trace]
+    last_successful_load: DomRefCell<Option<ServoUrl>>,
     /// Used as part of
     /// <https://html.spec.whatwg.org/multipage/#start-the-track-processing-model>
     /// whether the algorithm is running or not.
@@ -91,6 +94,7 @@ impl HTMLTrackElement {
             readiness_state: Default::default(),
             track: Dom::from_ref(track),
             track_url: Default::default(),
+            last_successful_load: Default::default(),
             is_running_processing_model_algorithm: Default::default(),
         }
     }
@@ -140,28 +144,17 @@ impl HTMLTrackElement {
             return;
         }
         // Step 3. If the text track's track element does not have a media element as a parent, return.
-        let Some(parent) = self
+        if self
             .upcast::<Node>()
             .GetParentElement()
-            .filter(|parent| parent.is::<HTMLMediaElement>())
-        else {
+            .is_none_or(|parent| !parent.is::<HTMLMediaElement>())
+        {
             return;
         };
         // Step 4. Run the remainder of these steps in parallel, allowing whatever caused these steps to run to continue.
-        // Step 5. Top: Await a stable state. The synchronous section consists of the following steps.
-        // (The steps in the synchronous section are marked with ⌛.)
-        // Step 6. ⌛ Set the text track readiness state to loading.
-        self.readiness_state.set(TextTrackReadinessState::Loading);
-        // Step 7. ⌛ Let URL be the track URL of the track element.
-        let url = self.track_url.borrow().clone();
-        // Step 8. ⌛ If the track element's parent is a media element,
-        // then let corsAttributeState be the state of the parent media element's
-        // crossorigin content attribute. Otherwise, let corsAttributeState be No CORS.
-        let cors_attribute_state = cors_setting_for_element(&parent);
+        // Step 5. Top: Await a stable state.
         let task = TrackElementMicrotask::ProcessingModel {
             elem: Dom::from_ref(self),
-            cors_attribute_state,
-            url,
         };
         self.is_running_processing_model_algorithm.set(true);
 
@@ -348,13 +341,7 @@ impl VirtualMethods for HTMLTrackElement {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum TrackElementMicrotask {
-    ProcessingModel {
-        elem: Dom<HTMLTrackElement>,
-        #[no_trace]
-        cors_attribute_state: Option<CorsSettings>,
-        #[no_trace]
-        url: Option<ServoUrl>,
-    },
+    ProcessingModel { elem: Dom<HTMLTrackElement> },
 }
 
 impl MicrotaskRunnable for TrackElementMicrotask {
@@ -364,11 +351,32 @@ impl MicrotaskRunnable for TrackElementMicrotask {
         };
         match self {
             // https://html.spec.whatwg.org/multipage/#start-the-track-processing-model
-            TrackElementMicrotask::ProcessingModel {
-                elem,
-                cors_attribute_state,
-                url,
-            } => {
+            TrackElementMicrotask::ProcessingModel { elem } => {
+                // Not specced, but required for browser compatibility:
+                // https://github.com/whatwg/html/issues/12796
+                if elem.readiness_state.get() == TextTrackReadinessState::Loaded &&
+                    *elem.track_url.borrow() == *elem.last_successful_load.borrow()
+                {
+                    elem.is_running_processing_model_algorithm.set(false);
+                    return;
+                }
+
+                let media_parent = elem
+                    .upcast::<Node>()
+                    .GetParentNode()
+                    .and_then(DomRoot::downcast::<HTMLMediaElement>);
+
+                // The synchronous section consists of the following steps.
+                // (The steps in the synchronous section are marked with ⌛.)
+                // Step 6. ⌛ Set the text track readiness state to loading.
+                elem.readiness_state.set(TextTrackReadinessState::Loading);
+                // Step 7. ⌛ Let URL be the track URL of the track element.
+                let url = elem.track_url.borrow().clone();
+                // Step 8. ⌛ If the track element's parent is a media element,
+                // then let corsAttributeState be the state of the parent media element's
+                // crossorigin content attribute. Otherwise, let corsAttributeState be No CORS.
+                let cors_attribute_state =
+                    media_parent.and_then(|parent| cors_setting_for_element(parent.upcast()));
                 // Step 9. End the synchronous section, continuing the remaining steps in parallel.
                 // TODO
                 // Step 10. If URL is not the empty string:
@@ -381,8 +389,8 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                         Some(document.webview_id()),
                         url.clone(),
                         Destination::Track,
-                        *cors_attribute_state,
-                        None,
+                        cors_attribute_state,
+                        Some(true),
                         global.get_referrer(),
                     )
                     // Step 10.2. Set request's client to the track element's node document's relevant
@@ -395,7 +403,7 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                     // Step 10.4. Fetch request.
                     let listener = HTMLTrackElementFetchListener {
                         element: Trusted::new(elem),
-                        url: url.clone(),
+                        url,
                         payload: vec![],
                     };
                     document.fetch_background(request, listener);
@@ -501,12 +509,14 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
                 // > then the final task that is queued by the networking task source,
                 // > after it has finished parsing the data, must change the text track readiness state to loaded,
                 // > and fire an event named load at the track element.
+                let url = self.url.clone();
                 element
                     .global()
                     .task_manager()
                     .networking_task_source()
                     .queue(task!(successfully_loaded: move |cx| {
                         let track = track.root();
+                        *track.last_successful_load.borrow_mut() = Some(url);
                         track.readiness_state.set(TextTrackReadinessState::Loaded);
                         track.upcast::<EventTarget>().fire_event(cx, atom!("load"));
                     }));

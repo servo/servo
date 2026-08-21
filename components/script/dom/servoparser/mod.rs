@@ -71,7 +71,7 @@ use crate::dom::documenttype::DocumentType;
 use crate::dom::element::create::create_element;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::documentmetadata::processingoptions::{
+use crate::dom::html::document_metadata::processingoptions::{
     LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
 };
 use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormElement};

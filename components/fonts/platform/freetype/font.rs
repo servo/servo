@@ -68,14 +68,11 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         font_data: &FontData,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         let data = FontBackingStore::Web(font_data.clone());
         let face = FreeTypeFace::new_from_memory(&library, data, 0)?;
-
-        let normalized_variations = face.set_variations_for_font(variations, &library)?;
 
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
@@ -91,7 +88,7 @@ impl PlatformFontMethods for PlatformFont {
             requested_face_size,
             actual_face_size,
             table_provider_data,
-            variations: normalized_variations,
+            variations: vec![],
             synthetic_bold,
         })
     }
@@ -99,7 +96,6 @@ impl PlatformFontMethods for PlatformFont {
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
@@ -118,8 +114,6 @@ impl PlatformFontMethods for PlatformFont {
             face_index,
         )?;
 
-        let normalized_variations = face.set_variations_for_font(variations, &library)?;
-
         let (requested_face_size, actual_face_size) = match requested_size {
             Some(requested_size) => (requested_size, face.set_size(requested_size)?),
             None => (Au::zero(), Au::zero()),
@@ -135,9 +129,22 @@ impl PlatformFontMethods for PlatformFont {
             requested_face_size,
             actual_face_size,
             table_provider_data,
-            variations: normalized_variations,
+            variations: vec![],
             synthetic_bold,
         })
+    }
+
+    fn copy_with_variations(
+        mut self,
+        _: &FontIdentifier,
+        variations: &[FontVariation],
+    ) -> Result<Self, &'static str> {
+        let library = FreeTypeLibraryHandle::get().lock();
+        self.variations = self
+            .face
+            .lock()
+            .set_variations_for_font(variations, &library)?;
+        Ok(self)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {

@@ -74,9 +74,7 @@ impl ServoTest {
         &self.servo
     }
 
-    /// Spin the Servo event loop until one of:
-    ///  - The given callback returns `Ok(false)`.
-    ///  - The given callback returns an `Error`, in which case the `Error` will be returned.
+    /// Spin the Servo event loop until the provided callback returns `false`.
     pub fn spin(&self, callback: impl Fn() -> bool + 'static) {
         while callback() {
             self.servo.spin_event_loop();
@@ -181,12 +179,12 @@ pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint) {
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Down,
-        MouseButton::Left,
+        MouseButton::Primary,
         point,
     )));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Up,
-        MouseButton::Left,
+        MouseButton::Primary,
         point,
     )));
 }

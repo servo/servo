@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::VecDeque;
+
 use embedder_traits::user_contents::UserContentManagerId;
 use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
-use log::warn;
-use rustc_hash::FxHashMap;
+use log::{debug, warn};
+use rustc_hash::{FxHashMap, FxHashSet};
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use servo_base::Epoch;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_constellation_traits::SessionHistoryTraversalRequest;
 use style_traits::CSSPixel;
 
 use crate::browsingcontext::BrowsingContext;
 use crate::pipeline::Pipeline;
-use crate::session_history::JointSessionHistory;
+use crate::session_history::{JointSessionHistory, SessionHistoryChange};
 
 /// The `Constellation`'s view of a `WebView` in the embedding layer. This tracks all of the
 /// `Constellation` state for this `WebView`.
@@ -24,8 +27,16 @@ pub(crate) struct ConstellationWebView {
 
     /// The [`PipelineId`] of the currently active pipeline at the top level of this WebView.
     pub active_top_level_pipeline_id: Option<PipelineId>,
+
     /// A counter for changes to [`Self::active_top_level_pipeline_id`].
     pub active_top_level_pipeline_epoch: Epoch,
+
+    /// When a navigation is performed, we do not immediately update
+    /// the session history, instead we ask the event loop to begin loading
+    /// the new document, and do not update the browsing context until the
+    /// document is active. Between starting the load and it activating,
+    /// we store a `SessionHistoryChange` object for the navigation in progress.
+    pub pending_changes: Vec<SessionHistoryChange>,
 
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
@@ -42,6 +53,16 @@ pub(crate) struct ConstellationWebView {
 
     /// The joint session history for this webview.
     pub session_history: JointSessionHistory,
+
+    /// <https://html.spec.whatwg.org/multipage/#tn-session-history-traversal-queue>
+    ///
+    /// A queue of traversals that should be applied sequentially. The next item from
+    /// the queue is applied once [`Self::ongoing_history_traversal_request`] has finished.
+    pub session_history_traversal_request_queue: VecDeque<SessionHistoryTraversalRequest>,
+
+    /// The currently running session history traversal. This will be completed once all
+    /// `Pipeline`s in a traversal become active or their load fails for some other reason.
+    pub ongoing_history_traversal_request: Option<OngoingHistoryTraversalRequest>,
 
     /// The [`UserContentManagerId`] for all pipelines in this `WebView`. This is `Some`
     /// if the embedder has set a `UserContentManager` using the WebViewBuilder API and
@@ -72,10 +93,13 @@ impl ConstellationWebView {
             user_content_manager_id,
             active_top_level_pipeline_id: None,
             active_top_level_pipeline_epoch: Epoch::default(),
+            pending_changes: Default::default(),
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),
             session_history: JointSessionHistory::new(),
+            session_history_traversal_request_queue: Default::default(),
+            ongoing_history_traversal_request: None,
             theme: Theme::Light,
             accessibility_active: false,
         }
@@ -188,4 +212,80 @@ impl ConstellationWebView {
             ));
         true
     }
+
+    /// If there is an ongoing history traversal request that is waiting on documents to
+    /// reload, check to see if none of its pipelines are awaiting activation. If that's the
+    /// case unset the ongoing request and return it.
+    pub(crate) fn maybe_finish_ongoing_session_history_traversal_request(
+        &mut self,
+    ) -> Option<SessionHistoryTraversalRequest> {
+        let ongoing_history_traversal_request = self.ongoing_history_traversal_request.as_mut()?;
+
+        let pipelines_with_pending_changes = self
+            .pending_changes
+            .iter()
+            .map(|change| change.new_pipeline_id)
+            .collect::<FxHashSet<_>>();
+        ongoing_history_traversal_request
+            .pipelines_awaiting_activation
+            .retain(|pipeline_id| pipelines_with_pending_changes.contains(pipeline_id));
+
+        if !ongoing_history_traversal_request
+            .pipelines_awaiting_activation
+            .is_empty()
+        {
+            return None;
+        }
+        Some(
+            self.ongoing_history_traversal_request
+                .take()
+                .expect("Guaranteed above")
+                .traversal_request,
+        )
+    }
+
+    pub(crate) fn has_pending_change(&self) -> bool {
+        !self.pending_changes.is_empty()
+    }
+
+    pub(crate) fn pipeline_is_pending(&self, pipeline_id: PipelineId) -> bool {
+        self.pending_changes
+            .iter()
+            .any(|pending_change| pending_change.new_pipeline_id == pipeline_id)
+    }
+
+    pub(crate) fn add_pending_change(&mut self, change: SessionHistoryChange) {
+        debug!(
+            "adding pending session history change with {}",
+            if change.replace.is_some() {
+                "replacement"
+            } else {
+                "no replacement"
+            },
+        );
+        self.pending_changes.push(change);
+    }
+
+    pub(crate) fn remove_pending_change_for_pipeline(
+        &mut self,
+        pipeline_id: PipelineId,
+    ) -> Option<SessionHistoryChange> {
+        let pending_index = self
+            .pending_changes
+            .iter()
+            .rposition(|change| change.new_pipeline_id == pipeline_id)?;
+        Some(self.pending_changes.swap_remove(pending_index))
+    }
+}
+
+/// A [`HistoryTraversalRequest`] that is in progress because it is waiting
+/// for documents that need reloading.
+pub(crate) struct OngoingHistoryTraversalRequest {
+    /// The [`HistoryTraversalRequest`] that spawned this series of navigations.
+    pub traversal_request: SessionHistoryTraversalRequest,
+    /// The ids of all the `Pipeline`s that needed reloading for this traversal.
+    /// Multiple pipelines can be traversed if the top-level document contained
+    /// `<iframe>`s / browsing contexts. The traversal is only done when all of
+    /// the pipelines are ready or have failed to load.
+    pub pipelines_awaiting_activation: FxHashSet<PipelineId>,
 }

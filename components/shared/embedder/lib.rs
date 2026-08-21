@@ -362,13 +362,13 @@ pub struct ScreenMetrics {
 }
 
 /// An opaque identifier for a single history traversal operation.
-#[derive(Clone, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct TraversalId(String);
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct TraversalId(Uuid);
 
 impl TraversalId {
     #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self(Uuid::new_v4().to_string())
+        Self(Uuid::new_v4())
     }
 }
 

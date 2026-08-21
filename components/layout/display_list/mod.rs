@@ -81,7 +81,7 @@ mod paint_timing_handler;
 mod paint_traversal;
 mod stacking_context;
 
-pub(crate) use hit_test::HitTest;
+pub(crate) use hit_test::{ClosestFragmentSearch, HitTest};
 pub(crate) use paint_timing_handler::PaintTimingHandler;
 pub(crate) use stacking_context::*;
 
@@ -235,7 +235,7 @@ impl DisplayListBuilder<'_> {
 
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
-        builder.paint_timing_handler.compute_new_lcp_candidate();
+        builder.paint_timing_handler.mark_paint_timing();
 
         webrender_display_list_builder.end().1
     }
@@ -1174,6 +1174,19 @@ impl Fragment {
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
         builder.mark_is_contentful();
+
+        // Accumulate this text fragment for LCP by the containing element's tag
+        if let Some(tag) = state.containing_element_tag &&
+            pref!(largest_contentful_paint_enabled)
+        {
+            let transform = builder
+                .paint_info
+                .scroll_tree
+                .cumulative_node_to_root_transform(state.spatial_id);
+            builder
+                .paint_timing_handler
+                .accumulate_text_rect(tag, rect.to_webrender(), transform);
+        }
 
         for text_decoration in state.text_decorations.iter() {
             if text_decoration

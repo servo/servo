@@ -30,11 +30,9 @@ use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, report_pending_
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::modules::script_module::{
-    ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
-};
+use crate::modules::script_module::{ModuleScript, ModuleTree, RethrowError, ScriptFetchOptions};
 use crate::realms::enter_auto_realm;
-use crate::unminify::unminify_js;
+use crate::unminify::{ScriptSource, unminify_js};
 
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
 #[derive(JSTraceable, MallocSizeOf)]
@@ -88,14 +86,13 @@ impl GlobalScope {
         line_number: u32,
         external: bool,
     ) -> ClassicScript {
-        let mut source = if self.unminified_js_dir().is_some() {
-            let mut script_source = ModuleSource {
+        let mut source = if let Some(unminified_js_dir) = self.unminified_js_dir() {
+            let mut script_source = ScriptSource {
                 source,
-                unminified_dir: self.unminified_js_dir(),
                 external,
-                url: url.clone(),
+                url: &url,
             };
-            unminify_js(&mut script_source);
+            unminify_js(&mut script_source, unminified_js_dir);
             transform_str_to_source_text(&script_source.source)
         } else {
             transform_str_to_source_text(&source)

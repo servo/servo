@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by layout.
+use std::borrow::Cow;
 use std::cell::LazyCell;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -10,7 +11,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use embedder_traits::UntrustedNodeAddress;
-use euclid::{Rect, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use itertools::Itertools;
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
@@ -20,6 +21,7 @@ use layout_api::{
 use paint_api::display_list::ScrollTree;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_base::text::Utf32CodeUnits;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
 use style::computed_values::display::T as Display;
@@ -27,7 +29,7 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use style::dom::NodeInfo;
+use style::dom::{NodeInfo, OpaqueNode};
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -48,7 +50,7 @@ use style_traits::{CSSPixel, ParsingMode, ToCss};
 use webrender_api::units::LayoutPixel;
 
 use crate::cell::RefOrAtomicRef;
-use crate::display_list::{StackingContextTree, au_rect_to_length_rect};
+use crate::display_list::{ClosestFragmentSearch, StackingContextTree, au_rect_to_length_rect};
 use crate::dom::NodeExt;
 use crate::flow::inline::text_transform::TextTransformationIterator;
 use crate::fragment_tree::{
@@ -588,7 +590,7 @@ fn shorthand_to_css_string(
         );
     }
     match block.shorthand_to_css(id, &mut dest) {
-        Ok(_) => dest.to_owned(),
+        Ok(_) => dest,
         Err(_) => String::new(),
     }
 }
@@ -969,7 +971,7 @@ pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
 }
 
 enum InnerOrOuterTextItem {
-    Text(String),
+    Text(Cow<'static, str>),
     RequiredLineBreakCount(usize),
 }
 
@@ -1160,7 +1162,7 @@ fn rendered_text_collection_steps(
                 // encounter another text node we can ensure no trailing white space for
                 // normal text without having to look ahead
                 if state.did_truncate_trailing_white_space && !is_first_character_whitespace {
-                    items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                    items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(" ")));
                 };
 
                 if !transformed_text.is_empty() {
@@ -1174,14 +1176,14 @@ fn rendered_text_collection_steps(
                         state.may_start_with_whitespace = is_final_character_whitespace;
                         state.did_truncate_trailing_white_space = false;
                     }
-                    items.push(InnerOrOuterTextItem::Text(transformed_text));
+                    items.push(InnerOrOuterTextItem::Text(Cow::Owned(transformed_text)));
                 }
             } else {
                 // If we don't have a parent element then there's no style data available,
                 // in this (pretty unlikely) case we just return the Text fragment as is.
-                items.push(InnerOrOuterTextItem::Text(
+                items.push(InnerOrOuterTextItem::Text(Cow::Owned(
                     node.text_content().deref().into(),
-                ));
+                )));
             }
         },
         Some(LayoutNodeType::Element(LayoutElementType::HTMLBRElement)) => {
@@ -1189,7 +1191,7 @@ fn rendered_text_collection_steps(
             // LF code point to items.
             state.did_truncate_trailing_white_space = false;
             state.may_start_with_whitespace = true;
-            items.push(InnerOrOuterTextItem::Text(String::from("\u{000A}")));
+            items.push(InnerOrOuterTextItem::Text(Cow::Borrowed("\u{000A}")));
         },
         _ => {
             // First we need to gather some infos to setup the various flags
@@ -1239,7 +1241,7 @@ fn rendered_text_collection_steps(
                 // a single U+0009 TAB code point to items.
                 Display::TableCell => {
                     if !state.first_table_cell {
-                        items.push(InnerOrOuterTextItem::Text(String::from(
+                        items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(
                             "\u{0009}", /* tab */
                         )));
                         // Make sure we don't add a white-space we removed from the previous node
@@ -1254,7 +1256,7 @@ fn rendered_text_collection_steps(
                 // LF code point to items.
                 Display::TableRow => {
                     if !state.first_table_row {
-                        items.push(InnerOrOuterTextItem::Text(String::from(
+                        items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(
                             "\u{000A}", /* Line Feed */
                         )));
                         // Make sure we don't add a white-space we removed from the previous node
@@ -1278,7 +1280,7 @@ fn rendered_text_collection_steps(
                 Display::InlineFlex | Display::InlineGrid | Display::InlineBlock
                     if state.did_truncate_trailing_white_space =>
                 {
-                    items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                    items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(" ")));
                     state.did_truncate_trailing_white_space = false;
                     state.may_start_with_whitespace = true;
                 },
@@ -1325,7 +1327,7 @@ fn rendered_text_collection_steps(
                     LayoutNodeType::Element(LayoutElementType::HTMLMediaElement),
                 ) => {
                     if display != Display::Block && state.did_truncate_trailing_white_space {
-                        items.push(InnerOrOuterTextItem::Text(String::from(" ")));
+                        items.push(InnerOrOuterTextItem::Text(Cow::Borrowed(" ")));
                         state.did_truncate_trailing_white_space = false;
                     };
                     state.may_start_with_whitespace = false;
@@ -1365,6 +1367,22 @@ fn rendered_text_collection_steps(
         },
     };
     items
+}
+
+pub fn find_character_offset_in_fragment_descendants(
+    node: &ServoLayoutNode,
+    stacking_context_tree: &StackingContextTree,
+    point_in_viewport: Point2D<Au, CSSPixel>,
+) -> Option<(OpaqueNode, Utf32CodeUnits)> {
+    let mut search = ClosestFragmentSearch::default();
+    for fragment in &node.fragments_for_pseudo(None) {
+        if let Some(point_in_fragment) =
+            stacking_context_tree.offset_in_fragment(fragment, point_in_viewport)
+        {
+            search.collect_relevant_children(fragment, point_in_fragment);
+        }
+    }
+    search.into_dom_position()
 }
 
 pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<UntrustedNodeAddress> {

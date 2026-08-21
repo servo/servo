@@ -55,12 +55,12 @@ fn open_context_menu_at_point(webview: &WebView, point: DevicePoint) {
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Down,
-        MouseButton::Right,
+        MouseButton::Secondary,
         point,
     )));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Up,
-        MouseButton::Right,
+        MouseButton::Secondary,
         point,
     )));
 }
@@ -1170,4 +1170,53 @@ fn test_fullscreen() {
 
     let captured = delegate.clone();
     servo_test.spin(move || captured.fullscreen.get());
+}
+
+#[test]
+fn test_webview_title_updates_when_document_title_is_updated() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let test_page = Url::parse(
+        "data:text/html,\
+        <script>document.title='Success';</script>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+
+    // Wait for the page to load
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    assert_eq!(webview.page_title().as_deref(), Some("Success"));
+}
+
+#[test]
+fn test_webview_title_updates_when_title_element_is_created_from_javascript() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let test_page = Url::parse(
+        "data:text/html,\
+        <body>\
+        <script>\
+        let title = document.createElement('title');\
+        title.textContent = 'Success';\
+        document.body.appendChild(title);\
+        </script>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+
+    // Wait for the page to load
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    assert_eq!(webview.page_title().as_deref(), Some("Success"));
 }

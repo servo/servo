@@ -25,7 +25,10 @@ use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_config::pref;
-use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
+use servo_constellation_traits::{
+    EmbedderToConstellationMessage, HistoryTraversalSource, SessionHistoryTraversalRequest,
+    TraversalDirection,
+};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -563,14 +566,16 @@ impl WebView {
     /// [`WebViewDelegate::notify_traversal_complete`] callback to determine when the
     /// traversal is complete.
     pub fn go_back(&self, amount: usize) -> TraversalId {
-        let traversal_id = TraversalId::new();
-        self.inner().servo.constellation_proxy().send(
-            EmbedderToConstellationMessage::TraverseHistory(
-                self.id(),
-                TraversalDirection::Back(amount),
-                traversal_id.clone(),
-            ),
+        let request = SessionHistoryTraversalRequest::new(
+            self.id(),
+            TraversalDirection::Back(amount),
+            HistoryTraversalSource::Embedder,
         );
+        let traversal_id = request.id.clone();
+        self.inner()
+            .servo
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::TraverseHistory(request));
         traversal_id
     }
 
@@ -589,14 +594,16 @@ impl WebView {
     /// [`WebViewDelegate::notify_traversal_complete`] callback to determine when the
     /// traversal is complete.
     pub fn go_forward(&self, amount: usize) -> TraversalId {
-        let traversal_id = TraversalId::new();
-        self.inner().servo.constellation_proxy().send(
-            EmbedderToConstellationMessage::TraverseHistory(
-                self.id(),
-                TraversalDirection::Forward(amount),
-                traversal_id.clone(),
-            ),
+        let request = SessionHistoryTraversalRequest::new(
+            self.id(),
+            TraversalDirection::Forward(amount),
+            HistoryTraversalSource::Embedder,
         );
+        let traversal_id = request.id.clone();
+        self.inner()
+            .servo
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::TraverseHistory(request));
         traversal_id
     }
 

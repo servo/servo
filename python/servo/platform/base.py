@@ -12,7 +12,7 @@ import shutil
 import subprocess
 from typing import Optional
 
-from .build_target import BuildTarget
+from .build_target import BuildTarget, OpenHarmonyTarget
 
 
 class Base:
@@ -54,7 +54,9 @@ class Base:
         except FileNotFoundError:
             return False
 
-    def bootstrap(self, force: bool, yes: bool, skip_platform: bool, skip_lints: bool, skip_nextest: bool) -> None:
+    def bootstrap(
+        self, force: bool, yes: bool, skip_platform: bool, skip_lints: bool, skip_nextest: bool, install_ohos: bool
+    ) -> None:
         installed_something = False
         if not skip_platform:
             installed_something |= self._platform_bootstrap(force, yes)
@@ -65,6 +67,9 @@ class Base:
             installed_something |= self.install_taplo(force)
             installed_something |= self.install_cargo_deny(force)
             installed_something |= self.install_crown(force)
+        # Optional and non-default, since most people won't be compiling for OpenHarmony
+        if install_ohos:
+            installed_something |= self.install_ohos(force)
 
         if not installed_something:
             print("Dependencies were already installed!")
@@ -92,6 +97,16 @@ class Base:
         if subprocess.call(["cargo", "install", "taplo-cli", "--locked"]) != 0:
             raise EnvironmentError("Installation of taplo failed.")
 
+        return True
+
+    def install_ohos(self, force: bool) -> bool:
+        (is_installed_and_compatible, _reason) = OpenHarmonyTarget.is_cargo_ohos_compatible()
+        if is_installed_and_compatible and not force:
+            return False
+        print(" * Installing cargo-ohos...")
+        requested_version = OpenHarmonyTarget.REQUESTED_CARGO_OHOS_VERSION
+        if subprocess.call(["cargo", "install", f"cargo-ohos@^{requested_version}", "--locked"]) != 0:
+            raise EnvironmentError("Installation of cargo-ohos failed.")
         return True
 
     def install_cargo_deny(self, force: bool) -> bool:

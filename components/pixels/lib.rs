@@ -257,13 +257,12 @@ impl From<&str> for EncodedImageType {
 }
 
 impl EncodedImageType {
-    pub fn as_mime_type(&self) -> String {
+    pub fn as_mime_type(&self) -> &'static str {
         match self {
             Self::Png => "image/png",
             Self::Jpeg => "image/jpeg",
             Self::Webp => "image/webp",
         }
-        .to_owned()
     }
 }
 

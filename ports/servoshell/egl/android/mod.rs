@@ -594,8 +594,8 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
     env.with_env(|env| -> jni::errors::Result<_> {
         debug!("click");
         call(env, |s| {
-            s.mouse_down(x, y, MouseButton::Left);
-            s.mouse_up(x, y, MouseButton::Left);
+            s.mouse_down(x, y, MouseButton::Primary);
+            s.mouse_up(x, y, MouseButton::Primary);
         });
         Ok(())
     })

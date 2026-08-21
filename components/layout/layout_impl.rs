@@ -16,7 +16,7 @@ use bitflags::bitflags;
 use embedder_traits::{
     EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
 };
-use euclid::{Rect, Scale, Size2D};
+use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locid::subtags::Language;
@@ -46,6 +46,7 @@ use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThr
 use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
 use servo_base::id::{PipelineId, WebViewId};
+use servo_base::text::Utf32CodeUnits;
 use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -86,12 +87,13 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
 use crate::query::{
-    get_the_text_steps, process_box_area_request, process_box_areas_request,
-    process_client_rect_request, process_containing_block_descendant_query,
-    process_containing_block_query, process_current_css_zoom_query,
-    process_effective_overflow_query, process_node_scroll_area_request,
-    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
-    process_resolved_style_request, process_scroll_container_query,
+    find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
+    process_box_areas_request, process_client_rect_request,
+    process_containing_block_descendant_query, process_containing_block_query,
+    process_current_css_zoom_query, process_effective_overflow_query,
+    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
+    process_resolved_font_style_query, process_resolved_style_request,
+    process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
@@ -571,6 +573,24 @@ impl Layout for LayoutThread {
         with_layout_state(|| {
             let node = node.map(|node| unsafe { ServoLayoutNode::new(&node) });
             process_node_scroll_area_request(self, node, self.fragment_tree.borrow().clone())
+        })
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_text_index(
+        &self,
+        node: TrustedNodeAddress,
+        point_in_viewport: Point2D<Au, CSSPixel>,
+    ) -> Option<(OpaqueNode, Utf32CodeUnits)> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let stacking_context_tree = self.stacking_context_tree.borrow();
+            let stacking_context_tree = stacking_context_tree.as_ref()?;
+            find_character_offset_in_fragment_descendants(
+                &node,
+                stacking_context_tree,
+                point_in_viewport,
+            )
         })
     }
 

@@ -22,15 +22,15 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
-    SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdhKeyDeriveParams, ec_common,
+    EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, ExportedKey,
+    KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyGenParams,
+    normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
@@ -46,7 +46,7 @@ pub(crate) fn generate_key(
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-derive-bits>
 pub(crate) fn derive_bits(
-    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+    normalized_algorithm: &EcdhKeyDeriveParams,
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
@@ -203,7 +203,7 @@ pub(crate) fn derive_bits(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyImportParams,
+    normalized_algorithm: &EcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -241,9 +241,7 @@ pub(crate) fn get_public_key(
 /// Given a normalizedAlgorithm (an EcdhKeyDeriveParams dictionary), return the length of the secret
 /// derived by the named curve specified by the `named_curve` member of the `[[algorithm]]` slot of
 /// the `public` member of normalizedAlgorithm.
-pub(crate) fn secret_length(
-    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
-) -> Result<u32, Error> {
+pub(crate) fn secret_length(normalized_algorithm: &EcdhKeyDeriveParams) -> Result<u32, Error> {
     let public_key = normalized_algorithm.public.root();
     let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = public_key.algorithm() else {
         return Err(Error::Operation(Some(

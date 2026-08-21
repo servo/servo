@@ -11,7 +11,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use content_security_policy::Violation;
 use fonts_traits::{
     CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleWithOrigin, FontIdentifier, FontTemplate,
@@ -125,7 +124,7 @@ pub struct FontContext {
     known_font_face_rules: Mutex<KnownFontFaceRules>,
 
     /// A lazily-computed map of feature names from `@font-feature-value` rules.
-    font_feature_value_map: AtomicRefCell<Option<FontFeatureValueMap>>,
+    font_feature_value_map: RwLock<Option<FontFeatureValueMap>>,
 
     /// The number of fonts that are currently loading.
     number_of_loading_web_fonts: AtomicUsize,
@@ -242,13 +241,6 @@ impl FontContext {
         font_template: FontTemplateRef,
         font_descriptor: &FontDescriptor,
     ) -> Option<FontRef> {
-        let font_descriptor = if servo_config::pref!(layout_variable_fonts_enabled) {
-            let variation_settings = font_template.borrow().compute_variations(font_descriptor);
-            &font_descriptor.with_variation_settings(variation_settings)
-        } else {
-            font_descriptor
-        };
-
         self.get_font_maybe_synthesizing_small_caps(
             font_template,
             font_descriptor,
@@ -556,8 +548,7 @@ impl FontContext {
         );
 
         let identifier = FontIdentifier::Web(url);
-        let Ok(handle) =
-            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false)
+        let Ok(handle) = PlatformFont::new_from_data(identifier.clone(), &font_data, None, false)
         else {
             return false;
         };
@@ -974,7 +965,7 @@ impl FontContext {
 
         let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
         let handle =
-            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false).ok()?;
+            PlatformFont::new_from_data(identifier.clone(), &font_data, None, false).ok()?;
 
         let new_template = FontTemplate::new(identifier.clone(), handle.descriptor(), None);
 
@@ -1212,14 +1203,14 @@ impl FontContext {
         stylist: &Stylist,
     ) -> Option<FontFeatureValue> {
         // First, check if the map was initialized previously.
-        let read_guard = self.font_feature_value_map.borrow();
+        let read_guard = self.font_feature_value_map.read();
         if let Some(map) = &*read_guard {
             // This is the cheap case, we just need to read from the map
             map.lookup(family_name, kind, name)
         } else {
             // Map was not initialized yet - need to acquire a mutable guard and initialize it.
             drop(read_guard);
-            let mut write_guard = self.font_feature_value_map.borrow_mut();
+            let mut write_guard = self.font_feature_value_map.write();
             if let Some(map) = &*write_guard {
                 // We lost a race, some other thread initialized the map while we were waiting
                 // on the lock.
@@ -1239,7 +1230,7 @@ impl FontContext {
     }
 
     pub fn invalidate_font_feature_values_map(&self) {
-        self.font_feature_value_map.borrow_mut().take();
+        self.font_feature_value_map.write().take();
     }
 }
 

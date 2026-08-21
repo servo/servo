@@ -17,7 +17,7 @@ use app_units::Au;
 use bitflags::bitflags;
 use devtools_traits::NodeInfo;
 use dom_struct::dom_struct;
-use embedder_traits::UntrustedNodeAddress;
+use embedder_traits::{MouseButton, UntrustedNodeAddress};
 use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
@@ -41,7 +41,7 @@ use script_bindings::reflector::{
     DomObject, DomObjectWrap, WeakReferenceableDomObjectWrap, reflect_dom_object_with_proto,
     reflect_weak_referenceable_dom_object_with_proto,
 };
-use script_traits::DocumentActivity;
+use script_traits::{DocumentActivity, MouseButtons};
 use servo_base::id::PipelineId;
 use servo_config::pref;
 use smallvec::SmallVec;
@@ -608,8 +608,8 @@ impl Node {
             Point2D::zero(),                    // coordinates uninitialized
             Point2D::zero(),                    // coordinates uninitialized
             Modifiers::empty(),                 // empty modifiers
-            0,                                  // button, left mouse button
-            0,                                  // buttons
+            MouseButton::Primary,               // button, primary mouse button
+            MouseButtons::empty(),              // buttons
             None,                               // related_target
             None,                               // point_in_target
             PointerId::NonPointerDevice as i32, // pointer_id

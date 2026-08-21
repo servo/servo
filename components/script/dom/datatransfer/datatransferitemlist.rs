@@ -19,7 +19,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
-use crate::drag_data_store::{DragDataStore, Kind, Mode};
+use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 
 #[dom_struct]
 pub(crate) struct DataTransferItemList {

@@ -69,7 +69,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.storage_threads().clone(),
                 global_to_clone_from.creation_url(),
-                global_to_clone_from.top_level_creation_url().clone(),
+                global_to_clone_from.top_level_creation_url(),
                 #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),
                 Some(global_to_clone_from.is_secure_context()),

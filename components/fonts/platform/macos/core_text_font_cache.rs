@@ -47,18 +47,17 @@ impl CoreTextFontCache {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         pt_size: f64,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Option<PlatformFont> {
-        //// If you pass a zero font size to one of the Core Text APIs, it'll replace it with
-        //// 12.0. We don't want that! (Issue #10492.)
+        // If you pass a zero font size to one of the Core Text APIs, it'll replace it with
+        // 12.0. We don't want that! (Issue #10492.)
         let clamped_pt_size = pt_size.max(0.01);
         let au_size = Au::from_f64_px(clamped_pt_size);
 
         let key = CoreTextFontCacheKey {
             size: au_size,
             synthetic_bold,
-            variations: variations.to_owned(),
+            variations: Vec::new(),
         };
 
         let cache = CACHE.0.get_or_init(Default::default);
@@ -70,34 +69,6 @@ impl CoreTextFontCache {
             {
                 return Some(platform_font.clone());
             }
-        }
-
-        if !key.variations.is_empty() {
-            let core_text_font_no_variations = Self::core_text_font(
-                font_identifier.clone(),
-                data,
-                clamped_pt_size,
-                &[],
-                synthetic_bold,
-            )?;
-            let mut cache = cache.write();
-            let entry = cache.entry(font_identifier).or_default();
-
-            // It could be that between the time of the cache miss above and now, after the write lock
-            // on the cache has been acquired, the cache was populated with the data that we need. Thus
-            // check again and return the CTFont if it is is already cached.
-            if let Some(core_text_font) = entry.get(&key) {
-                return Some(core_text_font.clone());
-            }
-
-            let platform_font = Self::add_variations_to_font(
-                core_text_font_no_variations,
-                &key.variations,
-                clamped_pt_size,
-                synthetic_bold,
-            );
-            entry.insert(key, platform_font.clone());
-            return Some(platform_font);
         }
 
         let mut cache = cache.write();
@@ -161,15 +132,44 @@ impl CoreTextFontCache {
         Some(PlatformFont::new_with_ctfont(ctfont, synthetic_bold))
     }
 
-    fn add_variations_to_font(
+    pub(crate) fn add_variations_to_font(
         platform_font: PlatformFont,
+        font_identifier: &FontIdentifier,
         specified_variations: &[FontVariation],
-        pt_size: f64,
-        synthetic_bold: bool,
     ) -> PlatformFont {
         if specified_variations.is_empty() {
             return platform_font;
         }
+
+        let pt_size = unsafe { platform_font.ctfont.size() };
+        let synthetic_bold = platform_font.synthetic_bold;
+        let key = CoreTextFontCacheKey {
+            size: Au::from_f64_px(pt_size),
+            synthetic_bold,
+            variations: specified_variations.to_owned(),
+        };
+
+        let cache = CACHE.0.get_or_init(Default::default);
+        {
+            let cache = cache.read();
+            if let Some(platform_font) = cache
+                .get(font_identifier)
+                .and_then(|identifier_cache| identifier_cache.get(&key))
+            {
+                return platform_font.clone();
+            }
+        }
+
+        let mut cache = cache.write();
+        let entry = cache.entry(font_identifier.clone()).or_default();
+
+        // It could be that between the time of the cache miss above and now, after the write lock
+        // on the cache has been acquired, the cache was populated with the data that we need. Thus
+        // check again and return the CTFont if it is is already cached.
+        if let Some(core_text_font) = entry.get(&key) {
+            return core_text_font.clone();
+        }
+
         let Some(variations) = Self::get_variation_axis_information(&platform_font) else {
             return platform_font;
         };
@@ -236,7 +236,11 @@ impl CoreTextFontCache {
         let ctfont = unsafe {
             CTFont::with_font_descriptor(&descriptor_with_variations, pt_size, std::ptr::null())
         };
-        PlatformFont::new_with_ctfont_and_variations(ctfont, variations, synthetic_bold)
+        let platform_font =
+            PlatformFont::new_with_ctfont_and_variations(ctfont, variations, synthetic_bold);
+
+        entry.insert(key, platform_font.clone());
+        platform_font
     }
 
     fn get_variation_axis_information(

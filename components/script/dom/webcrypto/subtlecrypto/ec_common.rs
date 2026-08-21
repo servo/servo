@@ -20,9 +20,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256,
-    NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
-    SubtleEcKeyGenParams, SubtleEcKeyImportParams,
+    CryptoAlgorithm, EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, ExportedKey,
+    JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
+    NAMED_CURVE_P521, SUPPORTED_CURVES,
 };
 use crate::dom::webcrypto::subtlecrypto::JsonWebKeyExt;
 
@@ -38,7 +38,7 @@ pub(crate) fn generate_key(
     ec_algorithm: EcAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyGenParams,
+    normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
@@ -124,7 +124,7 @@ pub(crate) fn generate_key(
     // Step 4. Let algorithm be a new EcKeyAlgorithm object.
     // Step 6. Set the namedCurve attribute of algorithm to equal the namedCurve member of
     // normalizedAlgorithm.
-    let algorithm = SubtleEcKeyAlgorithm {
+    let algorithm = EcKeyAlgorithm {
         name: match ec_algorithm {
             EcAlgorithm::Ecdsa => {
                 // Step 5. Set the name attribute of algorithm to "ECDSA".
@@ -212,7 +212,7 @@ pub(crate) fn import_key(
     ec_algorithm: EcAlgorithm,
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyImportParams,
+    normalized_algorithm: &EcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -315,7 +315,7 @@ pub(crate) fn import_key(
             // Step 2.14. Let algorithm be a new EcKeyAlgorithm.
             // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleEcKeyAlgorithm {
+            let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
                         // Step 2.15. Set the name attribute of algorithm to "ECDSA".
@@ -444,7 +444,7 @@ pub(crate) fn import_key(
             // Step 2.14. Let algorithm be a new EcKeyAlgorithm.
             // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleEcKeyAlgorithm {
+            let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
                         // Step 2.15. Set the name attribute of algorithm to "ECDSA".
@@ -733,7 +733,7 @@ pub(crate) fn import_key(
             // Step 2.11. Let algorithm be a new instance of an EcKeyAlgorithm object.
             // Step 2.13. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.14. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleEcKeyAlgorithm {
+            let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
                         // Step 2.12. Set the name attribute of algorithm to "ECDSA".
@@ -836,7 +836,7 @@ pub(crate) fn import_key(
             // Step 2.4. Let algorithm be a new EcKeyAlgorithm object.
             // Step 2.6. Set the namedCurve attribute of algorithm to equal the namedCurve member
             // of normalizedAlgorithm.
-            let algorithm = SubtleEcKeyAlgorithm {
+            let algorithm = EcKeyAlgorithm {
                 name: match ec_algorithm {
                     EcAlgorithm::Ecdsa => {
                         // Step 2.5. Set the name attribute of algorithm to "ECDSA".

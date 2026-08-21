@@ -11,17 +11,19 @@
 
 use std::fmt;
 
+use bitflags::bitflags;
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber, InputEventAndId,
-    JavaScriptEvaluationId, MediaSessionActionType, PaintHitTestResult, ScriptToEmbedderChan,
-    Theme, ViewportDetails, WebDriverScriptCommand,
+    JavaScriptEvaluationId, MediaSessionActionType, MouseButton, PaintHitTestResult,
+    ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use euclid::{Scale, Size2D};
 use fonts_traits::{SystemFontServiceProxySender, WebFontLoadEvent};
 use keyboard_types::Modifiers;
+use malloc_size_of::malloc_size_of_is_0;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
@@ -356,6 +358,60 @@ pub enum DocumentState {
     Pending,
 }
 
+bitflags! {
+    #[derive(Clone, Copy, Default, Debug, Deserialize, Eq, PartialEq, Serialize)]
+    /// <https://w3c.github.io/pointerevents/#dom-mouseevent-buttons>
+    pub struct MouseButtons: u16 {
+        /// > 1 MUST indicate the primary button of the device (in general, the left
+        /// > button or the only button on single-button devices, used to activate a user
+        /// > interface control or select text).
+        const Primary = 1;
+        /// > 2 MUST indicate the secondary button (in general, the right button, often
+        /// > used to display a context menu), if present.
+        const Secondary = 2;
+        /// > 4 MUST indicate the auxiliary button (in general, the middle button, often
+        /// > combined with a mouse wheel).
+        const Auxiliary = 4;
+        /// The 'back' button:
+        ///
+        /// > Some pointing devices provide or simulate more buttons. To represent such
+        /// > buttons, the value MUST be doubled for each successive button (in the binary
+        /// > series 8, 16, 32, ... ).
+        const Back = 8;
+        /// The 'forward' button:
+        ///
+        /// > Some pointing devices provide or simulate more buttons. To represent such
+        /// > buttons, the value MUST be doubled for each successive button (in the binary
+        /// > series 8, 16, 32, ... ).
+        const Forward = 16;
+    }
+}
+
+impl MouseButtons {
+    /// Returns whether exactly one button is pressed.
+    pub fn exactly_one_button_pressed(&self) -> bool {
+        // Exactly one button is pressed iff mouse_button_state is a power of 2
+        !self.is_empty() && (self.bits() & (self.bits() - 1)) == 0
+    }
+}
+
+malloc_size_of_is_0!(MouseButtons);
+
+impl TryFrom<MouseButton> for MouseButtons {
+    type Error = ();
+
+    fn try_from(button: MouseButton) -> Result<Self, Self::Error> {
+        match button {
+            MouseButton::Primary => Ok(Self::Primary),
+            MouseButton::Secondary => Ok(Self::Secondary),
+            MouseButton::Auxiliary => Ok(Self::Auxiliary),
+            MouseButton::Back => Ok(Self::Back),
+            MouseButton::Forward => Ok(Self::Forward),
+            MouseButton::None | MouseButton::Other(_) => Err(()),
+        }
+    }
+}
+
 /// Input events from the embedder that are sent via the `Constellation`` to the `ScriptThread`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConstellationInputEvent {
@@ -363,7 +419,7 @@ pub struct ConstellationInputEvent {
     pub hit_test_result: Option<PaintHitTestResult>,
     /// The pressed mouse button state of the constellation when this input
     /// event was triggered.
-    pub pressed_mouse_buttons: u16,
+    pub pressed_mouse_buttons: MouseButtons,
     /// The currently active keyboard modifiers.
     pub active_keyboard_modifiers: Modifiers,
     /// The [`InputEventAndId`] itself.
@@ -371,11 +427,14 @@ pub struct ConstellationInputEvent {
 }
 
 impl ConstellationInputEvent {
-    /// Returns whether `pressed_mouse_buttons` includes the primarry button
+    /// Returns whether `pressed_mouse_buttons` includes the primary button
     pub fn primary_button_is_pressed(&self) -> bool {
-        /// <https://w3c.github.io/pointerevents/#dom-mouseevent-buttons>
-        const PRIMARY_BUTTON_MASK: u16 = 1;
-        (self.pressed_mouse_buttons & PRIMARY_BUTTON_MASK) != 0
+        self.pressed_mouse_buttons.contains(MouseButtons::Primary)
+    }
+
+    /// Returns whether `pressed_mouse_buttons` includes the auxiliary (middle) button
+    pub fn auxiliary_button_is_pressed(&self) -> bool {
+        self.pressed_mouse_buttons.contains(MouseButtons::Auxiliary)
     }
 }
 

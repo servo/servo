@@ -161,5 +161,9 @@ pub(crate) fn marker_string(list_style_type: &ListStyleType) -> Option<String> {
         },
         CounterStyle::Symbols { .. } => " ",
     };
-    Some(generate_counter_representation(&list_style_type.0).to_string() + suffix)
+    Some(format!(
+        "{}{}",
+        generate_counter_representation(&list_style_type.0),
+        suffix
+    ))
 }

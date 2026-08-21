@@ -20,8 +20,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
-    KeyAlgorithmAndDerivatives, SubtleEcdhKeyDeriveParams,
+    CryptoAlgorithm, EcdhKeyDeriveParams, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
+    KeyAlgorithmAndDerivatives,
 };
 
 /// `id-X448` object identifier defined in [RFC8410]
@@ -32,7 +32,7 @@ pub(crate) const SECRET_LENGTH: usize = 56;
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#x448>
 pub(crate) fn derive_bits(
-    normalized_algorithm: &SubtleEcdhKeyDeriveParams,
+    normalized_algorithm: &EcdhKeyDeriveParams,
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {

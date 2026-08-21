@@ -47,7 +47,8 @@ use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 
 use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
-    LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, TraversalDirection, WindowSizeType,
+    LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, SessionHistoryTraversalRequest,
+    WindowSizeType,
 };
 
 pub type ScriptToConstellationSender =
@@ -437,15 +438,6 @@ impl PartialEq for Job {
     }
 }
 
-/// Used to determine if a script has any pending asynchronous activity.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum DocumentState {
-    /// The document has been loaded and is idle.
-    Idle,
-    /// The document is either loading or waiting on an event.
-    Pending,
-}
-
 /// This trait allows creating a `ServiceWorkerManager` without depending on the `script`
 /// crate.
 pub trait ServiceWorkerManagerFactory {
@@ -758,7 +750,7 @@ pub enum ScriptToConstellationMessage {
     /// Inform the constellation that a fragment was navigated to and whether or not it was a replacement navigation.
     NavigatedToFragment(ServoUrl, NavigationHistoryBehavior),
     /// HTMLIFrameElement Forward or Back traversal.
-    TraverseHistory(TraversalDirection),
+    TraverseHistory(SessionHistoryTraversalRequest),
     /// Inform the constellation of a pushed history state.
     PushHistoryState(HistoryStateId, ServoUrl),
     /// Inform the constellation of a replaced history state.
@@ -778,8 +770,6 @@ pub enum ScriptToConstellationMessage {
     CreateAuxiliaryWebView(AuxiliaryWebViewCreationRequest),
     /// Mark a new document as active
     ActivateDocument,
-    /// Set the document state for a pipeline (used by screenshot / reftests)
-    SetDocumentState(DocumentState),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(ServoUrl),
     /// A log entry, with the top-level browsing context id and thread name

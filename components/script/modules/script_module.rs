@@ -82,6 +82,7 @@ use crate::modules::module_loading::{
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::IntroductionType;
 use crate::tasks::task::NonSendTaskBox;
+use crate::unminify::{ScriptSource, unminify_js};
 
 pub(crate) fn gen_type_error(
     cx: &mut JSContext,
@@ -245,35 +246,6 @@ impl ModuleTree {
     }
 }
 
-pub(crate) struct ModuleSource<'a> {
-    pub source: Cow<'a, str>,
-    pub unminified_dir: Option<String>,
-    pub external: bool,
-    pub url: ServoUrl,
-}
-
-impl<'a> crate::unminify::ScriptSource for ModuleSource<'a> {
-    fn unminified_dir(&self) -> Option<String> {
-        self.unminified_dir.clone()
-    }
-
-    fn extract_bytes(&self) -> &[u8] {
-        self.source.as_bytes()
-    }
-
-    fn rewrite_source(&mut self, source: String) {
-        self.source = source.into();
-    }
-
-    fn url(&self) -> ServoUrl {
-        self.url.clone()
-    }
-
-    fn is_external(&self) -> bool {
-        self.external
-    }
-}
-
 impl ModuleTree {
     #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
@@ -315,14 +287,13 @@ impl ModuleTree {
             line_number,
         );
 
-        let mut source = if global.unminified_js_dir().is_some() {
-            let mut module_source = ModuleSource {
+        let mut source = if let Some(unminified_js_dir) = global.unminified_js_dir() {
+            let mut module_source = ScriptSource {
                 source,
-                unminified_dir: global.unminified_js_dir(),
                 external,
-                url: url.clone(),
+                url,
             };
-            crate::unminify::unminify_js(&mut module_source);
+            unminify_js(&mut module_source, unminified_js_dir);
             transform_str_to_source_text(&module_source.source)
         } else {
             transform_str_to_source_text(&source)
@@ -763,7 +734,7 @@ impl FetchResponseListener for ModuleContext {
                 if let Some(window) = global.downcast::<Window>() &&
                     let Some(script_souce) = window.local_script_source()
                 {
-                    substitute_with_local_script(script_souce, &mut source_text, final_url.clone());
+                    substitute_with_local_script(script_souce, &mut source_text, &final_url);
                 }
 
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(

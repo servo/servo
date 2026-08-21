@@ -5,11 +5,13 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
+use embedder_traits::MouseButton;
 use euclid::Point2D;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_traits::MouseButtons;
 use style::Atom;
 use style_traits::CSSPixel;
 
@@ -67,8 +69,8 @@ impl WheelEvent {
         client_point: Point2D<i32, CSSPixel>,
         page_point: Point2D<i32, CSSPixel>,
         modifiers: Modifiers,
-        button: i16,
-        buttons: u16,
+        button: MouseButton,
+        buttons: MouseButtons,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
         delta_x: Finite<f64>,
@@ -114,8 +116,8 @@ impl WheelEvent {
         client_point: Point2D<i32, CSSPixel>,
         page_point: Point2D<i32, CSSPixel>,
         modifiers: Modifiers,
-        button: i16,
-        buttons: u16,
+        button: MouseButton,
+        buttons: MouseButtons,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
         delta_x: Finite<f64>,
@@ -159,8 +161,8 @@ impl WheelEvent {
         client_point: Point2D<i32, CSSPixel>,
         page_point: Point2D<i32, CSSPixel>,
         modifiers: Modifiers,
-        button: i16,
-        buttons: u16,
+        button: MouseButton,
+        buttons: MouseButtons,
         related_target: Option<&EventTarget>,
         point_in_target: Option<Point2D<f32, CSSPixel>>,
         delta_x: Finite<f64>,
@@ -226,8 +228,8 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
             Point2D::new(init.parent.clientX, init.parent.clientY),
             Point2D::new(page_point.x, page_point.y),
             init.parent.parent.modifiers(),
-            init.parent.button,
-            init.parent.buttons,
+            init.parent.button.into(),
+            MouseButtons::from_bits_retain(init.parent.buttons),
             init.parent.relatedTarget.as_deref(),
             None,
             init.deltaX,

@@ -181,6 +181,7 @@ use crate::dom::largestcontentfulpaint::LargestContentfulPaint;
 use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::treewalker::TreeWalker;
 use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits};
@@ -199,6 +200,7 @@ use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::text::Text;
+use crate::dom::textevent::TextEvent;
 use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
@@ -719,6 +721,10 @@ pub(crate) struct Document {
     /// Theme specific for this document, set by a meta element
     #[no_trace]
     theme: Cell<Option<Theme>>,
+
+    /// True if this document is no longer the active document of its associated
+    /// window.
+    window_detached: Cell<bool>,
 }
 
 impl Document {
@@ -774,7 +780,7 @@ impl Document {
         // TODO
 
         // Step 4. If document's salvageable state is false, then:
-        if !self.salvageable.get() {
+        if !self.salvageable.get() && !self.window_detached() {
             let global_scope = self.window.as_global_scope();
 
             // Step 4.1. For each EventSource object eventSource whose relevant global object is equal to window, forcibly close eventSource.
@@ -990,11 +996,11 @@ impl Document {
     }
 
     pub(crate) fn is_fully_active(&self) -> bool {
-        self.activity.get() == DocumentActivity::FullyActive
+        !self.window_detached() && self.activity.get() == DocumentActivity::FullyActive
     }
 
     pub(crate) fn is_active(&self) -> bool {
-        self.activity.get() != DocumentActivity::Inactive
+        !self.window_detached() && self.activity.get() != DocumentActivity::Inactive
     }
 
     #[inline]
@@ -1023,8 +1029,14 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend(cx);
+            if !self.window_detached() {
+                self.window().suspend(cx);
+            }
             media.suspend(&client_context_id);
+            return;
+        }
+
+        if self.window_detached() {
             return;
         }
 
@@ -1393,7 +1405,11 @@ impl Document {
 
         // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback
         // target.
-        indicated_part.run_the_focusing_steps(cx, Some(FocusableArea::Viewport));
+        indicated_part.run_the_focusing_steps(
+            cx,
+            Some(FocusableArea::Viewport),
+            FocusTrigger::Other,
+        );
 
         // Step 3.7. Move the sequential focus navigation starting point to target.
         self.focus_handler()
@@ -2219,6 +2235,10 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#unload-a-document
     pub(crate) fn unload(&self, cx: &mut JSContext, recursive_flag: bool) {
+        if self.window_detached() {
+            return;
+        }
+
         // TODO: Step 1, increase the event loop's termination nesting level by 1.
         // Step 2
         self.incr_ignore_opens_during_unload_counter();
@@ -2335,6 +2355,13 @@ impl Document {
     // https://html.spec.whatwg.org/multipage/#the-end
     // TODO(43149): Remove when document replacement is implemented
     pub(crate) fn maybe_queue_document_completion(&self, cx: &mut JSContext) {
+        // The initial about:blank document passes through
+        // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
+        // instead of the steps used by other documents.
+        if self.is_initial_about_blank() {
+            return;
+        }
+
         // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
         let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
             Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
@@ -2377,7 +2404,7 @@ impl Document {
                 let document = document.root();
                 // Step 9.3. Let window be the Document's relevant global object.
                 let window = document.window();
-                if !window.is_alive() {
+                if !window.is_alive() || document.window_detached() {
                     return;
                 }
 
@@ -3610,9 +3637,12 @@ impl Document {
         Ok(())
     }
 
-    pub(crate) fn details_name_groups(&self) -> RefMut<'_, DetailsNameGroups> {
+    pub(crate) fn details_name_groups<'a: 'b, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+    ) -> RefMut<'b, DetailsNameGroups> {
         RefMut::map(
-            self.details_name_groups.borrow_mut(),
+            self.details_name_groups.safe_borrow_mut(no_gc),
             |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }
@@ -3965,7 +3995,16 @@ impl Document {
             image_cache,
             history: Default::default(),
             theme: Default::default(),
+            window_detached: Default::default(),
         }
+    }
+
+    pub(crate) fn detach_window(&self) {
+        self.window_detached.set(true);
+    }
+
+    pub(crate) fn window_detached(&self) -> bool {
+        self.window_detached.get()
     }
 
     /// Returns a policy value that should be used for fetches initiated by this document.
@@ -5783,9 +5822,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 cx,
                 &self.window,
             ))),
-            "compositionevent" | "textevent" => Ok(DomRoot::upcast(
-                CompositionEvent::new_uninitialized(cx, &self.window),
-            )),
+            "compositionevent" => Ok(DomRoot::upcast(CompositionEvent::new_uninitialized(
+                cx,
+                &self.window,
+            ))),
             "customevent" => Ok(DomRoot::upcast(CustomEvent::new_uninitialized(
                 cx,
                 self.window.upcast(),
@@ -5819,6 +5859,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 cx,
                 &self.window,
                 "".into(),
+            ))),
+            "textevent" => Ok(DomRoot::upcast(TextEvent::new_uninitialized(
+                cx,
+                &self.window,
             ))),
             "touchevent" => {
                 let touches = TouchList::new(cx, &self.window, &[]);
@@ -5892,7 +5936,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             None => return,
         };
 
+        // > On setting, the steps corresponding to the first matching condition in the following list must be run:
+        // ↪ If the document element is an SVG svg element
         let node = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
+            // Step 1. If there is an SVG title element that is a child of the document element,
+            // let element be the first such element.
             let elem = root
                 .upcast::<Node>()
                 .child_elements_unrooted(cx.no_gc())
@@ -5901,7 +5949,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 });
             match elem {
                 Some(elem) => UnrootedDom::upcast::<Node>(elem).as_rooted(),
+                // Step 2. Otherwise:
                 None => {
+                    // Step 2.1 Let element be the result of creating an element given the document element's
+                    // node document, "title", and the SVG namespace.
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
                     let elem = Element::create(
                         cx,
@@ -5912,6 +5963,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                         CustomElementCreationMode::Synchronous,
                         None,
                     );
+
+                    // Step 2.2 Insert element as the first child of the document element.
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
@@ -5919,15 +5972,21 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                         .unwrap()
                 },
             }
-        } else if root.namespace() == &ns!(html) {
+        }
+        // ↪ If the document element is in the HTML namespace
+        else if root.namespace() == &ns!(html) {
             let elem = root
                 .upcast::<Node>()
                 .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::No)
                 .find(|node| node.is::<HTMLTitleElement>());
             match elem {
+                // Step 2. If the title element is non-null, let element be the title element.
                 Some(elem) => elem.as_rooted(),
+                // Step 3. Otherwise:
                 None => match self.GetHead() {
                     Some(head) => {
+                        // Step 3.1 Let element be the result of creating an element given the
+                        // document element's node document, "title", and the HTML namespace.
                         let name = QualName::new(None, ns!(html), local_name!("title"));
                         let elem = Element::create(
                             cx,
@@ -5938,17 +5997,27 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             CustomElementCreationMode::Synchronous,
                             None,
                         );
+
+                        // Step 3.2 Append element to the head element.
                         head.upcast::<Node>()
                             .AppendChild(cx, elem.upcast())
                             .unwrap()
                     },
+                    // Step 1. If the title element is null and the head element is null, then return.
                     None => return,
                 },
             }
-        } else {
+        }
+        // ↪ Otherwise
+        else {
+            // Do nothing.
             return;
         };
 
+        // Step 3. of "↪ If the document element is an SVG svg element"
+        // Step 4. of "↪ If the document element is in the HTML namespace"
+        //
+        // > String replace all with the given value within element.
         node.set_text_content_for_element(cx, Some(title));
     }
 

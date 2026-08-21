@@ -175,6 +175,13 @@ impl PlatformFont {
 
         Self::new(font_face, pt_size, variations)
     }
+
+    fn uses_synthetic_bold(&self) -> bool {
+        matches!(
+            self.face.simulations(),
+            FontSimulations::Bold | FontSimulations::BoldOblique
+        )
+    }
 }
 
 impl PlatformFontMethods for PlatformFont {
@@ -182,20 +189,18 @@ impl PlatformFontMethods for PlatformFont {
         _font_identifier: FontIdentifier,
         data: &FontData,
         pt_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<Self, &'static str> {
         let font_face = FontFile::new_from_buffer(Arc::new(data.clone()))
             .ok_or("Could not create FontFile")?
             .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
+        Self::new_with_variations(font_face, pt_size, &[], synthetic_bold)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         pt_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let font_face = FontCollection::system()
@@ -204,7 +209,20 @@ impl PlatformFontMethods for PlatformFont {
             .flatten()
             .ok_or("Could not create Font from descriptor")?
             .create_font_face();
-        Self::new_with_variations(font_face, pt_size, variations, synthetic_bold)
+        Self::new_with_variations(font_face, pt_size, &[], synthetic_bold)
+    }
+
+    fn copy_with_variations(
+        self,
+        _: &FontIdentifier,
+        variations: &[FontVariation],
+    ) -> Result<Self, &'static str> {
+        Self::new_with_variations(
+            self.face.0.clone(),
+            Some(Au::from_f32_px(self.em_size * 16.)),
+            variations,
+            self.uses_synthetic_bold(),
+        )
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -258,7 +276,10 @@ impl PlatformFontMethods for PlatformFont {
 
         // anything that we calculate and don't just pull out of self.face.metrics
         // is pulled out here for clarity
-        let leading = dm.ascent - dm.capHeight;
+        // Values may be negative, so we convert to signed integers, see
+        // <https://learn.microsoft.com/en-us/windows/win32/api/dwrite/ns-dwrite-dwrite_font_metrics>
+        let leading = i32::from(dm.lineGap);
+        let line_height = i32::from(dm.ascent) + i32::from(dm.descent) + leading;
 
         let zero_horizontal_advance = self
             .glyph_index('0')
@@ -285,14 +306,14 @@ impl PlatformFontMethods for PlatformFont {
             underline_offset: au_from_du_s(dm.underlinePosition as i32),
             strikeout_size: au_from_du(dm.strikethroughThickness as i32),
             strikeout_offset: au_from_du_s(dm.strikethroughPosition as i32),
-            leading: au_from_du_s(leading as i32),
+            leading: au_from_du_s(leading),
             x_height: au_from_du_s(dm.xHeight as i32),
             em_size: au_from_em(self.em_size as f64),
             ascent: au_from_du_s(dm.ascent as i32),
             descent: au_from_du_s(dm.descent as i32),
             max_advance,
             average_advance,
-            line_gap: au_from_du_s((dm.ascent + dm.descent + dm.lineGap as u16) as i32),
+            line_gap: au_from_du_s(line_height),
             zero_horizontal_advance,
             ic_horizontal_advance,
             space_advance,
@@ -317,10 +338,7 @@ impl PlatformFontMethods for PlatformFont {
 
         // TODO: Add support for synthetic italics.
         // <https://github.com/servo/servo/issues/39637>
-        if matches!(
-            self.face.simulations(),
-            FontSimulations::Bold | FontSimulations::BoldOblique
-        ) {
+        if self.uses_synthetic_bold() {
             flags |= FontInstanceFlags::SYNTHETIC_BOLD;
         }
 

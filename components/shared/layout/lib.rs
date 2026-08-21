@@ -406,6 +406,14 @@ pub trait Layout {
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel>;
+    /// Find the closest character offset of the point within descendants of the given
+    /// node, if it has text content. This works even if the point is outside of all of
+    /// the layout boxes of the node.
+    fn query_text_index(
+        &self,
+        node: TrustedNodeAddress,
+        point_in_viewport: Point2D<Au, CSSPixel>,
+    ) -> Option<(OpaqueNode, Utf32CodeUnits)>;
     fn hit_test(&self, flags: HitTestFlags, point: LayoutPoint) -> HitTestResult;
     fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
     fn stylist_mut(&mut self) -> &mut Stylist;
