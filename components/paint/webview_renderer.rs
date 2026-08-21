@@ -218,6 +218,9 @@ impl WebViewRenderer {
             return;
         }
 
+        // Flush the LCP candidates when exiting pipeline.
+        pipeline.get_mut().lcp_candidates.borrow_mut().clear();
+
         pipeline.remove_entry();
     }
 
