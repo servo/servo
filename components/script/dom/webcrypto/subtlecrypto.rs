@@ -3717,7 +3717,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Pbkdf2Params {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-ContextParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleContextParams {
+struct ContextParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3725,7 +3725,7 @@ struct SubtleContextParams {
     context: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleContextParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for ContextParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3733,7 +3733,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleContextParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleContextParams {
+        Ok(ContextParams {
             name: algorithm_name,
             context: get_optional_buffer_source(cx, object, c"context")?,
         })
@@ -5100,7 +5100,7 @@ enum SignAlgorithm {
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
-    MlDsa(SubtleContextParams),
+    MlDsa(ContextParams),
     Kmac(KmacParams),
 }
 
@@ -5189,7 +5189,7 @@ enum VerifyAlgorithm {
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
-    MlDsa(SubtleContextParams),
+    MlDsa(ContextParams),
     Kmac(KmacParams),
 }
 
