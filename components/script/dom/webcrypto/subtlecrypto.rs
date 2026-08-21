@@ -63,8 +63,8 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    Algorithm as AlgorithmWithDOMString, AlgorithmIdentifier, EncapsulatedBits, EncapsulatedKey,
-    JsonWebKey, KeyFormat, SubtleCryptoMethods,
+    Algorithm as AlgorithmWithDOMString, AlgorithmIdentifier, JsonWebKey, KeyFormat,
+    SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
@@ -4158,18 +4158,35 @@ struct SubtleEncapsulatedKey {
 }
 
 impl ToJSValConvertible for SubtleEncapsulatedKey {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        let shared_key = self.shared_key.as_ref().map(|shared_key| shared_key.root());
-        let ciphertext = self.ciphertext.as_ref().map(|data| {
-            rooted!(&in(cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut())
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
+        self.shared_key
+            .as_ref()
+            .map(|shared_key| shared_key.root())
+            .safe_to_jsval(cx, shared_key_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"sharedKey", shared_key_js.handle())
+            .expect("Failed to set sharedKey property of EncapsulatedKey");
+
+        rooted!(&in(cx) let mut ciphertext_js = UndefinedValue());
+        self.ciphertext
+            .as_ref()
+            .map(|ciphertext| {
+                rooted!(&in(cx) let mut ciphertext_js_object = ptr::null_mut::<JSObject>());
+                create_buffer_source::<ArrayBufferU8>(
+                    cx,
+                    ciphertext,
+                    ciphertext_js_object.handle_mut(),
+                )
                 .expect("Failed to convert ciphertext to ArrayBufferU8")
-        });
-        let encapsulated_key = RootedTraceableBox::new(EncapsulatedKey {
-            sharedKey: shared_key,
-            ciphertext,
-        });
-        encapsulated_key.safe_to_jsval(cx, rval);
+            })
+            .safe_to_jsval(cx, ciphertext_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"ciphertext", ciphertext_js.handle())
+            .expect("Failed to set ciphertext property of EncapsulatedKey");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
@@ -4183,22 +4200,43 @@ struct SubtleEncapsulatedBits {
 }
 
 impl ToJSValConvertible for SubtleEncapsulatedBits {
-    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: MutableHandleValue) {
-        let shared_key = self.shared_key.as_ref().map(|data| {
-            rooted!(&in(cx) let mut shared_key_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(cx, data, shared_key_ptr.handle_mut())
-                .expect("Failed to convert shared key to ArrayBufferU8")
-        });
-        let ciphertext = self.ciphertext.as_ref().map(|data| {
-            rooted!(&in(cx) let mut ciphertext_ptr = ptr::null_mut::<JSObject>());
-            create_buffer_source::<ArrayBufferU8>(cx, data, ciphertext_ptr.handle_mut())
+    #[expect(unsafe_code)]
+    fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
+        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+
+        rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
+        self.shared_key
+            .as_ref()
+            .map(|shared_key| {
+                rooted!(&in(cx) let mut shared_key_js_object = ptr::null_mut::<JSObject>());
+                create_buffer_source::<ArrayBufferU8>(
+                    cx,
+                    shared_key,
+                    shared_key_js_object.handle_mut(),
+                )
+                .expect("Failed to convert shared_key to ArrayBufferU8")
+            })
+            .safe_to_jsval(cx, shared_key_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"sharedKey", shared_key_js.handle())
+            .expect("Failed to set sharedKey property of EncapsulatedBits");
+
+        rooted!(&in(cx) let mut ciphertext_js = UndefinedValue());
+        self.ciphertext
+            .as_ref()
+            .map(|ciphertext| {
+                rooted!(&in(cx) let mut ciphertext_js_object = ptr::null_mut::<JSObject>());
+                create_buffer_source::<ArrayBufferU8>(
+                    cx,
+                    ciphertext,
+                    ciphertext_js_object.handle_mut(),
+                )
                 .expect("Failed to convert ciphertext to ArrayBufferU8")
-        });
-        let encapsulated_bits = RootedTraceableBox::new(EncapsulatedBits {
-            sharedKey: shared_key,
-            ciphertext,
-        });
-        encapsulated_bits.safe_to_jsval(cx, rval);
+            })
+            .safe_to_jsval(cx, ciphertext_js.handle_mut());
+        set_dictionary_property(cx, object.handle(), c"ciphertext", ciphertext_js.handle())
+            .expect("Failed to set ciphertext property of EncapsulatedBits");
+
+        rval.set(ObjectOrNullValue(object.get()));
     }
 }
 
