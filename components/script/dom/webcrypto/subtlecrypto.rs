@@ -3742,7 +3742,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for ContextParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleAeadParams {
+struct AeadParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3756,7 +3756,7 @@ struct SubtleAeadParams {
     tag_length: Option<u8>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AeadParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3764,7 +3764,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleAeadParams {
+        Ok(AeadParams {
             name: algorithm_name,
             iv: get_required_buffer_source(cx, object, c"iv")?,
             additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
@@ -4924,8 +4924,8 @@ enum EncryptAlgorithm {
     AesCtr(AesCtrParams),
     AesCbc(AesCbcParams),
     AesGcm(AesGcmParams),
-    AesOcb(SubtleAeadParams),
-    ChaCha20Poly1305(SubtleAeadParams),
+    AesOcb(AeadParams),
+    ChaCha20Poly1305(AeadParams),
 }
 
 impl NormalizedAlgorithm for EncryptAlgorithm {
@@ -5011,8 +5011,8 @@ enum DecryptAlgorithm {
     AesCtr(AesCtrParams),
     AesCbc(AesCbcParams),
     AesGcm(AesGcmParams),
-    AesOcb(SubtleAeadParams),
-    ChaCha20Poly1305(SubtleAeadParams),
+    AesOcb(AeadParams),
+    ChaCha20Poly1305(AeadParams),
 }
 
 impl NormalizedAlgorithm for DecryptAlgorithm {
