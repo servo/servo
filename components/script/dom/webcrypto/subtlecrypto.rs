@@ -363,7 +363,7 @@ impl SubtleCrypto {
     fn resolve_promise_with_encapsulated_bits(
         &self,
         promise: Rc<Promise>,
-        encapsulated_bits: SubtleEncapsulatedBits,
+        encapsulated_bits: EncapsulatedBits,
     ) {
         let trusted_promise = TrustedPromise::new(promise);
         self.global().task_manager().crypto_task_source().queue(
@@ -4191,7 +4191,7 @@ impl ToJSValConvertible for EncapsulatedKey {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits>
-struct SubtleEncapsulatedBits {
+struct EncapsulatedBits {
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits-sharedKey>
     shared_key: Option<Zeroizing<Vec<u8>>>,
 
@@ -4199,7 +4199,7 @@ struct SubtleEncapsulatedBits {
     ciphertext: Option<Vec<u8>>,
 }
 
-impl ToJSValConvertible for SubtleEncapsulatedBits {
+impl ToJSValConvertible for EncapsulatedBits {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -6406,7 +6406,7 @@ impl NormalizedAlgorithm for EncapsulateAlgorithm {
 }
 
 impl EncapsulateAlgorithm {
-    fn encapsulate(&self, key: &CryptoKey) -> Result<SubtleEncapsulatedBits, Error> {
+    fn encapsulate(&self, key: &CryptoKey) -> Result<EncapsulatedBits, Error> {
         match self {
             EncapsulateAlgorithm::MlKem(algorithm) => ml_kem_operation::encapsulate(algorithm, key),
         }
