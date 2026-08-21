@@ -3775,7 +3775,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AeadParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleCShakeParams {
+struct CShakeParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3789,7 +3789,7 @@ struct SubtleCShakeParams {
     customization: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for CShakeParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3797,7 +3797,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleCShakeParams {
+        Ok(CShakeParams {
             name: algorithm_name,
             output_length: get_required_parameter(
                 cx,
@@ -3811,11 +3811,11 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
     }
 }
 
-impl TryFrom<SerializableCShakeParams> for SubtleCShakeParams {
+impl TryFrom<SerializableCShakeParams> for CShakeParams {
     type Error = ();
 
     fn try_from(value: SerializableCShakeParams) -> Result<Self, Self::Error> {
-        Ok(SubtleCShakeParams {
+        Ok(CShakeParams {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             output_length: value.output_length,
             function_name: value.function_name,
@@ -3824,8 +3824,8 @@ impl TryFrom<SerializableCShakeParams> for SubtleCShakeParams {
     }
 }
 
-impl From<&SubtleCShakeParams> for SerializableCShakeParams {
-    fn from(value: &SubtleCShakeParams) -> Self {
+impl From<&CShakeParams> for SerializableCShakeParams {
+    fn from(value: &CShakeParams) -> Self {
         SerializableCShakeParams {
             name: value.name.as_str().into(),
             output_length: value.output_length,
@@ -5287,7 +5287,7 @@ impl Operation for DigestOperation {
 enum DigestAlgorithm {
     Sha(Algorithm),
     Sha3(Algorithm),
-    CShake(SubtleCShakeParams),
+    CShake(CShakeParams),
     TurboShake(SubtleTurboShakeParams),
     KangarooTwelve(SubtleKangarooTwelveParams),
 }
