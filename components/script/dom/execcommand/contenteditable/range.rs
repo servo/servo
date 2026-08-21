@@ -100,6 +100,12 @@ impl Range {
         }
     }
 
+    pub(crate) fn contained_nodes(&self) -> impl Iterator<Item = DomRoot<Node>> {
+        self.CommonAncestorContainer()
+            .traverse_preorder(ShadowIncluding::No)
+            .filter(|node| self.contains(node))
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#block-extend>
     pub(crate) fn block_extend(&self, cx: &mut JSContext, document: &Document) -> DomRoot<Range> {
         // Step 1. Let start node, start offset, end node,
