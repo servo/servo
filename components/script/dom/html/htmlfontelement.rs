@@ -75,7 +75,7 @@ impl HTMLFontElement {
             _ => {}
         }
 
-        let name = string.to_owned().replace(['\'', '"'], "");
+        let name = string.replace(['\'', '"'], "");
         let syntax = if name == string {
             FontFamilyNameSyntax::Identifiers
         } else {
