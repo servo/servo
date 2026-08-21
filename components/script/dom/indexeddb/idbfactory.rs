@@ -33,9 +33,9 @@ use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
+use crate::dom::indexeddb::key::{convert_value_to_key, map_backend_error_to_dom_error};
 use crate::dom::promise::Promise;
 use crate::dom::types::IDBTransaction;
-use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
 
 /// A non-jstraceable string wrapper for use in `HashMapTracedValues`.
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]

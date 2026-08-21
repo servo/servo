@@ -14,6 +14,7 @@ pub(crate) mod notification;
     reason = "The interface name is Serviceworker"
 )]
 pub(crate) mod serviceworker;
+pub(crate) mod serviceworker_manager;
 pub(crate) mod serviceworkercontainer;
 pub(crate) mod serviceworkerglobalscope;
 pub(crate) mod serviceworkerregistration;
