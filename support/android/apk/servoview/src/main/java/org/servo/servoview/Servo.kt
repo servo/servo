@@ -9,6 +9,20 @@ import android.content.Context
 import android.util.Size
 import android.view.KeyEvent
 import android.view.Surface
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
+
+@Composable
+fun Servo(
+    servoView: ServoView,
+    modifier: Modifier = Modifier,
+) {
+    AndroidView(
+        factory = { _ -> servoView },
+        modifier = modifier,
+    )
+}
 
 class Servo(
     args: String?,
