@@ -992,20 +992,17 @@ impl WebView {
         // The root node covers the whole viewport, in the same coordinate space as the bounds of
         // the document nodes grafted underneath it: CSS pixels relative to the viewport origin.
         //
-        // Its transform converts those CSS pixels into the device independent pixels that the
-        // embedder positions this subtree in. That scale is everything which maps a CSS pixel to
-        // a device pixel — page zoom and pinch zoom — except the HiDPI scale factor, which is
-        // deliberately left out: it is the embedder which scales device independent pixels to the
-        // physical pixels AccessKit ultimately expects, and which translates this subtree to the
-        // WebView's position within its window. See `update_bounds_from_dom_node()` in
-        // `components/layout/accessibility_tree.rs` for the full contract.
+        // Its transform converts those CSS pixels into device pixels. That scale is everything
+        // which maps a CSS pixel to a device pixel — page zoom, pinch zoom and HiDPI scale factor.
+        //
+        // See `update_bounds_from_dom_node()` in
+        // `components/layout/accessibility_tree.rs` for how bounds are computed for web contents.
+
         // Compute the ratio from the WebView's current settings. `device_pixels_per_css_pixel()`
         // reports the ratio the latest rendered display list was produced with, which lags behind
         // the zoom/HiDPI change that triggered this call, since reflow is asynchronous.
         let device_pixels_per_css_pixel =
             self.page_zoom() * self.hidpi_scale_factor().get() * self.pinch_zoom();
-        let device_independent_pixels_per_css_pixel =
-            device_pixels_per_css_pixel / self.hidpi_scale_factor().get();
         let size =
             self.size() / Scale::<f32, CSSPixel, DevicePixel>::new(device_pixels_per_css_pixel);
         root_node.set_bounds(AccesskitRect::new(
@@ -1015,9 +1012,9 @@ impl WebView {
             size.height as f64,
         ));
         // AccessKit asks that a node with an identity transform leave it unset.
-        if device_independent_pixels_per_css_pixel != 1.0 {
+        if device_pixels_per_css_pixel != 1.0 {
             root_node.set_transform(AccesskitAffine::scale(
-                device_independent_pixels_per_css_pixel as f64,
+                device_pixels_per_css_pixel as f64,
             ));
         }
         let graft_node_id = NodeId(1);
