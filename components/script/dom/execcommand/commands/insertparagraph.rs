@@ -351,9 +351,7 @@ pub(crate) fn execute_insert_paragraph_command(
         unreachable!("Must always be able to insert");
     }
     // Step 26. Let contained nodes be all nodes contained in new line range.
-    let Ok(contained_nodes) = new_line_range.contained_children() else {
-        unreachable!("Must always have contained children");
-    };
+    let contained_nodes: Vec<DomRoot<Node>> = new_line_range.contained_nodes().collect();
     // Step 27. Let frag be the result of calling extractContents() on new line range.
     let Ok(frag) = new_line_range.ExtractContents(cx) else {
         unreachable!("Must always be able to extract");
@@ -362,7 +360,7 @@ pub(crate) fn execute_insert_paragraph_command(
     // Step 28. Unset the id attribute (if any) of each Element descendant of frag
     // that is not in contained nodes.
     for descendant in frag_as_node.traverse_preorder(ShadowIncluding::No) {
-        if !contained_nodes.contained_children.contains(&descendant) &&
+        if !contained_nodes.contains(&descendant) &&
             let Some(descendant) = descendant.downcast::<Element>()
         {
             descendant.remove_attribute_by_name(cx, &local_name!("id"));

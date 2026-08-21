@@ -9,7 +9,6 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::NodeTraits;
-use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::element::{AdjacentPosition, Element};
@@ -19,7 +18,6 @@ use crate::dom::execcommand::contenteditable::node::{
 use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmlolistelement::HTMLOListElement;
 use crate::dom::html::htmlulistelement::HTMLUListElement;
-use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
@@ -199,11 +197,7 @@ pub(crate) fn execute_indent_command(
     //         if node is editable and is an allowed child of "div" or "ol"
     //         and if the last member of node list (if any) is not an ancestor of node,
     //         append node to node list.
-    for node in new_range
-        .CommonAncestorContainer()
-        .traverse_preorder(ShadowIncluding::No)
-        .filter(|node| new_range.contains(node))
-    {
+    for node in new_range.contained_nodes() {
         if node.is_editable() &&
             (is_allowed_child(
                 NodeOrString::Node(node.clone()),
