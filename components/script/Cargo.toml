@@ -82,9 +82,10 @@ webxr = ["webgl", "gamepad", "webxr-api", "script_bindings/webxr"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
 
 [dependencies]
-aes = { workspace = true, optional = true }
-aes-gcm = { workspace = true, optional = true }
-aes-kw = { workspace = true, optional = true }
+accesskit = { workspace = true }
+aes = { workspace = true }
+aes-gcm = { workspace = true }
+aes-kw = { workspace = true }
 app_units = { workspace = true }
 argon2 = { workspace = true, optional = true }
 arrayvec = { workspace = true }
