@@ -66,8 +66,8 @@ impl TestWorkletGlobalScope {
     }
 
     /// Get the value associated with the given key.
-    pub fn lookup_value(&self, key: String) -> Option<String> {
-        self.lookup_table.borrow().get(&key).cloned()
+    pub fn lookup_value(&self, key: &str) -> Option<String> {
+        self.lookup_table.borrow().get(key).cloned()
     }
 }
 

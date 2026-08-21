@@ -250,7 +250,8 @@ pub trait WorkletThreadPool: JSTraceable {
     /// Loads a worklet module into every thread in this thread pool.
     /// If all of the threads load successfully, the promise is resolved.
     /// If any of the threads fails to load, the promise is rejected.
-    /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet-script-graph>
+    /// NOTE: The method implements the Step 6 of AddModule
+    /// <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
     #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
@@ -266,11 +267,15 @@ pub trait WorkletThreadPool: JSTraceable {
         promise: &Rc<Promise>,
         inherited_secure_context: Option<bool>,
     );
-    /// Request that the [`WorkletGlobalScope`] associated with the [`WorkletId`] be removed from all the threads in the thread pool.
+    /// Request that the [`WorkletGlobalScope`] associated with the [`WorkletId`]
+    /// be removed from all the threads in the thread pool.
     fn exit_worklet(&self, worklet_id: WorkletId);
-    /// Signal all the threads in the pool that there may be control messages to process.
+    /// Signal all the threads in the pool that there may be control messages to
+    /// process.
     fn wake_threads(&self);
-    /// Queue a [`WorkletTask`] for execution on this [`WorkletThreadPool`]. The task will be executed in the context of the [`WorkletGlobalScope`] represented by the [`WorketId`].
+    /// Queue a [`WorkletTask`] for execution on this [`WorkletThreadPool`].
+    /// The task will be executed in the context of the [`WorkletGlobalScope`]
+    /// represented by the [`WorketId`].
     fn perform_a_worklet_task(&self, worklet_id: WorkletId, worklet_task: WorkletTask);
 }
 
