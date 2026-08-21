@@ -1211,7 +1211,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                     let fl = FileList::new(cx, &window, vec![]);
                     self.input_type().as_specific().set_files(&fl)
                 } else {
-                    return Err(Error::InvalidState(Some("DOM string is not empty".into())));
+                    return Err(Error::InvalidState(Some(
+                        "Non-empty value provided for filename".into(),
+                    )));
                 }
             },
         }

@@ -758,7 +758,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             Some(definition) => definition,
             None => {
                 return Err(Error::NotSupported(Some(
-                    "HTML element defintion is not defined".into(),
+                    "Custom element definition is missing".into(),
                 )));
             },
         };
@@ -766,7 +766,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 4: If definition's disable internals is true, then throw a "NotSupportedError" DOMException
         if definition.disable_internals {
             return Err(Error::NotSupported(Some(
-                "HTML element defintion's `disable_internals` must be set to true".into(),
+                "Custom element definition's `disabledFeatures` must not include \"internals\""
+                    .into(),
             )));
         }
 
@@ -774,7 +775,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         let internals = self.element.ensure_element_internals(cx);
         if internals.attached() {
             return Err(Error::NotSupported(Some(
-                "HTML element's attached internals are null".into(),
+                "HTML element's internals are already attached".into(),
             )));
         }
 
@@ -785,7 +786,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             CustomElementState::Precustomized | CustomElementState::Custom
         ) {
             return Err(Error::NotSupported(Some(
-                "Custom element state must either be precustomized, or custom".into(),
+                "HTML element is not yet upgraded".into(),
             )));
         }
 

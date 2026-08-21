@@ -1112,7 +1112,7 @@ impl HTMLImageElement {
             .dom_manipulation_task_source()
             .queue(task!(reject_image_decode_promises: move |cx| {
                 for trusted_promise in trusted_image_decode_promises {
-                    trusted_promise.root().reject_error(cx, Error::Encoding(Some("Could not decode all image promises".into())));
+                    trusted_promise.root().reject_error(cx, Error::Encoding(Some("Image could not be decoded".into())));
                 }
             }));
     }

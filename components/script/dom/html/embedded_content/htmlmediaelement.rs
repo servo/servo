@@ -876,7 +876,7 @@ impl HTMLMediaElement {
 
             // Step 2.2. Take pending play promises and let promises be the result.
             self.take_pending_play_promises(Err(Error::Abort(Some(
-                "Could not take pending play promise for media element".into(),
+                "Media element was paused".into(),
             ))));
 
             // Step 2.3. Queue a media element task given the media element and the following steps:
@@ -1618,7 +1618,7 @@ impl HTMLMediaElement {
         let this = Trusted::new(self);
         let generation_id = self.generation_id.get();
         self.take_pending_play_promises(Err(Error::NotSupported(Some(
-            "Could not take pending play promises".into(),
+            "Media source is not supported".into(),
         ))));
         self.owner_global()
             .task_manager()
@@ -1774,7 +1774,7 @@ impl HTMLMediaElement {
                 // Step 7.6.2. Take pending play promises and reject pending play promises with the
                 // result and an "AbortError" DOMException.
                 self.take_pending_play_promises(Err(Error::Abort(Some(
-                    "Could not take pending play promises".into(),
+                    "Playback interrupted by new resource load".into(),
                 ))));
                 self.fulfill_in_flight_play_promises(cx, |_| ());
             }
@@ -2342,7 +2342,7 @@ impl HTMLMediaElement {
 
                     // Step 3.2.3. Take pending play promises and reject pending play promises with
                     // the result and an "AbortError" DOMException.
-                    this.take_pending_play_promises(Err(Error::Abort(Some("Could not take pending play promises".into()))));
+                    this.take_pending_play_promises(Err(Error::Abort(Some("Media playback finished".into()))));
                     this.fulfill_in_flight_play_promises(cx, |_| ());
                 }
 

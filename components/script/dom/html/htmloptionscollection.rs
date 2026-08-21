@@ -197,7 +197,9 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         // HTMLOptionsCollection is rooted, then throw a "HierarchyRequestError"
         // DOMException.
         if node.is_ancestor_of(&root) {
-            return Err(Error::HierarchyRequest(Some("Cannot add option or opt group element to options collection as it is an ancestor of the rooted node".into())));
+            return Err(Error::HierarchyRequest(Some(
+                "Added element is an ancestor of the collection's associated select element".into(),
+            )));
         }
 
         if let Some(HTMLElementOrLong::HTMLElement(ref before_element)) = before {
@@ -207,7 +209,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             let before_node = before_element.upcast::<Node>();
             if !root.is_ancestor_of(before_node) {
                 return Err(Error::NotFound(Some(
-                    "Could not find previous element to element that is to be added".into(),
+                    "`before` element is not a descendant of the collection's associated select element".into(),
                 )));
             }
 
