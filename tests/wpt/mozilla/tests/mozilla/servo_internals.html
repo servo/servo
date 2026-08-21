@@ -1,0 +1,36 @@
+<!doctype html>
+<head>
+<title>Verify that navigator.servo is inaccessible in content-accessible about: documents</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  let t1 = async_test("navigator.servo in about:blank");
+  let t2 = async_test("navigator.servo in about:srcdoc");
+  let t3 = async_test("navigator.servo in javascript:");
+  let t4 = async_test("about:memory always cross-origin");
+  var tests = [t1, t2, t3, t4];
+  function report(test_index, result) {
+      let this_test = tests[test_index];
+      this_test.step(() => {
+          assert_false(result);
+          this_test.done();
+      });
+  }
+
+  function test_frame(index, frame) {
+      report(index, "servo" in frame.contentWindow.navigator);
+  }
+
+  function test_cross_origin(index, frame) {
+      let this_test = tests[index];
+      this_test.step(() => {
+          assert_throws_dom("SECURITY_ERR", () => "servo" in frame.contentWindow.navigator, "Can't access navigator in cross-origin");
+          this_test.done();
+      });
+  }
+
+</script>
+<iframe onload="test_frame(0, this)"></iframe>
+<iframe srcdoc="<script>parent.report(1, 'servo' in navigator)</script>"></iframe>
+<iframe src="javascript:parent.report(2, 'servo' in navigator);''"></iframe>
+<iframe src="about:memory" onload="test_cross_origin(3, this)"></iframe>
