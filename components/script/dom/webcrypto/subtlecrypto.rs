@@ -3898,7 +3898,7 @@ impl From<&TurboShakeParams> for SerializableTurboShakeParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleKangarooTwelveParams {
+struct KangarooTwelveParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3909,7 +3909,7 @@ struct SubtleKangarooTwelveParams {
     customization: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KangarooTwelveParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3917,7 +3917,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleKangarooTwelveParams {
+        Ok(KangarooTwelveParams {
             name: algorithm_name,
             output_length: get_required_parameter(
                 cx,
@@ -3930,11 +3930,11 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
     }
 }
 
-impl TryFrom<SerializableKangarooTwelveParams> for SubtleKangarooTwelveParams {
+impl TryFrom<SerializableKangarooTwelveParams> for KangarooTwelveParams {
     type Error = ();
 
     fn try_from(value: SerializableKangarooTwelveParams) -> Result<Self, Self::Error> {
-        Ok(SubtleKangarooTwelveParams {
+        Ok(KangarooTwelveParams {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             output_length: value.output_length,
             customization: value.customization,
@@ -3942,8 +3942,8 @@ impl TryFrom<SerializableKangarooTwelveParams> for SubtleKangarooTwelveParams {
     }
 }
 
-impl From<&SubtleKangarooTwelveParams> for SerializableKangarooTwelveParams {
-    fn from(value: &SubtleKangarooTwelveParams) -> Self {
+impl From<&KangarooTwelveParams> for SerializableKangarooTwelveParams {
+    fn from(value: &KangarooTwelveParams) -> Self {
         SerializableKangarooTwelveParams {
             name: value.name.as_str().into(),
             output_length: value.output_length,
@@ -5289,7 +5289,7 @@ enum DigestAlgorithm {
     Sha3(Algorithm),
     CShake(CShakeParams),
     TurboShake(TurboShakeParams),
-    KangarooTwelve(SubtleKangarooTwelveParams),
+    KangarooTwelve(KangarooTwelveParams),
 }
 
 impl NormalizedAlgorithm for DigestAlgorithm {
