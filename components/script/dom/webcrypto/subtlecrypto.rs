@@ -3677,7 +3677,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HkdfParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtlePbkdf2Params {
+pub(crate) struct Pbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3691,7 +3691,7 @@ pub(crate) struct SubtlePbkdf2Params {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtlePbkdf2Params {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Pbkdf2Params {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3701,7 +3701,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtlePbkdf2Params {
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtlePbkdf2Params {
+        Ok(Pbkdf2Params {
             name: algorithm_name,
             salt: get_required_buffer_source(cx, object, c"salt")?,
             iterations: get_required_parameter(
@@ -5409,7 +5409,7 @@ enum DeriveBitsAlgorithm {
     X25519(EcdhKeyDeriveParams),
     X448(EcdhKeyDeriveParams),
     Hkdf(HkdfParams),
-    Pbkdf2(SubtlePbkdf2Params),
+    Pbkdf2(Pbkdf2Params),
     Argon2(SubtleArgon2Params),
 }
 
