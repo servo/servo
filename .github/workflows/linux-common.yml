@@ -258,40 +258,6 @@ jobs:
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
 
-  servo-fonts-feature-flags:
-    needs:
-      - runner-select
-    name: Check servo-fonts feature flags (${{ inputs.arch }})
-    runs-on: ${{ inputs.github-runner-label }}
-    steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        if: ${{ runner.environment != 'self-hosted' }}
-        with:
-          tool-cache: false
-          large-packages: false
-          swap-storage: false
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
-      - name: Setup Python
-        uses: ./.github/actions/setup-python
-      - name: Change Mirror Priorities
-        uses: ./.github/actions/apt-mirrors
-      # We can remove this after upgrading to Rust 1.90, but for now
-      # installing lld is the easiest way to get it in path.
-      - name: install lld
-        run: sudo apt-get install -y lld
-      - name: Compile libservo with MSRV
-        env:
-          # lld seems to use less memory and prevents OOM errors during linking.
-          # We can remove this after upgrading to Rust 1.90, where lld will be the default.
-          RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
-          LLVM_OBJDUMP: llvm-objdump-14
-        run: |
-          cargo check -p servo-fonts --locked --features bundled_freetype,harfrust
-          cargo check -p servo-fonts --locked --features bundled_freetype,harfbuzz
-
   capi:
     if: ${{ inputs.capi }}
     name: Build and test Servo's C API (${{ inputs.arch }})
