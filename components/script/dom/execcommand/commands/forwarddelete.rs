@@ -23,7 +23,7 @@ pub(crate) fn execute_forward_delete_command(
 ) -> bool {
     // Step 1. If the active range is not collapsed, delete the selection and return true.
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     if !active_range.collapsed() {
         selection.delete_the_selection(

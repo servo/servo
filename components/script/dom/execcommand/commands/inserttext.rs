@@ -37,7 +37,7 @@ pub(crate) fn execute_insert_text_command(
 
     // Step 2. If the active range's start node is neither editable nor an editing host, return true.
     let mut active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range.");
     if !active_range.start_container().is_editable_or_editing_host() {
         return true;
@@ -104,7 +104,7 @@ pub(crate) fn execute_insert_text_command(
 
     // Step 12. Let (node, offset) be the active range's start.
     active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range.");
     node = active_range.start_container();
     offset = active_range.start_offset();
@@ -135,7 +135,7 @@ pub(crate) fn execute_insert_text_command(
         }
 
         active_range = selection
-            .active_range()
+            .active_range(cx)
             .expect("Must always have an active range.");
     }
     // Step 14. Otherwise:
@@ -167,7 +167,7 @@ pub(crate) fn execute_insert_text_command(
         }
 
         active_range = selection
-            .active_range()
+            .active_range(cx)
             .expect("Must always have an active range.");
     }
 

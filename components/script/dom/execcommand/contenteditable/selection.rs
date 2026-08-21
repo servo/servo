@@ -172,7 +172,7 @@ impl Selection {
         direction: SelectionDeleteDirection,
     ) {
         // Step 1. If the active range is null, abort these steps and do nothing.
-        let Some(active_range) = self.active_range() else {
+        let Some(active_range) = self.active_range(cx) else {
             return;
         };
 
@@ -777,7 +777,7 @@ impl Selection {
         context_object: &Document,
     ) {
         let active_range = self
-            .active_range()
+            .active_range(cx)
             .expect("Must always have an active range");
 
         // Step 1. Let command be the current command.

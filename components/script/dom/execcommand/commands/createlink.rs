@@ -30,7 +30,7 @@ pub(crate) fn execute_createlink_command(
     // is an ancestor of some node effectively contained in the active range,
     // set that a element's href attribute to value.
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     active_range.for_each_effectively_contained_child(|node| {
         for ancestor in node.inclusive_ancestors(ShadowIncluding::No) {

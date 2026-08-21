@@ -154,7 +154,7 @@ where
         .GetSelection(cx)
         .expect("Must always have a selection");
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
 
     // Selection is currently implemented as a live range (not great!), which means that
@@ -657,7 +657,7 @@ where
         if let Some(range) = first_in_node_list
             .owner_document()
             .GetSelection(cx)
-            .and_then(|selection| selection.active_range())
+            .and_then(|selection| selection.active_range(cx))
         {
             let parent_of_new_parent = new_parent.GetParentNode().expect("Must have a parent");
             let start_container = range.start_container();

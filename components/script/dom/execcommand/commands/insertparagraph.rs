@@ -39,7 +39,7 @@ pub(crate) fn execute_insert_paragraph_command(
     );
     // Step 3. Let node and offset be the active range's start node and offset.
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     let mut node = active_range.start_container();
     let mut offset = active_range.start_offset();

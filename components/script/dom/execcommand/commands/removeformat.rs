@@ -65,7 +65,7 @@ pub(crate) fn execute_removeformat_command(
 ) -> bool {
     // Step 1. Let elements to remove be a list of every removeFormat candidate effectively contained in the active range.
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     let mut elements = vec![];
     active_range.for_each_effectively_contained_child(|node| {

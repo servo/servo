@@ -190,7 +190,7 @@ impl HTMLElement {
         // case, we should maintain the selection as it were, by not creating
         // a new range.
         if selection
-            .active_range()
+            .active_range(cx)
             .is_some_and(|active| active == range)
         {
             return;

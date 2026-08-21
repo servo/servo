@@ -125,7 +125,7 @@ pub(crate) fn value_for_fontsize_command(
 ) -> Option<DOMString> {
     // Step 1. If the active range is null, return the empty string.
     let selection = document.GetSelection(cx)?;
-    let active_range = selection.active_range()?;
+    let active_range = selection.active_range(cx)?;
     // Step 2. Let pixel size be the effective command value of the first formattable
     // node that is effectively contained in the active range, or if there is no such node,
     // the effective command value of the active range's start node,

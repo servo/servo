@@ -167,7 +167,7 @@ pub(crate) fn execute_indent_command(
     selection: &Selection,
 ) -> bool {
     let mut active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range.");
     // Step 1. Let items be a list of all lis that are inclusive ancestors of the active range's start and/or end node.
     let items: HashSet<DomRoot<Node>> = active_range
@@ -184,7 +184,7 @@ pub(crate) fn execute_indent_command(
 
     // Normalizing sublists probably messes up the range
     active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range.");
 
     // Step 3. Block-extend the active range, and let new range be the result.

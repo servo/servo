@@ -256,7 +256,7 @@ impl Selection {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
-    pub(crate) fn active_range(&self) -> Option<DomRoot<Range>> {
+    pub(crate) fn active_range(&self, _cx: &mut JSContext) -> Option<DomRoot<Range>> {
         // > The active range is the range of the selection given by calling
         // > getSelection() on the context object. (Thus the active range may be null.)
         self.range.get()
