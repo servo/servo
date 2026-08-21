@@ -3837,7 +3837,7 @@ impl From<&CShakeParams> for SerializableCShakeParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleTurboShakeParams {
+struct TurboShakeParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3848,7 +3848,7 @@ struct SubtleTurboShakeParams {
     domain_separation: Option<u8>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for TurboShakeParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3856,7 +3856,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleTurboShakeParams {
+        Ok(TurboShakeParams {
             name: algorithm_name,
             output_length: get_required_parameter(
                 cx,
@@ -3874,11 +3874,11 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
     }
 }
 
-impl TryFrom<SerializableTurboShakeParams> for SubtleTurboShakeParams {
+impl TryFrom<SerializableTurboShakeParams> for TurboShakeParams {
     type Error = ();
 
     fn try_from(value: SerializableTurboShakeParams) -> Result<Self, Self::Error> {
-        Ok(SubtleTurboShakeParams {
+        Ok(TurboShakeParams {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             output_length: value.output_length,
             domain_separation: value.domain_separation,
@@ -3886,8 +3886,8 @@ impl TryFrom<SerializableTurboShakeParams> for SubtleTurboShakeParams {
     }
 }
 
-impl From<&SubtleTurboShakeParams> for SerializableTurboShakeParams {
-    fn from(value: &SubtleTurboShakeParams) -> Self {
+impl From<&TurboShakeParams> for SerializableTurboShakeParams {
+    fn from(value: &TurboShakeParams) -> Self {
         SerializableTurboShakeParams {
             name: value.name.as_str().into(),
             output_length: value.output_length,
@@ -5288,7 +5288,7 @@ enum DigestAlgorithm {
     Sha(Algorithm),
     Sha3(Algorithm),
     CShake(CShakeParams),
-    TurboShake(SubtleTurboShakeParams),
+    TurboShake(TurboShakeParams),
     KangarooTwelve(SubtleKangarooTwelveParams),
 }
 
