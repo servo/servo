@@ -4,4 +4,9 @@
 
 pub(crate) mod htmlanchorelement;
 pub(crate) mod htmlbrelement;
+pub(crate) mod htmlfontelement;
+pub(crate) mod htmlheadingelement;
+pub(crate) mod htmlmarqueeelement;
+pub(crate) mod htmlmodelement;
+pub(crate) mod htmlquoteelement;
 pub(crate) mod htmltimeelement;

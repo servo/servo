@@ -31,12 +31,14 @@ use crate::dom::element::{AttributeMutation, Element, reflect_referrer_policy_at
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
 use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::links::htmlhyperlinkelementutils::{
+    HyperlinkElement, HyperlinkElementTraits,
+};
+use crate::dom::html::links::relations::{LinkRelations, follow_hyperlink};
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
-use crate::links::{LinkRelations, follow_hyperlink};
 
 #[dom_struct]
 pub(crate) struct HTMLAnchorElement {

@@ -5,6 +5,7 @@
 pub(crate) mod htmlbuttonelement;
 pub(crate) mod htmldatalistelement;
 pub(crate) mod htmlfieldsetelement;
+pub(crate) mod htmlformcontrolscollection;
 pub(crate) mod htmlformelement;
 pub(crate) mod htmlinputelement;
 pub(crate) mod htmllabelelement;
@@ -12,6 +13,7 @@ pub(crate) mod htmllegendelement;
 pub(crate) mod htmlmeterelement;
 pub(crate) mod htmloptgroupelement;
 pub(crate) mod htmloptionelement;
+pub(crate) mod htmloptionscollection;
 pub(crate) mod htmloutputelement;
 pub(crate) mod htmlprogresselement;
 pub(crate) mod htmlselectelement;

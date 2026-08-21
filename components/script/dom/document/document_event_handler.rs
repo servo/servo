@@ -58,13 +58,13 @@ use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::FireMouseEventType;
 use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::interactive_element_command::InteractiveElementCommand;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::interactive_element_command::InteractiveElementCommand;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::focus::FocusTrigger;
