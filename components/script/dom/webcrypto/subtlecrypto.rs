@@ -4086,7 +4086,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleArgon2Params {
+struct Argon2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -4112,7 +4112,7 @@ struct SubtleArgon2Params {
     associated_data: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Argon2Params {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -4120,7 +4120,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleArgon2Params {
+        Ok(Argon2Params {
             name: algorithm_name,
             nonce: get_required_buffer_source(cx, object, c"nonce")?,
             parallelism: get_required_parameter(
@@ -5410,7 +5410,7 @@ enum DeriveBitsAlgorithm {
     X448(EcdhKeyDeriveParams),
     Hkdf(HkdfParams),
     Pbkdf2(Pbkdf2Params),
-    Argon2(SubtleArgon2Params),
+    Argon2(Argon2Params),
 }
 
 impl NormalizedAlgorithm for DeriveBitsAlgorithm {
