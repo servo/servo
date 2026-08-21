@@ -372,7 +372,7 @@ impl CommandName {
         let Some(selection) = document.GetSelection(cx) else {
             return false;
         };
-        let Some(active_range) = selection.active_range() else {
+        let Some(active_range) = selection.active_range(cx) else {
             return false;
         };
         let mut at_least_two_different_effective_values = false;
@@ -423,7 +423,7 @@ impl CommandName {
                     return None;
                 }
                 let selection = document.GetSelection(cx)?;
-                let active_range = selection.active_range()?;
+                let active_range = selection.active_range(cx)?;
                 let mut at_least_one_child_is_formattable = false;
                 let mut all_children_have_matching_command_values = true;
                 active_range.for_each_effectively_contained_child(|node| {
@@ -471,7 +471,7 @@ impl CommandName {
                 // > the effective command value of the active range's start node;
                 // > or if that is null, the empty string.
                 let selection = document.GetSelection(cx)?;
-                let active_range = selection.active_range()?;
+                let active_range = selection.active_range(cx)?;
 
                 active_range
                     .first_formattable_contained_node(cx.no_gc())
@@ -773,7 +773,7 @@ impl CommandName {
         // > After taking the action, if the active range is collapsed,
         // > it must restore states and values from the recorded list.
         if let Some(active_range) = selection
-            .active_range()
+            .active_range(cx)
             .filter(|active_range| active_range.collapsed())
         {
             active_range.restore_states_and_values(cx, selection, document, overrides);

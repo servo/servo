@@ -22,7 +22,7 @@ pub(crate) fn execute_insert_horizontal_rule_command(
 ) -> bool {
     // Step 1. Let start node, start offset, end node, and end offset be the active range's start and end nodes and offsets.
     let mut active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     let mut start_node = active_range.start_container();
     let mut start_offset = active_range.start_offset();
@@ -70,7 +70,7 @@ pub(crate) fn execute_insert_horizontal_rule_command(
     );
 
     active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
 
     // Step 7. If the active range's start node is neither editable nor an editing host, return true.
@@ -93,7 +93,7 @@ pub(crate) fn execute_insert_horizontal_rule_command(
             unreachable!("Should always be able to collapse the selection.");
         }
         active_range = selection
-            .active_range()
+            .active_range(cx)
             .expect("Must always have an active range");
     }
 
@@ -114,7 +114,7 @@ pub(crate) fn execute_insert_horizontal_rule_command(
             unreachable!("Should always be able to collapse the selection.");
         }
         active_range = selection
-            .active_range()
+            .active_range(cx)
             .expect("Must always have an active range");
     }
 
