@@ -650,7 +650,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .networking_task_source()
             .to_sendable();
         self.controller
-            .borrow_mut()
+            .borrow()
             .as_ref()
             .unwrap()
             .set_local_description(
@@ -693,7 +693,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
             .networking_task_source()
             .to_sendable();
         self.controller
-            .borrow_mut()
+            .borrow()
             .as_ref()
             .unwrap()
             .set_remote_description(
