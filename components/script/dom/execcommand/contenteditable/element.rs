@@ -200,6 +200,31 @@ impl Element {
         false
     }
 
+    // <https://w3c.github.io/editing/docs/execCommand/#indentation-element>
+    pub(crate) fn is_indentation_element(&self) -> bool {
+        // > An indentation element is either a blockquote, or a div
+        if !matches!(
+            *self.local_name(),
+            local_name!("blockquote") | local_name!("div")
+        ) {
+            return false;
+        }
+
+        // > that has a style attribute that sets "margin" or some subproperty of it.
+        let style_attribute = self.style_attribute().borrow();
+        let Some(declarations) = style_attribute.as_ref() else {
+            return false;
+        };
+        let document = self.owner_document();
+        let shared_lock = document.style_shared_author_lock();
+        let read_lock = shared_lock.read();
+        let style = declarations.read_with(&read_lock);
+
+        ShorthandId::Margin
+            .longhands()
+            .any(|longhand| style.contains(PropertyDeclarationId::Longhand(longhand)))
+    }
+
     pub(crate) fn has_empty_style_attribute(&self) -> bool {
         let style_attribute = self.style_attribute().borrow();
         style_attribute.as_ref().is_some_and(|declarations| {
@@ -381,6 +406,49 @@ impl Element {
         }
 
         false
+    }
+
+    pub(crate) fn is_simple_indentation_element(&self) -> bool {
+        // > A simple indentation element is an indentation element
+        if !self.is_indentation_element() {
+            return false;
+        }
+
+        // > that has no attributes except possibly
+        let attrs = self.attrs().borrow();
+        let mut attrs = attrs.iter();
+        attrs.all(|attr| {
+            // - a style attribute that sets no properties other than "margin", "border", "padding", or subproperties of those; and/or
+            if matches!(*attr.local_name(), local_name!("style")) {
+                let style_attribute = self.style_attribute().borrow();
+                let Some(declarations) = style_attribute.as_ref() else {
+                    return false;
+                };
+                let document = self.owner_document();
+                let shared_lock = document.style_shared_author_lock();
+                let read_lock = shared_lock.read();
+                let style = declarations.read_with(&read_lock);
+
+                let properties: Vec<_> = ShorthandId::Margin
+                    .longhands()
+                    .chain(ShorthandId::Border.longhands())
+                    .chain(ShorthandId::Padding.longhands())
+                    .collect();
+                return style.declarations().iter().all(|declaration| {
+                    declaration
+                        .id()
+                        .as_longhand()
+                        .is_some_and(|longhand| properties.contains(&longhand))
+                });
+            }
+
+            // - a dir attribute
+            if matches!(*attr.local_name(), local_name!("dir")) {
+                return true;
+            }
+
+            false
+        })
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#set-the-tag-name>
