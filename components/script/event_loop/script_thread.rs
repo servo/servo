@@ -160,7 +160,8 @@ use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{
-    IntroductionType, Runtime, ScriptThreadEventCategory, ThreadSafeJSContext, get_reports,
+    IntroductionType, Runtime, SEEN_JSOBJECTS, ScriptThreadEventCategory, ThreadSafeJSContext,
+    get_reports,
 };
 use crate::tasks::task_queue::TaskQueue;
 use crate::webdriver_handlers::jsval_to_webdriver;
@@ -2788,6 +2789,8 @@ impl ScriptThread {
                     .window()
                     .layout()
                     .collect_reports(&mut reports, ops);
+
+                document.collect_reports(&mut reports, ops);
             }
 
             let prefix = format!("url({urls})");
@@ -2795,6 +2798,12 @@ impl ScriptThread {
         });
 
         reports_chan.send(ProcessReports::new(reports));
+
+        SEEN_JSOBJECTS.with(|objects| {
+            let mut objects = objects.borrow_mut();
+            objects.clear();
+            objects.shrink_to_fit();
+        });
     }
 
     /// Updates iframe element after a change in visibility
