@@ -23,10 +23,12 @@ use style::values::computed::{
 use webrender_api::FontVariation;
 
 /// Used to dynamically query fonts used in SVGs and insert them into the fontDB used when rasterizing.
+#[derive(MallocSizeOf)]
 pub struct SvgFontResolver {
     /// Cache for Font to ID
     font_id_cache: Mutex<FxHashMap<Font, fontdb::ID>>,
     fallback_id_cache: Mutex<FxHashMap<char, Vec<fontdb::ID>>>,
+    #[conditional_malloc_size_of]
     context: Arc<FontContext>,
 }
 
