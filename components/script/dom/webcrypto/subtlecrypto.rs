@@ -346,7 +346,7 @@ impl SubtleCrypto {
     fn resolve_promise_with_encapsulated_key(
         &self,
         promise: Rc<Promise>,
-        encapsulated_key: SubtleEncapsulatedKey,
+        encapsulated_key: EncapsulatedKey,
     ) {
         let trusted_promise = TrustedPromise::new(promise);
         self.global().task_manager().crypto_task_source().queue(
@@ -1830,7 +1830,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 // Step 16. Let encapsulatedKey be a new EncapsulatedKey dictionary with sharedKey
                 // set to sharedKey and ciphertext set to the ciphertext field of encapsulatedBits.
-                let encapsulated_key = SubtleEncapsulatedKey {
+                let encapsulated_key = EncapsulatedKey {
                     shared_key: Some(Trusted::new(&shared_key)),
                     ciphertext:encapsulated_bits.ciphertext,
                 };
@@ -4149,7 +4149,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Argon2Params {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey>
-struct SubtleEncapsulatedKey {
+struct EncapsulatedKey {
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey-sharedKey>
     shared_key: Option<Trusted<CryptoKey>>,
 
@@ -4157,7 +4157,7 @@ struct SubtleEncapsulatedKey {
     ciphertext: Option<Vec<u8>>,
 }
 
-impl ToJSValConvertible for SubtleEncapsulatedKey {
+impl ToJSValConvertible for EncapsulatedKey {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
