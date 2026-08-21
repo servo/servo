@@ -275,7 +275,7 @@ impl VirtualMethods for HTMLTrackElement {
                     // Step 4. Set the element's track URL to trackURL if it is not failure;
                     // otherwise to the empty string.
                     *self.track_url.borrow_mut() = if !value.is_empty() {
-                        self.owner_document().base_url().join(value).ok()
+                        self.owner_document().encoding_parse_a_url(value).ok()
                     } else {
                         None
                     };
