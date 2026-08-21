@@ -327,7 +327,7 @@ fn console_object_from_handle_value(
 
     let mut own_properties = Vec::new();
     let mut items: Vec<(i32, DebuggerValue)> = Vec::new();
-    let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+    let mut ids = IdVector::new(cx);
     // https://console.spec.whatwg.org/#printer
     // Objects with either generic JavaScript object formatting or optimally useful formatting applied.
     if !unsafe {
@@ -492,7 +492,7 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
         if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
             return DOMString::from("/* invalid */");
         }
-        let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+        let mut ids = IdVector::new(cx);
         if !unsafe {
             GetPropertyKeys(
                 cx,
@@ -1021,13 +1021,12 @@ fn get_js_stack(cx: &mut JSContext) -> Vec<StackFrame> {
 
     let mut frames = vec![];
     rooted!(&in(cx) let mut handle =  ptr::null_mut());
-    let captured_js_stack =
-        unsafe { CapturedJSStack::new(cx.raw_cx(), handle, Some(MAX_FRAME_COUNT)) };
-    let Some(captured_js_stack) = captured_js_stack else {
+    let captured_js_stack = unsafe { CapturedJSStack::new(cx, handle, Some(MAX_FRAME_COUNT)) };
+    let Some(mut captured_js_stack) = captured_js_stack else {
         return frames;
     };
 
-    captured_js_stack.for_each_stack_frame(|frame| {
+    captured_js_stack.for_each_stack_frame(|cx, frame| {
         rooted!(&in(cx) let mut result: *mut jsapi::JSString = ptr::null_mut());
 
         // Get function name

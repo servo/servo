@@ -122,7 +122,7 @@ where
         }
 
         rooted!(&in(cx) let object = value.to_object());
-        let mut ids = unsafe { IdVector::new(cx.raw_cx()) };
+        let mut ids = IdVector::new(cx);
         if unsafe {
             !GetPropertyKeys(
                 cx,
