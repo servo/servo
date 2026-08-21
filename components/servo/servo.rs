@@ -339,7 +339,7 @@ impl ServoInner {
         true
     }
 
-    /// send, again, the root accessibility node for any [`WebView`] whose viewport geometry changed
+    /// Resend the root accessibility node for any [`WebView`] whose viewport geometry changed
     /// post-last-spin (see [`WebView::note_accessibility_viewport_changed()`]). This runs
     /// after `perform_updates` so the paint `RefCell` is no longer borrowed, and our
     /// embedder-facing methods calling into the [`WebViewDelegate`] avoid re-entrant
