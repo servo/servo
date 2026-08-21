@@ -344,11 +344,6 @@ pub struct ScriptThread {
     #[cfg(feature = "webxr")]
     webxr_registry: Option<webxr_api::Registry>,
 
-    /// A list of pipelines containing documents that finished loading all their blocking
-    /// resources during a turn of the event loop.
-    /// TODO(43149): Remove when document replacement is implemented
-    docs_with_no_blocking_loads: DomRefCell<FxHashSet<Dom<Document>>>,
-
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 
@@ -555,15 +550,6 @@ impl ScriptThread {
 
     pub(crate) fn shared_style_locks(&self) -> &SharedRwLocks {
         &self.shared_style_locks
-    }
-
-    pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .docs_with_no_blocking_loads
-                .borrow_mut()
-                .insert(Dom::from_ref(doc));
-        })
     }
 
     pub(crate) fn page_headers_available(
@@ -978,7 +964,6 @@ impl ScriptThread {
                     webgl_chan: state.webgl_chan,
                     #[cfg(feature = "webxr")]
                     webxr_registry: state.webxr_registry,
-                    docs_with_no_blocking_loads: Default::default(),
                     custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                     paint_api: state.cross_process_paint_api,
                     profile_script_events: opts
@@ -1514,20 +1499,6 @@ impl ScriptThread {
             window
                 .upcast::<GlobalScope>()
                 .perform_a_dom_garbage_collection_checkpoint();
-        }
-
-        // TODO(43149): Remove when document replacement is implemented
-        {
-            // https://html.spec.whatwg.org/multipage/#the-end step 6
-            {
-                let docs = self.docs_with_no_blocking_loads.borrow();
-                for document in docs.iter() {
-                    let mut realm = enter_auto_realm(cx, &**document);
-                    let cx = &mut realm.current_realm();
-                    document.maybe_queue_document_completion(cx);
-                }
-            }
-            self.docs_with_no_blocking_loads.borrow_mut().clear();
         }
 
         let built_any_display_lists =
@@ -3661,20 +3632,7 @@ impl ScriptThread {
             image_cache,
         );
 
-        // Only send loading-related messages if this document is actually in the loading state.
-        // `about:blank` documents should never be in that state when starting.
-        if !incomplete.load_data.is_initial_about_blank {
-            debug_assert_eq!(document.ReadyState(), DocumentReadyState::Loading);
-            if window.is_top_level() {
-                window.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
-                    incomplete.webview_id,
-                    LoadStatus::Started,
-                ));
-                window.send_to_embedder(EmbedderMsg::Status(incomplete.webview_id, None));
-            }
-        } else {
-            debug_assert_eq!(document.ReadyState(), DocumentReadyState::Complete);
-        }
+        document.set_ready_state(cx, DocumentReadyState::Loading);
 
         // Step 8. Let loadTimingInfo be a new document load timing info with its
         //   navigation start time set to navigationParams's response's timing

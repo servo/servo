@@ -435,9 +435,6 @@ pub(crate) struct Document {
     stylesheets: DomRefCell<DocumentStylesheetSet<ServoStylesheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
-    /// Whether the DOMContentLoaded event has already been dispatched.
-    /// TODO(43149): Remove when document replacement is implemented
-    domcontentloaded_dispatched: Cell<bool>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
     #[no_trace]
@@ -1481,7 +1478,12 @@ impl Document {
         // Note: Handled implicitly by update_with_current_instant.
         match state {
             DocumentReadyState::Loading => {
-                unreachable!("Loading is an initial state, so we never transition to it.")
+                let webview_id = self.webview_id();
+                window.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                    webview_id,
+                    LoadStatus::Started,
+                ));
+                window.send_to_embedder(EmbedderMsg::Status(webview_id, None));
             },
             DocumentReadyState::Complete => {
                 // This isn't part of the specification, but it's useful to have it here to
@@ -2180,36 +2182,6 @@ impl Document {
             _ => {},
         }
 
-        // START TODO(43149): Remove when document replacement is implemented
-
-        // Step 4 is in another castle, namely at the end of
-        // process_deferred_scripts.
-
-        // Step 5 can be found in asap_script_loaded and
-        // asap_in_order_script_loaded.
-
-        let loader = self.loader.borrow();
-
-        // Servo measures when the top-level content (not iframes) is loaded.
-        if self
-            .navigation_timing
-            .top_level_dom_complete
-            .get()
-            .is_none() &&
-            loader.is_only_blocked_by_iframes()
-        {
-            update_with_current_instant(&self.navigation_timing.top_level_dom_complete);
-        }
-
-        if loader.is_blocked() || loader.events_inhibited() {
-            // Step 6.
-            return;
-        }
-
-        ScriptThread::mark_document_with_no_blocked_loads(self);
-
-        // END TODO(43149): Remove when document replacement is implemented
-
         // Step 8. Spin the event loop until there is nothing that delays the load event in the Document.
         let document = Trusted::new(self);
         self.owner_global()
@@ -2402,43 +2374,14 @@ impl Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-end
-    // TODO(43149): Remove when document replacement is implemented
-    pub(crate) fn maybe_queue_document_completion(&self, cx: &mut JSContext) {
+    /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
+    fn queue_document_completion(&self, cx: &mut JSContext) {
         // The initial about:blank document passes through
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
         // instead of the steps used by other documents.
         if self.is_initial_about_blank() {
             return;
         }
-
-        // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
-        let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
-            Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
-            None => false,
-        };
-
-        // Note: if the document is not fully active, layout will have exited already,
-        // and this method will panic.
-        // The underlying problem might actually be that layout exits while it should be kept alive.
-        // See https://github.com/servo/servo/issues/22507
-        let not_ready_for_load = self.loader.borrow().is_blocked() ||
-            !self.is_fully_active() ||
-            is_in_delaying_load_events_mode ||
-            // In case we have already aborted this document and receive a
-            // a subsequent message to load the document
-            self.loader.borrow().events_inhibited();
-
-        if not_ready_for_load {
-            // Step 6.
-            return;
-        }
-
-        self.queue_document_completion(cx);
-    }
-
-    /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn queue_document_completion(&self, cx: &mut JSContext) {
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
@@ -2459,7 +2402,7 @@ impl Document {
                 }
 
                 // Step 9.1. Update the current document readiness to "complete".
-                document.update_the_current_document_readiness(cx,DocumentReadyState::Complete);
+                document.update_the_current_document_readiness(cx, DocumentReadyState::Complete);
 
                 // Step 9.2. If the Document object's browsing context is null, then abort these steps.
                 if document.browsing_context().is_none() {
@@ -2696,20 +2639,8 @@ impl Document {
         if self.deferred_scripts.is_empty() {
             self.current_the_end_loading_phase
                 .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
-            // TODO(43149): Use `dispatch_dom_content_loaded` when document replacement is implemented
-            self.maybe_dispatch_dom_content_loaded();
+            self.dispatch_dom_content_loaded();
         }
-    }
-
-    /// Step 6. of <https://html.spec.whatwg.org/multipage/#the-end>
-    pub(crate) fn maybe_dispatch_dom_content_loaded(&self) {
-        // TODO(43149): Remove when document replacement is implemented
-        if self.domcontentloaded_dispatched.get() {
-            return;
-        }
-        self.domcontentloaded_dispatched.set(true);
-
-        self.dispatch_dom_content_loaded();
     }
 
     /// Step 6 of <https://html.spec.whatwg.org/multipage/#the-end>
@@ -2793,7 +2724,7 @@ impl Document {
     }
 
     /// Step 8 of <https://html.spec.whatwg.org/multipage/#the-end>
-    pub(crate) fn wait_until_load_blockers_have_resolved(&self, _cx: &mut JSContext) {
+    pub(crate) fn wait_until_load_blockers_have_resolved(&self, cx: &mut JSContext) {
         if self.current_the_end_loading_phase.get() !=
             TheEndLoadingPhase::WaitingForLoadEventBlockers
         {
@@ -2822,8 +2753,7 @@ impl Document {
 
         self.current_the_end_loading_phase
             .set(TheEndLoadingPhase::Done);
-        // TODO(43149): Add when document replacement is implemented
-        // self.queue_document_completion(cx);
+        self.queue_document_completion(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
@@ -3965,10 +3895,10 @@ impl Document {
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
-        let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
-            (DocumentReadyState::Loading, false)
+        let ready_state = if source == DocumentSource::FromParser {
+            DocumentReadyState::Loading
         } else {
-            (DocumentReadyState::Complete, true)
+            DocumentReadyState::Complete
         };
 
         let frame_type = match window.is_top_level() {
@@ -4053,7 +3983,6 @@ impl Document {
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
-            domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             current_script: Default::default(),
             current_the_end_loading_phase: Default::default(),
             pending_parsing_blocking_script: Default::default(),
