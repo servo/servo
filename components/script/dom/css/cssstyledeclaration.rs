@@ -481,9 +481,8 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         if let Some(css_font_face_descriptors) = self.downcast::<CSSFontFaceDescriptors>() {
             css_font_face_descriptors.get_property_value(&property.str())
         } else {
-            let id = match PropertyId::parse_enabled_for_all_content(&property.str()) {
-                Ok(id) => id,
-                Err(..) => return DOMString::new(),
+            let Ok(id) = PropertyId::parse_enabled_for_all_content(&property.str()) else {
+                return DOMString::new();
             };
             self.get_property_value(id)
         }

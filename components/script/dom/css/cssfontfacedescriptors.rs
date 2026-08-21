@@ -18,7 +18,6 @@ use crate::dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleOwner};
 #[dom_struct]
 pub(crate) struct CSSFontFaceDescriptors {
     style_declaration: CSSStyleDeclaration,
-
     font_face_rule: Dom<CSSFontFaceRule>,
 }
 
