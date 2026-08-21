@@ -37,6 +37,8 @@ servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
 uuid = { workspace = true }
+unicode-segmentation = { workspace = true }
+regex = { workspace = true }
 
 [build-dependencies]
 chrono = { workspace = true }
