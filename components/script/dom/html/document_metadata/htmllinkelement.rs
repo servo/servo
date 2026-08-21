@@ -53,7 +53,7 @@ use crate::dom::element::{
     cors_settings_attribute_credential_mode, referrer_policy_for_element,
     reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
-use crate::dom::html::documentmetadata::processingoptions::{
+use crate::dom::html::document_metadata::processingoptions::{
     LinkFetchContext, LinkFetchContextType, LinkProcessingOptions,
 };
 use crate::dom::html::htmlelement::HTMLElement;
