@@ -57,10 +57,7 @@ pub(crate) fn indent(cx: &mut JSContext, document: &Document, node_list: Vec<Dom
             },
             |cx| {
                 Some(DomRoot::upcast(
-                    first_node
-                        .GetOwnerDocument()
-                        .expect("Need to have an owner document.")
-                        .create_element(cx, tag),
+                    first_node.owner_doc().create_element(cx, tag),
                 ))
             },
         );
@@ -83,10 +80,7 @@ pub(crate) fn indent(cx: &mut JSContext, document: &Document, node_list: Vec<Dom
         },
         |cx| {
             Some(DomRoot::upcast(
-                first_node
-                    .GetOwnerDocument()
-                    .expect("Need to have an owner document.")
-                    .create_element(cx, "blockquote"),
+                first_node.owner_doc().create_element(cx, "blockquote"),
             ))
         },
     );
@@ -264,7 +258,8 @@ pub(crate) fn execute_indent_command(
                 .clone(),
         );
 
-        // Step 7.3. While the first member of node list is the nextSibling of the last member of sublist, remove the first member of node list and append it to sublist.
+        // Step 7.3. While the first member of node list is the nextSibling of the last member of
+        //           sublist, remove the first member of node list and append it to sublist.
         while node_list_iter.peek().is_some_and(|node| {
             sublist
                 .last()

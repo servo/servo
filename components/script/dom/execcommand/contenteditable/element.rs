@@ -200,9 +200,10 @@ impl Element {
         false
     }
 
+    // <https://w3c.github.io/editing/docs/execCommand/#indentation-element>
     pub(crate) fn is_indentation_element(&self) -> bool {
         // > An indentation element is either a blockquote, or a div
-        if matches!(
+        if !matches!(
             *self.local_name(),
             local_name!("blockquote") | local_name!("div")
         ) {
