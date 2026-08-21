@@ -6,7 +6,7 @@ use cshake::digest::{ExtendableOutput, Update};
 use cshake::{CShake128, CShake256};
 
 use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{CryptoAlgorithm, CShakeParams};
+use crate::dom::subtlecrypto::{CShakeParams, CryptoAlgorithm};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#cshake-operations-digest>
 pub(crate) fn digest(

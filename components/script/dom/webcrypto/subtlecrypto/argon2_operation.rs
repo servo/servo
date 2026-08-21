@@ -12,7 +12,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    Algorithm, CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives, Argon2Params,
+    Algorithm, Argon2Params, CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-derive-bits>

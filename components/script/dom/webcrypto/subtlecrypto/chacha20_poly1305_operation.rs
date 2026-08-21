@@ -17,8 +17,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
-    KeyAlgorithmAndDerivatives, AeadParams,
+    AeadParams, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
+    KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-encrypt>
