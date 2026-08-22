@@ -1013,9 +1013,7 @@ impl WebView {
         ));
         // AccessKit asks that a node with an identity transform leave it unset.
         if device_pixels_per_css_pixel != 1.0 {
-            root_node.set_transform(AccesskitAffine::scale(
-                device_pixels_per_css_pixel as f64,
-            ));
+            root_node.set_transform(AccesskitAffine::scale(device_pixels_per_css_pixel as f64));
         }
         let graft_node_id = NodeId(1);
         let mut graft_node = AccesskitNode::new(Role::GenericContainer);

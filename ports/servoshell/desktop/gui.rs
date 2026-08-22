@@ -597,7 +597,7 @@ impl Gui {
                 // AccessKit tree.
                 let scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
                 let x = available_rect.min.x as f64;
-                let y =  available_rect.min.y as f64;
+                let y = available_rect.min.y as f64;
                 Affine::new([scale, 0.0, 0.0, scale, x, y])
             };
             for (webview_id, webview) in window.webviews() {
