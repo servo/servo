@@ -8,17 +8,16 @@ use std::rc::Rc;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use fonts::{
-    FontContext, FontContextWebFontMethods, FontFaceRuleWithOrigin, FontTemplate,
-    LowercaseFontFamilyName,
+    FontContext, FontContextWebFontMethods, FontFaceRuleInfo, FontTemplate, LowercaseFontFamilyName,
 };
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use servo_arc::Arc as ServoArc;
 use style::error_reporting::ParseErrorReporter;
 use style::font_face::SourceList;
 use style::properties::font_face::Descriptors;
-use style::shared_lock::StylesheetGuards;
 use style::stylesheets::{CssRuleType, FontFaceRule, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
@@ -75,7 +74,8 @@ pub struct FontFace {
     ///
     /// [css-connected]: https://drafts.csswg.org/css-font-loading/#css-connected
     #[no_trace]
-    css_font_face_rule: DomRefCell<Option<FontFaceRuleWithOrigin>>,
+    #[conditional_malloc_size_of]
+    css_font_face_rule: DomRefCell<Option<ServoArc<FontFaceRuleInfo>>>,
 }
 
 /// Given the various font face descriptors, construct the equivalent `@font-face` css rule as a
@@ -293,7 +293,7 @@ impl FontFace {
         descriptors: FontFaceDescriptors,
         src: Option<SourceList>,
         font_status_promise: Rc<Promise>,
-        font_face_rule: FontFaceRuleWithOrigin,
+        font_face_rule: ServoArc<FontFaceRuleInfo>,
     ) -> Self {
         Self {
             reflector: Reflector::new(),
@@ -312,11 +312,9 @@ impl FontFace {
     pub(crate) fn new_for_web_font(
         cx: &mut JSContext,
         global: &GlobalScope,
-        font_face_rule: FontFaceRuleWithOrigin,
-        guards: &StylesheetGuards,
+        font_face_rule: ServoArc<FontFaceRuleInfo>,
     ) -> Option<DomRoot<Self>> {
-        let new_web_font_ref = font_face_rule.read_with(guards);
-        let Some(family_name) = new_web_font_ref
+        let Some(family_name) = font_face_rule
             .descriptors
             .font_family
             .as_ref()
@@ -330,7 +328,7 @@ impl FontFace {
         // > The FontFace object corresponding to a @font-face rule has its family, style, weight, stretch,
         // > unicodeRange, variant, and featureSettings attributes set to the same value as the corresponding
         // > descriptors in the @font-face rule.
-        let descriptors = serialize_parsed_descriptors(&new_web_font_ref.descriptors);
+        let descriptors = serialize_parsed_descriptors(&font_face_rule.descriptors);
 
         let font_status_promise = Promise::new(cx, global);
         Some(reflect_dom_object_with_proto(
@@ -338,7 +336,7 @@ impl FontFace {
             Box::new(Self::new_inherited_for_web_font(
                 family_name,
                 descriptors,
-                new_web_font_ref.descriptors.src.clone(),
+                font_face_rule.descriptors.src.clone(),
                 font_status_promise,
                 font_face_rule,
             )),
@@ -363,16 +361,11 @@ impl FontFace {
     /// `@font-face` rule.
     ///
     /// [css-connected]: https://drafts.csswg.org/css-font-loading/#css-connected
-    pub(crate) fn is_connected_to_font_face_rule(
-        &self,
-        target_rule: &FontFaceRuleWithOrigin,
-    ) -> bool {
+    pub(crate) fn is_connected_to_font_face_rule(&self, target_rule: &FontFaceRuleInfo) -> bool {
         self.css_font_face_rule
             .borrow()
             .as_ref()
-            .is_some_and(|connected_rule| {
-                FontFaceRuleWithOrigin::ptr_eq(connected_rule, target_rule)
-            })
+            .is_some_and(|connected_rule| ServoArc::ptr_eq(&connected_rule.rule, &target_rule.rule))
     }
 
     /// Step 3 of <https://drafts.csswg.org/css-font-loading/#font-face-constructor>

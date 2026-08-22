@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use fonts::FontFaceRuleWithOrigin;
+use fonts::FontFaceRuleInfo;
 use js::context::JSContext;
 use js::gc::Handle;
 use js::jsapi::Value;
@@ -19,6 +19,7 @@ use script_bindings::codegen::GenericBindings::FontFaceBinding::{
 };
 use script_bindings::like::Setlike;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use servo_arc::Arc as ServoArc;
 
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -162,7 +163,7 @@ impl FontFaceSet {
     /// [css-connected]: https://drafts.csswg.org/css-font-loading/#css-connected
     pub(crate) fn notify_font_face_rules_removed(
         &self,
-        removed_font_face_rules: &[FontFaceRuleWithOrigin],
+        removed_font_face_rules: &[ServoArc<FontFaceRuleInfo>],
     ) {
         let entries = self.set_entries.borrow_mut();
         for removed_font_face_rule in removed_font_face_rules {
