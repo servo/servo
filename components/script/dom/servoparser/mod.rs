@@ -1290,7 +1290,6 @@ impl ParserContext {
     }
 
     fn finish_synchronous_load(&self, cx: &mut JSContext, document: &Document) {
-        document.set_ready_state(cx, DocumentReadyState::Complete);
         document.set_current_parser(None);
         document.start_the_end_loading_phase();
         document.finish_load(LoadType::PageSource(self.url.clone()), cx);
