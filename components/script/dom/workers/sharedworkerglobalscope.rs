@@ -58,8 +58,8 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::modules::script_module::fetch_a_module_script_graph;
-use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
-use crate::script_runtime::{IntroductionType, Runtime};
+use crate::runtime::script_runtime::ScriptThreadEventCategory::WorkerEvent;
+use crate::runtime::script_runtime::{IntroductionType, Runtime};
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::tasks::task_source::TaskSourceName;
 

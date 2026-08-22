@@ -40,12 +40,12 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
+use crate::event_loop::timers::OneshotTimerCallback;
 use crate::fetch::fetch::{
     FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request,
 };
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
-use crate::timers::OneshotTimerCallback;
 
 const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
 

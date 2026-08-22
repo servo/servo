@@ -74,7 +74,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
+use crate::runtime::script_runtime::IntroductionType;
 
 /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
 /// Generated from WebIDL definitions of EventHandler attributes on interfaces

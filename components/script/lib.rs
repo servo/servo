@@ -25,7 +25,6 @@ mod tasks;
 
 pub(crate) mod conversions;
 mod css;
-mod devtools;
 mod fetch;
 #[macro_use]
 mod dom;
@@ -33,22 +32,19 @@ pub(crate) use dom::canvas_context;
 mod drag;
 mod engine;
 mod event_loop;
+mod runtime;
 mod url;
 
 pub mod layout_dom;
 mod links;
 pub(crate) mod messaging;
-mod microtask;
 pub(crate) mod mime;
 pub(crate) mod modules;
 mod navigation;
 mod realms;
 mod routed_promise;
-pub(crate) mod script_runtime;
 pub mod test;
-mod timers;
 mod unminify;
-mod webdriver_handlers;
 mod window_named_properties;
 mod xpath;
 

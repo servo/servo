@@ -12,7 +12,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
 
 use crate::dom::types::{EventTarget, HTMLSlotElement, MutationObserver, MutationRecord};
-use crate::microtask::{MicrotaskQueue, NotifyMutationObserversMicrotask};
+use crate::runtime::microtask::{MicrotaskQueue, NotifyMutationObserversMicrotask};
 
 /// A helper struct for mutation observers used in `ScriptThread`
 /// Since the Rc is always stored in ScriptThread, it's always reachable by the GC.

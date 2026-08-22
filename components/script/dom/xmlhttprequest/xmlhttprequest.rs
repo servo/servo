@@ -76,6 +76,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use crate::dom::xmlhttprequestupload::XMLHttpRequestUpload;
 use crate::event_loop::document_loader::DocumentLoader;
+use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use crate::fetch::body::{
     BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal,
 };
@@ -83,7 +84,6 @@ use crate::fetch::fetch::{FetchCanceller, RequestWithGlobalScope};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::tasks::task_source::{SendableTaskSource, TaskSourceName};
-use crate::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]

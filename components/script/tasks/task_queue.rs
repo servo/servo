@@ -15,7 +15,7 @@ use servo_base::id::PipelineId;
 use strum::VariantArray;
 
 use crate::dom::worker::TrustedWorkerAddress;
-use crate::script_runtime::ScriptThreadEventCategory;
+use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task::TaskBox;
 use crate::tasks::task_source::TaskSourceName;
 
