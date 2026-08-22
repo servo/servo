@@ -36,7 +36,6 @@ mod event_loop;
 mod url;
 
 pub mod layout_dom;
-mod links;
 pub(crate) mod messaging;
 mod microtask;
 pub(crate) mod mime;
