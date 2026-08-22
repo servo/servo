@@ -2,27 +2,47 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::path::PathBuf;
 use std::thread;
 
 use log::error;
+use net_traits::request::Request;
+use net_traits::response::Response;
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use storage_traits::cache_storage::{
     CacheStorageError, CacheStorageThreadHandle, CacheStorageThreadMessage,
     CacheStorageThreadResponse,
 };
+use storage_traits::client_storage::StorageProxyMap;
 
 trait CacheStorageEngine {
     type Error: Debug;
 
     /// <https://w3c.github.io/ServiceWorker/#cache-storage-has>
     fn has_cache(&mut self, cache_name: &str) -> Result<bool, CacheStorageError<Self::Error>>;
+
+    /// <https://w3c.github.io/ServiceWorker/#cache-storage-open>
+    fn open_cache(
+        &mut self,
+        cache_name: String,
+        proxy_map: &StorageProxyMap,
+    ) -> Result<bool, CacheStorageError<Self::Error>>;
 }
 
-pub struct DummyCacheStorageEngine;
+/// <https://w3c.github.io/ServiceWorker/#dfn-request-response-list>
+pub struct RequestResponseList {
+    /// A list of tuples consisting of a request (a request) and a response (a response)
+    pub list: Vec<(Request, Response)>,
+}
 
-impl CacheStorageEngine for DummyCacheStorageEngine {
+pub struct MemCacheStorageEngine {
+    /// <https://w3c.github.io/ServiceWorker/#dfn-name-to-cache-map>
+    name_to_cache_map: HashMap<String, RequestResponseList>,
+}
+
+impl CacheStorageEngine for MemCacheStorageEngine {
     type Error = ();
 
     /// <https://w3c.github.io/ServiceWorker/#cache-storage-has>
@@ -34,6 +54,47 @@ impl CacheStorageEngine for DummyCacheStorageEngine {
         // Step 2.2: Resolve promise with false.
         // Note: promise resolved in the callback in CacheStorage.
         Ok(false)
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#cache-storage-open>
+    /// The parallel steps.
+    fn open_cache(
+        &mut self,
+        cache_name: String,
+        proxy_map: &StorageProxyMap,
+    ) -> Result<bool, CacheStorageError<Self::Error>> {
+        // Step 2.1: For each key → value of the relevant name to cache map:
+        for key in self.name_to_cache_map.keys() {
+            if key == &cache_name {
+                // Step 2.1.1: If cacheName matches key, then:
+                // Resolve promise with a new Cache object that represents value.
+                // Note: promise resolved in script.
+
+                // Step 2.1.2: Abort these steps.
+                return Ok(true);
+            }
+        }
+
+        // Step 2.2: Let cache be a new request response list.
+        let cache = RequestResponseList { list: Vec::new() };
+
+        // Step 2.3: Set the relevant name to cache map[cacheName] to cache.
+        // If this cache write operation failed due to exceeding the granted quota limit,
+        // reject promise with a QuotaExceededError and abort these steps.
+        // Note: there are no quota checks storage side at this point.
+        if proxy_map
+            .handle
+            .create_database(proxy_map.bottle_id, cache_name.clone())
+            .recv()
+            .is_err()
+        {
+            return Err(CacheStorageError::Internal(()));
+        };
+        self.name_to_cache_map.insert(cache_name.to_string(), cache);
+
+        // Step 2.4: Resolve promise with a new Cache object that represents cache.
+        // Note: promise resolved in script.
+        Ok(true)
     }
 }
 
@@ -67,8 +128,12 @@ impl CacheStorageThreadFactory for CacheStorageThreadHandle {
             .spawn(move || {
                 // Keep temp_dir alive while the thread runs.
                 let _ = temp_dir;
-                let engine = DummyCacheStorageEngine;
-                CacheStorageThread::new(sender_clone, generic_receiver, engine).start();
+                let engine = MemCacheStorageEngine {
+                    name_to_cache_map: Default::default(),
+                };
+                let mut cache_storage_thread =
+                    CacheStorageThread::new(sender_clone, generic_receiver, engine);
+                cache_storage_thread.start();
             })
             .expect("Thread spawning failed");
 
@@ -116,6 +181,23 @@ where
                         .is_err()
                     {
                         error!("Failed to send response to script for HasCache message.");
+                    }
+                },
+                CacheStorageThreadMessage::OpenCache {
+                    cache_name,
+                    callback,
+                    proxy,
+                    origin: _,
+                } => {
+                    let result = self.engine.open_cache(cache_name.clone(), &proxy);
+                    if callback
+                        .send(CacheStorageThreadResponse::OpenCacheResult {
+                            opened: result.map(|_| false).map_err(|e| format!("{:?}", e)),
+                            cache_name,
+                        })
+                        .is_err()
+                    {
+                        error!("Failed to send response to script for OpenCache message.");
                     }
                 },
                 CacheStorageThreadMessage::Exit(sender) => {
