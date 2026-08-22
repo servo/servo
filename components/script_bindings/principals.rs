@@ -20,6 +20,9 @@ use crate::interfaces::DomHelpers;
 pub struct ServoJSPrincipals(NonNull<JSPrincipals>);
 
 impl ServoJSPrincipals {
+    /// Crate a new [`ServoJSPrincipals`] with the given [`MutableOrigin`]. Note that the
+    /// resulting value will hold a **shared** mutable reference to `origin`, so any changes to
+    /// `origin`'s `host` will be reflected in the return value's internal state.
     pub fn new<D: DomTypes>(origin: &MutableOrigin) -> Self {
         unsafe {
             let private: Box<MutableOrigin> = Box::new(origin.clone());
