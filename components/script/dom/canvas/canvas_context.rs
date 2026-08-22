@@ -31,8 +31,13 @@ pub(crate) enum HTMLCanvasElementOrOffscreenCanvas {
 
 impl HTMLCanvasElementOrOffscreenCanvas {
     pub(crate) fn mark_as_dirty(&self) {
-        if let HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) = self {
-            canvas.owner_document().mark_canvas_as_dirty(canvas);
+        match self {
+            HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(canvas) => {
+                canvas.owner_document().mark_canvas_as_dirty(canvas);
+            },
+            HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(canvas) => {
+                canvas.request_placeholder_update();
+            },
         }
     }
 }
@@ -167,7 +172,7 @@ impl CanvasHelpers for RootedHTMLCanvasElementOrOffscreenCanvas {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) enum RenderingContext {
-    Placeholder(Dom<OffscreenCanvas>),
+    Placeholder,
     Context2d(Dom<CanvasRenderingContext2D>),
     BitmapRenderer(Dom<ImageBitmapRenderingContext>),
     #[cfg(feature = "webgl")]
@@ -181,9 +186,7 @@ pub(crate) enum RenderingContext {
 impl RenderingContext {
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
         match self {
-            RenderingContext::Placeholder(_) => {
-                unreachable!("Should never set an `ImageKey` on a Placeholder")
-            },
+            RenderingContext::Placeholder => {},
             RenderingContext::Context2d(context) => context.set_image_key(image_key),
             RenderingContext::BitmapRenderer(context) => context.set_image_key(image_key),
             #[cfg(feature = "webgl")]
@@ -203,7 +206,7 @@ impl CanvasContext for RenderingContext {
 
     fn canvas(&self) -> Option<RootedHTMLCanvasElementOrOffscreenCanvas> {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas.context()?.canvas(),
+            RenderingContext::Placeholder => None,
             RenderingContext::Context2d(context) => context.canvas(),
             RenderingContext::BitmapRenderer(context) => context.canvas(),
             #[cfg(feature = "webgl")]
@@ -217,11 +220,7 @@ impl CanvasContext for RenderingContext {
 
     fn resize(&self) {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => {
-                if let Some(context) = offscreen_canvas.context() {
-                    context.resize()
-                }
-            },
+            RenderingContext::Placeholder => {},
             RenderingContext::Context2d(context) => context.resize(),
             RenderingContext::BitmapRenderer(context) => context.resize(),
             #[cfg(feature = "webgl")]
@@ -235,11 +234,7 @@ impl CanvasContext for RenderingContext {
 
     fn reset_bitmap(&self) {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => {
-                if let Some(context) = offscreen_canvas.context() {
-                    context.reset_bitmap()
-                }
-            },
+            RenderingContext::Placeholder => {},
             RenderingContext::Context2d(context) => context.reset_bitmap(),
             RenderingContext::BitmapRenderer(context) => context.reset_bitmap(),
             #[cfg(feature = "webgl")]
@@ -253,9 +248,7 @@ impl CanvasContext for RenderingContext {
 
     fn get_image_data(&self) -> Option<Snapshot> {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => {
-                offscreen_canvas.context()?.get_image_data()
-            },
+            RenderingContext::Placeholder => None,
             RenderingContext::Context2d(context) => context.get_image_data(),
             RenderingContext::BitmapRenderer(context) => context.get_image_data(),
             #[cfg(feature = "webgl")]
@@ -269,9 +262,7 @@ impl CanvasContext for RenderingContext {
 
     fn origin_is_clean(&self) -> bool {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
-                .context()
-                .is_none_or(|context| context.origin_is_clean()),
+            RenderingContext::Placeholder => true,
             RenderingContext::Context2d(context) => context.origin_is_clean(),
             RenderingContext::BitmapRenderer(context) => context.origin_is_clean(),
             #[cfg(feature = "webgl")]
@@ -285,10 +276,7 @@ impl CanvasContext for RenderingContext {
 
     fn size(&self) -> Size2D<u32> {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
-                .context()
-                .map(|context| context.size())
-                .unwrap_or_default(),
+            RenderingContext::Placeholder => Size2D::default(),
             RenderingContext::Context2d(context) => context.size(),
             RenderingContext::BitmapRenderer(context) => context.size(),
             #[cfg(feature = "webgl")]
@@ -302,11 +290,7 @@ impl CanvasContext for RenderingContext {
 
     fn mark_as_dirty(&self) {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => {
-                if let Some(context) = offscreen_canvas.context() {
-                    context.mark_as_dirty()
-                }
-            },
+            RenderingContext::Placeholder => {},
             RenderingContext::Context2d(context) => context.mark_as_dirty(),
             RenderingContext::BitmapRenderer(context) => context.mark_as_dirty(),
             #[cfg(feature = "webgl")]
@@ -320,9 +304,7 @@ impl CanvasContext for RenderingContext {
 
     fn onscreen(&self) -> bool {
         match self {
-            RenderingContext::Placeholder(offscreen_canvas) => offscreen_canvas
-                .context()
-                .is_some_and(|context| context.onscreen()),
+            RenderingContext::Placeholder => true,
             RenderingContext::Context2d(context) => context.onscreen(),
             RenderingContext::BitmapRenderer(context) => context.onscreen(),
             #[cfg(feature = "webgl")]

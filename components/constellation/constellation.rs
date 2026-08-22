@@ -127,9 +127,10 @@ use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::registered_domain_name;
 use net_traits::{self, AsyncRuntime, FetchThread, ResourceThreads};
 use paint_api::{
-    PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
-    WebRenderExternalImageIdManager,
+    ImageUpdate, PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
+    SerializableImageData, WebRenderExternalImageIdManager,
 };
+use pixels::SnapshotPixelFormat;
 use profile_traits::mem::ProfilerMsg;
 use profile_traits::{mem, time};
 use rand::rngs::SmallRng;
@@ -179,6 +180,8 @@ use style::global_style_data::StyleThreadPool;
 use webgpu::canvas_context::WebGpuExternalImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
+use webrender_api::units::DeviceIntSize;
+use webrender_api::{ImageDescriptor, ImageFormat};
 
 use super::embedder::ConstellationToEmbedderMsg;
 use crate::broadcastchannel::BroadcastChannels;
@@ -1747,6 +1750,57 @@ where
                 worker_id,
                 active,
             ),
+            ScriptToConstellationMessage::UpdatePlaceholderCanvas(
+                pipeline_id,
+                placeholder_id,
+                image_key,
+                width,
+                height,
+                bitmap,
+                origin_clean,
+            ) => {
+                if let (Some(image_key), Some(bitmap)) = (image_key, bitmap.as_ref()) {
+                    let size = bitmap.size();
+                    if !size.is_empty() {
+                        let format = match bitmap.format() {
+                            SnapshotPixelFormat::RGBA => ImageFormat::RGBA8,
+                            SnapshotPixelFormat::BGRA => ImageFormat::BGRA8,
+                        };
+                        let descriptor = ImageDescriptor {
+                            format,
+                            size: DeviceIntSize::new(size.width as i32, size.height as i32),
+                            stride: None,
+                            offset: 0,
+                            flags: webrender_api::ImageDescriptorFlags::empty(),
+                        };
+                        self.paint_proxy.send(PaintMessage::UpdateImages(
+                            image_key.into(),
+                            [ImageUpdate::UpdateImage(
+                                image_key,
+                                descriptor,
+                                SerializableImageData::Raw(bitmap.shared_memory()),
+                                None,
+                            )]
+                            .into(),
+                        ));
+                    }
+                }
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) &&
+                    let Err(error) =
+                        pipeline
+                            .event_loop
+                            .send(ScriptThreadMessage::UpdatePlaceholderCanvas(
+                                pipeline_id,
+                                placeholder_id,
+                                width,
+                                height,
+                                bitmap,
+                                origin_clean,
+                            ))
+                {
+                    warn!("Failed to send placeholder canvas update: {error}");
+                }
+            },
             // Ask the embedder for permission to load a new page.
             ScriptToConstellationMessage::LoadUrl(
                 load_data,

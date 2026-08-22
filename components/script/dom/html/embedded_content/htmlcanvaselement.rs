@@ -13,6 +13,7 @@ use js::context::NoGC;
 use js::error::throw_type_error_safe;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
+use paint_api::SerializableImageData;
 use pixels::{EncodedImageType, Snapshot};
 use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
@@ -20,15 +21,17 @@ use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::reflector::DomObject;
 use script_bindings::weakref::WeakRef;
 use servo_base::Epoch;
+use servo_base::id::PlaceholderCanvasId;
 #[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
-use servo_constellation_traits::BlobImpl;
 #[cfg(feature = "webgpu")]
 use servo_constellation_traits::ScriptToConstellationMessage;
+use servo_constellation_traits::{BlobImpl, TransferablePlaceholderCanvas};
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::registry::MediaStreamId;
 use style::attr::AttrValue;
-use webrender_api::ImageKey;
+use webrender_api::units::DeviceIntSize;
+use webrender_api::{ImageDescriptor, ImageFormat, ImageKey};
 
 use crate::canvas_context::{CanvasContext, RenderingContext};
 #[cfg(feature = "webgl")]
@@ -95,6 +98,13 @@ pub(crate) struct HTMLCanvasElement {
     /// itself which will take care of cleaning it up.
     #[no_trace]
     image_key: Cell<Option<ImageKey>>,
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    #[no_trace]
+    placeholder_bitmap: DomRefCell<Option<Snapshot>>,
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-origin-clean>
+    placeholder_origin_clean: Cell<bool>,
 }
 
 impl HTMLCanvasElement {
@@ -109,6 +119,8 @@ impl HTMLCanvasElement {
             callback_id: Cell::new(0),
             blob_callbacks: RefCell::new(FxHashMap::default()),
             image_key: Default::default(),
+            placeholder_bitmap: Default::default(),
+            placeholder_origin_clean: Cell::new(true),
         }
     }
 
@@ -141,6 +153,7 @@ impl HTMLCanvasElement {
 
     pub(crate) fn origin_is_clean(&self) -> bool {
         match *self.context_mode.borrow() {
+            Some(RenderingContext::Placeholder) => self.placeholder_origin_clean.get(),
             Some(ref context) => context.origin_is_clean(),
             _ => true,
         }
@@ -170,6 +183,42 @@ impl HTMLCanvasElement {
         };
         self.upcast::<Element>()
             .set_attribute(cx, &html5ever::local_name!("height"), value.into());
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pub(crate) fn set_placeholder_bitmap(&self, bitmap: Option<Snapshot>, origin_clean: bool) {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        *self.placeholder_bitmap.borrow_mut() = bitmap;
+        self.placeholder_origin_clean.set(origin_clean);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    fn add_placeholder_bitmap(&self) {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        let bitmap = self.placeholder_bitmap.borrow();
+        if let (Some(image_key), Some(bitmap)) = (self.image_key.get(), bitmap.as_ref()) {
+            let size = bitmap.size();
+            if !size.is_empty() {
+                let format = match bitmap.format() {
+                    pixels::SnapshotPixelFormat::RGBA => ImageFormat::RGBA8,
+                    pixels::SnapshotPixelFormat::BGRA => ImageFormat::BGRA8,
+                };
+                let shared = bitmap.to_shared();
+                let descriptor = ImageDescriptor {
+                    format,
+                    size: DeviceIntSize::new(size.width as i32, size.height as i32),
+                    stride: None,
+                    offset: 0,
+                    flags: webrender_api::ImageDescriptorFlags::empty(),
+                };
+                let data = SerializableImageData::Raw(shared.shared_memory());
+                self.owner_window()
+                    .paint_api()
+                    .add_image(image_key, descriptor, data, false);
+            }
+        }
     }
 }
 
@@ -211,7 +260,7 @@ impl HTMLCanvasElement {
 
         let get_image_key = || self.owner_window().image_cache().get_image_key();
         let image_key = match rendering_context {
-            RenderingContext::Placeholder(..) => None,
+            RenderingContext::Placeholder => get_image_key(),
             RenderingContext::Context2d(..) => get_image_key(),
             RenderingContext::BitmapRenderer(..) => get_image_key(),
             #[cfg(feature = "webgl")]
@@ -389,6 +438,7 @@ impl HTMLCanvasElement {
 
     pub(crate) fn get_image_data(&self) -> Option<Snapshot> {
         match self.context_mode.borrow().as_ref() {
+            Some(RenderingContext::Placeholder) => self.placeholder_bitmap.borrow().clone(),
             Some(context) => context.get_image_data(),
             None => {
                 let size = self.get_size();
@@ -419,7 +469,7 @@ impl HTMLCanvasElement {
         let context = self.context()?;
         let image_key = self.image_key.get()?;
         let pending = match &*context {
-            RenderingContext::Placeholder(..) => false,
+            RenderingContext::Placeholder => false,
             RenderingContext::Context2d(context) => context.update_rendering(epoch),
             RenderingContext::BitmapRenderer(context) => context.update_rendering(epoch),
             #[cfg(feature = "webgl")]
@@ -446,7 +496,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
-        if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
+        if let Some(RenderingContext::Placeholder) = *self.context_mode.borrow() {
             return Err(Error::InvalidState(Some(
                 "Canvas element's context mode is set to placeholder: Cannot set width".into(),
             )));
@@ -470,7 +520,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
-        if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
+        if let Some(RenderingContext::Placeholder) = *self.context_mode.borrow() {
             return Err(Error::InvalidState(Some(
                 "Canvas element's context mode is set to placeholder: Cannot set height".into(),
             )));
@@ -494,7 +544,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         options: HandleValue,
     ) -> Fallible<Option<RootedRenderingContext>> {
         // Always throw an InvalidState exception when the canvas is in Placeholder mode (See table in the spec).
-        if let Some(RenderingContext::Placeholder(_)) = *self.context_mode.borrow() {
+        if let Some(RenderingContext::Placeholder) = *self.context_mode.borrow() {
             return Err(Error::InvalidState(Some(
                 "Canvas element's context mode is set to placeholder: Cannot get context".into(),
             )));
@@ -641,37 +691,60 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         Ok(())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-transfercontroltooffscreen>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-canvas-transfercontroltooffscreen>
     fn TransferControlToOffscreen(
         &self,
         cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<OffscreenCanvas>> {
+        // Step 1. If this canvas element's context mode is not set to none, throw an
+        // "InvalidStateError" DOMException.
         if self.context_mode.borrow().is_some() {
-            // Step 1.
-            // If this canvas element's context mode is not set to none, throw an "InvalidStateError" DOMException.
             return Err(Error::InvalidState(Some("Canvas element's context mode must not be set when transferring control to an offscreen canvas".into())));
         };
 
-        // Step 2.
-        // Let offscreenCanvas be a new OffscreenCanvas object with its width and height equal to the values of
-        // the width and height content attributes of this canvas element.
-        // Step 3.
-        // Set the placeholder canvas element of offscreenCanvas to a weak reference to this canvas element.
+        let placeholder_id = PlaceholderCanvasId::new();
+        // Step 2. Let offscreenCanvas be a new OffscreenCanvas object with its width and height equal
+        // to the values of the width and height content attributes of this canvas element.
+        // Step 3. Set the offscreenCanvas's placeholder canvas element to a weak reference to this
+        // canvas element.
         let offscreen_canvas = OffscreenCanvas::new(
             cx,
             &self.global(),
             None,
             self.Width().into(),
             self.Height().into(),
+            DOMString::new(),
+            "ltr".into(),
             Some(WeakRef::new(self)),
+            None,
         );
 
         // Step 4. Set this canvas element's context mode to placeholder.
-        self.set_rendering_context(cx.no_gc(), || {
-            RenderingContext::Placeholder(offscreen_canvas.as_traced())
-        });
+        self.set_rendering_context(cx.no_gc(), || RenderingContext::Placeholder);
 
-        // Step 5. Return offscreenCanvas.
+        let placeholder = TransferablePlaceholderCanvas {
+            id: placeholder_id,
+            pipeline_id: self.global().pipeline_id(),
+            image_key: self.image_key.get(),
+        };
+        offscreen_canvas.set_transferable_placeholder(placeholder);
+
+        self.owner_document()
+            .register_placeholder_canvas(placeholder_id, self);
+
+        self.set_placeholder_bitmap(offscreen_canvas.get_image_data(), true);
+        self.add_placeholder_bitmap();
+
+        // Step 5. Set the offscreenCanvas's inherited language to the language of this canvas
+        // element.
+        offscreen_canvas
+            .set_inherited_language(self.upcast::<Node>().get_lang().unwrap_or_default().into());
+
+        // Step 6. Set the offscreenCanvas's inherited direction to the directionality of this canvas
+        // element.
+        offscreen_canvas.set_inherited_direction(self.upcast::<Element>().directionality().into());
+
+        // Step 7. Return offscreenCanvas.
         Ok(offscreen_canvas)
     }
 

@@ -72,6 +72,13 @@ impl OffscreenCanvasRenderingContext2D {
     pub(crate) fn send_canvas_command_immediate(&self, msg: CanvasCommand) {
         self.context.send_canvas_command_immediate(msg)
     }
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pub(crate) fn update_rendering(&self) -> bool {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        self.context.update_offscreen_rendering()
+    }
 }
 
 impl CanvasContext for OffscreenCanvasRenderingContext2D {

@@ -779,9 +779,13 @@ impl CanvasState {
         dw: Option<f64>,
         dh: Option<f64>,
     ) -> ErrorResult {
-        let canvas_size = canvas
-            .context()
-            .map_or_else(|| canvas.get_size(), |context| context.size());
+        let canvas_size = canvas.context().map_or_else(
+            || canvas.get_size(),
+            |context| match *context {
+                RenderingContext::Placeholder => canvas.get_size(),
+                _ => context.size(),
+            },
+        );
 
         let dw = dw.unwrap_or(canvas_size.width as f64);
         let dh = dh.unwrap_or(canvas_size.height as f64);
@@ -828,75 +832,19 @@ impl CanvasState {
                         self.state.borrow().transform,
                     ));
                 },
-                RenderingContext::Placeholder(ref context) => {
-                    let Some(context) = context.context() else {
-                        return Err(Error::InvalidState(None));
+                RenderingContext::Placeholder => {
+                    let Some(snapshot) = canvas.get_image_data() else {
+                        return Ok(());
                     };
-                    match *context {
-                        OffscreenRenderingContext::Context2d(ref context) => {
-                            self.buffered_sender.flush().unwrap();
-                            context.send_canvas_command_immediate(CanvasCommand::DrawImageInOther(
-                                self.get_canvas_id(),
-                                dest_rect,
-                                source_rect,
-                                smoothing_enabled,
-                                self.state.borrow().shadow_options(),
-                                self.state.borrow().composition_options(),
-                                self.state.borrow().transform,
-                            ));
-                        },
-                        OffscreenRenderingContext::BitmapRenderer(ref context) => {
-                            let Some(snapshot) = context.get_image_data() else {
-                                return Ok(());
-                            };
-
-                            self.send_canvas_command(CanvasCommand::DrawImage(
-                                snapshot.to_shared(),
-                                dest_rect,
-                                source_rect,
-                                smoothing_enabled,
-                                self.state.borrow().shadow_options(),
-                                self.state.borrow().composition_options(),
-                                self.state.borrow().transform,
-                            ));
-                        },
-                        #[cfg(feature = "webgl")]
-                        OffscreenRenderingContext::WebGL(ref context) => {
-                            let Some(snapshot) = context.get_image_data() else {
-                                return Ok(());
-                            };
-
-                            self.send_canvas_command(CanvasCommand::DrawImage(
-                                snapshot.to_shared(),
-                                dest_rect,
-                                source_rect,
-                                smoothing_enabled,
-                                self.state.borrow().shadow_options(),
-                                self.state.borrow().composition_options(),
-                                self.state.borrow().transform,
-                            ));
-                        },
-
-                        #[cfg(feature = "webgl")]
-                        OffscreenRenderingContext::WebGL2(ref context) => {
-                            let Some(snapshot) = context.get_image_data() else {
-                                return Ok(());
-                            };
-
-                            self.send_canvas_command(CanvasCommand::DrawImage(
-                                snapshot.to_shared(),
-                                dest_rect,
-                                source_rect,
-                                smoothing_enabled,
-                                self.state.borrow().shadow_options(),
-                                self.state.borrow().composition_options(),
-                                self.state.borrow().transform,
-                            ));
-                        },
-                        OffscreenRenderingContext::Detached => {
-                            return Err(Error::InvalidState(None));
-                        },
-                    }
+                    self.send_canvas_command(CanvasCommand::DrawImage(
+                        snapshot.to_shared(),
+                        dest_rect,
+                        source_rect,
+                        smoothing_enabled,
+                        self.state.borrow().shadow_options(),
+                        self.state.borrow().composition_options(),
+                        self.state.borrow().transform,
+                    ));
                 },
                 _ => return Err(Error::InvalidState(None)),
             }

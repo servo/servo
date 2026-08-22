@@ -237,6 +237,8 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     running_animation_callbacks: Cell<bool>,
     /// Whether Constellation currently treats this worker as having callbacks.
     animation_frame_callbacks_active: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model>
+    offscreen_canvas_updates_active: Cell<bool>,
     /// A sender for animation frame ticks.
     #[no_trace]
     #[ignore_malloc_size_of = "channels are hard"]
@@ -355,6 +357,7 @@ impl DedicatedWorkerGlobalScope {
             current_animation_frame_list: DomRefCell::new(VecDeque::new()),
             running_animation_callbacks: Cell::new(false),
             animation_frame_callbacks_active: Cell::new(false),
+            offscreen_canvas_updates_active: Cell::new(false),
             animation_frame_tick_sender,
             animation_frame_tick_receiver,
             control_receiver,
@@ -691,6 +694,7 @@ impl DedicatedWorkerGlobalScope {
         }
 
         self.animation_frame_callbacks_active.set(false);
+        self.offscreen_canvas_updates_active.set(false);
         let worker_id = self.upcast::<WorkerGlobalScope>().worker_id();
         log::debug!(
             "Unregistering dedicated worker animation frame provider: worker={worker_id:?} ---->"
@@ -701,7 +705,7 @@ impl DedicatedWorkerGlobalScope {
             .send(ScriptToConstellationMessage::UnregisterWorkerAnimationFrameProvider(worker_id));
     }
 
-    fn send_animation_frame_callbacks_state(&self, active: bool) {
+    fn send_rendering_opportunity_state(&self, active: bool) {
         if !self.animation_frame_provider_supported() {
             return;
         }
@@ -725,7 +729,18 @@ impl DedicatedWorkerGlobalScope {
             return;
         }
 
-        self.send_animation_frame_callbacks_state(active);
+        self.send_rendering_opportunity_state(active || self.offscreen_canvas_updates_active.get());
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model>
+    pub(crate) fn request_offscreen_canvas_rendering_update(&self) {
+        // If this event loop's agent's single realm's global object is a supported
+        // DedicatedWorkerGlobalScope and the user agent believes that it would benefit from having
+        // its rendering updated at this time:
+        self.register_animation_frame_provider();
+        if !self.offscreen_canvas_updates_active.replace(true) {
+            self.send_rendering_opportunity_state(true);
+        }
     }
 
     fn remove_animation_frame_callback_from(
@@ -847,7 +862,7 @@ impl DedicatedWorkerGlobalScope {
         } else {
             // Acknowledge the consumed worker tick while staying active; Paint
             // will drive the next refresh tick.
-            self.send_animation_frame_callbacks_state(true);
+            self.send_rendering_opportunity_state(true);
         }
     }
 
@@ -861,6 +876,9 @@ impl DedicatedWorkerGlobalScope {
         self.current_animation_frame_list.borrow_mut().clear();
         self.running_animation_callbacks.set(false);
         self.animation_frame_callbacks_active.set(false);
+        self.offscreen_canvas_updates_active.set(false);
+        self.upcast::<GlobalScope>()
+            .clear_pending_offscreen_canvas_updates();
         self.unregister_animation_frame_provider();
     }
 
@@ -957,7 +975,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model>
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut JSContext) -> bool {
         if self.upcast::<WorkerGlobalScope>().is_closing() {
             return false;
@@ -984,6 +1002,15 @@ impl DedicatedWorkerGlobalScope {
                 // Step 6.1.2. Run the animation frame callbacks for that
                 // DedicatedWorkerGlobalScope, passing in now as the timestamp.
                 self.run_the_animation_frame_callbacks(cx);
+
+                // Step 6.1.3. Update the rendering of that dedicated worker to
+                // reflect the current state.
+                self.upcast::<GlobalScope>().update_offscreen_canvases();
+                self.offscreen_canvas_updates_active.set(false);
+                let active = self.has_animation_frame_callbacks() ||
+                    self.upcast::<GlobalScope>()
+                        .has_pending_offscreen_canvas_updates();
+                self.send_rendering_opportunity_state(active);
             },
             MixedMessage::Timer => {},
         }

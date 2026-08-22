@@ -22,13 +22,13 @@
 ./components/script/dom/bindings/structuredclone.rs 2
 ./components/script/dom/bluetooth/bluetooth.rs 6
 ./components/script/dom/bluetooth/bluetoothremotegattserver.rs 1
-./components/script/dom/canvas/2d/canvas_state.rs 26
+./components/script/dom/canvas/2d/canvas_state.rs 24
 ./components/script/dom/canvas/2d/canvasgradient.rs 2
 ./components/script/dom/canvas/2d/path2d.rs 3
 ./components/script/dom/canvas/imagebitmap.rs 25
 ./components/script/dom/canvas/imagebitmaprenderingcontext.rs 1
 ./components/script/dom/canvas/imagedata.rs 7
-./components/script/dom/canvas/offscreencanvas.rs 12
+./components/script/dom/canvas/offscreencanvas.rs 11
 ./components/script/dom/characterdata/characterdata.rs 2
 ./components/script/dom/characterdata/text.rs 1
 ./components/script/dom/clipboard/clipboard.rs 1

@@ -8023,6 +8023,7 @@ dependencies = [
  "servo-net",
  "servo-net-traits",
  "servo-paint-api",
+ "servo-pixels",
  "servo-profile-traits",
  "servo-script-traits",
  "servo-storage-traits",
@@ -8034,6 +8035,7 @@ dependencies = [
  "stylo",
  "stylo_traits",
  "tracing",
+ "webrender_api",
 ]
 
 [[package]]

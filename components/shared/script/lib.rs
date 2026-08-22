@@ -29,7 +29,7 @@ use media::WindowGLContext;
 use net_traits::ResourceThreads;
 use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
-use pixels::PixelFormat;
+use pixels::{PixelFormat, SharedSnapshot};
 use profile_traits::mem;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -38,7 +38,7 @@ use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId, PipelineNamespaceRequest,
-    ScriptEventLoopId, WebViewId,
+    PlaceholderCanvasId, ScriptEventLoopId, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
@@ -304,6 +304,15 @@ pub enum ScriptThreadMessage {
     EvaluateJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    UpdatePlaceholderCanvas(
+        PipelineId,
+        PlaceholderCanvasId,
+        u64,
+        u64,
+        Option<SharedSnapshot>,
+        bool,
+    ),
     /// Preferences were updated in the parent process.
     PreferencesUpdated(Vec<(String, PrefValue)>),
     /// Notify the `ScriptThread` that the Servo renderer is no longer waiting on
