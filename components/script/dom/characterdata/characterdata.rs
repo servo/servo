@@ -24,6 +24,7 @@ use crate::dom::cdatasection::CDATASection;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::live_range_replace_data_steps;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{ChildrenMutation, Node, NodeDamage};
@@ -120,10 +121,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
         self.content_changed(cx);
 
-        let node = self.upcast::<Node>();
-        if let Some(weak_ranges) = node.weak_ranges_mut() {
-            weak_ranges.replace_code_units(node, 0, old_length, new_length);
-        }
+        live_range_replace_data_steps(self.upcast(), 0, old_length, new_length);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-length>
@@ -248,24 +246,9 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         *self.data.safe_borrow_mut(cx.no_gc()) = new_data;
         self.content_changed(cx);
 
-        // Step 8: For each live range whose start node is node and start offset is
-        // greater than offset but less than or equal to offset + count: set its start
-        // offset to offset.
-        //
-        // Step 9: For each live range whose end node is node and end offset is greater
-        // than offset but less than or equal to offset + count: set its end offset to
-        // offset.
-        //
-        // Step 10: For each live range whose start node is node and start offset is
-        // greater than offset + count: increase its start offset by data’s length and
-        // decrease it by count.
-        //
-        // Step 11: For each live range whose end node is node and end offset is greater
-        // than offset + count: increase its end offset by data’s length and decrease it
-        // by count.
         let node = self.upcast::<Node>();
-        if let Some(weak_ranges) = node.weak_ranges_mut() {
-            weak_ranges.replace_code_units(
+        if node.has_live_ranges() {
+            live_range_replace_data_steps(
                 node,
                 offset,
                 count,
