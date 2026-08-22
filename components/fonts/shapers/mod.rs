@@ -2,11 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-mod harfbuzz;
-
 use app_units::Au;
 use euclid::default::Point2D;
-pub(crate) use harfbuzz::Shaper;
 use read_fonts::types::Tag;
 use rustc_hash::FxHashMap;
 use style::computed_values::font_variant_position::T as FontVariantPosition;
@@ -18,6 +15,80 @@ use crate::{
     LIGA, LNUM, NALT, ONUM, ORDN, ORNM, PNUM, PWID, RUBY, SALT, SMPL, SUBS, SUPS, SWSH,
     ShapingFlags, ShapingOptions, TNUM, TRAD, ZERO,
 };
+
+#[cfg(all(not(feature = "harfbuzz"), not(feature = "harfrust")))]
+compile_error!(
+    "No shaping backend enabled. At least one of the 'harfrust' or 'harfbuzz' features must be enabled on the servo-fonts crate"
+);
+
+#[cfg(feature = "harfbuzz")]
+mod harfbuzz;
+#[cfg(feature = "harfbuzz")]
+pub(crate) use harfbuzz::Shaper as HarfBuzzShaper;
+
+#[cfg(feature = "harfrust")]
+mod harfrust;
+#[cfg(feature = "harfrust")]
+pub(crate) use harfrust::Shaper as HarfRustShaper;
+
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+mod compare;
+// Configure default shaper (actually used)
+#[cfg(all(feature = "harfbuzz", not(feature = "harfrust")))]
+pub(crate) use HarfBuzzShaper as Shaper;
+#[cfg(all(not(feature = "harfbuzz"), feature = "harfrust"))]
+pub(crate) use HarfRustShaper as Shaper;
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+pub(crate) use compare::Shaper as CompareShaper;
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+pub(crate) use dynamic::DynShaper as Shaper;
+
+#[cfg(all(feature = "harfbuzz", feature = "harfrust"))]
+mod dynamic {
+    use super::Tag;
+    use crate::{Font, FontBaseline, ShapedText, ShapingOptions};
+
+    pub(crate) enum DynShaper {
+        HarfRust(super::HarfRustShaper),
+        HarfBuzz(super::HarfBuzzShaper),
+        Compare(super::CompareShaper),
+    }
+
+    impl DynShaper {
+        pub(crate) fn new(font: &Font) -> Self {
+            match servo_config::pref!(fonts_shaping_backend).as_ref() {
+                "" | "harfrust" => Self::HarfRust(super::HarfRustShaper::new(font)),
+                "harfbuzz" => Self::HarfBuzz(super::HarfBuzzShaper::new(font)),
+                "compare" => Self::Compare(super::CompareShaper::new(font)),
+
+                pref => {
+                    panic!("Invalid shaper {pref}. Must be 'harfrust', 'harfbuzz', or 'compare'.")
+                },
+            }
+        }
+
+        pub fn shape_text(
+            &self,
+            text: &str,
+            options: &ShapingOptions,
+            font_features: &[(Tag, u32)],
+        ) -> ShapedText {
+            match self {
+                Self::HarfRust(shaper) => shaper.shape_text(text, options, font_features),
+                Self::HarfBuzz(shaper) => shaper.shape_text(text, options, font_features),
+                Self::Compare(shaper) => shaper.shape_text(text, options, font_features),
+            }
+        }
+
+        pub fn baseline(&self) -> Option<FontBaseline> {
+            match self {
+                Self::HarfRust(shaper) => shaper.baseline(),
+                Self::HarfBuzz(shaper) => shaper.baseline(),
+                Self::Compare(shaper) => shaper.baseline(),
+            }
+        }
+    }
+}
 
 /// The highest acceptable value for `styleset` values in `font-variant-alternates`.
 ///
@@ -46,7 +117,7 @@ fn unicode_script_to_iso15924_tag(script: unicode_script::Script) -> u32 {
     u32::from_be_bytes(bytes)
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub(crate) struct ShapedGlyph {
     /// The actual glyph to render for this [`ShapedGlyph`].
     pub glyph_id: GlyphId,

@@ -18,12 +18,12 @@ crate-type = ["rlib"]
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
-default = ["bundled", "clipboard", "js_jit"]
+default = ["bundled", "clipboard", "js_jit", "harfrust"]
 ## Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webxr"]
+default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webxr", "harfrust"]
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
 
@@ -32,6 +32,10 @@ background_hang_monitor = ["servo-background-hang-monitor/sampler"]
 
 # Allow brotli to be used for compression and decompression in TransportStream JavaScript API
 brotli-compression-stream = ["script/brotli-compression-stream"]
+
+# Shaping backends
+harfrust = ["servo-fonts/harfrust"]
+harfbuzz = ["servo-fonts/harfbuzz"]
 
 # This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
 # which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
@@ -148,6 +152,7 @@ servo-canvas-traits = { workspace = true }
 servo-config = { workspace = true }
 servo-constellation = { workspace = true }
 servo-constellation-traits = { workspace = true }
+servo-fonts = { workspace = true }
 servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }

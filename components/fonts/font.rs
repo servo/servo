@@ -58,6 +58,7 @@ use crate::{
 };
 
 pub(crate) const AFRC: Tag = Tag::new(b"afrc");
+#[cfg(feature = "harfbuzz")]
 pub(crate) const BASE: Tag = Tag::new(b"BASE");
 pub(crate) const CALT: Tag = Tag::new(b"calt");
 pub(crate) const CBDT: Tag = Tag::new(b"CBDT");
@@ -1089,10 +1090,21 @@ impl FontFamilyDescriptor {
     }
 }
 
+#[derive(PartialEq)]
 pub struct FontBaseline {
     pub ideographic_baseline: f32,
     pub alphabetic_baseline: f32,
     pub hanging_baseline: f32,
+}
+
+impl std::fmt::Debug for FontBaseline {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            self.ideographic_baseline, self.alphabetic_baseline, self.hanging_baseline
+        )
+    }
 }
 
 /// Given a mapping array `mapping` and a value, map that value onto

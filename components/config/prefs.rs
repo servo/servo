@@ -116,6 +116,12 @@ pub struct Preferences {
     pub fonts_monospace: String,
     pub fonts_default_size: i64,
     pub fonts_default_monospace_size: i64,
+    /// Shaping backend:
+    ///
+    /// - harfrust - Use HarfRust shaper
+    /// - harfbuzz - Use HarfBuzz shaper
+    /// - compare  - debug setting which runs both shaping backends, diffs output and compares performance.
+    pub fonts_shaping_backend: String,
     /// The amount of time that a half cycle of a text caret blink takes in milliseconds.
     /// If this value is less than or equal to zero, then caret blink is disabled.
     pub editing_caret_blink_time: i64,
@@ -519,6 +525,7 @@ impl Preferences {
             fonts_monospace: String::new(),
             fonts_sans_serif: String::new(),
             fonts_serif: String::new(),
+            fonts_shaping_backend: String::new(),
             gfx_precache_shaders: false,
             gfx_text_antialiasing_enabled: true,
             gfx_subpixel_text_antialiasing_enabled: true,
