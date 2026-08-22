@@ -487,7 +487,7 @@ impl ServoParser {
 
         // Step 2.
         self.document
-            .set_ready_state(cx, DocumentReadyState::Interactive);
+            .update_the_current_document_readiness(cx, DocumentReadyState::Interactive);
 
         // Step 3.
         self.tokenizer.end(cx);
@@ -495,7 +495,7 @@ impl ServoParser {
 
         // Step 4.
         self.document
-            .set_ready_state(cx, DocumentReadyState::Complete);
+            .update_the_current_document_readiness(cx, DocumentReadyState::Complete);
     }
 
     pub(crate) fn get_current_line(&self) -> u32 {
@@ -765,7 +765,7 @@ impl ServoParser {
         self.tokenizer.end(cx);
         // Step 3. Update the current document readiness to "interactive".
         self.document
-            .set_ready_state(cx, DocumentReadyState::Interactive);
+            .update_the_current_document_readiness(cx, DocumentReadyState::Interactive);
         // Step 4. Pop all the nodes off the stack of open elements.
         self.document.set_current_parser(None);
         // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
@@ -1289,11 +1289,21 @@ impl ParserContext {
             .queue_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 
-    fn finish_synchronous_load(&self, cx: &mut JSContext, document: &Document) {
-        document.set_ready_state(cx, DocumentReadyState::Complete);
+    fn finish_synchronous_load_for_initial_about_blank(
+        &self,
+        cx: &mut JSContext,
+        document: &Document,
+    ) {
+        // Synchronous loads for initial `about:blank` always start in the `Complete` state
+        // which is why we do not notify the embedder of completion via
+        // `Document::update_the_current_document_readiness`.
+        debug_assert_eq!(document.ReadyState(), DocumentReadyState::Complete);
+
         document.set_current_parser(None);
         document.start_the_end_loading_phase();
         document.finish_load(LoadType::PageSource(self.url.clone()), cx);
+
+        document.notify_embedder_of_load_completion();
     }
 }
 
@@ -1612,7 +1622,7 @@ impl FetchResponseListener for ParserContext {
         }
 
         if document.is_initial_about_blank() {
-            self.finish_synchronous_load(cx, &document);
+            self.finish_synchronous_load_for_initial_about_blank(cx, &document);
         }
     }
 
