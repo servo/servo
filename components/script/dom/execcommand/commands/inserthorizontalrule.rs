@@ -124,7 +124,7 @@ pub(crate) fn execute_insert_horizontal_rule_command(
     // Step 11. Run insertNode(hr) on the active range.
     let hr_node = DomRoot::upcast(hr);
     if active_range.InsertNode(cx, &hr_node).is_err() {
-        unreachable!("The image should always be insertable.");
+        unreachable!("The node should always be insertable.");
     }
 
     // Step 12. Fix disallowed ancestors of hr.
