@@ -50,7 +50,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
@@ -61,7 +61,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlscriptelement::Script;
 use crate::dom::messageevent::MessageEvent;
-use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -238,10 +237,8 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     running_animation_callbacks: Cell<bool>,
     /// Whether Constellation currently treats this worker as having callbacks.
     animation_frame_callbacks_active: Cell<bool>,
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model>
     offscreen_canvas_updates_active: Cell<bool>,
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
-    pending_offscreen_canvas_updates: DomRefCell<Vec<Dom<OffscreenCanvas>>>,
     /// A sender for animation frame ticks.
     #[no_trace]
     #[ignore_malloc_size_of = "channels are hard"]
@@ -361,7 +358,6 @@ impl DedicatedWorkerGlobalScope {
             running_animation_callbacks: Cell::new(false),
             animation_frame_callbacks_active: Cell::new(false),
             offscreen_canvas_updates_active: Cell::new(false),
-            pending_offscreen_canvas_updates: Default::default(),
             animation_frame_tick_sender,
             animation_frame_tick_receiver,
             control_receiver,
@@ -736,30 +732,15 @@ impl DedicatedWorkerGlobalScope {
         self.send_rendering_opportunity_state(active || self.offscreen_canvas_updates_active.get());
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
-    pub(crate) fn request_offscreen_canvas_update(&self, canvas: &OffscreenCanvas) {
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model>
+    pub(crate) fn request_offscreen_canvas_rendering_update(&self) {
         // If this event loop's agent's single realm's global object is a supported
         // DedicatedWorkerGlobalScope and the user agent believes that it would benefit from having
         // its rendering updated at this time:
         self.register_animation_frame_provider();
-        self.pending_offscreen_canvas_updates
-            .borrow_mut()
-            .push(Dom::from_ref(canvas));
         if !self.offscreen_canvas_updates_active.replace(true) {
             self.send_rendering_opportunity_state(true);
         }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
-    fn update_offscreen_canvases(&self) {
-        // Step 6.1.3. Update the rendering of that dedicated worker to reflect the current state.
-        rooted_vec!(let canvases <- std::mem::take(
-            &mut *self.pending_offscreen_canvas_updates.borrow_mut()
-        ).into_iter());
-        for canvas in canvases.iter() {
-            canvas.update_the_rendering();
-        }
-        self.offscreen_canvas_updates_active.set(false);
     }
 
     fn remove_animation_frame_callback_from(
@@ -896,7 +877,8 @@ impl DedicatedWorkerGlobalScope {
         self.running_animation_callbacks.set(false);
         self.animation_frame_callbacks_active.set(false);
         self.offscreen_canvas_updates_active.set(false);
-        self.pending_offscreen_canvas_updates.borrow_mut().clear();
+        self.upcast::<GlobalScope>()
+            .clear_pending_offscreen_canvas_updates();
         self.unregister_animation_frame_provider();
     }
 
@@ -993,7 +975,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model>
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model>
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut JSContext) -> bool {
         if self.upcast::<WorkerGlobalScope>().is_closing() {
             return false;
@@ -1023,9 +1005,11 @@ impl DedicatedWorkerGlobalScope {
 
                 // Step 6.1.3. Update the rendering of that dedicated worker to
                 // reflect the current state.
-                self.update_offscreen_canvases();
+                self.upcast::<GlobalScope>().update_offscreen_canvases();
+                self.offscreen_canvas_updates_active.set(false);
                 let active = self.has_animation_frame_callbacks() ||
-                    !self.pending_offscreen_canvas_updates.borrow().is_empty();
+                    self.upcast::<GlobalScope>()
+                        .has_pending_offscreen_canvas_updates();
                 self.send_rendering_opportunity_state(active);
             },
             MixedMessage::Timer => {},

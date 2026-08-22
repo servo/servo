@@ -45,6 +45,7 @@ use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
+use webrender_api::ImageKey;
 
 use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
@@ -690,10 +691,11 @@ pub enum ScriptToConstellationMessage {
     UnregisterWorkerAnimationFrameProvider(WorkerId),
     /// Indicates whether a dedicated worker has pending animation frame callbacks.
     ChangeWorkerAnimationFrameProviderState(WorkerId, bool),
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     UpdatePlaceholderCanvas(
         PipelineId,
         PlaceholderCanvasId,
+        Option<ImageKey>,
         u64,
         u64,
         Option<SharedSnapshot>,

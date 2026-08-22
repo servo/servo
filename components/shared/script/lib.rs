@@ -300,7 +300,7 @@ pub enum ScriptThreadMessage {
     EvaluateJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
     /// A new batch of keys for the image cache for the specific pipeline.
     SendImageKeysBatch(PipelineId, Vec<ImageKey>),
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     UpdatePlaceholderCanvas(
         PipelineId,
         PlaceholderCanvasId,

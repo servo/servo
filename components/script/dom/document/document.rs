@@ -183,7 +183,6 @@ use crate::dom::node::virtualmethods::vtable_for;
 use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
-use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
 use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performancepainttiming::PerformancePaintTiming;
@@ -344,7 +343,7 @@ bitflags! {
         /// one more rendering update possibility after this happens, so that any potential screenshot
         /// reflects the up-to-date contents.
         const FontReadyPromiseFulfilled = 1 << 2;
-        /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>
+        /// <https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering>
         const OffscreenCanvasUpdate = 1 << 3;
     }
 }
@@ -458,12 +457,10 @@ pub(crate) struct Document {
     /// <https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks>
     /// List of animation frame callbacks
     animation_frame_list: DomRefCell<VecDeque<(u32, Option<AnimationFrameCallback>)>>,
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     placeholder_canvases: DomRefCell<
         HashMapTracedValues<PlaceholderCanvasId, WeakRef<HTMLCanvasElement>, FxBuildHasher>,
     >,
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
-    pending_offscreen_canvas_updates: DomRefCell<Vec<Dom<OffscreenCanvas>>>,
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
@@ -1840,7 +1837,7 @@ impl Document {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     pub(crate) fn register_placeholder_canvas(
         &self,
         id: PlaceholderCanvasId,
@@ -1854,8 +1851,8 @@ impl Document {
             .insert(id, WeakRef::new(canvas));
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
-    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-offscreencanvas-width>
     pub(crate) fn update_placeholder_canvas(
         &self,
         cx: &mut js::context::JSContext,
@@ -1889,28 +1886,6 @@ impl Document {
         }
         canvas.set_placeholder_bitmap(bitmap.map(|bitmap| bitmap.to_owned()), origin_clean);
         self.mark_canvas_as_dirty(&Dom::from_ref(&*canvas));
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
-    pub(crate) fn request_offscreen_canvas_update(&self, canvas: &OffscreenCanvas) {
-        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
-        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
-        self.pending_offscreen_canvas_updates
-            .borrow_mut()
-            .push(Dom::from_ref(canvas));
-        self.add_rendering_update_reason(RenderingUpdateReason::OffscreenCanvasUpdate);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
-    fn update_offscreen_canvases(&self) {
-        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
-        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
-        rooted_vec!(let canvases <- std::mem::take(
-            &mut *self.pending_offscreen_canvas_updates.borrow_mut()
-        ).into_iter());
-        for canvas in canvases.iter() {
-            canvas.update_the_rendering();
-        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
@@ -3215,7 +3190,7 @@ impl Document {
     }
 
     /// An implementation of step 22 from
-    /// <https://html.spec.whatwg.org/multipage/#update-the-rendering>:
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering>:
     ///
     // > Step 22: For each doc of docs, update the rendering or user interface of
     // > doc and its node navigable to reflect the current state.
@@ -3227,7 +3202,7 @@ impl Document {
     ) -> (ReflowPhasesRun, ReflowStatistics) {
         assert!(!self.is_render_blocked());
 
-        self.update_offscreen_canvases();
+        self.global().update_offscreen_canvases();
 
         let mut phases = ReflowPhasesRun::empty();
         if self.has_pending_animated_image_update.get() {
@@ -3940,7 +3915,6 @@ impl Document {
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DomRefCell::new(VecDeque::new()),
             placeholder_canvases: DomRefCell::new(HashMapTracedValues::new_fx()),
-            pending_offscreen_canvas_updates: Default::default(),
             running_animation_callbacks: Cell::new(false),
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),

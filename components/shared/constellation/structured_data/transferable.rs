@@ -189,7 +189,7 @@ impl MessagePortImpl {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-steps>
+/// <https://html.spec.whatwg.org/multipage/canvas.html#the-offscreencanvas-interface:transfer-steps>
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct TransferableOffscreenCanvas {
     pub width: u64,
@@ -199,7 +199,7 @@ pub struct TransferableOffscreenCanvas {
     pub placeholder: Option<TransferablePlaceholderCanvas>,
 }
 
-/// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-steps>
+/// <https://html.spec.whatwg.org/multipage/canvas.html#the-offscreencanvas-interface:transfer-steps>
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct TransferablePlaceholderCanvas {
     pub id: PlaceholderCanvasId,

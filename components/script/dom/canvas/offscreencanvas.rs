@@ -62,7 +62,6 @@ use crate::dom::types::WebGLRenderingContext;
 use crate::dom::types::Window;
 #[cfg(feature = "webgl")]
 use crate::dom::webgl::webgl2renderingcontext::WebGL2RenderingContext;
-use crate::dom::workers::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 
 /// <https://html.spec.whatwg.org/multipage/#offscreencanvas>
 #[dom_struct]
@@ -79,14 +78,14 @@ pub(crate) struct OffscreenCanvas {
 
     /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
     placeholder: Option<WeakRef<HTMLCanvasElement>>,
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     #[no_trace]
     transferable_placeholder: Cell<Option<TransferablePlaceholderCanvas>>,
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-lang>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-inherited-lang>
     inherited_language: DomRefCell<DOMString>,
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-direction>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-inherited-direction>
     inherited_direction: DomRefCell<DOMString>,
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     placeholder_update_pending: Cell<bool>,
 }
 
@@ -327,17 +326,22 @@ impl OffscreenCanvas {
             .and_then(|placeholder| placeholder.root())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-lang>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pub(crate) fn set_transferable_placeholder(&self, placeholder: TransferablePlaceholderCanvas) {
+        self.transferable_placeholder.set(Some(placeholder));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-inherited-lang>
     pub(crate) fn set_inherited_language(&self, language: DOMString) {
         *self.inherited_language.borrow_mut() = language;
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-inherited-direction>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-inherited-direction>
     pub(crate) fn set_inherited_direction(&self, direction: DOMString) {
         *self.inherited_direction.borrow_mut() = direction;
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     pub(crate) fn request_placeholder_update(&self) {
         // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
         // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
@@ -346,16 +350,10 @@ impl OffscreenCanvas {
         {
             return;
         }
-        if let Some(worker) = self.global().downcast::<DedicatedWorkerGlobalScope>() {
-            worker.request_offscreen_canvas_update(self);
-        } else if let Some(window) = self.global().downcast::<Window>() {
-            window.Document().request_offscreen_canvas_update(self);
-        } else {
-            self.update_the_rendering();
-        }
+        self.global().request_offscreen_canvas_update(self);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     pub(crate) fn update_the_rendering(&self) {
         // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
         // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
@@ -382,16 +380,19 @@ impl OffscreenCanvas {
             Some(OffscreenRenderingContext::Detached) => return,
             None => (Some(Snapshot::cleared(self.get_size())), true),
         };
-        let _ = self.global().script_to_constellation_chan().send(
+        if let Err(error) = self.global().script_to_constellation_chan().send(
             ScriptToConstellationMessage::UpdatePlaceholderCanvas(
                 placeholder.pipeline_id,
                 placeholder.id,
+                placeholder.image_key,
                 self.width.get(),
                 self.height.get(),
                 bitmap.map(|bitmap| bitmap.to_shared()),
                 origin_clean,
             ),
-        );
+        ) {
+            warn!("Failed to send placeholder canvas update: {error}");
+        }
     }
 }
 
@@ -399,7 +400,7 @@ impl Transferable for OffscreenCanvas {
     type Index = OffscreenCanvasIndex;
     type Data = TransferableOffscreenCanvas;
 
-    /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-steps>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#the-offscreencanvas-interface:transfer-steps>
     fn transfer(
         &self,
         cx: &mut js::context::JSContext,
@@ -450,7 +451,7 @@ impl Transferable for OffscreenCanvas {
         Ok((OffscreenCanvasId::new(), transferred))
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-receiving-steps>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#the-offscreencanvas-interface:transfer-receiving-steps>
     fn transfer_receive(
         cx: &mut js::context::JSContext,
         owner: &GlobalScope,
@@ -475,7 +476,6 @@ impl Transferable for OffscreenCanvas {
             None,
             transferred.placeholder,
         );
-        canvas.request_placeholder_update();
         Ok(canvas)
     }
 
@@ -490,7 +490,7 @@ impl Transferable for OffscreenCanvas {
 }
 
 impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
-    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-offscreencanvas>
     fn Constructor(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
@@ -580,12 +580,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-offscreencanvas-width>
     fn Width(&self) -> u64 {
         self.width.get()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-offscreencanvas-width>
     fn SetWidth(&self, _cx: &mut js::context::JSContext, value: u64) {
         self.width.set(value);
 
@@ -598,12 +598,12 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         self.request_placeholder_update();
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-offscreencanvas-height>
     fn Height(&self) -> u64 {
         self.height.get()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-offscreencanvas-height>
     fn SetHeight(&self, _cx: &mut js::context::JSContext, value: u64) {
         self.height.set(value);
 
@@ -616,7 +616,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         self.request_placeholder_update();
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-transfertoimagebitmap>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-offscreencanvas-transfertoimagebitmap>
     fn TransferToImageBitmap(
         &self,
         cx: &mut js::context::JSContext,

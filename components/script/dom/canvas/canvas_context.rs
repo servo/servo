@@ -186,9 +186,7 @@ pub(crate) enum RenderingContext {
 impl RenderingContext {
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
         match self {
-            RenderingContext::Placeholder => {
-                unreachable!("Should never set an `ImageKey` on a Placeholder")
-            },
+            RenderingContext::Placeholder => {},
             RenderingContext::Context2d(context) => context.set_image_key(image_key),
             RenderingContext::BitmapRenderer(context) => context.set_image_key(image_key),
             #[cfg(feature = "webgl")]

@@ -99,14 +99,12 @@ pub(crate) struct HTMLCanvasElement {
     #[no_trace]
     image_key: Cell<Option<ImageKey>>,
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     #[no_trace]
     placeholder_bitmap: DomRefCell<Option<Snapshot>>,
 
-    /// <https://html.spec.whatwg.org/multipage/#concept-canvas-origin-clean>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#concept-canvas-origin-clean>
     placeholder_origin_clean: Cell<bool>,
-
-    placeholder_image_added: Cell<bool>,
 }
 
 impl HTMLCanvasElement {
@@ -123,7 +121,6 @@ impl HTMLCanvasElement {
             image_key: Default::default(),
             placeholder_bitmap: Default::default(),
             placeholder_origin_clean: Cell::new(true),
-            placeholder_image_added: Cell::new(false),
         }
     }
 
@@ -188,7 +185,7 @@ impl HTMLCanvasElement {
             .set_attribute(cx, &html5ever::local_name!("height"), value.into());
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
     pub(crate) fn set_placeholder_bitmap(&self, bitmap: Option<Snapshot>, origin_clean: bool) {
         // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
         // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
@@ -196,8 +193,8 @@ impl HTMLCanvasElement {
         self.placeholder_origin_clean.set(origin_clean);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#offscreencanvas-placeholder>
-    fn update_placeholder_bitmap(&self, epoch: Option<Epoch>) -> bool {
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    fn add_placeholder_bitmap(&self) {
         // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
         // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
         let bitmap = self.placeholder_bitmap.borrow();
@@ -217,17 +214,11 @@ impl HTMLCanvasElement {
                     flags: webrender_api::ImageDescriptorFlags::empty(),
                 };
                 let data = SerializableImageData::Raw(shared.shared_memory());
-                let window = self.owner_window();
-                let paint_api = window.paint_api();
-                if self.placeholder_image_added.replace(true) {
-                    paint_api.update_image(image_key, descriptor, data, epoch);
-                    return epoch.is_some();
-                } else {
-                    paint_api.add_image(image_key, descriptor, data, false);
-                }
+                self.owner_window()
+                    .paint_api()
+                    .add_image(image_key, descriptor, data, false);
             }
         }
-        false
     }
 }
 
@@ -269,7 +260,7 @@ impl HTMLCanvasElement {
 
         let get_image_key = || self.owner_window().image_cache().get_image_key();
         let image_key = match rendering_context {
-            RenderingContext::Placeholder => None,
+            RenderingContext::Placeholder => get_image_key(),
             RenderingContext::Context2d(..) => get_image_key(),
             RenderingContext::BitmapRenderer(..) => get_image_key(),
             #[cfg(feature = "webgl")]
@@ -481,7 +472,7 @@ impl HTMLCanvasElement {
         let context = self.context()?;
         let image_key = self.image_key.get()?;
         let pending = match &*context {
-            RenderingContext::Placeholder => self.update_placeholder_bitmap(Some(epoch)),
+            RenderingContext::Placeholder => false,
             RenderingContext::Context2d(context) => context.update_rendering(epoch),
             RenderingContext::BitmapRenderer(context) => context.update_rendering(epoch),
             #[cfg(feature = "webgl")]
@@ -703,7 +694,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         Ok(())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-canvas-transfercontroltooffscreen>
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#dom-canvas-transfercontroltooffscreen>
     fn TransferControlToOffscreen(
         &self,
         cx: &mut js::context::JSContext,
@@ -715,12 +706,6 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
         };
 
         let placeholder_id = PlaceholderCanvasId::new();
-        let placeholder = TransferablePlaceholderCanvas {
-            id: placeholder_id,
-            pipeline_id: self.global().pipeline_id(),
-            image_key: self.owner_window().image_cache().get_image_key(),
-        };
-
         // Step 2. Let offscreenCanvas be a new OffscreenCanvas object with its width and height equal
         // to the values of the width and height content attributes of this canvas element.
         // Step 3. Set the offscreenCanvas's placeholder canvas element to a weak reference to this
@@ -734,20 +719,24 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             DOMString::new(),
             "ltr".into(),
             Some(WeakRef::new(self)),
-            Some(placeholder),
+            None,
         );
 
         // Step 4. Set this canvas element's context mode to placeholder.
         self.set_rendering_context(cx.no_gc(), || RenderingContext::Placeholder);
 
+        let placeholder = TransferablePlaceholderCanvas {
+            id: placeholder_id,
+            pipeline_id: self.global().pipeline_id(),
+            image_key: self.image_key.get(),
+        };
+        offscreen_canvas.set_transferable_placeholder(placeholder);
+
         self.owner_document()
             .register_placeholder_canvas(placeholder_id, self);
 
-        if let Some(image_key) = placeholder.image_key {
-            self.image_key.set(Some(image_key));
-        }
         self.set_placeholder_bitmap(offscreen_canvas.get_image_data(), true);
-        self.update_placeholder_bitmap(None);
+        self.add_placeholder_bitmap();
 
         // Step 5. Set the offscreenCanvas's inherited language to the language of this canvas
         // element.
