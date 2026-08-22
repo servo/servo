@@ -479,7 +479,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             promise.reject_error(
                 cx,
                 Error::InvalidState(Some(
-                    "Cannot call decodeAudioData() when the document is not fully active.".into(),
+                    "Audio context's document is not fully active.".into(),
                 )),
             );
             return promise;
