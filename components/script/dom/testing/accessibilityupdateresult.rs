@@ -14,6 +14,7 @@ pub(crate) struct AccessibilityUpdateResult {
     reflector_: Reflector,
     nodes_updated_from_dom: u32,
     nodes_updated_from_tree: u32,
+    nodes_updated_bounds: u32,
     nodes_in_tree_update: u32,
 }
 
@@ -21,12 +22,14 @@ impl AccessibilityUpdateResult {
     pub(crate) fn new_inherited(
         nodes_updated_from_dom: u32,
         nodes_updated_from_tree: u32,
+        nodes_updated_bounds: u32,
         nodes_in_tree_update: u32,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             nodes_updated_from_dom,
             nodes_updated_from_tree,
+            nodes_updated_bounds,
             nodes_in_tree_update,
         }
     }
@@ -36,12 +39,14 @@ impl AccessibilityUpdateResult {
         global: &GlobalScope,
         nodes_updated_from_dom: u32,
         nodes_updated_from_tree: u32,
+        nodes_updated_bounds: u32,
         nodes_in_tree_update: u32,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_cx(
             Box::new(Self::new_inherited(
                 nodes_updated_from_dom,
                 nodes_updated_from_tree,
+                nodes_updated_bounds,
                 nodes_in_tree_update,
             )),
             global,
@@ -57,6 +62,10 @@ impl AccessibilityUpdateResultMethods<crate::DomTypeHolder> for AccessibilityUpd
 
     fn NodesUpdatedFromTree(&self) -> u32 {
         self.nodes_updated_from_tree
+    }
+
+    fn NodesUpdatedBounds(&self) -> u32 {
+        self.nodes_updated_bounds
     }
 
     fn NodesInTreeUpdate(&self) -> u32 {

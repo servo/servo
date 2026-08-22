@@ -82,7 +82,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
-use crate::accessibility_tree::AccessibilityTree;
+use crate::accessibility_tree::{AccessibilityContext, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
@@ -707,6 +707,15 @@ impl Layout for LayoutThread {
             .paint_info
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
+
+        // Accessibility node bounds are relative to the viewport origin, so a renderer scroll
+        // makes every one of them stale without any reflow occurring. Requesting an accessibility
+        // update schedules a rendering update and prevents that update's reflow from being skipped,
+        // allowing the bounds to be recomputed against the new scroll offsets. See #47161 for a
+        // transform-based alternative to recomputing every node.
+        if self.accessibility_active() {
+            self.set_needs_accessibility_update();
+        }
     }
 
     fn scroll_offset(&self, id: ExternalScrollId) -> Option<LayoutVector2D> {
@@ -933,29 +942,50 @@ impl LayoutThread {
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
         if reflow_request.reflow_goal != ReflowGoal::UpdateTheRendering ||
-            !self.needs_accessibility_update()
+            !self.accessibility_active()
         {
             return false;
         }
+
+        // Bounds can become stale without any `AccessibilityDamage` from the DOM. Every geometry
+        // change is committed by an "update the rendering" reflow, so refresh bounds on each one.
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
             return false;
         };
-        let Some(damage) = &reflow_request.accessibility_damage else {
-            return false;
-        };
 
         let accessibility_tree = &mut *accessibility_tree;
+
+        // Check for the stacking context tree before draining any state out of `reflow_request`, so
+        // that we don't discard accessibility damage if it is missing. In practice it is always
+        // present here, since we only reach this method for an `UpdateTheRendering` reflow.
+        let stacking_context_tree = self.stacking_context_tree.borrow();
+        let Some(stacking_context_tree) = stacking_context_tree.as_ref() else {
+            return false;
+        };
+        debug_assert!(!self.need_new_stacking_context_tree.get());
+
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        let damage: VecDeque<_> = damage
+        let damage: VecDeque<_> = reflow_request
+            .accessibility_damage
             .iter()
+            .flatten()
             .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
             .collect();
 
-        let (tree_update, counters) =
-            accessibility_tree.update_tree(root_element, damage, rooted_nodes);
+        let accessibility_context = AccessibilityContext {
+            layout_thread: self,
+            stacking_context_tree,
+        };
+
+        let (tree_update, counters) = accessibility_tree.update_tree(
+            root_element,
+            damage,
+            accessibility_context,
+            rooted_nodes,
+        );
         if let Some(tree_update) = tree_update {
             // FIXME: Handle send error. Could have a method on accessibility tree to
             // finalise after sending, removing accessibility damage? On fail, retain damage
@@ -971,6 +1001,7 @@ impl LayoutThread {
 
         reflow_statistics.nodes_updated_from_dom = counters.nodes_updated_from_dom;
         reflow_statistics.nodes_updated_from_tree = counters.nodes_updated_from_tree;
+        reflow_statistics.nodes_updated_bounds = counters.nodes_updated_bounds;
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
         self.needs_accessibility_update.set(false);
@@ -1551,6 +1582,14 @@ impl LayoutThread {
                 offset,
                 external_scroll_id,
             );
+
+            // Accessibility node bounds are relative to the viewport origin, so a script scroll
+            // makes every one of them stale even though no layout ran. Requesting an accessibility
+            // update lets the next "update the rendering" reflow recompute them, mirroring how
+            // `set_scroll_offsets_from_renderer()` handles renderer scrolls.
+            if self.accessibility_active() {
+                self.set_needs_accessibility_update();
+            }
             true
         } else {
             false

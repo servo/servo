@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::hash::Hash;
 use std::rc::{Rc, Weak};
 
 use accesskit::{
-    Node as AccesskitNode, NodeId, Role, Tree, TreeId, TreeUpdate, Uuid as AccesskitUuid,
+    Affine as AccesskitAffine, Node as AccesskitNode, NodeId, Rect as AccesskitRect, Role, Tree,
+    TreeId, TreeUpdate, Uuid as AccesskitUuid,
 };
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -113,6 +114,14 @@ pub(crate) struct WebViewInner {
     /// A counter for changes to the grafted accesskit tree for this webview.
     /// See [`Self::grafted_accesskit_tree_id`].
     grafted_accesskit_tree_epoch: Option<Epoch>,
+    /// Set when the paint layer applies a change to this [`WebView`]'s accessibility viewport
+    /// geometry — its size, page or pinch zoom, or HiDPI scale — via
+    /// [`WebViewTrait::notify_viewport_updated()`]. The root accessibility node is re-sent from
+    /// [`Servo`]'s event loop rather than from there, so that nothing calls into the
+    /// [`WebViewDelegate`] while the paint `RefCell` (or an embedder-facing method) is on the stack,
+    /// which could cause re-entrant `RefCell` borrows. See
+    /// [`WebView::note_accessibility_viewport_changed()`].
+    accessibility_viewport_changed: Cell<bool>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -164,6 +173,7 @@ impl WebView {
             accesskit_tree_id: None,
             grafted_accesskit_tree_id: None,
             grafted_accesskit_tree_epoch: None,
+            accessibility_viewport_changed: Cell::new(false),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -935,9 +945,6 @@ impl WebView {
     }
 
     pub(crate) fn notify_document_accessibility_tree_id(&self, grafted_tree_id: TreeId) {
-        let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
-            return;
-        };
         let old_grafted_tree_id = self
             .inner_mut()
             .grafted_accesskit_tree_id
@@ -947,8 +954,67 @@ impl WebView {
         if old_grafted_tree_id == Some(grafted_tree_id) {
             return;
         }
+        self.send_accessibility_root_node();
+    }
+
+    /// Record that this [`WebView`]'s accessibility viewport geometry changed (its size, page or
+    /// pinch zoom, or HiDPI scale). The root accessibility node covers the viewport and carries the
+    /// scale the grafted document nodes are resolved against, so it must be re-sent whenever that
+    /// geometry changes. This is called from the paint layer via
+    /// [`WebViewTrait::notify_viewport_updated()`]; the re-send itself is deferred to [`Servo`]'s
+    /// event loop (see `Servo::resend_accessibility_root_nodes_for_viewport_changes()`) so that it
+    /// never calls into the [`WebViewDelegate`] while the paint `RefCell` (or the embedder-facing
+    /// method that triggered the change) is on the stack.
+    pub(crate) fn note_accessibility_viewport_changed(&self) {
+        self.inner().accessibility_viewport_changed.set(true);
+    }
+
+    /// Take (and reset) the flag set by [`Self::note_accessibility_viewport_changed()`].
+    pub(crate) fn take_accessibility_viewport_changed(&self) -> bool {
+        self.inner().accessibility_viewport_changed.take()
+    }
+
+    /// Send the `WebView`-level accessibility root node, which grafts in the current document's
+    /// tree and carries the viewport bounds and scale that the document's own node bounds are
+    /// resolved against.
+    ///
+    /// This must be re-sent whenever that geometry changes, not only when the grafted document
+    /// changes, because the document nodes underneath are expressed relative to it.
+    pub(crate) fn send_accessibility_root_node(&self) {
+        let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
+            return;
+        };
+        let Some(grafted_tree_id) = self.inner().grafted_accesskit_tree_id else {
+            return;
+        };
         let root_node_id = NodeId(0);
         let mut root_node = AccesskitNode::new(Role::ScrollView);
+        // The root node covers the whole viewport, in the same coordinate space as the bounds of
+        // the document nodes grafted underneath it: CSS pixels relative to the viewport origin.
+        //
+        // Its transform converts those CSS pixels into device pixels. That scale is everything
+        // which maps a CSS pixel to a device pixel — page zoom, pinch zoom and HiDPI scale factor.
+        //
+        // See `update_bounds_from_dom_node()` in
+        // `components/layout/accessibility_tree.rs` for how bounds are computed for web contents.
+
+        // Compute the ratio from the WebView's current settings. `device_pixels_per_css_pixel()`
+        // reports the ratio the latest rendered display list was produced with, which lags behind
+        // the zoom/HiDPI change that triggered this call, since reflow is asynchronous.
+        let device_pixels_per_css_pixel =
+            self.page_zoom() * self.hidpi_scale_factor().get() * self.pinch_zoom();
+        let size =
+            self.size() / Scale::<f32, CSSPixel, DevicePixel>::new(device_pixels_per_css_pixel);
+        root_node.set_bounds(AccesskitRect::new(
+            0.0,
+            0.0,
+            size.width as f64,
+            size.height as f64,
+        ));
+        // AccessKit asks that a node with an identity transform leave it unset.
+        if device_pixels_per_css_pixel != 1.0 {
+            root_node.set_transform(AccesskitAffine::scale(device_pixels_per_css_pixel as f64));
+        }
         let graft_node_id = NodeId(1);
         let mut graft_node = AccesskitNode::new(Role::GenericContainer);
         graft_node.set_tree_id(grafted_tree_id);
@@ -1013,6 +1079,12 @@ impl WebViewTrait for ServoRendererWebView {
     fn set_animating(&self, new_value: bool) {
         if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
             webview.set_animating(new_value);
+        }
+    }
+
+    fn notify_viewport_updated(&self) {
+        if let Some(webview) = WebView::from_weak_handle(&self.weak_handle) {
+            webview.note_accessibility_viewport_changed();
         }
     }
 }
