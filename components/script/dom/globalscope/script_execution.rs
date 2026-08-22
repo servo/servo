@@ -61,9 +61,9 @@ pub(crate) struct ClassicScript {
 /// <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>
 ///
 /// Firefox
-/// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#182>
-/// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#201>
-/// <https://searchfox.org/firefox-main/source/dom/jsurl/nsJSProtocolHandler.cpp#405>
+/// <https://searchfox.org/firefox-main/rev/85130ba192d9f4bdf63e57502cb23fb31f95f7ca/dom/jsurl/nsJSProtocolHandler.cpp#182>
+/// <https://searchfox.org/firefox-main/rev/85130ba192d9f4bdf63e57502cb23fb31f95f7ca/dom/jsurl/nsJSProtocolHandler.cpp#201>
+/// <https://searchfox.org/firefox-main/rev/85130ba192d9f4bdf63e57502cb23fb31f95f7ca/dom/jsurl/nsJSProtocolHandler.cpp#405>
 ///
 /// Blink
 /// <https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/bindings/core/v8/script_controller.cc#220>
