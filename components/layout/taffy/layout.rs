@@ -243,11 +243,18 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 };
                 let size = inputs.known_dimensions.unwrap_or(computed_size);
 
+                let block_start_pb = pbm.padding.block_start + pbm.border.block_start;
                 taffy::LayoutOutput {
                     size,
-                    first_baselines: taffy::Point {
-                        x: None,
-                        y: layout.baselines.first.map(|au| au.to_f32_px()),
+                    baselines: taffy::Baselines {
+                        first: layout
+                            .baselines
+                            .first
+                            .map(|baseline| (baseline + block_start_pb).to_f32_px()),
+                        last: layout
+                            .baselines
+                            .last
+                            .map(|baseline| (baseline + block_start_pb).to_f32_px()),
                     },
                     ..taffy::LayoutOutput::DEFAULT
                 }
@@ -289,7 +296,7 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     fn set_detailed_grid_info(
         &mut self,
         _node_id: taffy::NodeId,
-        specific_layout_info: taffy::DetailedGridInfo,
+        specific_layout_info: taffy::DetailedGridInfo<Atom>,
     ) {
         self.specific_layout_info = Some(SpecificLayoutInfo::Grid(Box::new(
             SpecificTaffyGridInfo::from_detailed_grid_layout(specific_layout_info),
@@ -311,6 +318,10 @@ impl ComputeInlineContentSizes for TaffyContainer {
             axis: taffy::RequestedAxis::Horizontal,
             vertical_margins_are_collapsible: taffy::Line::FALSE,
 
+            known_dimensions_are_definite: taffy::Size {
+                width: true,
+                height: true,
+            },
             known_dimensions: taffy::Size::NONE,
             parent_size: taffy::Size::NONE,
             available_space: taffy::Size::MAX_CONTENT,
@@ -424,6 +435,10 @@ impl TaffyContainer {
             axis: taffy::RequestedAxis::Vertical,
             vertical_margins_are_collapsible: taffy::Line::FALSE,
 
+            known_dimensions_are_definite: taffy::Size {
+                width: true,
+                height: true,
+            },
             known_dimensions,
             parent_size: taffy_containing_block,
             available_space: taffy_containing_block.map(AvailableSpace::from),
@@ -514,14 +529,23 @@ impl TaffyContainer {
                             child_specific_layout_info,
                         )
                         .with_baselines(Baselines {
-                            first: output.first_baselines.y.map(Au::from_f32_px),
-                            last: None,
+                            first: output.baselines.first.map(|baseline| {
+                                Au::from_f32_px(baseline) -
+                                    pbm.padding.block_start -
+                                    pbm.border.block_start
+                            }),
+                            last: output.baselines.last.map(|baseline| {
+                                Au::from_f32_px(baseline) -
+                                    pbm.padding.block_start -
+                                    pbm.border.block_start
+                            }),
                         });
 
                         child.positioning_context.layout_collected_children(
                             container_ctx.layout_context,
                             &mut box_fragment,
                         );
+
                         child
                             .positioning_context
                             .adjust_static_position_of_hoisted_fragments_with_offset(
@@ -579,7 +603,14 @@ impl TaffyContainer {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
             content_inline_size_for_table: None,
-            baselines: Baselines::default(),
+            baselines: Baselines {
+                first: output.baselines.first.map(|baseline| {
+                    Au::from_f32_px(baseline) - pbm.padding.block_start - pbm.border.block_start
+                }),
+                last: output.baselines.last.map(|baseline| {
+                    Au::from_f32_px(baseline) - pbm.padding.block_start - pbm.border.block_start
+                }),
+            },
 
             // TODO: determine this accurately
             //
