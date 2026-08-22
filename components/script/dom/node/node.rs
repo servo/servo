@@ -36,6 +36,7 @@ use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::codegen::InheritTypes::{DocumentFragmentTypeId, TextTypeId};
 use script_bindings::reflector::{
     DomObject, DomObjectWrap, WeakReferenceableDomObjectWrap, reflect_dom_object_with_proto,
@@ -43,6 +44,7 @@ use script_bindings::reflector::{
 };
 use script_traits::{DocumentActivity, MouseButtons};
 use servo_base::id::PipelineId;
+use servo_base::text::Utf32CodeUnitsOrNodeOffset;
 use servo_config::pref;
 use smallvec::SmallVec;
 use style::Atom;
@@ -102,6 +104,7 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmllinkelement::HTMLLinkElement;
 use crate::dom::html::htmlslotelement::{HTMLSlotElement, Slottable};
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::iterators::{
     ShadowIncluding, UnrootedFollowingFlatTreeNodesTraversal, UnrootedFollowingNodeIterator,
     UnrootedPrecedingNodeIterator,
@@ -120,8 +123,10 @@ use crate::dom::servoparser::html::HtmlSerialize;
 use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
+use crate::dom::types::{CDATASection, KeyboardEvent, MouseEvent, ProcessingInstruction};
 use crate::dom::window::Window;
+use crate::drag::document_selection_drag::DocumentSelectionDragHandler;
+use crate::drag::drag_gesture::{DragGesture, DragHandler};
 use crate::event_loop::document_loader::DocumentLoader;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode};
@@ -4550,6 +4555,48 @@ impl VirtualMethods for Node {
                 .event_handler()
                 .run_default_keyboard_event_handler(cx, self, event);
         }
+    }
+
+    fn handle_mousedown_event(
+        &self,
+        cx: &mut JSContext,
+        event: &MouseEvent,
+        hit_test_result: &HitTestResult,
+    ) {
+        assert_eq!(event.upcast::<Event>().type_(), atom!("mousedown"));
+
+        let document = self.owner_document();
+        if event.button() == MouseButton::Auxiliary {
+            let Some(selection) = document.selection() else {
+                return;
+            };
+            let _ = selection.Collapse(cx, None, 0);
+            event.upcast::<Event>().mark_as_handled();
+            return;
+        }
+
+        if event.button() != MouseButton::Primary {
+            return;
+        }
+        let Some(selection) = document.GetSelection(cx) else {
+            return;
+        };
+
+        // When the hit test cannot find a suitable DOM position for selection, just
+        // use the first offset within the target node of the `mousedown` event. This
+        // is a reasonable place to start the selection from.
+        let (container, offset) = hit_test_result
+            .dom_position_for_selection
+            .as_ref()
+            .map(|(node, offset)| (node, *offset))
+            .unwrap_or((&hit_test_result.node, Utf32CodeUnitsOrNodeOffset(0)));
+        selection.collapse_to_dom_position(cx, container, offset);
+        document
+            .event_handler()
+            .install_drag_gesture(DragGesture::new(DragHandler::DocumentSelection(
+                DocumentSelectionDragHandler,
+            )));
+        event.upcast::<Event>().mark_as_handled();
     }
 }
 

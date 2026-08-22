@@ -55,7 +55,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
@@ -269,8 +269,9 @@ pub struct LayoutConfig {
 }
 
 bitflags! {
+    #[derive(Copy, Clone)]
     pub struct HitTestFlags: u8 {
-        /// Whether to populate [`ElementsFromPointResult::dom_position_for_selection`]
+        /// Whether to populate [`HitTestResult::dom_position_for_selection`]
         const IncludeDomPosition = 0b0000_0001;
     }
 }
@@ -922,7 +923,7 @@ impl ImageAnimationState {
 #[derive(Debug, Default)]
 pub struct HitTestResult {
     pub items: Vec<HitTestResultItem>,
-    pub dom_position_for_selection: Option<(OpaqueNode, Utf32CodeUnits)>,
+    pub dom_position_for_selection: Option<(OpaqueNode, Utf32CodeUnitsOrNodeOffset)>,
 }
 
 /// Describe an item that matched a hit-test query.
