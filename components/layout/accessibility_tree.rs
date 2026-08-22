@@ -846,7 +846,9 @@ impl AccessibilityNode {
                 },
             }
         }
-        Some(text.trim().to_owned())
+        let trimmed_len = text.trim().len();
+        text.truncate(trimmed_len);
+        Some(text)
     }
 
     fn print(&self, print_tree: &mut PrintTree) {
