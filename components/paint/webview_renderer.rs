@@ -1143,8 +1143,11 @@ impl WebViewRenderer {
             !result.contains(InputEventResult::DefaultPrevented)
         {
             // A scroll delta for a wheel event is the inverse of the wheel delta.
-            let scroll_delta =
-                DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32);
+            let scroll_delta = if !wheel_event.swap_axes {
+                DeviceVector2D::new(-wheel_event.delta.x as f32, -wheel_event.delta.y as f32)
+            } else {
+                DeviceVector2D::new(-wheel_event.delta.y as f32, -wheel_event.delta.x as f32)
+            };
             self.notify_scroll_event(Scroll::Delta(scroll_delta.into()), wheel_event.point);
         }
     }
