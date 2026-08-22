@@ -1495,6 +1495,7 @@ impl LayoutThread {
             paint_timing_handler,
             reflow_statistics,
         );
+        paint_timing_handler.mark_paint_timing(reflow_request.halt_lcp);
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,

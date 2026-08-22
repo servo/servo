@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
+use std::collections::VecDeque;
 
 use euclid::Scale;
 use paint_api::display_list::ScrollTree;
+use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::{CompositionPipeline, PipelineExitSource};
 use servo_base::Epoch;
 use servo_base::id::PipelineId;
 use style_traits::CSSPixel;
+use webrender_api::Epoch as WebRenderEpoch;
 use webrender_api::units::DevicePixel;
 
 use crate::painter::PaintMetricState;
@@ -44,8 +47,8 @@ pub(crate) struct PipelineDetails {
     /// The paint metric status of the first contentful paint.
     pub first_contentful_paint_metric: Cell<PaintMetricState>,
 
-    /// The paint metric status of the largest contentful paint.
-    pub largest_contentful_paint_metric: Cell<PaintMetricState>,
+    /// LCP candidates waiting to be presented, in order by [WebRenderEpoch].
+    pub lcp_candidates: RefCell<VecDeque<(WebRenderEpoch, LCPCandidate)>>,
 
     /// The CSS pixel to device pixel scale of the viewport of this pipeline, including
     /// page zoom, but not including any pinch zoom amount. This is used to detect
@@ -91,7 +94,7 @@ impl PipelineDetails {
             scroll_tree: ScrollTree::default(),
             first_paint_metric: Cell::new(PaintMetricState::Waiting),
             first_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
-            largest_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
+            lcp_candidates: RefCell::new(VecDeque::new()),
             exited: PipelineExitSource::empty(),
             display_list_epoch: None,
             animations: Default::default(),

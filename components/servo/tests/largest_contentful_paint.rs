@@ -124,37 +124,67 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
         .url(Url::parse(DATA_URL_FOR_PAGE_WITH_SINGLE_RED_SQUARE).unwrap())
         .build();
 
-    // Simulate a user interaction before loading i.e before spinning event loop to disable LCP calculation for the WebView.
-    click_at_point(&webview, Point2D::new(1., 1.));
-
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    let lcp_script = "(async () => {
-        window.lcp = await new Promise(resolve => {
-            (new PerformanceObserver(entryList => {
-                resolve(entryList.getEntries()[0]);
-            }))
-            .observe({type: 'largest-contentful-paint', buffered: true});
-        })
-    })();";
-
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), lcp_script) {
-        panic!("Failed to evaluate LCP setup script: {:?}", err);
+    // Observe all largest-contentful-paint entries (buffered).
+    let observer_script = "
+        window.lcpEntries = [];
+        new PerformanceObserver(list => {
+            window.lcpEntries.push(...list.getEntries());
+        }).observe({type: 'largest-contentful-paint', buffered: true});
+    ";
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), observer_script) {
+        panic!("Failed to evaluate LCP observer script: {:?}", err);
     }
 
-    // Read from a global variable used to store the result since evaluate_javascript doesn't handle Promises
-    let lcp = evaluate_javascript(&servo_test, webview.clone(), "window.lcp;");
-    assert_eq!(lcp, Ok(JSValue::Undefined));
+    // The initial image should produce exactly one LCP entry.
+    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
+    assert_eq!(count, Ok(JSValue::Number(1.0)));
 
-    // Reloading the WebView should re-enable LCP calculation.
+    // Simulate a click, which should halt LCP calculation.
+    click_at_point(&webview, Point2D::new(1., 1.));
+
+    // Append a larger image; it should not be reported because LCP is halted.
+    let append_image_script = r#"
+        window.image2Done = false;
+        (async () => {
+            const img = document.createElement('img');
+            img.id = 'image2';
+            img.style.width = '100px';
+            img.style.height = '100px';
+            img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFElEQVR4nGP4z8DwnxjMMKqQvgoBksPHOas6/LEAAAAASUVORK5CYII=';
+            document.body.appendChild(img);
+            await new Promise(resolve => { img.addEventListener('load', resolve); });
+            await new Promise(resolve => requestAnimationFrame(() => resolve()));
+            window.image2Done = true;
+        })();
+    "#;
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), append_image_script) {
+        panic!("Failed to evaluate append image script: {:?}", err);
+    }
+
+    // Wait for the larger image to load and a rendering update to happen.
+    loop {
+        if evaluate_javascript(&servo_test, webview.clone(), "window.image2Done === true;") ==
+            Ok(JSValue::Boolean(true))
+        {
+            break;
+        }
+    }
+
+    // The LCP entry count should still be 1: the larger image was not reported.
+    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
+    assert_eq!(count, Ok(JSValue::Number(1.0)));
+
+    // Reloading the WebView should re-enable LCP reporting.
     webview.reload();
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), lcp_script) {
-        panic!("Failed to evaluate LCP setup script: {:?}", err);
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), observer_script) {
+        panic!("Failed to evaluate LCP observer script: {:?}", err);
     }
 
-    // Read from a global variable used to store the result since evaluate_javascript doesn't handle Promises
-    let lcp = evaluate_javascript(&servo_test, webview.clone(), "window.lcp;");
-    assert_eq!(lcp, Ok(JSValue::Object(std::collections::HashMap::new())));
+    // After reload, it should produce exactly one LCP entry.
+    let count = evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;");
+    assert_eq!(count, Ok(JSValue::Number(1.0)));
 }
