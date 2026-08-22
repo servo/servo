@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::rc::Rc;
 
 use cssparser::{Parser, ParserInput};
@@ -354,18 +354,24 @@ impl FontFace {
 
     /// <https://drafts.csswg.org/css-font-loading/#css-connected>
     pub(crate) fn is_css_connected(&self) -> bool {
-        self.css_font_face_rule.borrow().is_some()
+        self.css_font_face_rule().is_some()
+    }
+
+    pub(crate) fn css_font_face_rule(&self) -> Ref<'_, Option<ServoArc<FontFaceRuleInfo>>> {
+        self.css_font_face_rule.borrow()
     }
 
     /// Return true if the `FontFace` is [css-connected] *and* was created by the provided
     /// `@font-face` rule.
     ///
     /// [css-connected]: https://drafts.csswg.org/css-font-loading/#css-connected
-    pub(crate) fn is_connected_to_font_face_rule(&self, target_rule: &FontFaceRuleInfo) -> bool {
-        self.css_font_face_rule
-            .borrow()
+    pub(crate) fn is_connected_to_font_face_rule(
+        &self,
+        target_rule: &ServoArc<FontFaceRuleInfo>,
+    ) -> bool {
+        self.css_font_face_rule()
             .as_ref()
-            .is_some_and(|connected_rule| ServoArc::ptr_eq(&connected_rule.rule, &target_rule.rule))
+            .is_some_and(|connected_rule| ServoArc::ptr_eq(connected_rule, target_rule))
     }
 
     /// Step 3 of <https://drafts.csswg.org/css-font-loading/#font-face-constructor>
