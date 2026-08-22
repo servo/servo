@@ -51,7 +51,9 @@ use crate::dom::element::{
 };
 use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::{
+    ClassicScript, CompletionValue, ErrorReporting, RethrowErrors,
+};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
@@ -407,6 +409,7 @@ impl FetchResponseListener for ClassicContext {
             Some(IntroductionType::SRC_SCRIPT),
             1,
             true,
+            CompletionValue::Discarded,
         );
 
         /*
@@ -873,6 +876,7 @@ impl HTMLScriptElement {
                         introduction_type,
                         self.line_number as u32,
                         false,
+                        CompletionValue::Discarded,
                     );
                     let result = Ok(Script::Classic(script));
 
@@ -1014,7 +1018,7 @@ impl HTMLScriptElement {
                 // Step 6."classic".3. Run the classic script given by el's result.
                 _ = self
                     .owner_global()
-                    .run_a_classic_script(cx, script, RethrowErrors::No);
+                    .run_a_classic_script(cx, script, RethrowErrors::No, None);
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());

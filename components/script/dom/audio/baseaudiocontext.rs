@@ -59,6 +59,7 @@ use crate::dom::bindings::codegen::Bindings::IIRFilterNodeBinding::IIRFilterOpti
 use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use crate::dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
 use crate::dom::bindings::codegen::Bindings::StereoPannerNodeBinding::StereoPannerOptions;
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
@@ -285,18 +286,30 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         self.state.get()
     }
 
-    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume>
+    /// <https://webaudio.github.io/web-audio-api/#dom-audiocontext-resume>
     fn Resume(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
-        // Step 1.
-        let promise = Promise::new_in_realm(cx);
+        // Step 1. If this’s relevant global object’s associated Document is not fully active then return a promise rejected with "InvalidStateError" DOMException.
+        if !self.global().as_window().Document().is_fully_active() {
+            let promise = Promise::new_in_realm(cx);
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some(
+                    "Audio context's associated document is not active".into(),
+                )),
+            );
+            return promise;
+        }
 
         // Step 2.
+        let promise = Promise::new_in_realm(cx);
+
+        // Step 3.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
             promise.reject_error(cx, Error::InvalidState(None));
             return promise;
         }
 
-        // Step 3.
+        // Step 4.
         if self.state.get() == AudioContextState::Running {
             promise.resolve_native(cx, &());
             return promise;
@@ -304,15 +317,15 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
         self.push_pending_resume_promise(&promise);
 
-        // Step 4.
+        // Step 5.
         if !self.is_allowed_to_start() {
             return promise;
         }
 
-        // Steps 5 and 6.
+        // Steps 6 and 7.
         self.resume();
 
-        // Step 7.
+        // Step 8.
         promise
     }
 
@@ -464,11 +477,23 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
         decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
         decode_error_callback: Option<Rc<DecodeErrorCallback>>,
     ) -> Rc<Promise> {
-        // Step 1.
+        // Step 1. If this’s relevant global object’s associated Document is not fully active then return a promise rejected with "InvalidStateError" DOMException.
+        if !self.global().as_window().Document().is_fully_active() {
+            let promise = Promise::new_in_realm(cx);
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some(
+                    "Audio context's associated document is not active".into(),
+                )),
+            );
+            return promise;
+        }
+
+        // Step 2.
         let promise = Promise::new_in_realm(cx);
 
         if let Some(audio_data) = audio_data.to_vec() {
-            // Step 2.
+            // Step 3.
             // XXX detach array buffer.
             let uuid = Uuid::new_v4().simple().to_string();
             let uuid_ = uuid.clone();
