@@ -23,7 +23,7 @@ use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::root::{DomRoot, DomSlice};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
-use crate::dom::element::Element;
+use crate::dom::element::{AdjacentPosition, Element};
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
 use crate::dom::execcommand::commands::forecolor::serialize_to_simple_color;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -31,6 +31,8 @@ use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllielement::HTMLLIElement;
+use crate::dom::html::htmlolistelement::HTMLOListElement;
+use crate::dom::html::htmlulistelement::HTMLUListElement;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::text::Text;
@@ -1728,6 +1730,77 @@ impl Node {
         }
         // Step 5. Restore the values from values.
         restore_the_values(cx, values);
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#normalize-sublists>
+    pub(crate) fn normalize_sublists(&self, cx: &mut JSContext) {
+        let item_element = self
+            .downcast::<Element>()
+            .expect("item should be an element.");
+
+        // Step 1. If item is not an li or it is not editable or its parent is not editable, abort these steps.
+        if !self.is::<HTMLLIElement>() ||
+            !self.is_editable() ||
+            !self
+                .GetParentElement()
+                .is_some_and(|parent| parent.upcast::<Node>().is_editable())
+        {
+            return;
+        }
+
+        // Step 2. Let new item be null.
+        let mut new_item: Option<DomRoot<Element>> = None;
+
+        // Step 3. While item has an ol or ul child:
+        while self
+            .child_elements()
+            .any(|child| child.is::<HTMLOListElement>() || child.is::<HTMLUListElement>())
+        {
+            // Step 3.1. Let child be the last child of item.
+            let child = self.GetLastChild().expect("Must have a last child here.");
+
+            // Step 3.2. If child is an ol or ul, or new item is null and child is a Text node whose data consists of zero of more space characters:
+            if child.is::<HTMLOListElement>() ||
+                child.is::<HTMLUListElement>() ||
+                (new_item.is_none() &&
+                    child
+                        .downcast::<Text>()
+                        .is_some_and(|text| text.data().bytes().all(|byte| byte == b' ')))
+            {
+                // Step 3.2.1. Set new item to null.
+                new_item = None;
+
+                // Step 3.2.2. Insert child into the parent of item immediately following item, preserving ranges.
+                move_preserving_ranges(cx, &child, |cx| {
+                    item_element
+                        .insert_adjacent(cx, AdjacentPosition::AfterEnd, &child)
+                        .map(|elem| elem.expect("Should have inserted"))
+                });
+
+                continue;
+            }
+            // Step 3.3. Otherwise:
+            // Step 3.3.1. If new item is null,
+            //             let new item be the result of calling createElement("li") on the ownerDocument of item,
+            //             then insert new item into the parent of item immediately after item.
+            if new_item.is_none() {
+                new_item = Some(self.owner_document().create_element(cx, "li"));
+                item_element
+                    .insert_adjacent(cx, AdjacentPosition::AfterEnd, &child)
+                    .expect("Insertion should always work here.");
+            }
+
+            // Step 3.3.2. Insert child into new item as its first child, preserving ranges.
+            move_preserving_ranges(cx, &child, |cx| {
+                new_item
+                    .as_ref()
+                    .expect("Must have new item here")
+                    .downcast::<Element>()
+                    .expect("New item must be able to support children")
+                    .insert_adjacent(cx, AdjacentPosition::AfterBegin, &child)
+                    .map(|elem| elem.expect("Should have inserted"))
+            });
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#collapsed-block-prop>
