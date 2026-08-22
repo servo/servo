@@ -478,9 +478,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             let promise = Promise::new_in_realm(cx);
             promise.reject_error(
                 cx,
-                Error::InvalidState(Some(
-                    "Audio context's document is not fully active.".into(),
-                )),
+                Error::InvalidState(Some("Audio context's document is not fully active.".into())),
             );
             return promise;
         }
