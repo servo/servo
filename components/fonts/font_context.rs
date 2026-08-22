@@ -1576,6 +1576,9 @@ impl KnownFontFaceRules {
                         .push(stale_rule.font_face_rule_entry);
                 } else {
                     number_of_unchanged_rules += 1;
+
+                    // FIXME: We need to update the cascade index of this entry and potentially trigger a reflow
+                    // if it changed.
                     known_font_faces_for_family[index_of_existing_entry_for_this_rule].generation =
                         self.generation;
                 }
