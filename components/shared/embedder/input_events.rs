@@ -340,16 +340,16 @@ pub struct WheelDelta {
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: WebViewPoint,
-    // Reverse x, y delta if modifiers is set (shift key in PC)
-    pub modifiers: bool,
+    // Swap x, y value on condition
+    pub swap_axes: bool,
 }
 
 impl WheelEvent {
-    pub fn new(delta: WheelDelta, point: WebViewPoint, modifiers: bool) -> Self {
+    pub fn new(delta: WheelDelta, point: WebViewPoint, swap_axes: bool) -> Self {
         WheelEvent {
             delta,
             point,
-            modifiers,
+            swap_axes,
         }
     }
 }
