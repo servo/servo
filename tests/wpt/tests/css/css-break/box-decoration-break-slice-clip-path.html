@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>clip-path should apply to the unfragmented box as a whole.</title>
+<link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-masking/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-break/#break-decoration">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6383#issuecomment-960244091">
+<link rel="match" href="box-decoration-break-slice-clip-path-ref.html">
+<meta name="assert" content="clip-path should apply to the unfragmented box as a whole.">
+<style>
+  #fragmented {
+    clip-path: inset(0px 20px 0px 20px);
+  }
+  .inner {
+    display: inline-block;
+    background-color: purple;
+    width: 60px;
+    height: 10px;
+  }
+</style>
+<p>This test passes if there is two boxes of equal size below, with the first one offset towards the right by 20px.</p>
+<span id="fragmented">
+  <span class="inner"></span>
+  <br>
+  <span class="inner"></span>
+</span>

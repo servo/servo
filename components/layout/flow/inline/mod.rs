@@ -2159,6 +2159,13 @@ impl InlineFormattingContext {
         }
 
         layout.finish_last_line();
+
+        // For the painting of backgrounds and borders on fragmented boxes, each box needs to know what part of the
+        // unfragmented whole it is. This determines that for all of our inline boxes.
+        for inline_box in self.inline_boxes.iter() {
+            inline_box.borrow().assign_fragmentation_info();
+        }
+
         let (content_block_size, collapsible_margins_in_children, baselines) =
             layout.placement_state.finish();
 
