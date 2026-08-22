@@ -410,7 +410,7 @@ pub(crate) fn define_guarded_methods<D: DomTypes>(
     for guard in methods {
         if let Some(specs) = guard.expose::<D>(cx, obj, global) {
             unsafe {
-                define_methods(cx.raw_cx(), obj, specs).unwrap();
+                define_methods(cx, obj, specs).unwrap();
             }
         }
     }
@@ -426,7 +426,7 @@ pub(crate) fn define_guarded_properties<D: DomTypes>(
     for guard in properties {
         if let Some(specs) = guard.expose::<D>(cx, obj, global) {
             unsafe {
-                define_properties(cx.raw_cx(), obj, specs).unwrap();
+                define_properties(cx, obj, specs).unwrap();
             }
         }
     }
@@ -723,7 +723,7 @@ pub fn get_desired_proto(
             }
         }
 
-        maybe_wrap_object(cx.raw_cx(), desired_proto);
+        maybe_wrap_object(cx, desired_proto);
         Ok(())
     }
 }

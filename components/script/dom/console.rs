@@ -262,7 +262,7 @@ fn console_map_object_from_handle_value(
     }
 
     let mut entries = Vec::new();
-    for_of(unsafe { cx.raw_cx() }, iterator.handle(), |entry| {
+    for_of(cx, iterator.handle(), |cx, entry| {
         if !entry.is_object() {
             return Err(().into());
         }
@@ -686,7 +686,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
             Some('d') | Some('i') => {
                 let spec = chars.next().unwrap();
                 if arg_index < messages.len() {
-                    let num = unsafe { ToNumber(cx.raw_cx(), messages[arg_index]) };
+                    let num = unsafe { ToNumber(cx, messages[arg_index]) };
                     if num.is_err() {
                         unsafe { JS_ClearPendingException(cx) };
                     }
@@ -700,7 +700,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
             Some('f') => {
                 chars.next();
                 if arg_index < messages.len() {
-                    let num = unsafe { ToNumber(cx.raw_cx(), messages[arg_index]) };
+                    let num = unsafe { ToNumber(cx, messages[arg_index]) };
                     if num.is_err() {
                         unsafe { JS_ClearPendingException(cx) };
                     }

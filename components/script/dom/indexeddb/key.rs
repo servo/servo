@@ -75,8 +75,7 @@ pub fn key_type_to_jsval(
             // ArrayBuffer constructor with len.
             rooted!(&in(cx) let mut buffer = ptr::null_mut::<js::jsapi::JSObject>());
             assert!(
-                ArrayBuffer::create(cx.raw_cx(), CreateWith::Length(len), buffer.handle_mut())
-                    .is_ok(),
+                ArrayBuffer::create(cx, CreateWith::Length(len), buffer.handle_mut()).is_ok(),
                 "Failed to convert IndexedDB binary key into an ArrayBuffer"
             );
 

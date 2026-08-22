@@ -631,7 +631,7 @@ impl TaskOnce for MessageReceivedTask {
                     unsafe {
                         assert!(
                             ArrayBuffer::create(
-                                cx.raw_cx(),
+                                cx,
                                 CreateWith::Slice(&data),
                                 array_buffer.handle_mut()
                             )
