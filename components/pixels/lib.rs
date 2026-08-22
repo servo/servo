@@ -2,20 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-mod decoding;
+mod default_decoding;
+pub mod image_encoder_decoder_factory;
+#[cfg(target_env = "ohos")]
+mod ohos_decoder;
 mod snapshot;
 
 use std::borrow::Cow;
 use std::fmt;
 use std::num::NonZeroU32;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
-use image::{ImageBuffer, ImageFormat, Rgba};
-use log::{debug, error};
+use image::{ImageBuffer, Rgba};
+use log::{error, info};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericSharedMemory;
@@ -25,7 +28,31 @@ use webrender_api::{
     ImageDescriptor, ImageDescriptorFlags, ImageFormat as WebRenderImageFormat, ImageKey,
 };
 
-use crate::decoding::ServoImageDecoder;
+#[cfg(not(target_env = "ohos"))]
+pub use crate::default_decoding::DefaultImageEncoderDecoderFactory;
+use crate::image_encoder_decoder_factory::ServoImageEncoderDecoderFactory;
+#[cfg(target_env = "ohos")]
+pub use crate::ohos_decoder::OhosImageEncoderDecoderFactory as DefaultImageEncoderDecoderFactory;
+
+static ENCODER_DECODER_FACTORY: OnceLock<Arc<dyn ServoImageEncoderDecoderFactory>> =
+    OnceLock::new();
+
+/// Sets the encoder decoder factory. Can be called multiple times but only the first call is valid.
+pub fn install_encoder_decoder_factory(factory: Arc<dyn ServoImageEncoderDecoderFactory>) {
+    if ENCODER_DECODER_FACTORY.get().is_some() {
+        info!("Setting the encoder decoder factory multiple times.");
+        return;
+    }
+    ENCODER_DECODER_FACTORY.get_or_init(|| factory);
+}
+
+fn get_encoder_decoder_factory() -> Option<&'static Arc<dyn ServoImageEncoderDecoderFactory>> {
+    let factory = ENCODER_DECODER_FACTORY.get();
+    if factory.is_none() {
+        error!("Encoder decoder factory is not setup. Images will not work.");
+    }
+    factory
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {
@@ -532,43 +559,14 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
         return None;
     }
 
-    let image_fmt_result = detect_image_format(buffer);
-    match image_fmt_result {
-        Err(msg) => {
-            debug!("{}", msg);
-            None
-        },
-        Ok(format) => {
-            let Ok(image_decoder) = decoding::DefaultImageDecoder::make_decoder(format, buffer)
-            else {
-                return None;
-            };
+    let installed_factory = get_encoder_decoder_factory()?;
 
-            if image_decoder.is_animated() {
-                decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
-            } else {
-                decoding::decode_static_image(cors_status, image_decoder.decoder())
-            }
-        },
-    }
-}
+    let image_decoder = installed_factory.make_from_bytes(buffer).ok()?;
 
-// https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
-pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
-    if is_gif(buffer) {
-        Ok(ImageFormat::Gif)
-    } else if is_jpeg(buffer) {
-        Ok(ImageFormat::Jpeg)
-    } else if is_png(buffer) {
-        Ok(ImageFormat::Png)
-    } else if is_webp(buffer) {
-        Ok(ImageFormat::WebP)
-    } else if is_bmp(buffer) {
-        Ok(ImageFormat::Bmp)
-    } else if is_ico(buffer) {
-        Ok(ImageFormat::Ico)
+    if image_decoder.is_animated() {
+        default_decoding::decode_animated_image(cors_status, image_decoder.get_animated_decoder())
     } else {
-        Err("Image Format Not Supported")
+        default_decoding::decode_static_image(cors_status, image_decoder)
     }
 }
 
@@ -666,68 +664,5 @@ pub fn generic_transform_inplace<
         if CLEAR_ALPHA {
             rgba[3] = u8::MAX;
         }
-    }
-}
-
-fn is_gif(buffer: &[u8]) -> bool {
-    buffer.starts_with(b"GIF87a") || buffer.starts_with(b"GIF89a")
-}
-
-fn is_jpeg(buffer: &[u8]) -> bool {
-    buffer.starts_with(&[0xff, 0xd8, 0xff])
-}
-
-fn is_png(buffer: &[u8]) -> bool {
-    buffer.starts_with(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
-}
-
-fn is_bmp(buffer: &[u8]) -> bool {
-    buffer.starts_with(&[0x42, 0x4D])
-}
-
-fn is_ico(buffer: &[u8]) -> bool {
-    buffer.starts_with(&[0x00, 0x00, 0x01, 0x00])
-}
-
-fn is_webp(buffer: &[u8]) -> bool {
-    // https://developers.google.com/speed/webp/docs/riff_container
-    // First four bytes: `RIFF`, header size 12 bytes
-    if !buffer.starts_with(b"RIFF") || buffer.len() < 12 {
-        return false;
-    }
-    let size: [u8; 4] = [buffer[4], buffer[5], buffer[6], buffer[7]];
-    // Bytes 4..8 are a little endian u32 indicating
-    // > The size of the file in bytes, starting at offset 8.
-    // > The maximum value of this field is 2^32 minus 10 bytes and thus the size
-    // > of the whole file is at most 4 GiB minus 2 bytes.
-    let len: usize = u32::from_le_bytes(size) as usize;
-    buffer[8..].len() >= len && &buffer[8..12] == b"WEBP"
-}
-
-#[cfg(test)]
-mod test {
-    use super::detect_image_format;
-
-    #[test]
-    fn test_supported_images() {
-        let gif1 = [b'G', b'I', b'F', b'8', b'7', b'a'];
-        let gif2 = [b'G', b'I', b'F', b'8', b'9', b'a'];
-        let jpeg = [0xff, 0xd8, 0xff];
-        let png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-        let webp = [
-            b'R', b'I', b'F', b'F', 0x04, 0x00, 0x00, 0x00, b'W', b'E', b'B', b'P',
-        ];
-        let bmp = [0x42, 0x4D];
-        let ico = [0x00, 0x00, 0x01, 0x00];
-        let junk_format = [0x01, 0x02, 0x03, 0x04, 0x05];
-
-        assert!(detect_image_format(&gif1).is_ok());
-        assert!(detect_image_format(&gif2).is_ok());
-        assert!(detect_image_format(&jpeg).is_ok());
-        assert!(detect_image_format(&png).is_ok());
-        assert!(detect_image_format(&webp).is_ok());
-        assert!(detect_image_format(&bmp).is_ok());
-        assert!(detect_image_format(&ico).is_ok());
-        assert!(detect_image_format(&junk_format).is_err());
     }
 }

@@ -24,6 +24,7 @@ use net_traits::request::CorsSettings;
 use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use parking_lot::Mutex;
+use pixels::image_encoder_decoder_factory::ServoImageEncoderDecoderFactory;
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
 use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
@@ -792,8 +793,13 @@ pub struct ImageCacheFactoryImpl {
 }
 
 impl ImageCacheFactoryImpl {
-    pub fn new(broken_image_icon_data: Vec<u8>) -> Self {
+    pub fn new(
+        broken_image_icon_data: Vec<u8>,
+        image_encoder_decoder_factory: Arc<dyn ServoImageEncoderDecoderFactory>,
+    ) -> Self {
         debug!("Creating new ImageCacheFactoryImpl");
+
+        pixels::install_encoder_decoder_factory(image_encoder_decoder_factory);
 
         Self {
             broken_image_icon_data: Arc::new(broken_image_icon_data),
