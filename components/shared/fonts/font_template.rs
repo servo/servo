@@ -9,13 +9,13 @@ use std::sync::Arc;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_arc::Arc as ServoArc;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::font_face::{ComputedFontStretchRange, ComputedFontStyleRange, ComputedFontWeightRange};
-use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::values::computed::font::FontWeight;
 
-use crate::{CSSFontFaceDescriptors, FontDescriptor, FontIdentifier};
+use crate::{CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleInfo, FontIdentifier};
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
 #[derive(Clone, Debug, MallocSizeOf)]
@@ -144,7 +144,8 @@ pub struct FontTemplate {
     /// If this font is a web font, this is a reference to the `@font-face` rule that
     /// created it.
     #[serde(skip)]
-    pub font_face_rule: Option<FontFaceRuleDescriptors>,
+    #[conditional_malloc_size_of]
+    pub font_face_rule: Option<ServoArc<FontFaceRuleInfo>>,
 }
 
 impl Debug for FontTemplate {
@@ -161,7 +162,7 @@ impl FontTemplate {
     pub fn new(
         identifier: FontIdentifier,
         descriptor: FontTemplateDescriptor,
-        font_face_rule: Option<FontFaceRuleDescriptors>,
+        font_face_rule: Option<ServoArc<FontFaceRuleInfo>>,
     ) -> FontTemplate {
         FontTemplate {
             identifier,
@@ -176,7 +177,7 @@ impl FontTemplate {
     pub fn new_for_local_web_font(
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
-        font_face_rule: Option<FontFaceRuleDescriptors>,
+        font_face_rule: Option<ServoArc<FontFaceRuleInfo>>,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
@@ -190,10 +191,10 @@ impl FontTemplate {
         &self.identifier
     }
 
-    pub fn is_defined_by_font_face_rule(&self, rule: &FontFaceRuleDescriptors) -> bool {
+    pub fn is_defined_by_font_face_rule(&self, rule: &ServoArc<FontFaceRuleInfo>) -> bool {
         self.font_face_rule
             .as_ref()
-            .is_some_and(|defining_rule| defining_rule == rule)
+            .is_some_and(|defining_rule| ServoArc::ptr_eq(rule, defining_rule))
     }
 }
 
@@ -212,7 +213,7 @@ pub trait FontTemplateRefMethods {
     fn char_in_unicode_range(&self, character: char) -> bool;
 
     /// Return the `@font-face` rule that defined this template, if any.
-    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRuleDescriptors>>;
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, ServoArc<FontFaceRuleInfo>>>;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
@@ -245,7 +246,7 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
     }
 
-    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRuleDescriptors>> {
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, ServoArc<FontFaceRuleInfo>>> {
         AtomicRef::filter_map(self.borrow(), |template| template.font_face_rule.as_ref())
     }
 }

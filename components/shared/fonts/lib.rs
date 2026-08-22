@@ -20,8 +20,8 @@ use num_derive::{NumOps, One, Zero};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
-use style::shared_lock::StylesheetGuards;
-use style::stylesheets::{FontFaceRule, LockedFontFaceRule, Origin};
+use style::font_face::Descriptors;
+use style::stylesheets::LockedFontFaceRule;
 pub use system_font_service_proxy::*;
 use webrender_api::euclid::num::One;
 
@@ -180,9 +180,9 @@ pub enum FontDataError {
 #[derive(Clone, Default)]
 pub struct WebFontSetDifference {
     /// A list of `@font-face` rules that were added in this update.
-    pub added_font_faces: Vec<FontFaceRuleWithOrigin>,
+    pub added_font_faces: Vec<ServoArc<FontFaceRuleInfo>>,
     /// A list of `@font-face` rules that were removed in this update.
-    pub removed_font_faces: Vec<FontFaceRuleWithOrigin>,
+    pub removed_font_faces: Vec<ServoArc<FontFaceRuleInfo>>,
 }
 
 impl WebFontSetDifference {
@@ -193,25 +193,13 @@ impl WebFontSetDifference {
 }
 
 #[derive(Clone, MallocSizeOf)]
-pub struct FontFaceRuleWithOrigin {
+pub struct FontFaceRuleInfo {
+    /// The index of this `@font-face` in the cascade, relative to all
+    /// other `@font-face` rules.
+    pub cascade_index: usize,
+    /// The descriptors on the `@font-face` rule.
+    pub descriptors: Descriptors,
+    /// The CSS rule that created this `@font-face`.
     #[conditional_malloc_size_of]
     pub rule: ServoArc<LockedFontFaceRule>,
-    origin: Origin,
-}
-
-impl FontFaceRuleWithOrigin {
-    pub fn new(rule: ServoArc<LockedFontFaceRule>, origin: Origin) -> Self {
-        Self { rule, origin }
-    }
-
-    pub fn ptr_eq(first: &Self, second: &Self) -> bool {
-        ServoArc::ptr_eq(&first.rule, &second.rule)
-    }
-
-    pub fn read_with<'a>(&'a self, guards: &'a StylesheetGuards) -> &'a FontFaceRule {
-        match self.origin {
-            Origin::Author => self.rule.read_with(guards.author),
-            Origin::UserAgent | Origin::User => self.rule.read_with(guards.ua_or_user),
-        }
-    }
 }
