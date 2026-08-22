@@ -618,7 +618,8 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             // - Let error be a DataCloneError.
             // - Reject promise with error, and remove it from [[pending promises]].
             // - Queue a media element task to invoke errorCallback with error.
-            promise.reject_error(cx, Error::DataClone(None));
+            let exception = DOMException::new(cx, &self.global(), DOMErrorName::DataCloneError);
+            promise.reject_native(cx, &exception);
 
             if let Some(callback) = decode_error_callback {
                 // Build the Task object using a unique uuid as a key to remove the callback resolver entry.
@@ -627,19 +628,20 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 let uuid = Uuid::new_v4().simple().to_string();
                 let uuid_ = uuid.clone();
                 let this = Trusted::new(self);
+                let exception = Trusted::new(&*exception);
                 let task = task!(decode_audio_data_detached_buffer: move |cx| {
                     let this = this.root();
+                    let exception = exception.root();
                     let resolver = {
                         let mut resolvers = this.decode_resolvers.safe_borrow_mut(cx.no_gc());
                         resolvers.remove(&uuid).unwrap()
                     };
                     if let Some(callback) = resolver.error_callback {
-                        let exception = DOMException::new(
+                        let _ = callback.Call__(
                             cx,
-                            &this.global(),
-                            DOMErrorName::DataCloneError,
+                            &exception,
+                            ExceptionHandling::Report
                         );
-                        let _ = callback.Call__(cx, &exception, ExceptionHandling::Report);
                     }
                 });
                 self.decode_resolvers.safe_borrow_mut(cx.no_gc()).insert(
