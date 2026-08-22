@@ -1488,8 +1488,7 @@ checksum = "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c"
 [[package]]
 name = "content-security-policy"
 version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6813ceff986382cd86f67722f308177253e8fab1954a2d51c5e386ffdb3e2d03"
+source = "git+https://github.com/TimvdLippe/rust-content-security-policy?branch=whitespace-characters#cdaef9b931a18843bbf778d0214314a6a307da1e"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.13.1",
@@ -3875,8 +3874,7 @@ dependencies = [
 [[package]]
 name = "http"
 version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "918d3568bebf352712bc2ef3d46a8bcf1a75b373be6539de198e9105cbbf9ce0"
+source = "git+https://github.com/TimvdLippe/rust-http/?branch=whitespace-characters#37eccc85e2cdbe0c1ddabbd62cda3b42bf0925b4"
 dependencies = [
  "bytes",
  "itoa",
@@ -3908,8 +3906,7 @@ dependencies = [
 [[package]]
 name = "httparse"
 version = "1.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6dbf3de79e51f3d586ab4cb9d5c3e2c14aa28ed23d180cf89b4df0454a69cc87"
+source = "git+https://github.com/TimvdLippe/rust-httparse?branch=whitespace-characters#6c3aab93341c04bf3ee618469d5baa541e9d7daf"
 
 [[package]]
 name = "httpdate"
@@ -3932,8 +3929,7 @@ dependencies = [
 [[package]]
 name = "hyper"
 version = "1.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d22053281f852e11534f5198498373cbb59295120a20771d90f7ed1897490a72"
+source = "git+https://github.com/TimvdLippe/hyper?branch=whitespace-characters#65c75f09e3846bcfef2436180e4cc90cfc5aec99"
 dependencies = [
  "atomic-waker",
  "bytes",
