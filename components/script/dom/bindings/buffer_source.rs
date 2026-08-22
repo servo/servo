@@ -790,11 +790,7 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
     let res = unsafe {
-        TypedArray::<T, *mut JSObject>::create(
-            cx.raw_cx(),
-            CreateWith::Slice(data),
-            dest.reborrow(),
-        )
+        TypedArray::<T, *mut JSObject>::create(cx, CreateWith::Slice(data), dest.reborrow())
     };
 
     if res.is_err() {
@@ -813,11 +809,7 @@ where
     T: TypedArrayElement + TypedArrayElementCreator,
 {
     let res = unsafe {
-        TypedArray::<T, *mut JSObject>::create(
-            cx.raw_cx(),
-            CreateWith::Length(len),
-            dest.reborrow(),
-        )
+        TypedArray::<T, *mut JSObject>::create(cx, CreateWith::Length(len), dest.reborrow())
     };
 
     if res.is_err() {
