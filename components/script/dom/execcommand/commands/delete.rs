@@ -17,6 +17,7 @@ use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlhrelement::HTMLHRElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmllielement::HTMLLIElement;
 use crate::dom::html::htmltableelement::HTMLTableElement;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
@@ -159,9 +160,13 @@ pub(crate) fn execute_delete_command(
         offset == 0
     {
         // Step 7.1. Let items be a list of all lis that are ancestors of node.
-        // TODO
+        let items = node
+            .ancestors()
+            .filter(|ancestor| ancestor.is::<HTMLLIElement>());
         // Step 7.2. Normalize sublists of each item in items.
-        // TODO
+        for item in items {
+            item.normalize_sublists(cx);
+        }
         // Step 7.3. Record the values of the one-node list consisting of node, and let values be the result.
         let values = record_the_values(vec![node.clone()]);
         // Step 7.4. Split the parent of the one-node list consisting of node.
