@@ -6,11 +6,11 @@ use keccak::{Keccak, State1600};
 use sponge_cursor::SpongeCursor;
 
 use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleTurboShakeParams};
+use crate::dom::subtlecrypto::{CryptoAlgorithm, TurboShakeParams};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#turboshake-operations-digest>
 pub(crate) fn digest(
-    normalized_algorithm: &SubtleTurboShakeParams,
+    normalized_algorithm: &TurboShakeParams,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. Let outputLength be the outputLength member of normalizedAlgorithm.

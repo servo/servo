@@ -346,7 +346,7 @@ impl SubtleCrypto {
     fn resolve_promise_with_encapsulated_key(
         &self,
         promise: Rc<Promise>,
-        encapsulated_key: SubtleEncapsulatedKey,
+        encapsulated_key: EncapsulatedKey,
     ) {
         let trusted_promise = TrustedPromise::new(promise);
         self.global().task_manager().crypto_task_source().queue(
@@ -363,7 +363,7 @@ impl SubtleCrypto {
     fn resolve_promise_with_encapsulated_bits(
         &self,
         promise: Rc<Promise>,
-        encapsulated_bits: SubtleEncapsulatedBits,
+        encapsulated_bits: EncapsulatedBits,
     ) {
         let trusted_promise = TrustedPromise::new(promise);
         self.global().task_manager().crypto_task_source().queue(
@@ -1830,7 +1830,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 // Step 16. Let encapsulatedKey be a new EncapsulatedKey dictionary with sharedKey
                 // set to sharedKey and ciphertext set to the ciphertext field of encapsulatedBits.
-                let encapsulated_key = SubtleEncapsulatedKey {
+                let encapsulated_key = EncapsulatedKey {
                     shared_key: Some(Trusted::new(&shared_key)),
                     ciphertext:encapsulated_bits.ciphertext,
                 };
@@ -3642,7 +3642,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HmacKeyGenParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtleHkdfParams {
+pub(crate) struct HkdfParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3656,7 +3656,7 @@ pub(crate) struct SubtleHkdfParams {
     info: Vec<u8>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHkdfParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for HkdfParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3666,7 +3666,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHkdfParams {
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtleHkdfParams {
+        Ok(HkdfParams {
             name: algorithm_name,
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
             salt: get_required_buffer_source(cx, object, c"salt")?,
@@ -3677,7 +3677,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHkdfParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params>
 #[derive(Clone, MallocSizeOf)]
-pub(crate) struct SubtlePbkdf2Params {
+pub(crate) struct Pbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3691,7 +3691,7 @@ pub(crate) struct SubtlePbkdf2Params {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtlePbkdf2Params {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Pbkdf2Params {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3701,7 +3701,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtlePbkdf2Params {
     ) -> Result<Self, Self::Error> {
         let hash = get_required_parameter(cx, object, c"hash", ())?;
 
-        Ok(SubtlePbkdf2Params {
+        Ok(Pbkdf2Params {
             name: algorithm_name,
             salt: get_required_buffer_source(cx, object, c"salt")?,
             iterations: get_required_parameter(
@@ -3717,7 +3717,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtlePbkdf2Params {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-ContextParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleContextParams {
+struct ContextParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3725,7 +3725,7 @@ struct SubtleContextParams {
     context: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleContextParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for ContextParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3733,7 +3733,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleContextParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleContextParams {
+        Ok(ContextParams {
             name: algorithm_name,
             context: get_optional_buffer_source(cx, object, c"context")?,
         })
@@ -3742,7 +3742,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleContextParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleAeadParams {
+struct AeadParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3756,7 +3756,7 @@ struct SubtleAeadParams {
     tag_length: Option<u8>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for AeadParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3764,7 +3764,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleAeadParams {
+        Ok(AeadParams {
             name: algorithm_name,
             iv: get_required_buffer_source(cx, object, c"iv")?,
             additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
@@ -3775,7 +3775,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleCShakeParams {
+struct CShakeParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3789,7 +3789,7 @@ struct SubtleCShakeParams {
     customization: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for CShakeParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3797,7 +3797,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleCShakeParams {
+        Ok(CShakeParams {
             name: algorithm_name,
             output_length: get_required_parameter(
                 cx,
@@ -3811,11 +3811,11 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
     }
 }
 
-impl TryFrom<SerializableCShakeParams> for SubtleCShakeParams {
+impl TryFrom<SerializableCShakeParams> for CShakeParams {
     type Error = ();
 
     fn try_from(value: SerializableCShakeParams) -> Result<Self, Self::Error> {
-        Ok(SubtleCShakeParams {
+        Ok(CShakeParams {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             output_length: value.output_length,
             function_name: value.function_name,
@@ -3824,8 +3824,8 @@ impl TryFrom<SerializableCShakeParams> for SubtleCShakeParams {
     }
 }
 
-impl From<&SubtleCShakeParams> for SerializableCShakeParams {
-    fn from(value: &SubtleCShakeParams) -> Self {
+impl From<&CShakeParams> for SerializableCShakeParams {
+    fn from(value: &CShakeParams) -> Self {
         SerializableCShakeParams {
             name: value.name.as_str().into(),
             output_length: value.output_length,
@@ -3837,7 +3837,7 @@ impl From<&SubtleCShakeParams> for SerializableCShakeParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-TurboShakeParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleTurboShakeParams {
+struct TurboShakeParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3848,7 +3848,7 @@ struct SubtleTurboShakeParams {
     domain_separation: Option<u8>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for TurboShakeParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3856,7 +3856,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleTurboShakeParams {
+        Ok(TurboShakeParams {
             name: algorithm_name,
             output_length: get_required_parameter(
                 cx,
@@ -3874,11 +3874,11 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleTurboShakeParams {
     }
 }
 
-impl TryFrom<SerializableTurboShakeParams> for SubtleTurboShakeParams {
+impl TryFrom<SerializableTurboShakeParams> for TurboShakeParams {
     type Error = ();
 
     fn try_from(value: SerializableTurboShakeParams) -> Result<Self, Self::Error> {
-        Ok(SubtleTurboShakeParams {
+        Ok(TurboShakeParams {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             output_length: value.output_length,
             domain_separation: value.domain_separation,
@@ -3886,8 +3886,8 @@ impl TryFrom<SerializableTurboShakeParams> for SubtleTurboShakeParams {
     }
 }
 
-impl From<&SubtleTurboShakeParams> for SerializableTurboShakeParams {
-    fn from(value: &SubtleTurboShakeParams) -> Self {
+impl From<&TurboShakeParams> for SerializableTurboShakeParams {
+    fn from(value: &TurboShakeParams) -> Self {
         SerializableTurboShakeParams {
             name: value.name.as_str().into(),
             output_length: value.output_length,
@@ -3898,7 +3898,7 @@ impl From<&SubtleTurboShakeParams> for SerializableTurboShakeParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-KangarooTwelveParams>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleKangarooTwelveParams {
+struct KangarooTwelveParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -3909,7 +3909,7 @@ struct SubtleKangarooTwelveParams {
     customization: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KangarooTwelveParams {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3917,7 +3917,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleKangarooTwelveParams {
+        Ok(KangarooTwelveParams {
             name: algorithm_name,
             output_length: get_required_parameter(
                 cx,
@@ -3930,11 +3930,11 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleKangarooTwelveParams {
     }
 }
 
-impl TryFrom<SerializableKangarooTwelveParams> for SubtleKangarooTwelveParams {
+impl TryFrom<SerializableKangarooTwelveParams> for KangarooTwelveParams {
     type Error = ();
 
     fn try_from(value: SerializableKangarooTwelveParams) -> Result<Self, Self::Error> {
-        Ok(SubtleKangarooTwelveParams {
+        Ok(KangarooTwelveParams {
             name: CryptoAlgorithm::from_str(&value.name).map_err(|_| ())?,
             output_length: value.output_length,
             customization: value.customization,
@@ -3942,8 +3942,8 @@ impl TryFrom<SerializableKangarooTwelveParams> for SubtleKangarooTwelveParams {
     }
 }
 
-impl From<&SubtleKangarooTwelveParams> for SerializableKangarooTwelveParams {
-    fn from(value: &SubtleKangarooTwelveParams) -> Self {
+impl From<&KangarooTwelveParams> for SerializableKangarooTwelveParams {
+    fn from(value: &KangarooTwelveParams) -> Self {
         SerializableKangarooTwelveParams {
             name: value.name.as_str().into(),
             output_length: value.output_length,
@@ -4086,7 +4086,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for KmacParams {
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params>
 #[derive(Clone, MallocSizeOf)]
-struct SubtleArgon2Params {
+struct Argon2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
@@ -4112,7 +4112,7 @@ struct SubtleArgon2Params {
     associated_data: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Argon2Params {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -4120,7 +4120,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        Ok(SubtleArgon2Params {
+        Ok(Argon2Params {
             name: algorithm_name,
             nonce: get_required_buffer_source(cx, object, c"nonce")?,
             parallelism: get_required_parameter(
@@ -4149,7 +4149,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey>
-struct SubtleEncapsulatedKey {
+struct EncapsulatedKey {
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey-sharedKey>
     shared_key: Option<Trusted<CryptoKey>>,
 
@@ -4157,7 +4157,7 @@ struct SubtleEncapsulatedKey {
     ciphertext: Option<Vec<u8>>,
 }
 
-impl ToJSValConvertible for SubtleEncapsulatedKey {
+impl ToJSValConvertible for EncapsulatedKey {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -4191,7 +4191,7 @@ impl ToJSValConvertible for SubtleEncapsulatedKey {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits>
-struct SubtleEncapsulatedBits {
+struct EncapsulatedBits {
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedBits-sharedKey>
     shared_key: Option<Zeroizing<Vec<u8>>>,
 
@@ -4199,7 +4199,7 @@ struct SubtleEncapsulatedBits {
     ciphertext: Option<Vec<u8>>,
 }
 
-impl ToJSValConvertible for SubtleEncapsulatedBits {
+impl ToJSValConvertible for EncapsulatedBits {
     #[expect(unsafe_code)]
     fn safe_to_jsval(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -4924,8 +4924,8 @@ enum EncryptAlgorithm {
     AesCtr(AesCtrParams),
     AesCbc(AesCbcParams),
     AesGcm(AesGcmParams),
-    AesOcb(SubtleAeadParams),
-    ChaCha20Poly1305(SubtleAeadParams),
+    AesOcb(AeadParams),
+    ChaCha20Poly1305(AeadParams),
 }
 
 impl NormalizedAlgorithm for EncryptAlgorithm {
@@ -5011,8 +5011,8 @@ enum DecryptAlgorithm {
     AesCtr(AesCtrParams),
     AesCbc(AesCbcParams),
     AesGcm(AesGcmParams),
-    AesOcb(SubtleAeadParams),
-    ChaCha20Poly1305(SubtleAeadParams),
+    AesOcb(AeadParams),
+    ChaCha20Poly1305(AeadParams),
 }
 
 impl NormalizedAlgorithm for DecryptAlgorithm {
@@ -5100,7 +5100,7 @@ enum SignAlgorithm {
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
-    MlDsa(SubtleContextParams),
+    MlDsa(ContextParams),
     Kmac(KmacParams),
 }
 
@@ -5189,7 +5189,7 @@ enum VerifyAlgorithm {
     Ed25519(Algorithm),
     Ed448(SubtleEd448Params),
     Hmac(Algorithm),
-    MlDsa(SubtleContextParams),
+    MlDsa(ContextParams),
     Kmac(KmacParams),
 }
 
@@ -5287,9 +5287,9 @@ impl Operation for DigestOperation {
 enum DigestAlgorithm {
     Sha(Algorithm),
     Sha3(Algorithm),
-    CShake(SubtleCShakeParams),
-    TurboShake(SubtleTurboShakeParams),
-    KangarooTwelve(SubtleKangarooTwelveParams),
+    CShake(CShakeParams),
+    TurboShake(TurboShakeParams),
+    KangarooTwelve(KangarooTwelveParams),
 }
 
 impl NormalizedAlgorithm for DigestAlgorithm {
@@ -5408,9 +5408,9 @@ enum DeriveBitsAlgorithm {
     Ecdh(EcdhKeyDeriveParams),
     X25519(EcdhKeyDeriveParams),
     X448(EcdhKeyDeriveParams),
-    Hkdf(SubtleHkdfParams),
-    Pbkdf2(SubtlePbkdf2Params),
-    Argon2(SubtleArgon2Params),
+    Hkdf(HkdfParams),
+    Pbkdf2(Pbkdf2Params),
+    Argon2(Argon2Params),
 }
 
 impl NormalizedAlgorithm for DeriveBitsAlgorithm {
@@ -6406,7 +6406,7 @@ impl NormalizedAlgorithm for EncapsulateAlgorithm {
 }
 
 impl EncapsulateAlgorithm {
-    fn encapsulate(&self, key: &CryptoKey) -> Result<SubtleEncapsulatedBits, Error> {
+    fn encapsulate(&self, key: &CryptoKey) -> Result<EncapsulatedBits, Error> {
         match self {
             EncapsulateAlgorithm::MlKem(algorithm) => ml_kem_operation::encapsulate(algorithm, key),
         }

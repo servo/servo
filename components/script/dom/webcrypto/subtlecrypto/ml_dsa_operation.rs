@@ -20,13 +20,13 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    Algorithm, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
-    KeyAlgorithmAndDerivatives, SubtleContextParams,
+    Algorithm, ContextParams, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-sign>
 pub(crate) fn sign(
-    normalized_algorithm: &SubtleContextParams,
+    normalized_algorithm: &ContextParams,
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -98,7 +98,7 @@ pub(crate) fn sign(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-verify>
 pub(crate) fn verify(
-    normalized_algorithm: &SubtleContextParams,
+    normalized_algorithm: &ContextParams,
     key: &CryptoKey,
     message: &[u8],
     signature: &[u8],

@@ -14,13 +14,12 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageVecHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
-    SubtleHkdfParams,
+    CryptoAlgorithm, HkdfParams, KeyAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-derive-bits>
 pub(crate) fn derive_bits(
-    normalized_algorithm: &SubtleHkdfParams,
+    normalized_algorithm: &HkdfParams,
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
