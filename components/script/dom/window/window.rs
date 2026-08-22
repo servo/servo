@@ -36,7 +36,10 @@ use fonts::{
 use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
-use js::jsapi::{GCReason, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE};
+use js::jsapi::{
+    GCReason, GetObjectRealmOrNull, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
+    SetRealmPrincipals,
+};
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{JS_DefineProperty, JS_GC};
@@ -71,6 +74,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::like::Setlike;
+use script_bindings::principals::ServoJSPrincipals;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::Root;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
@@ -3310,6 +3314,20 @@ impl Window {
         );
         assert!(document.window() == self);
         self.document.set(Some(document));
+        self.update_jsprincipals_from_document(document);
+    }
+
+    /// The `JSPrincipals` object inside a [`Window`] stores a mutable origin used for
+    /// same-origin checks within SpiderMonkey. When the entire origin of a [`Window`]'s
+    /// [`Document`] object is replaced or the [`Document`] object itself is replaced with a
+    /// [`Document`] with a different origin, the `JSPrincipals` stored inside the [`Window`]
+    /// also needs to change. This ensures that same origin checks are done against the correct
+    /// origin.
+    #[expect(unsafe_code)]
+    pub(crate) fn update_jsprincipals_from_document(&self, document: &Document) {
+        let realm = unsafe { GetObjectRealmOrNull(self.reflector().get_jsobject().get()) };
+        let new_principals = ServoJSPrincipals::new::<crate::DomTypeHolder>(&document.origin());
+        unsafe { SetRealmPrincipals(realm, new_principals.as_raw()) };
     }
 
     pub(crate) fn load_data_for_document(
