@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "ipc")]
 use std::ffi::OsStr;
-use std::{env, process};
 
 #[cfg(any(
     target_os = "macos",
@@ -19,13 +19,13 @@ use std::{env, process};
     )
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
-use ipc_channel::IpcError;
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "ipc")]
 use servo_config::opts::Opts;
+#[cfg(feature = "ipc")]
 use servo_config::prefs::Preferences;
 
 use crate::event_loop::NewScriptEventLoopProcessInfo;
-use crate::process_manager::Process;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
@@ -35,6 +35,7 @@ pub enum UnprivilegedContent {
     ServiceWorker(ServiceWorkerUnprivilegedContent),
 }
 
+#[cfg(feature = "ipc")]
 impl UnprivilegedContent {
     pub fn opts(&self) -> Opts {
         match self {
@@ -145,14 +146,17 @@ pub fn content_process_sandbox_profile() {
     process::exit(1);
 }
 
-#[cfg(any(
-    target_os = "windows",
-    target_os = "android",
-    target_env = "ohos",
-    target_arch = "arm",
-    target_arch = "aarch64",
-    target_arch = "riscv32",
-    target_arch = "riscv64"
+#[cfg(all(
+    feature = "ipc",
+    any(
+        target_os = "windows",
+        target_os = "android",
+        target_env = "ohos",
+        target_arch = "arm",
+        target_arch = "aarch64",
+        target_arch = "riscv32",
+        target_arch = "riscv64"
+    )
 ))]
 pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
@@ -162,7 +166,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     let (server, token) = IpcOneShotServer::<IpcSender<UnprivilegedContent>>::new()
         .expect("Failed to create IPC one-shot server.");
 
-    let path_to_self = env::current_exe().expect("Failed to get current executor.");
+    let path_to_self = std::env::current_exe().expect("Failed to get current executor.");
     let mut child_process = process::Command::new(path_to_self);
     setup_common(&mut child_process, token);
 
@@ -178,6 +182,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
 }
 
 #[cfg(all(
+    feature = "ipc",
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
@@ -187,7 +192,9 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     not(target_arch = "riscv32"),
     not(target_arch = "riscv64")
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
+pub fn spawn_multiprocess(
+    content: UnprivilegedContent,
+) -> Result<crate::process_manager::Process, ipc_channel::IpcError> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 
@@ -223,18 +230,18 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
         setup_common(&mut command, token);
 
         let profile = content_process_sandbox_profile();
-        Process::Sandboxed(
+        crate::process_manager::Process::Sandboxed(
             Sandbox::new(profile)
                 .start(&mut command)
                 .expect("Failed to start sandboxed child process!")
                 .pid as u32,
         )
     } else {
-        let path_to_self = env::current_exe().expect("Failed to get current executor.");
-        let mut child_process = process::Command::new(path_to_self);
+        let path_to_self = std::env::current_exe().expect("Failed to get current executor.");
+        let mut child_process = std::process::Command::new(path_to_self);
         setup_common(&mut child_process, token);
 
-        Process::Unsandboxed(
+        crate::process_manager::Process::Unsandboxed(
             child_process
                 .spawn()
                 .expect("Failed to start unsandboxed child process!"),
@@ -253,20 +260,22 @@ pub fn spawn_multiprocess(_content: UnprivilegedContent) -> Result<Process, Erro
     process::exit(1);
 }
 
+#[cfg(feature = "ipc")]
 fn setup_common<C: CommandMethods>(command: &mut C, token: String) {
     C::arg(command, "--content-process");
     C::arg(command, token);
 
-    if let Ok(value) = env::var("RUST_BACKTRACE") {
+    if let Ok(value) = std::env::var("RUST_BACKTRACE") {
         C::env(command, "RUST_BACKTRACE", value);
     }
 
-    if let Ok(value) = env::var("RUST_LOG") {
+    if let Ok(value) = std::env::var("RUST_LOG") {
         C::env(command, "RUST_LOG", value);
     }
 }
 
 /// A trait to unify commands launched as multiprocess with or without a sandbox.
+#[cfg(feature = "ipc")]
 trait CommandMethods {
     /// A command line argument.
     fn arg<T>(&mut self, arg: T)
@@ -280,7 +289,8 @@ trait CommandMethods {
         U: AsRef<OsStr>;
 }
 
-impl CommandMethods for process::Command {
+#[cfg(feature = "ipc")]
+impl CommandMethods for std::process::Command {
     fn arg<T>(&mut self, arg: T)
     where
         T: AsRef<OsStr>,
