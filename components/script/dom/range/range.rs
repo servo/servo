@@ -227,9 +227,16 @@ impl Range {
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     pub(crate) fn set_start(&self, node: &Node, offset: u32) {
-        if self.start().node() != node || self.start_offset() != offset {
+        if self.set_start_without_reporting(node, offset) {
             self.report_change();
         }
+    }
+
+    fn set_start_without_reporting(&self, node: &Node, offset: u32) -> bool {
+        if self.start().node() == node && self.start_offset() == offset {
+            return false;
+        }
+
         if self.start().node() != node {
             if self.start().node() == self.end().node() {
                 node.ensure_weak_ranges().push(WeakRef::new(self));
@@ -240,14 +247,23 @@ impl Range {
                     .push(self.start_container().ensure_weak_ranges().remove(self));
             }
         }
+
         self.start().set(node, offset);
+        true
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
     pub(crate) fn set_end(&self, node: &Node, offset: u32) {
-        if self.end().node() != node || self.end_offset() != offset {
+        if self.set_end_without_reporting(node, offset) {
             self.report_change();
         }
+    }
+
+    fn set_end_without_reporting(&self, node: &Node, offset: u32) -> bool {
+        if self.end().node() == node && self.end_offset() == offset {
+            return false;
+        }
+
         if self.end().node() != node {
             if self.end().node() == self.start().node() {
                 node.ensure_weak_ranges().push(WeakRef::new(self));
@@ -258,7 +274,9 @@ impl Range {
                     .push(self.end_container().ensure_weak_ranges().remove(self));
             }
         }
+
         self.end().set(node, offset);
+        true
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-comparepointnode-offset>
@@ -406,6 +424,8 @@ impl Range {
 
         // Step 3. Let bp be the boundary point (node, offset).
         // NOTE: We don't need this part.
+        let mut set_start = false;
+        let mut set_end = false;
         match start_or_end {
             // If these steps were invoked as "set the start"
             StartOrEnd::Start => {
@@ -415,11 +435,11 @@ impl Range {
                     bp_position(node, offset, &self.end_container(), self.end_offset()) ==
                         Ordering::Greater
                 {
-                    self.set_end(node, offset);
+                    set_end = self.set_end_without_reporting(node, offset);
                 }
 
                 // Step 4.2. Set range’s start to bp.
-                self.set_start(node, offset);
+                set_start = self.set_start_without_reporting(node, offset);
             },
             // If these steps were invoked as "set the end"
             StartOrEnd::End => {
@@ -429,12 +449,16 @@ impl Range {
                     bp_position(node, offset, &self.start_container(), self.start_offset()) ==
                         Ordering::Less
                 {
-                    self.set_start(node, offset);
+                    set_start = self.set_start_without_reporting(node, offset);
                 }
 
                 // Step 4.2. Set range’s end to bp.
-                self.set_end(node, offset);
+                set_end = self.set_end_without_reporting(node, offset);
             },
+        }
+
+        if set_start || set_end {
+            self.report_change();
         }
 
         Ok(())
