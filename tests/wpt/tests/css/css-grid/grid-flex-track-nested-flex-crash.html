@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-flex-tracks">
+<meta name="assert" content="A zero-sized flexible row containing a flex box must not hang layout.">
+<style>
+.accordion {
+  display: grid;
+  grid-template: "visual" "items" / 1fr;
+  max-width: 618px;
+  margin-inline: auto;
+}
+.items { grid-area: items; }
+.item {
+  padding-block-start: 32px;
+  position: relative;
+}
+.trigger {
+  display: flex;
+  width: 100%;
+}
+.item:not(.open) .trigger::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow-y: clip;
+}
+.open .panel { grid-template-rows: 1fr; }
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.visual {
+  display: flex;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+</style>
+<div class="accordion">
+  <div class="items">
+    <div class="item open">
+      <button class="trigger">Give the plan a green light</button>
+      <div class="panel">
+        <div class="content">
+          <p>Plan changes before implementation.</p>
+          <a href="#">Explore plan mode</a>
+        </div>
+        <div class="visual"><img alt=""></div>
+      </div>
+    </div>
+    <div class="item">
+      <button class="trigger">Delegate implementation</button>
+      <div class="panel">
+        <div class="content">
+          <p>Assign work to an agent.</p>
+          <a href="#">Explore agents</a>
+        </div>
+        <div class="visual"><img alt=""></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.body.offsetHeight;
+</script>
