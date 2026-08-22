@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::collections::hash_map::Entry;
 use std::ptr::{NonNull, null_mut};
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
@@ -18,10 +17,10 @@ use js::context::JSContext;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSObject, Value};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::AutoRealm;
-use js::rust::HandleValue;
 use js::rust::wrappers2::{
     Call, Construct1, JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject,
 };
+use js::rust::{HandleValue, MutableHandle};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_bindings::cell::DomRefCell;
@@ -282,6 +281,57 @@ impl PaintWorkletGlobalScope {
         )
     }
 
+    #[expect(unsafe_code)]
+    /// Gets or creates the `self.paint_class_instances` given by `name` and inserts
+    /// the value into the provided `paint_instance` handle. Returns `Err` when this
+    /// fails.
+    fn get_or_create_paint_instance(
+        &self,
+        cx: &mut JSContext,
+        mut paint_instance: MutableHandle<Value>,
+        name: Atom,
+        class_constructor: HandleValue,
+        size_in_dpx: Size2D<u32, DevicePixel>,
+    ) -> Result<(), DrawAPaintImageResult> {
+        if let Some(entry) = self.paint_class_instances.borrow().get(&name) {
+            paint_instance.set(entry.get());
+            return Ok(());
+        }
+
+        // Step of <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
+        // 5.2 Let paintCtor be the class constructor on definition.
+        // 5.3 Let paintInstance be the result of Construct(paintCtor).
+        //     If construct throws an exception, set the definition’s constructor valid flag to false,
+        //     let the image output be an invalid image and abort all these steps.
+        let args = HandleValueArray::empty();
+        rooted!(&in(cx) let mut result = null_mut::<JSObject>());
+        unsafe {
+            Construct1(cx, class_constructor, &args, result.handle_mut());
+        }
+        paint_instance.set(ObjectValue(result.get()));
+        if unsafe { JS_IsExceptionPending(cx) } {
+            debug!("Paint constructor threw an exception {}.", name);
+            unsafe {
+                JS_ClearPendingException(cx);
+            }
+            self.paint_definitions
+                .safe_borrow_mut(cx)
+                .get_mut(&name)
+                .expect("Vanishing paint definition.")
+                .constructor_valid_flag
+                .set(false);
+            // 1.2 Let the image output be an invalid image and abort all these steps.
+            return Err(self.invalid_image(size_in_dpx, vec![]));
+        }
+        // Step 5.4
+        self.paint_class_instances
+            .safe_borrow_mut(cx)
+            .entry(name)
+            .or_default()
+            .set(paint_instance.get());
+        Ok(())
+    }
+
     /// <https://drafts.css-houdini.org/css-paint-api/#invoke-a-paint-callback>
     #[expect(clippy::too_many_arguments)]
     #[expect(unsafe_code)]
@@ -334,35 +384,15 @@ impl PaintWorkletGlobalScope {
         // the primary worklet thread.
         // https://github.com/servo/servo/issues/17377
         rooted!(&in(cx) let mut paint_instance = UndefinedValue());
-        match self.paint_class_instances.borrow_mut().entry(name.clone()) {
-            Entry::Occupied(entry) => paint_instance.set(entry.get().get()),
-            Entry::Vacant(entry) => {
-                // Step 5.2-5.3
-                let args = HandleValueArray::empty();
-                rooted!(&in(cx) let mut result = null_mut::<JSObject>());
-                unsafe {
-                    Construct1(cx, class_constructor.handle(), &args, result.handle_mut());
-                }
-                paint_instance.set(ObjectValue(result.get()));
-                if unsafe { JS_IsExceptionPending(cx) } {
-                    debug!("Paint constructor threw an exception {}.", name);
-                    unsafe {
-                        JS_ClearPendingException(cx);
-                    }
-                    self.paint_definitions
-                        .borrow_mut()
-                        .get_mut(name)
-                        .expect("Vanishing paint definition.")
-                        .constructor_valid_flag
-                        .set(false);
-                    return self.invalid_image(size_in_dpx, vec![]);
-                }
-                // Step 5.4
-                entry
-                    .insert(Box::<Heap<Value>>::default())
-                    .set(paint_instance.get());
-            },
-        };
+        if let Err(early_return) = self.get_or_create_paint_instance(
+            cx,
+            paint_instance.handle_mut(),
+            name.clone(),
+            class_constructor.handle(),
+            size_in_dpx,
+        ) {
+            return early_return;
+        }
 
         // TODO: Steps 6-7
         // Step 8
