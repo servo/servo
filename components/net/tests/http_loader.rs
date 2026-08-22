@@ -1623,7 +1623,7 @@ fn test_fetch_compressed_response_update_count() {
         sender: Some(sender),
         update_count: 0,
     };
-    let response_update_count = spawn_blocking_task::<_, Response>(async move {
+    let response_update_count = spawn_blocking_task::<_>(async move {
         methods::fetch(request, &mut target, &mut new_fetch_context(None, None)).await;
         receiver.await.unwrap()
     });

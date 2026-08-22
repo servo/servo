@@ -213,7 +213,7 @@ fn test_fetch_blob() {
         expected: bytes.to_vec(),
     };
 
-    spawn_blocking_task::<_, Response>(methods::fetch(request, &mut target, &context));
+    spawn_blocking_task::<_>(methods::fetch(request, &mut target, &context));
 
     let fetch_response = receiver.recv().unwrap();
     assert!(!fetch_response.is_network_error());

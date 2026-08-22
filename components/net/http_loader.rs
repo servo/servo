@@ -75,7 +75,7 @@ use tokio_stream::wrappers::ReceiverStream;
 #[cfg(feature = "tracing")]
 use tracing::Instrument;
 
-use crate::async_runtime::spawn_task;
+use crate::async_runtime::{self, spawn_task};
 use crate::connector::{
     CertificateErrorOverrideManager, ServoClient, TlsHandshakeInfo, create_tls_config,
 };
@@ -169,6 +169,13 @@ impl HttpState {
                 sender,
             ));
         receiver.await.ok()?
+    }
+
+    /// Shuts down the cache, potentially storing elements.
+    pub(crate) fn shutdown(&self) {
+        async_runtime::spawn_blocking_task(async move {
+            self.http_cache.shutdown().await;
+        });
     }
 }
 
