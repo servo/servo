@@ -79,7 +79,7 @@ impl KeyframeEffect {
         }
     }
 
-    fn new_with_proto_and_cx(
+    fn new_with_proto(
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
@@ -88,7 +88,7 @@ impl KeyframeEffect {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<Self> {
-        Self::new_with_proto_and_cx(cx, window, None)
+        Self::new_with_proto(cx, window, None)
     }
 }
 
