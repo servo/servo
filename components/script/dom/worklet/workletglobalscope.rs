@@ -35,8 +35,8 @@ use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
-use crate::microtask::MicrotaskQueue;
 use crate::realms::enter_auto_realm;
+use crate::runtime::microtask::MicrotaskQueue;
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
 

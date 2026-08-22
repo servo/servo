@@ -49,7 +49,7 @@ use crate::dom::html::htmlmediaelement::HTMLMediaElementFetchContext;
 use crate::dom::srcset::SourceSet;
 use crate::dom::windowproxy::WindowProxyHandler;
 use crate::event_loop::script_thread::IncompleteParserContexts;
-use crate::script_runtime::StreamConsumer;
+use crate::runtime::script_runtime::StreamConsumer;
 use crate::tasks::task::TaskBox;
 
 /// Wrapper type for nop traceble

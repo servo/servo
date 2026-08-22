@@ -48,7 +48,7 @@ use crate::event_loop::document_loader::LoadType;
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::script_runtime::ScriptThreadEventCategory;
+use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task_source::TaskSourceName;
 use crate::unminify::{
     BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,

@@ -21,8 +21,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::microtask::MicrotaskRunnable;
 use crate::realms::enter_auto_realm;
+use crate::runtime::microtask::MicrotaskRunnable;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]

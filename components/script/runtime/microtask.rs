@@ -24,7 +24,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::notify_about_rejected_promises;
+use crate::runtime::script_runtime::notify_about_rejected_promises;
 
 /// A collection of microtasks in FIFO order.
 #[derive(Default, JSTraceable, MallocSizeOf)]

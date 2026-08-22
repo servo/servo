@@ -89,6 +89,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
+use crate::event_loop::timers::{IsInterval, OneshotTimers, TimerCallback};
 use crate::fetch::fetch::{
     CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_whole_resource,
 };
@@ -96,13 +97,12 @@ use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{IntroductionType, Runtime, get_reports};
+use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable, UserMicrotask};
+use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
-use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 
 /// <https://html.spec.whatwg.org/multipage/#animation-frames>
 pub(crate) fn prepare_workerscope_init(

@@ -30,7 +30,7 @@ use crate::dom::promise::Promise;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::types::HTMLDialogElement;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::script_runtime::ScriptThreadEventCategory;
+use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task::TaskOnce;
 use crate::tasks::task_source::TaskSourceName;
 

@@ -62,7 +62,7 @@ use crate::fetch::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{IntroductionType, Runtime, ThreadSafeJSContext};
+use crate::runtime::script_runtime::{IntroductionType, Runtime, ThreadSafeJSContext};
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::tasks::task_source::TaskSourceName;
 

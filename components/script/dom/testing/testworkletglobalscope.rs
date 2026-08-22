@@ -22,7 +22,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
-use crate::microtask::MicrotaskQueue;
+use crate::runtime::microtask::MicrotaskQueue;
 
 // check-tidy: no specs after this line
 
