@@ -2964,7 +2964,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedKeyGenParams {
                 cx,
                 object,
                 c"modulusLength",
-                ConversionBehavior::Default,
+                ConversionBehavior::EnforceRange,
             )?,
             public_exponent: get_required_parameter_in_box::<HeapUint8Array>(
                 cx,
