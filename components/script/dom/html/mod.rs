@@ -14,6 +14,8 @@ pub(crate) mod grouping_content;
 pub(crate) use self::grouping_content::*;
 pub(crate) mod interactive;
 pub(crate) use self::interactive::*;
+pub(crate) mod internals;
+pub(crate) use self::internals::*;
 pub(crate) mod links;
 pub(crate) mod scripting;
 pub(crate) use self::scripting::*;

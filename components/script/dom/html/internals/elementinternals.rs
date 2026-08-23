@@ -18,13 +18,13 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::customstateset::CustomStateSet;
 use crate::dom::element::Element;
 use crate::dom::file::File;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{
     FormDatum, FormDatumUnrooted, FormDatumValue, HTMLFormElement,
 };
+use crate::dom::html::internals::customstateset::CustomStateSet;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;

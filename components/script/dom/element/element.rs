@@ -123,7 +123,6 @@ use crate::dom::element::attributes::storage::{
     AttrRef, AttrValueRef, AttributeEntry, AttributeStorage, ContentAttributeData,
 };
 use crate::dom::element::create::create_element;
-use crate::dom::elementinternals::ElementInternals;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
@@ -157,6 +156,7 @@ use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
+use crate::dom::html::internals::elementinternals::ElementInternals;
 use crate::dom::intersectionobserver::{IntersectionObserver, IntersectionObserverRegistration};
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationobserver::{Mutation, MutationObserver};
@@ -2779,18 +2779,6 @@ impl Element {
             .element_internals
             .as_ref()
             .map(|sr| DomRoot::from_ref(&**sr))
-    }
-
-    pub(crate) fn ensure_element_internals(&self, cx: &mut JSContext) -> DomRoot<ElementInternals> {
-        let Some(element_internals) = self.get_element_internals() else {
-            let elem = self
-                .downcast::<HTMLElement>()
-                .expect("ensure_element_internals should only be called for an HTMLElement");
-            let internals = ElementInternals::new(cx, elem);
-            self.ensure_rare_data(cx.no_gc()).element_internals = Some(Dom::from_ref(&*internals));
-            return internals;
-        };
-        element_internals
     }
 
     pub(crate) fn outer_html(&self, cx: &mut JSContext) -> Fallible<DOMString> {
