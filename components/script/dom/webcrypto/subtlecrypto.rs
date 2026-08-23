@@ -2670,9 +2670,11 @@ pub(crate) fn check_support_for_algorithm(
             };
 
             match normalized_algorithm {
-                GenerateKeyAlgorithm::RsassaPkcs1V1_5(_) |
-                GenerateKeyAlgorithm::RsaPss(_) |
-                GenerateKeyAlgorithm::RsaOaep(_) => true,
+                GenerateKeyAlgorithm::RsassaPkcs1V1_5(normalized_algorithm) |
+                GenerateKeyAlgorithm::RsaPss(normalized_algorithm) |
+                GenerateKeyAlgorithm::RsaOaep(normalized_algorithm) => {
+                    normalized_algorithm.validate_parameters().is_ok()
+                },
                 GenerateKeyAlgorithm::Ecdsa(normalized_algorithm) |
                 GenerateKeyAlgorithm::Ecdh(normalized_algorithm) => {
                     SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
@@ -2976,6 +2978,52 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for RsaHashedKeyGenParams {
             .unwrap_or_default(),
             hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
+    }
+}
+
+impl RsaHashedKeyGenParams {
+    /// <https://w3c.github.io/webcrypto/#dfn-validate-rsa-key-generation-parameters>
+    fn validate_parameters(&self) -> Result<(), Error> {
+        // Step 1. Let modulusLength be the modulusLength member of normalizedAlgorithm.
+        let modulus_length = self.modulus_length;
+
+        // Step 2. Let publicExponent be the result of converting the publicExponent member of
+        // normalizedAlgorithm to a non-negative integer.
+        let public_exponent = &self.public_exponent;
+
+        // Step 3. If modulusLength is less than 4, or if publicExponent is less than 3, is even, or
+        // is greater than or equal to 2^modulusLength - 1, then throw an OperationError.
+        let public_exponent_length_in_bits = public_exponent
+            .iter()
+            .fold(None, |length, next| match (length, *next == 0) {
+                (None, true) => None,
+                (None, false) => Some(8 - next.leading_zeros()),
+                (Some(length), _) => Some(length + 8),
+            })
+            .unwrap_or(0);
+        let is_public_exponent_too_small = || {
+            public_exponent_length_in_bits <= 2 &&
+                public_exponent.last().is_none_or(|byte| *byte < 3)
+        };
+        let is_public_exponent_too_large = || {
+            public_exponent_length_in_bits > modulus_length ||
+                public_exponent_length_in_bits == modulus_length &&
+                    public_exponent
+                        .iter()
+                        .skip_while(|byte| **byte == 0)
+                        .all(|byte| *byte == 255)
+        };
+        if modulus_length < 4 ||
+            is_public_exponent_too_small() ||
+            public_exponent.last().is_none_or(|byte| byte % 2 == 0) ||
+            is_public_exponent_too_large()
+        {
+            return Err(Error::Operation(Some(
+                "Invalid RsaHashedKeyGenParams".into(),
+            )));
+        }
+
+        Ok(())
     }
 }
 

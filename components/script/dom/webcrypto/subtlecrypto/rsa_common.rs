@@ -75,23 +75,14 @@ pub(crate) fn generate_key(
         },
     }
 
-    // Step 2. Generate an RSA key pair, as defined in [RFC3447], with RSA modulus length equal to
+    // Step 2. Perform the validate RSA key generation parameters algorithm with
+    // normalizedAlgorithm.
+    normalized_algorithm.validate_parameters()?;
+
+    // Step 3. Generate an RSA key pair, as defined in [RFC3447], with RSA modulus length equal to
     // the modulusLength attribute of normalizedAlgorithm and RSA public exponent equal to the
     // publicExponent attribute of normalizedAlgorithm.
-    // Step 3. If generation of the key pair fails, then throw an OperationError.
-    // NOTE: If the public exponent is even, it is invalid for RSA, and RsaPrivateKey::new_with_exp
-    // should throw an error. However, RsaPrivateKey::new_with_exp would take a long period of time
-    // to validate this case. So, we manually check it before running RsaPrivateKey::new_with_exp,
-    // in order to throw error eariler.
-    if normalized_algorithm
-        .public_exponent
-        .last()
-        .is_none_or(|last_byte| last_byte % 2 == 0)
-    {
-        return Err(Error::Operation(Some(
-            "The public expoenent is an even number".to_string(),
-        )));
-    }
+    // Step 4. If generation of the key pair fails, then throw an OperationError.
     let mut rng = rand::rng();
     let modulus_length = normalized_algorithm.modulus_length as usize;
     let public_exponent = BoxedUint::from_be_slice_vartime(&normalized_algorithm.public_exponent);
@@ -99,19 +90,19 @@ pub(crate) fn generate_key(
         .map_err(|_| Error::Operation(Some("Failed to generate RSA private key".into())))?;
     let public_key = private_key.to_public_key();
 
-    // Step 4. Let algorithm be a new RsaHashedKeyAlgorithm dictionary.
-    // Step 6. Set the modulusLength attribute of algorithm to equal the modulusLength attribute of
+    // Step 5. Let algorithm be a new RsaHashedKeyAlgorithm dictionary.
+    // Step 7. Set the modulusLength attribute of algorithm to equal the modulusLength attribute of
     // normalizedAlgorithm.
-    // Step 7. Set the publicExponent attribute of algorithm to equal the publicExponent attribute
+    // Step 8. Set the publicExponent attribute of algorithm to equal the publicExponent attribute
     // of normalizedAlgorithm.
-    // Step 8. Set the hash attribute of algorithm to equal the hash member of normalizedAlgorithm.
+    // Step 9. Set the hash attribute of algorithm to equal the hash member of normalizedAlgorithm.
     let algorithm = RsaHashedKeyAlgorithm {
         name: match rsa_algorithm {
-            // Step 5. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
+            // Step 6. Set the name attribute of algorithm to "RSASSA-PKCS1-v1_5".
             RsaAlgorithm::RsassaPkcs1v1_5 => CryptoAlgorithm::RsassaPkcs1V1_5,
-            // Step 5. Set the name attribute of algorithm to "RSA-PSS".
+            // Step 6. Set the name attribute of algorithm to "RSA-PSS".
             RsaAlgorithm::RsaPss => CryptoAlgorithm::RsaPss,
-            // Step 5. Set the name attribute of algorithm to "RSA-OAEP".
+            // Step 6. Set the name attribute of algorithm to "RSA-OAEP".
             RsaAlgorithm::RsaOaep => CryptoAlgorithm::RsaOaep,
         },
         modulus_length: normalized_algorithm.modulus_length,
@@ -119,19 +110,19 @@ pub(crate) fn generate_key(
         hash: normalized_algorithm.hash.clone(),
     };
 
-    // Step 9. Let publicKey be a new CryptoKey representing the public key of the generated key
+    // Step 10. Let publicKey be a new CryptoKey representing the public key of the generated key
     // pair.
-    // Step 10. Set the [[type]] internal slot of publicKey to "public"
-    // Step 11. Set the [[algorithm]] internal slot of publicKey to algorithm.
-    // Step 12. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 11. Set the [[type]] internal slot of publicKey to "public"
+    // Step 12. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 13. Set the [[extractable]] internal slot of publicKey to true.
     let intersected_usages = match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
-            // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
+            // Step 14. Set the [[usages]] internal slot of publicKey to be the usage intersection
             // of usages and [ "verify" ].
             usages.usage_intersection(&[KeyUsage::Verify])
         },
         RsaAlgorithm::RsaOaep => {
-            // Step 13. Set the [[usages]] internal slot of publicKey to be the usage intersection
+            // Step 14. Set the [[usages]] internal slot of publicKey to be the usage intersection
             // of usages and [ "encrypt", "wrapKey" ].
             usages.usage_intersection(&[KeyUsage::Encrypt, KeyUsage::WrapKey])
         },
@@ -146,19 +137,19 @@ pub(crate) fn generate_key(
         Handle::RsaPublicKey(public_key),
     );
 
-    // Step 14. Let privateKey be a new CryptoKey representing the private key of the generated key
+    // Step 15. Let privateKey be a new CryptoKey representing the private key of the generated key
     // pair.
-    // Step 15. Set the [[type]] internal slot of privateKey to "private"
-    // Step 16. Set the [[algorithm]] internal slot of privateKey to algorithm.
-    // Step 17. Set the [[extractable]] internal slot of privateKey to extractable.
+    // Step 16. Set the [[type]] internal slot of privateKey to "private"
+    // Step 17. Set the [[algorithm]] internal slot of privateKey to algorithm.
+    // Step 18. Set the [[extractable]] internal slot of privateKey to extractable.
     let intersected_usages = match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
-            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
+            // Step 19. Set the [[usages]] internal slot of privateKey to be the usage intersection
             // of usages and [ "sign" ].
             usages.usage_intersection(&[KeyUsage::Sign])
         },
         RsaAlgorithm::RsaOaep => {
-            // Step 18. Set the [[usages]] internal slot of privateKey to be the usage intersection
+            // Step 19. Set the [[usages]] internal slot of privateKey to be the usage intersection
             // of usages and [ "decrypt", "unwrapKey" ].
             usages.usage_intersection(&[KeyUsage::Decrypt, KeyUsage::UnwrapKey])
         },
@@ -173,15 +164,15 @@ pub(crate) fn generate_key(
         Handle::RsaPrivateKey(private_key),
     );
 
-    // Step 19. Let result be a new CryptoKeyPair dictionary.
-    // Step 20. Set the publicKey attribute of result to be publicKey.
-    // Step 21. Set the privateKey attribute of result to be privateKey.
+    // Step 20. Let result be a new CryptoKeyPair dictionary.
+    // Step 21. Set the publicKey attribute of result to be publicKey.
+    // Step 22. Set the privateKey attribute of result to be privateKey.
     let result = CryptoKeyPair {
         publicKey: Some(public_key),
         privateKey: Some(private_key),
     };
 
-    // Step 22. Return result.
+    // Step 23. Return result.
     Ok(result)
 }
 
