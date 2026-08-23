@@ -2312,9 +2312,6 @@ async fn http_network_fetch(
         return Response::network_error(NetworkError::LoadCancelled);
     }
 
-    *response_body.lock() = ResponseBody::Receiving(vec![]);
-    let response_body2 = response_body.clone();
-
     if let Some(ref sender) = devtools_sender &&
         let Some(m) = msg
     {
@@ -2333,15 +2330,26 @@ async fn http_network_fetch(
     let headers = response.headers.clone();
     let devtools_chan = context.devtools_chan.clone();
 
-    if let Some(possible_length) = response_stream
+    let prealloc_size = if let Some(possible_length) = response_stream
         .headers()
         .get(http::header::CONTENT_LENGTH)
         .and_then(|header_value| header_value.to_str().ok())
         .and_then(|s| s.parse().ok())
         .map(|length| min(length, pref!(network_max_content_length) as usize))
     {
-        let _ = done_sender.send(Data::ContentLength(possible_length));
+        // For compressed content, we pre-allocate a multiple of the
+        // compressed size, assuming typical content will be highly compressed.
+        let multiplier = if response_stream.body().is_encoded() { 5 } else { 1 };
+        possible_length * multiplier
+    } else {
+        // We don't know the length, so we fallback to something to still
+        // avoid some reallocs.
+        4096
     }
+    .min(pref!(network_max_content_length) as usize);
+    let _ = done_sender.send(Data::ContentLength(prealloc_size));
+    *response_body.lock() = ResponseBody::Receiving(Vec::with_capacity(prealloc_size));
+    let response_body2 = response_body.clone();
 
     spawn_task(
         response_stream

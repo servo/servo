@@ -281,13 +281,14 @@ impl ImageBytes {
     }
 
     fn mark_complete(&mut self) -> Arc<Vec<u8>> {
-        let bytes = {
+        let mut bytes = {
             let own_bytes = match *self {
                 ImageBytes::InProgress(ref mut bytes) => bytes,
                 ImageBytes::Complete(_) => panic!("attempted modification of complete image bytes"),
             };
             mem::take(own_bytes)
         };
+        bytes.shrink_to_fit();
         let bytes = Arc::new(bytes);
         *self = ImageBytes::Complete(bytes.clone());
         bytes

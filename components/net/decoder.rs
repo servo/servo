@@ -151,6 +151,11 @@ impl Decoder {
         }
     }
 
+    /// Returns true if the content is encoded
+    pub fn is_encoded(&self) -> bool {
+        !matches!(self.inner, Inner::PlainText(_))
+    }
+
     /// Constructs a Decoder from a hyper response.
     ///
     /// A decoder is just a wrapper around the hyper response that knows
