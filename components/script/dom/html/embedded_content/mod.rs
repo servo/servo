@@ -13,5 +13,8 @@ pub(crate) mod htmlimageelement;
 pub(crate) mod htmlmapelement;
 pub(crate) mod htmlmediaelement;
 pub(crate) mod htmlobjectelement;
+pub(crate) mod htmlparamelement;
+pub(crate) mod htmlpictureelement;
+pub(crate) mod htmlsourceelement;
 pub(crate) mod htmltrackelement;
 pub(crate) mod htmlvideoelement;

@@ -14,6 +14,7 @@ pub(crate) mod documenttype;
 pub(crate) mod focus;
 mod iframe_collection;
 mod image_animation;
+mod interactive_element_command;
 mod tree_ordered_index_map;
 pub(crate) mod visibilitystateentry;
 pub(crate) mod websocket;
