@@ -36,7 +36,7 @@ interface SubtleCrypto {
                          sequence<KeyUsage> keyUsages );
   Promise<ArrayBuffer> deriveBits(AlgorithmIdentifier algorithm,
                           CryptoKey baseKey,
-                          optional unsigned long? length = null);
+                          optional [EnforceRange] unsigned long? length = null);
 
   Promise<CryptoKey> importKey(KeyFormat format,
                          (BufferSource or JsonWebKey) keyData,
@@ -94,7 +94,7 @@ dictionary RsaHashedKeyGenParams : RsaKeyGenParams {
 // https://w3c.github.io/webcrypto/#RsaKeyAlgorithm-dictionary
 
 dictionary RsaKeyAlgorithm : KeyAlgorithm {
-  required unsigned long modulusLength;
+  required [EnforceRange] unsigned long modulusLength;
   required BigInteger publicExponent;
 };
 
@@ -163,7 +163,7 @@ dictionary AesCtrParams : Algorithm {
 // https://w3c.github.io/webcrypto/#AesKeyAlgorithm-dictionary
 
 dictionary AesKeyAlgorithm : KeyAlgorithm {
-  required unsigned short length;
+  required [EnforceRange] unsigned short length;
 };
 
 // https://w3c.github.io/webcrypto/#aes-keygen-params
@@ -203,7 +203,7 @@ dictionary HmacImportParams : Algorithm {
 
 dictionary HmacKeyAlgorithm : KeyAlgorithm {
   required KeyAlgorithm hash;
-  required unsigned long length;
+  required [EnforceRange] unsigned long length;
 };
 
 // https://w3c.github.io/webcrypto/#hmac-keygen-params
@@ -301,7 +301,7 @@ partial interface SubtleCrypto {
 
   static boolean supports(DOMString operation,
                    AlgorithmIdentifier algorithm,
-                   optional unsigned long? length = null);
+                   optional [EnforceRange] unsigned long? length = null);
   static boolean supports(DOMString operation,
                    AlgorithmIdentifier algorithm,
                    AlgorithmIdentifier additionalAlgorithm);
@@ -368,7 +368,7 @@ dictionary KmacImportParams : Algorithm {
 // https://wicg.github.io/webcrypto-modern-algos/#KmacKeyAlgorithm-dictionary
 
 dictionary KmacKeyAlgorithm : KeyAlgorithm {
-  required unsigned long length;
+  required [EnforceRange] unsigned long length;
 };
 
 // https://wicg.github.io/webcrypto-modern-algos/#kmac-params
