@@ -2615,10 +2615,15 @@ pub(crate) fn check_support_for_algorithm(
             };
 
             match normalized_algorithm {
-                DeriveBitsAlgorithm::Ecdh(normalized_algorithm) => length.is_none_or(|length| {
-                    ecdh_operation::secret_length(&normalized_algorithm)
-                        .is_ok_and(|secret_length| secret_length * 8 >= length)
-                }),
+                DeriveBitsAlgorithm::Ecdh(normalized_algorithm) => {
+                    let public_key = normalized_algorithm.public.root();
+                    let Ok(maximum_length) = ecdh_operation::maximum_length(&public_key) else {
+                        return false;
+                    };
+                    public_key.Type() == KeyType::Public &&
+                        public_key.algorithm().name() == normalized_algorithm.name &&
+                        length.is_none_or(|length| length <= maximum_length)
+                },
                 DeriveBitsAlgorithm::X25519(_) => {
                     length.is_none_or(|length| x25519_operation::SECRET_LENGTH as u32 * 8 >= length)
                 },
