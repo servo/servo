@@ -164,6 +164,7 @@ impl Document {
             "indent" => CommandName::Indent,
             "inserthorizontalrule" => CommandName::InsertHorizontalRule,
             "insertimage" => CommandName::InsertImage,
+            "insertlinebreak" => CommandName::InsertLineBreak,
             "insertparagraph" => CommandName::InsertParagraph,
             "inserttext" => CommandName::InsertText,
             "italic" => CommandName::Italic,

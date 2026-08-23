@@ -33,6 +33,7 @@ use crate::dom::execcommand::commands::hilitecolor::execute_hilitecolor_command;
 use crate::dom::execcommand::commands::indent::execute_indent_command;
 use crate::dom::execcommand::commands::inserthorizontalrule::execute_insert_horizontal_rule_command;
 use crate::dom::execcommand::commands::insertimage::execute_insert_image_command;
+use crate::dom::execcommand::commands::insertlinebreak::execute_insert_line_break_command;
 use crate::dom::execcommand::commands::insertparagraph::execute_insert_paragraph_command;
 use crate::dom::execcommand::commands::inserttext::execute_insert_text_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
@@ -753,6 +754,9 @@ impl CommandName {
             },
             CommandName::InsertImage => {
                 execute_insert_image_command(cx, document, selection, value)
+            },
+            CommandName::InsertLineBreak => {
+                execute_insert_line_break_command(cx, document, selection)
             },
             CommandName::InsertParagraph => {
                 execute_insert_paragraph_command(cx, document, selection)
