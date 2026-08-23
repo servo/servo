@@ -592,11 +592,11 @@ pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) ->
     let code_from_winit = Code::from_winit_key_event(key_event);
 
     let mut raw_keycode = None;
-    if additional_virtual_keycodes(code_from_winit) != None {
+    if additional_virtual_keycodes(code_from_winit).is_some() {
         raw_keycode = additional_virtual_keycodes(code_from_winit);
     }
 
-    let keyboard_event = KeyboardEvent::new_without_event(
+    KeyboardEvent::new_without_event(
         KeyState::from_winit_key_event(key_event),
         Key::from_winit_key_event(key_event),
         code_from_winit,
@@ -605,9 +605,7 @@ pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) ->
         false,
         false,
         raw_keycode,
-    );
-
-    return keyboard_event;
+    )
 }
 
 fn additional_virtual_keycodes(code: Code) -> Option<u32> {

@@ -117,6 +117,7 @@ impl KeyboardEvent {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn new_without_event(
         state: KeyState,
         key: Key,
