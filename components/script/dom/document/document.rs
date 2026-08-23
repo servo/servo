@@ -1478,12 +1478,19 @@ impl Document {
         // Note: Handled implicitly by update_with_current_instant.
         match state {
             DocumentReadyState::Loading => {
+                // From <https://w3c.github.io/navigation-timing/#dom-performancetiming-domloading>:
+                // > This attribute must return the time immediately before the user agent sets the
+                // > current document readiness to "loading".
+                update_with_current_instant(&self.navigation_timing.dom_loading);
+
                 let webview_id = self.webview_id();
-                window.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
                     webview_id,
                     LoadStatus::Started,
                 ));
-                window.send_to_embedder(EmbedderMsg::Status(webview_id, None));
+                self.send_to_embedder(EmbedderMsg::Status(webview_id, None));
+                // We should not fire a `readystatechange` event for the initial loading state
+                return;
             },
             DocumentReadyState::Complete => {
                 // This isn't part of the specification, but it's useful to have it here to
@@ -3932,13 +3939,7 @@ impl Document {
             QuirksMode::NoQuirks
         };
 
-        // From <https://w3c.github.io/navigation-timing/#dom-performancetiming-domloading>:
-        // > This attribute must return the time immediately before the user agent sets the
-        // > current document readiness to "loading".
         let navigation_timing = Rc::new(NavigationTiming::default());
-        if ready_state == DocumentReadyState::Loading {
-            update_with_current_instant(&navigation_timing.dom_loading);
-        }
 
         Document {
             node: Node::new_document_node(),
@@ -3974,7 +3975,7 @@ impl Document {
             shared_style_locks,
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
-            // https://html.spec.whatwg.org/multipage/dom.html#current-document-readiness
+            // https://html.spec.whatwg.org/multipage/#current-document-readiness
             // > Each Document has a current document readiness, a string, initially "complete".
             ready_state: Cell::new(DocumentReadyState::Complete),
             current_script: Default::default(),
@@ -6723,7 +6724,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Handled when creating the parser in step 16
 
         // Step 18. Update the current document readiness of document to "loading".
-        self.ready_state.set(DocumentReadyState::Loading);
+        self.update_the_current_document_readiness(cx, DocumentReadyState::Loading);
 
         // Step 19. Return document.
         Ok(DomRoot::from_ref(self))

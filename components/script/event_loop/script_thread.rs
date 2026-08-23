@@ -42,8 +42,8 @@ use devtools_traits::{
 use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScript};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
-    InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, LoadStatus,
-    MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
+    InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
+    Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use encoding_rs::Encoding;
 use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
@@ -3623,11 +3623,11 @@ impl ScriptThread {
             image_cache,
         );
 
-        // https://html.spec.whatwg.org/multipage/document-lifecycle.html#initialise-the-document-object
+        // https://html.spec.whatwg.org/multipage/#initialise-the-document-object
         // > such initial about:blank Document are never created by this algorithm
         // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
         if !document.is_initial_about_blank() {
-            document.set_ready_state(cx, DocumentReadyState::Loading);
+            document.update_the_current_document_readiness(cx, DocumentReadyState::Loading);
         }
 
         // Step 8. Let loadTimingInfo be a new document load timing info with its
