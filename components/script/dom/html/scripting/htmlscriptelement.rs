@@ -66,7 +66,7 @@ use crate::modules::import_map::{ImportMap, parse_an_import_map_string, register
 use crate::modules::script_module::{
     ModuleTree, ScriptFetchOptions, fetch_an_external_module_script, fetch_inline_module_script,
 };
-use crate::script_runtime::IntroductionType;
+use crate::runtime::script_runtime::IntroductionType;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]

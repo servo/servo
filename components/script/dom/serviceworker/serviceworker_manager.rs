@@ -35,7 +35,7 @@ use crate::dom::serviceworkerglobalscope::{
     ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
 };
 use crate::dom::serviceworkerregistration::longest_prefix_match;
-use crate::script_runtime::ThreadSafeJSContext;
+use crate::runtime::script_runtime::ThreadSafeJSContext;
 
 enum Message {
     FromResource(CustomResponseMediator),

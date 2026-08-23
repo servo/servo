@@ -39,7 +39,7 @@ use crate::modules::script_module::{
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
+use crate::runtime::script_runtime::IntroductionType;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(JSTraceable, MallocSizeOf)]

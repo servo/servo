@@ -201,17 +201,19 @@ use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
+use crate::event_loop::timers::{IsInterval, OneshotTimers, TimerCallback};
+use crate::event_loop::webdriver_handlers::{
+    find_node_by_unique_id_in_document, jsval_to_webdriver,
+};
 use crate::fetch::fetch;
 use crate::fetch::network_listener::{ResourceTimingListener, submit_timing};
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::microtask::UserMicrotask;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::Runtime;
+use crate::runtime::microtask::UserMicrotask;
+use crate::runtime::script_runtime::Runtime;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
-use crate::timers::{IsInterval, OneshotTimers, TimerCallback};
 use crate::unminify::unminified_path;
-use crate::webdriver_handlers::{find_node_by_unique_id_in_document, jsval_to_webdriver};
 use crate::window_named_properties;
 
 /// A callback to call when a response comes back from the `ImageCache`.

@@ -95,7 +95,7 @@ use crate::event_loop::script_thread::ScriptThread;
 use crate::fetch::network_listener::FetchResponseListener;
 use crate::navigation::determine_the_origin;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
+use crate::runtime::script_runtime::IntroductionType;
 
 mod async_html;
 pub(crate) mod encoding;

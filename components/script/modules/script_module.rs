@@ -80,7 +80,7 @@ use crate::modules::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
 };
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
+use crate::runtime::script_runtime::IntroductionType;
 use crate::tasks::task::NonSendTaskBox;
 use crate::unminify::{ScriptSource, unminify_js};
 

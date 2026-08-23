@@ -36,7 +36,7 @@ use crate::fetch::body::{
     BodyMixin, BodyType, Extractable, ExtractedBody, body_text_stream,
     clone_body_stream_for_dom_body, consume_body,
 };
-use crate::script_runtime::StreamConsumer;
+use crate::runtime::script_runtime::StreamConsumer;
 
 #[dom_struct]
 pub(crate) struct Response {

@@ -42,7 +42,7 @@ use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::ThreadSafeJSContext;
+use crate::runtime::script_runtime::ThreadSafeJSContext;
 use crate::tasks::task::TaskOnce;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
