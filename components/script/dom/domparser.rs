@@ -156,7 +156,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 // Step switch-1. Create an XML parser parser, associated with document,
                 // and with XML scripting support disabled.
                 ServoParser::parse_xml_document(cx, &document, Some(compliant_string), url, None);
-                document.set_ready_state(cx, DocumentReadyState::Complete);
+                document.update_the_current_document_readiness(cx, DocumentReadyState::Complete);
                 document
             },
         };

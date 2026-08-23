@@ -42,8 +42,8 @@ use devtools_traits::{
 use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScript};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
-    InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
-    Theme, ViewportDetails, WebDriverScriptCommand,
+    InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, LoadStatus,
+    MediaSessionActionType, Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use encoding_rs::Encoding;
 use fonts::{FontContext, SystemFontServiceProxy, WebFontLoadEvent};
@@ -3650,7 +3650,20 @@ impl ScriptThread {
             image_cache,
         );
 
-        document.set_ready_state(cx, DocumentReadyState::Loading);
+        // Only send loading-related messages if this document is actually in the loading state.
+        // `about:blank` documents should never be in that state when starting.
+        if !incomplete.load_data.is_initial_about_blank {
+            debug_assert_eq!(document.ReadyState(), DocumentReadyState::Loading);
+            if window.is_top_level() {
+                window.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                    incomplete.webview_id,
+                    LoadStatus::Started,
+                ));
+                window.send_to_embedder(EmbedderMsg::Status(incomplete.webview_id, None));
+            }
+        } else {
+            debug_assert_eq!(document.ReadyState(), DocumentReadyState::Complete);
+        }
 
         // Step 8. Let loadTimingInfo be a new document load timing info with its
         //   navigation start time set to navigationParams's response's timing
