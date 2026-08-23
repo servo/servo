@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Grid item with a fixed max-height is clamped by it.</title>
+<link rel="author" title="Yulun Wu" href="mailto:yulun_wu@apple.com">
+<link rel="help" href="https://www.w3.org/TR/css-grid-2/#grid-item-sizing">
+<meta name="assert" content="A grid item with an automatic block size which is stretched into its grid area is clamped by its fixed max-height, so its used block size is the max-height rather than the block size of the grid area.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+    grid-template-columns: 50px;
+    grid-template-rows: 100px;
+    /* Layout-preserving: keeps the grid on the modern grid path. */
+    justify-items: normal;
+}
+.item {
+    max-height: 50px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<div class="grid">
+    <div class="item" data-expected-height="50"></div>
+</div>
+
+</body>

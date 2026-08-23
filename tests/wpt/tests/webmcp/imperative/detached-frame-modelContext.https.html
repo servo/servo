@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>document.modelContext in detached frame</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+
+  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await load_promise;
+
+  const iframe_doc = iframe.contentDocument;
+  const iDOMException = iframe.contentWindow.DOMException;
+  iframe.remove();
+
+  assert_not_equals(iframe_doc.modelContext, undefined);
+  await promise_rejects_dom(t, 'InvalidStateError', iDOMException,
+    iframe_doc.modelContext.getTools());
+}, 'document.modelContext in detached frame');
+</script>
+</body>
+</html>

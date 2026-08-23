@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<title>@navigation within @function</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-navigation">
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#conditional-rules">
+<style>
+  @location --r1 {
+    pattern: url-pattern("/matchme/");
+  }
+  @location --r2 {
+    pattern: url-pattern("should-not-match");
+  }
+  @location --r3 {
+    protocol: "http*";
+  }
+
+  @function --test-r1() {
+    result: false;
+    @navigation (at: --r1) {
+      result: true;
+    }
+  }
+
+  @function --test-r2() {
+    result: false;
+    @navigation (at: --r2) {
+      result: true;
+    }
+  }
+
+  @function --test-not-r3() {
+    result: false;
+    @navigation not (at: --r3) {
+      result: true;
+    }
+  }
+
+  @function --test-not-r2() {
+    result: false;
+    @navigation not (at: --r2) {
+      result: true;
+    }
+  }
+
+  @function --test-or() {
+    result: false;
+    @navigation (at: --r2) or (at: --r3) {
+      result: true;
+    }
+  }
+
+  @function --test-url-pattern() {
+    result: false;
+    @navigation (at: url-pattern('/matchme/')) {
+      result: true;
+    }
+  }
+
+  @function --test-url-pattern-nomatch() {
+    result: false;
+    @navigation (at: url-pattern('should-not-match')) {
+      result: true;
+    }
+  }
+
+  @function --test-url-pattern-or() {
+    result: false;
+    @navigation (at: url-pattern('should-not-match')) or (at: --r3) {
+      result: true;
+    }
+  }
+
+  @function --test-url-pattern-or-match() {
+    result: false;
+    @navigation (at: url-pattern('should-not-match')) or (at: url-pattern('/matchme/')) {
+      result: true;
+    }
+  }
+
+  @function --test-nested() {
+    result: false;
+    @navigation (at: --r1) {
+      @navigation (at: --r3) {
+        result: true;
+      }
+    }
+  }
+
+  @function --test-locals() {
+    --x: false;
+    @navigation (at: --r1) {
+      --x: true;
+    }
+    result: var(--x);
+  }
+</style>
+<div class="tests">
+  <div id="elm1" style="--match:--test-r1();"></div>
+  <div id="elm2" style="--match:--test-r2();" nevermatch></div>
+  <div id="elm3" style="--match:--test-not-r3();" inactivematch></div>
+  <div id="elm4" style="--match:--test-not-r2();" alwaysmatch></div>
+  <div id="elm5" style="--match:--test-or();"></div>
+  <div id="elm6" style="--match:--test-url-pattern();"></div>
+  <div id="elm7" style="--match:--test-url-pattern-nomatch();" nevermatch></div>
+  <div id="elm8" style="--match:--test-url-pattern-or();"></div>
+  <div id="elm9" style="--match:--test-url-pattern-or-match();"></div>
+  <div id="elm10" style="--match:--test-nested();"></div>
+  <div id="elm11" style="--match:--test-locals();"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+    let committed = Promise.withResolvers();
+    navigation.onnavigate = (event) => {
+      event.intercept({
+        async handler() {
+          committed.resolve();
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        }
+      })
+    };
+
+    // No active navigation yet.
+    for (const elm of document.querySelectorAll(".tests > div")) {
+      // By default nothing should match, unless the element has an attribute
+      // saying otherwise.
+      if (elm.hasAttribute("alwaysmatch")) {
+        assert_equals(getComputedStyle(elm).getPropertyValue("--match"), "true", `Should always match: ${elm.id}`);
+      } else if (elm.hasAttribute("inactivematch")) {
+        assert_equals(getComputedStyle(elm).getPropertyValue("--match"), "true", `Should match when inactive: ${elm.id}`);
+      } else {
+        assert_equals(getComputedStyle(elm).getPropertyValue("--match"), "false", `Should not match when inactive: ${elm.id}`);
+      }
+    }
+
+    // Trigger an active navigation, so that any valid "at" rule will match.
+    navigation.navigate("/matchme/");
+    await committed.promise;
+
+    for (const elm of document.querySelectorAll(".tests > div")) {
+      // By default everything should match, unless the element has an attribute
+      // saying otherwise.
+      if (elm.hasAttribute("nevermatch")) {
+        assert_equals(getComputedStyle(elm).getPropertyValue("--match"), "false", `Should never match: ${elm.id}`);
+      } else if (elm.hasAttribute("inactivematch")) {
+        assert_equals(getComputedStyle(elm).getPropertyValue("--match"), "false", `Should only match when inactive: ${elm.id}`);
+      } else {
+        assert_equals(getComputedStyle(elm).getPropertyValue("--match"), "true", `Should match when active: ${elm.id}`);
+      }
+    }
+  }, "@navigation within @function");
+</script>

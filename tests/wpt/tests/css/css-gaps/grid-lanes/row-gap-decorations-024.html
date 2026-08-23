@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row-rule-break: intersection omits the grid-axis rule behind a spanner and stops free segments at ordinary intersections in row grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-024-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 60px);
+    row-gap: 20px;
+    column-gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    row-rule: 4px solid gold;
+    row-rule-break: intersection;
+    column-rule: 4px solid blue;
+  }
+  .lanes > div {
+    background: #5b8def;
+  }
+  .lanes > div.a { grid-row: 1; width: 60px; }
+  .lanes > div.b { grid-row: 2; width: 60px; }
+  .lanes > div.s { grid-row: 1 / span 2; width: 40px; background: rgb(138 109 240 / 0.35); }
+  .lanes > div.c { grid-row: 1; width: 60px; }
+  .lanes > div.d { grid-row: 2; width: 60px; }
+  .lanes > div.e { grid-row: 1; width: 60px; }
+  .lanes > div.f { grid-row: 2; width: 60px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="s"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="e"></div>
+  <div class="f"></div>
+</div>

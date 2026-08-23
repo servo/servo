@@ -28,4 +28,51 @@ test(() => {
   assert_approx_equals(quad.p2.x - quad.p1.x, 50, 0.01,
                        "dirty display-locked subtree is updated");
 }, "getBoxQuads() updates a dirty display-locked subtree");
+
+promise_test(async t => {
+  const stage = document.createElement("div");
+  stage.style.cssText = "position:absolute;left:10px;top:10px";
+  const mover = document.createElement("div");
+  mover.style.transform = "translate(0px, 0px)";
+  const target = document.createElement("div");
+  target.style.cssText = "width:20px;height:20px";
+  mover.appendChild(target);
+  stage.appendChild(mover);
+  document.body.appendChild(stage);
+  t.add_cleanup(() => stage.remove());
+
+  await new Promise(resolve => requestAnimationFrame(
+      () => requestAnimationFrame(resolve)));
+  mover.style.transform = "translate(40px, 25px)";
+
+  const bounds = target.getBoxQuads({relativeTo: stage})[0].getBounds();
+  const rect = target.getBoundingClientRect();
+  const stageRect = stage.getBoundingClientRect();
+  assert_approx_equals(bounds.x, rect.x - stageRect.x, 0.01,
+                       "x coordinate");
+  assert_approx_equals(bounds.y, rect.y - stageRect.y, 0.01,
+                       "y coordinate");
+}, "getBoxQuads() immediately after a transform style update");
+
+test(t => {
+  const sourceLock = document.createElement("div");
+  sourceLock.style.contentVisibility = "hidden";
+  const source = document.createElement("div");
+  source.style.cssText = "width:20px;height:20px";
+  sourceLock.appendChild(source);
+
+  const targetLock = document.createElement("div");
+  targetLock.style.contentVisibility = "hidden";
+  const target = document.createElement("div");
+  target.style.cssText = "width:20px;height:20px";
+  targetLock.appendChild(target);
+
+  document.body.append(sourceLock, targetLock);
+  t.add_cleanup(() => {
+    sourceLock.remove();
+    targetLock.remove();
+  });
+
+  assert_equals(source.getBoxQuads({relativeTo: target}).length, 1);
+}, "getBoxQuads() updates unrelated display-locked endpoints");
 </script>

@@ -155,10 +155,9 @@ FOO<!-->BAZ
 #data
 <?xml version="1.0">Hi
 #errors
-(1,1): expected-tag-name-but-got-question-mark
 (1,22): expected-doctype-but-got-chars
 #new-errors
-(1:2) unexpected-question-mark-instead-of-tag-name
+(1:6) disallowed-processing-instruction-target
 #document
 | <!-- ?xml version="1.0" -->
 | <html>
@@ -169,10 +168,9 @@ FOO<!-->BAZ
 #data
 <?xml version="1.0">
 #errors
-(1,1): expected-tag-name-but-got-question-mark
 (1,20): expected-doctype-but-got-eof
 #new-errors
-(1:2) unexpected-question-mark-instead-of-tag-name
+(1:6) disallowed-processing-instruction-target
 #document
 | <!-- ?xml version="1.0" -->
 | <html>
@@ -182,10 +180,9 @@ FOO<!-->BAZ
 #data
 <?xml version
 #errors
-(1,1): expected-tag-name-but-got-question-mark
 (1,13): expected-doctype-but-got-eof
 #new-errors
-(1:2) unexpected-question-mark-instead-of-tag-name
+(1:6) disallowed-processing-instruction-target
 #document
 | <!-- ?xml version -->
 | <html>

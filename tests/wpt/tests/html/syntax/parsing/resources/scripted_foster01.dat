@@ -1,0 +1,21 @@
+#data
+<table><tr><script>var t=document.querySelector('table');document.documentElement.remove();document.appendChild(t)</script><b>
+#errors
+#script-on
+#document
+| <table>
+|   <tbody>
+|     <tr>
+|       <script>
+|         "var t=document.querySelector('table');document.documentElement.remove();document.appendChild(t)"
+
+#data
+<table><tr><script>var t=document.querySelector('table');document.documentElement.remove();document.appendChild(t)</script>FOSTERTEXT
+#errors
+#script-on
+#document
+| <table>
+|   <tbody>
+|     <tr>
+|       <script>
+|         "var t=document.querySelector('table');document.documentElement.remove();document.appendChild(t)"

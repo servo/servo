@@ -32,6 +32,8 @@ test_invalid_value('top', '--func(])');
 // Invalid escape causes <bad-url-token>:
 // https://drafts.csswg.org/css-syntax/#starts-with-a-valid-escape
 test_invalid_value('top', '--func(url(\\\n))');
+test_invalid_value('top', '--func(red !important)');
+test_invalid_value('top', '--func({red !important})');
 // Empty arguments are not allowed by <declaration-value>#.
 test_invalid_value('top', '--func(asdf,)');
 test_invalid_value('top', '--func(,)');

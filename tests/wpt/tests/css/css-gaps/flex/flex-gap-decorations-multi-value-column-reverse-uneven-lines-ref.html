@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gap-decorations">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14156">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-direction: column-reverse;
+        flex-wrap: wrap-reverse;
+        gap: 10px;
+        width: 200px;
+        height: 190px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 60px;
+    }
+    .row-gap {
+        position: absolute;
+        width: 60px;
+        height: 6px;
+    }
+</style>
+<div class="flex">
+    <div style="height: 40px;"></div>
+    <div style="height: 40px;"></div>
+    <div style="height: 40px;"></div>
+    <div style="height: 100px;"></div>
+    <div style="height: 90px;"></div>
+    <div style="height: 90px;"></div>
+</div>
+
+<div class="row-gap" style="left: 0px; top: 92px; background: teal;"> </div>
+
+<div class="row-gap" style="left: 140px; top: 92px; background: goldenrod;"> </div>
+<div class="row-gap" style="left: 140px; top: 142px; background: crimson;"> </div>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup feed owner AX role inference</title>
+<meta name="assert" content="A generic feed focusgroup owner gets an implied feed role; explicit and native roles are preserved.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup-v2.explainer/#feed-focusgroups">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div id=feedGeneric focusgroup=feed><div tabindex=0>Item</div></div>
+<div id=feedExplicit role=list focusgroup=feed><div>Item</div></div>
+<ul id=feedNative focusgroup=feed><li>Item</li></ul>
+
+<script>
+promise_test(async () => {
+  assert_equals(await test_driver.get_computed_role(feedGeneric), "feed");
+}, "Generic feed focusgroup owner gets an implied feed role");
+
+promise_test(async () => {
+  assert_equals(await test_driver.get_computed_role(feedExplicit), "list");
+}, "Explicit owner role is preserved over implied feed role");
+
+promise_test(async () => {
+  assert_equals(await test_driver.get_computed_role(feedNative), "list");
+}, "Native owner semantics are preserved over implied feed role");
+</script>

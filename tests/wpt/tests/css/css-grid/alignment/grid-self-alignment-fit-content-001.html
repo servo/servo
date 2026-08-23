@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#fit-content-size">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<meta name="assert" content="A grid item with an automatic size whose self-alignment is not stretch (and does not behave as stretch) is sized to its fit-content size in that axis, rather than filling its grid area.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  /* Ahem at 20px with a line-height of 1 makes every glyph a 20px by 20px box,
+     so "XXXXX" is 100px wide and one line tall. */
+  .grid { display: grid; font: 20px/1 Ahem; }
+  .wide-area   { grid-template: 100px / 200px; }
+  .narrow-area { grid-template: 100px / 60px; }
+
+  .item { background: green; }
+
+  /* Isolate the axis under test by giving the item a fixed size in the other axis. */
+  .automatic-width { width: auto; height: 40px; }
+  .automatic-height { width: 100px; height: auto; }
+</style>
+<body>
+<div id="log"></div>
+
+<!-- Inline axis. The grid area is 200px wide and the item's max-content size is
+     100px, so a stretched item is 200px wide and a fit-content sized item is
+     100px wide. -->
+<div class="grid wide-area"><div class="item automatic-width" id="stretch-inline" style="justify-self: stretch">XXXXX</div></div>
+<div class="grid wide-area"><div class="item automatic-width" id="start-inline"   style="justify-self: start">XXXXX</div></div>
+<div class="grid wide-area"><div class="item automatic-width" id="center-inline"  style="justify-self: center">XXXXX</div></div>
+<div class="grid wide-area"><div class="item automatic-width" id="end-inline"     style="justify-self: end">XXXXX</div></div>
+
+<!-- The fit-content size is clamped by the stretch-fit size, so an item in a
+     60px area whose min-content size is 40px and whose max-content size is
+     100px is 60px wide. -->
+<div class="grid narrow-area"><div class="item automatic-width" id="center-inline-clamped" style="justify-self: center">XX XX</div></div>
+
+<!-- Block axis. The grid area is 100px tall and the item's content is one 20px
+     line tall, so a stretched item is 100px tall and a fit-content sized item
+     is 20px tall. -->
+<div class="grid wide-area"><div class="item automatic-height" id="stretch-block" style="align-self: stretch">XXXXX</div></div>
+<div class="grid wide-area"><div class="item automatic-height" id="start-block"   style="align-self: start">XXXXX</div></div>
+<div class="grid wide-area"><div class="item automatic-height" id="center-block"  style="align-self: center">XXXXX</div></div>
+<div class="grid wide-area"><div class="item automatic-height" id="end-block"     style="align-self: end">XXXXX</div></div>
+
+<script>
+function itemMetrics(id) {
+    const item = document.getElementById(id);
+    const gridRect = item.parentElement.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    return {
+        width: itemRect.width,
+        height: itemRect.height,
+        left: itemRect.left - gridRect.left,
+        top: itemRect.top - gridRect.top,
+    };
+}
+
+test(() => {
+    const metrics = itemMetrics("stretch-inline");
+    assert_equals(metrics.width, 200, "used width");
+    assert_equals(metrics.left, 0, "offset from the grid container's left edge");
+}, "justify-self: stretch on an item with an automatic width uses the stretch-fit size");
+
+test(() => {
+    const metrics = itemMetrics("start-inline");
+    assert_equals(metrics.width, 100, "used width");
+    assert_equals(metrics.left, 0, "offset from the grid container's left edge");
+}, "justify-self: start on an item with an automatic width uses the fit-content size");
+
+test(() => {
+    const metrics = itemMetrics("center-inline");
+    assert_equals(metrics.width, 100, "used width");
+    assert_equals(metrics.left, 50, "offset from the grid container's left edge");
+}, "justify-self: center on an item with an automatic width uses the fit-content size");
+
+test(() => {
+    const metrics = itemMetrics("end-inline");
+    assert_equals(metrics.width, 100, "used width");
+    assert_equals(metrics.left, 100, "offset from the grid container's left edge");
+}, "justify-self: end on an item with an automatic width uses the fit-content size");
+
+test(() => {
+    assert_equals(itemMetrics("center-inline-clamped").width, 60, "used width");
+}, "justify-self: center on an item with an automatic width clamps the fit-content size by the stretch-fit size");
+
+test(() => {
+    const metrics = itemMetrics("stretch-block");
+    assert_equals(metrics.height, 100, "used height");
+    assert_equals(metrics.top, 0, "offset from the grid container's top edge");
+}, "align-self: stretch on an item with an automatic height uses the stretch-fit size");
+
+test(() => {
+    const metrics = itemMetrics("start-block");
+    assert_equals(metrics.height, 20, "used height");
+    assert_equals(metrics.top, 0, "offset from the grid container's top edge");
+}, "align-self: start on an item with an automatic height uses the fit-content size");
+
+test(() => {
+    const metrics = itemMetrics("center-block");
+    assert_equals(metrics.height, 20, "used height");
+    assert_equals(metrics.top, 40, "offset from the grid container's top edge");
+}, "align-self: center on an item with an automatic height uses the fit-content size");
+
+test(() => {
+    const metrics = itemMetrics("end-block");
+    assert_equals(metrics.height, 20, "used height");
+    assert_equals(metrics.top, 80, "offset from the grid container's top edge");
+}, "align-self: end on an item with an automatic height uses the fit-content size");
+</script>
+</body>

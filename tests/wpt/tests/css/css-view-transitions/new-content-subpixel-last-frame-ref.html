@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>View transitions: subpixel translation at start and end of transition (Ref)</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="author" href="mailto:vmpstr@chromium.org">
+<style>
+body {
+  margin: 0;
+  background: white;
+}
+
+.box {
+  width: 100px;
+  height: 100px;
+  background: green;
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  will-change: transform;
+}
+
+#box-end {
+  transform: translate(50.5px, 250.5px);
+}
+</style>
+</head>
+<body>
+<div id="box-end" class="box"></div>
+</body>
+</html>

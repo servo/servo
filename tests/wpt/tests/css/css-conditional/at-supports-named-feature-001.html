@@ -30,7 +30,7 @@ function test_supports_condition(condition, expected) {
     `;
     assert_equals(getComputedStyle(document.getElementById("target")).zIndex,
                   expected ? "" + gGlobalCounter : "auto");
-  }, `@supports ${condition} should be ${Boolean.prototype.toString(expected)}`);
+  }, `@supports ${condition} should be ${expected}`);
 }
 
 let is_anchor_position_follows_transforms_supported;
@@ -78,6 +78,13 @@ test(() => {
 
 test_supports_condition("named-feature(anchor-position-follows-transforms)", is_anchor_position_follows_transforms_supported);
 test_supports_condition("named-feature( anchor-position-follows-transforms )", is_anchor_position_follows_transforms_supported);
+
+test_supports_condition("named-feature(  foo   anchor-position-follows-transforms  )", false);
+test_supports_condition("named-feature(  anchor-position-follows-transforms  bar)", false);
+
+// A browser might support all two, but named-feature can only test one at a time.
+test_supports_condition("named-feature(anchor-position-follows-transforms single-axis-scroll-container)", false);
+
 test_supports_condition("named-feature(unknown-feature)", false);
 test_supports_condition("named-feature(named-feature)", false);
 test_supports_condition("named-feature(color)", false);

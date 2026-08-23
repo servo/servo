@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template src CORS and CSP behavior</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<!-- CORS Allowed Case -->
+<div id="container-cors-ok">
+  <div id="target-cors-ok">
+    <?start name="marker-cors-ok">Original CORS OK<?end>
+  </div>
+  <template for="marker-cors-ok"
+            src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/dom/partial-updates/tentative/resources/chunked-html.py?cors=1&chunk1=CORS_OK"
+            id="tpl-cors-ok"></template>
+</div>
+
+<!-- CORS Blocked Case -->
+<div id="container-cors-fail">
+  <div id="target-cors-fail">
+    <?start name="marker-cors-fail">Original CORS Fail<?end>
+  </div>
+  <template for="marker-cors-fail"
+            src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/dom/partial-updates/tentative/resources/chunked-html.py?cors=0&chunk1=CORS_FAIL"
+            id="tpl-cors-fail"></template>
+</div>
+
+<script>
+promise_test(async () => {
+  const container = document.getElementById('target-cors-ok');
+
+  await new Promise((resolve) => {
+    if (container.textContent.includes("CORS_OK")) {
+      resolve();
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (container.textContent.includes("CORS_OK")) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true, characterData: true });
+  });
+
+  assert_true(container.textContent.includes("CORS_OK"), "Target should be updated with cross-origin content when CORS headers are present");
+}, "Cross-origin template src load succeeds when CORS Access-Control-Allow-Origin is present");
+
+promise_test(async () => {
+  const container = document.getElementById('target-cors-fail');
+
+  // Wait 100ms to allow fetch to complete and fail
+  await new Promise(resolve => step_timeout(resolve, 100));
+
+  assert_false(container.textContent.includes("CORS_FAIL"), "Target should NOT be updated with the failed cross-origin content");
+}, "Cross-origin template src load fails when CORS Access-Control-Allow-Origin is missing");
+</script>
+</body>

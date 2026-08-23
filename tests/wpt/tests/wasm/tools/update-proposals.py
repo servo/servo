@@ -107,20 +107,33 @@ def main():
             # 7. Create target directory in WPT proposals
             target_dir = os.path.join(wpt_root, "wasm", "proposals", name, "core")
             os.makedirs(target_dir, exist_ok=True)
+            os.makedirs(os.path.join(target_dir, "js"), exist_ok=True)
+
+            harness_dir = os.path.join(out_dir, "js", "harness")
 
             # 8. Copy only the files that were changed/added by the proposal
             copied_count = 0
             for rel_wast in changed_wast_files:
                 print(f"Changed wast file: {rel_wast}")
-                src_file = os.path.join(out_dir, rel_wast + ".js.html")
-                dst_file = os.path.join(target_dir, rel_wast +  ".js.tentative.html")
+                src_html = os.path.join(out_dir, rel_wast + ".js.html")
+                dst_html = os.path.join(target_dir, rel_wast +  ".js.tentative.html")
+                src_js = os.path.join(out_dir, "js", rel_wast + ".js")
+                dst_js = os.path.join(target_dir, "js", rel_wast + ".js")
 
-                assert os.path.exists(src_file)
-                os.makedirs(os.path.dirname(dst_file), exist_ok=True)
-                shutil.copy2(src_file, dst_file)
+                assert os.path.exists(src_html)
+                os.makedirs(os.path.dirname(dst_html), exist_ok=True)
+                os.makedirs(os.path.dirname(dst_js), exist_ok=True)
+                shutil.copy2(src_html, dst_html)
+                shutil.copy2(src_js, dst_js)
                 copied_count += 1
 
             if copied_count > 0:
+                # Copy the parts of the JS harness that come from the spec repo
+                os.makedirs(os.path.join(target_dir, "js", "harness"))
+                for harness_file in ("sync_index.js", "async_index.js"):
+                    shutil.copy2(os.path.join(harness_dir, harness_file),
+                                 os.path.join(target_dir, "js", "harness"))
+
                 proposal_repo = f"https://github.com/WebAssembly/{name}"
                 proposal_commit = run_cmd(["git", "rev-parse", "HEAD"], cwd=proposal_dir).strip()
                 updated_proposals.append((name, proposal_repo, proposal_commit))

@@ -650,3 +650,17 @@ test<div>p</div>tt<p>div</p><test>test</test>
 |   <b>
 |   <aside>
 |     <b>
+
+#data
+<template><b>Hello</b></template>
+#config
+{ "replaceWithChildrenElements": ["template"] }
+#document
+
+#data
+<div><template><b>Hello</b></template>after</div>
+#config
+{ "replaceWithChildrenElements": ["template"] }
+#document
+| <div>
+|   "after"

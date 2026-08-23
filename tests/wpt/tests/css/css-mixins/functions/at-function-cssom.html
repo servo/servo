@@ -146,6 +146,37 @@ test(t => {
   sheet.replaceSync(`
     @function --foo() {
       --x: 1px;
+      --x: 2px !important;
+      result: 3px;
+      result: 4px !important;
+    }
+  `);
+  let descriptors = sheet.cssRules[0]?.cssRules[0]?.style;
+  assert_true(descriptors instanceof CSSFunctionDescriptors);
+  assert_equals(descriptors.getPropertyValue('--x'), '1px');
+  assert_equals(descriptors.result, '3px');
+}, '!important invalidates declarations in function bodies');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @function --foo() {
+      @supports (width: 1px) {
+        result: 1px;
+        result: 2px !important;
+      }
+    }
+  `);
+  let descriptors = sheet.cssRules[0]?.cssRules[0]?.cssRules[0]?.style;
+  assert_true(descriptors instanceof CSSFunctionDescriptors);
+  assert_equals(descriptors.result, '1px');
+}, '!important invalidates declarations in conditional function bodies');
+
+test(t => {
+  let sheet = new CSSStyleSheet();
+  sheet.replaceSync(`
+    @function --foo() {
+      --x: 1px;
     }
   `);
   let descriptors = sheet.cssRules[0]?.cssRules[0]?.style;

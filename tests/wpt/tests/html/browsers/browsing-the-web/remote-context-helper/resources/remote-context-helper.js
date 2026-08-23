@@ -321,6 +321,17 @@
     };
   }
 
+  function sharedWorkerExecutorCreator(remoteContextWrapper, globalVariable) {
+    return url => {
+      return remoteContextWrapper.executeScript((url, globalVariable) => {
+        const worker = new SharedWorker(url);
+        if (globalVariable) {
+          window[globalVariable] = worker;
+        }
+      }, [url, globalVariable]);
+    };
+  }
+
   function navigateExecutorCreator(remoteContextWrapper) {
     return url => {
       return remoteContextWrapper.navigate((url) => {
@@ -489,6 +500,22 @@
     addWorker(globalVariable, extraConfig) {
       return this.helper.createContext({
         executorCreator: workerExecutorCreator(this, globalVariable),
+        extraConfig,
+        isWorker: true,
+      });
+    }
+
+    /**
+     * Adds a shared worker to the current document.
+     * @param {string|null} [globalVariable] The name of the global variable to
+     *   which to assign the `SharedWorker` object after construction. If `null`,
+     *   then no assignment will take place.
+     * @param {RemoteContextConfig} [extraConfig]
+     * @returns {Promise<RemoteContextWrapper>} The remote context.
+     */
+    addSharedWorker(globalVariable, extraConfig) {
+      return this.helper.createContext({
+        executorCreator: sharedWorkerExecutorCreator(this, globalVariable),
         extraConfig,
         isWorker: true,
       });

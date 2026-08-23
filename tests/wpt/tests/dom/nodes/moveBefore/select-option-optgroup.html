@@ -40,54 +40,25 @@ test(t => {
   assert_true(optionB.selected, "B STILL selected after third move");
   assert_false(optionC.selected, "C no longer selected after third move");
 }, "Option selectedness is updated on option and optgroup DOM moves");
-</script>
 
-<select id=one>
-  <div class=one>
-    <option class=one>one</option>
-  </div>
-  <div class=two>
-    <option class=two>two</option>
-  </div>
-</select>
-<select id=two>
-</select>
-<div id=div></div>
+test(t => {
+  const select = document.createElement("select");
+  select.innerHTML = `
+    <option value=A>A</option>
+    <option value=B>B</option>
+    <option value=C selected>C</option>
+  `;
+  document.body.append(select);
+  t.add_cleanup(() => select.remove());
 
-<script>
-test(() => {
-  const selectOne = document.getElementById('one');
-  const selectTwo = document.getElementById('two');
-  const div = document.getElementById('div');
-  const optionOne = selectOne.querySelector('option.one');
-  const optionTwo = selectOne.querySelector('option.two');
-  const oneWrapper = selectOne.querySelector('div.one');
-  const twoWrapper = selectOne.querySelector('div.two');
+  const [optionA, optionB, optionC] = select.querySelectorAll("option");
 
-  assert_true(optionOne.selected,
-    'option one should be selected at the start of the test.');
-  assert_false(optionTwo.selected,
-    'option two should not be selected at the start of the test.');
+  assert_equals(select.selectedIndex, 2, "C is initially selected at index 2");
 
-  selectTwo.moveBefore(twoWrapper, null);
-  assert_true(optionTwo.selected,
-    'option two should become selected after moving into an empty select.');
-  assert_equals(selectTwo.value, 'two',
-    'select.value should update after moving option into it.');
+  select.moveBefore(optionC, optionA);
+  assert_equals(select.selectedIndex, 0, "C selected index updates after moving before A");
 
-  selectTwo.moveBefore(oneWrapper, null);
-  assert_false(optionTwo.selected,
-    'option two should become deselected after moving another selected option in.');
-  assert_true(optionOne.selected,
-    'option one should become stay selected after moving.');
-  assert_equals(selectOne.value, '',
-    'select.value should update after moving all options out.');
-  assert_equals(selectTwo.value, 'one',
-    'select.value should not change after moving another option in.');
-
-  div.moveBefore(oneWrapper, null);
-  div.moveBefore(twoWrapper, null);
-  assert_equals(selectTwo.value, '',
-    'select.value should update again after moving options out.');
-}, 'Moving options between select elements.');
+  select.moveBefore(optionB, null);
+  assert_equals(select.selectedIndex, 0, "C remains at selected index 0 after moving B to the end");
+}, "Selected index is updated when an option moves within the same select");
 </script>

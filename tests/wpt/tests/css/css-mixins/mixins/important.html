@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>CSS Mixins: !important</title>
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14212">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="result"></div>
+
+<style>
+  @mixin --result-important() {
+    @result {
+      color: red !important;
+    }
+  }
+  #result {
+    color: green !important;
+    @apply --result-important;
+  }
+</style>
+
+<script>
+  test(() => {
+    let target = document.getElementById('result');
+    assert_equals(getComputedStyle(target).color, 'rgb(255, 0, 0)');
+  }, '!important is valid in mixin result declarations');
+
+  test(() => {
+    let sheet = new CSSStyleSheet();
+    sheet.replaceSync(`
+      @mixin --m(--x: red !important) {
+        @result {
+          color: var(--x);
+        }
+      }
+    `);
+    assert_equals(sheet.cssRules.length, 0);
+  }, '!important invalidates mixin parameter defaults');
+
+  for (let argument of ['red !important', '{red !important}']) {
+    test(() => {
+      let sheet = new CSSStyleSheet();
+      sheet.replaceSync(`
+        #target {
+          @apply --m(${argument});
+        }
+      `);
+      assert_equals(sheet.cssRules.length, 1);
+      assert_equals(sheet.cssRules[0].cssRules.length, 0);
+    }, `!important invalidates mixin argument "${argument}"`);
+  }
+</script>

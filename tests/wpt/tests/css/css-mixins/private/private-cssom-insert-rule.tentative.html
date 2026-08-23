@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS @private: CSSOM insertRule</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14243#issuecomment-5180782117">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+  test(() => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync('.target {}');
+
+    const styleRule = sheet.cssRules[0];
+    const index = styleRule.insertRule(
+        '@private { --x: red; }', styleRule.cssRules.length);
+
+    assert_true(styleRule.cssRules[index] instanceof CSSPrivateRule);
+    assert_equals(styleRule.cssRules[index].cssText,
+                  '@private { --x: red; }');
+  }, '@private can be inserted into a style rule');
+
+  test(() => {
+    const sheet = new CSSStyleSheet();
+    assert_throws_dom(
+        'SyntaxError',
+        () => sheet.insertRule('@private { --x: red; }'));
+  }, '@private cannot be inserted at the stylesheet top level');
+
+  for (const ruleText of [
+    '@media (width > 0px) {}',
+    '@supports (width: 1px) {}',
+  ]) {
+    test(() => {
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync(ruleText);
+
+      const groupRule = sheet.cssRules[0];
+      assert_throws_dom(
+          'SyntaxError',
+          () => groupRule.insertRule('@private { --x: red; }'));
+    }, `@private cannot be inserted into a top-level ${
+        ruleText.split(' ')[0]} rule`);
+  }
+</script>

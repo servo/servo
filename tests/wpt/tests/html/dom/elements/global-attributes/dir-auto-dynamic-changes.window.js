@@ -389,6 +389,20 @@ test(() => {
 }, 'input direction changes if it stops being auto-directionality form-associated');
 
 test(() => {
+  let tree = setup_tree(`<div><input dir="ltr" type="image"></div>`);
+  let inp = tree.querySelector("input");
+  // Some types (currently checkbox, radio, file, and image) are not auto-
+  // directionality form-associated and have no value sanitization algorithm.
+  // If they hold a RTL value and change to a type that supports auto but
+  // don't have dir=auto, their direction should not become rtl.
+  inp.value = "اختبر";
+  assert_equals(html_direction(inp), "ltr");
+  inp.type = "text";
+  assert_equals(html_direction(inp), "ltr");
+  tree.remove();
+}, 'Input that becomes auto directionality associated but is dir=ltr stays LTR');
+
+test(() => {
   let [tree, shadow] = setup_tree(`
     <div>
       <div id=root dir=ltr>

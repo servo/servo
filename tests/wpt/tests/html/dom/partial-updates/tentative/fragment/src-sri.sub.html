@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template src Subresource Integrity (SRI)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<!-- SRI Matching Hash Case -->
+<div id="container-sri-ok">
+  <div id="target-sri-ok">
+    <?start name="marker-sri-ok">Original SRI OK<?end>
+  </div>
+  <template for="marker-sri-ok"
+            src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/dom/partial-updates/tentative/resources/chunked-html.py?cors=1&delay=0&chunk1=SRI_OK"
+            integrity="sha256-B9fOqAtaB7EXwH61rP5cQQlWSqoRukf/UC9TatLkCec="
+            id="tpl-sri-ok"></template>
+</div>
+
+<!-- SRI Mismatched Hash Case -->
+<div id="container-sri-fail">
+  <div id="target-sri-fail">
+    <?start name="marker-sri-fail">Original SRI Fail<?end>
+  </div>
+  <template for="marker-sri-fail"
+            src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/dom/partial-updates/tentative/resources/chunked-html.py?cors=1&delay=0&chunk1=SRI_OK"
+            integrity="sha256-mismatchedhashmismatchedhashmismatchedhash="
+            id="tpl-sri-fail"></template>
+</div>
+
+<script>
+promise_test(async () => {
+  const container = document.getElementById('target-sri-ok');
+
+  await new Promise((resolve) => {
+    if (container.textContent.includes("SRI_OK")) {
+      resolve();
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (container.textContent.includes("SRI_OK")) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true, characterData: true });
+  });
+
+  assert_true(container.textContent.includes("SRI_OK"), "Target should be updated with content when SRI hash matches");
+}, "Template src load succeeds when Subresource Integrity hash matches");
+
+promise_test(async () => {
+  const container = document.getElementById('target-sri-fail');
+
+  // Wait 100ms to allow fetch to complete and fail integrity checks
+  await new Promise(resolve => step_timeout(resolve, 100));
+
+  assert_false(container.textContent.includes("SRI_OK"), "Target should NOT be updated when SRI hash mismatches");
+}, "Template src load fails when Subresource Integrity hash mismatches");
+</script>
+</body>

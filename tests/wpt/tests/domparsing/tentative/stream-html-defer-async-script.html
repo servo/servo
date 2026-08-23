@@ -74,5 +74,22 @@
       await new Promise(resolve => t.step_timeout(resolve, 50));
       assert_array_equals(window.events, []);
     }, `element.${method} with defer/module scripts should not execute on abort`);
+
+    promise_test(async (t) => {
+      let readystatechange_fired = false;
+      const listener = () => { readystatechange_fired = true; };
+      document.addEventListener("readystatechange", listener);
+      t.add_cleanup(() => document.removeEventListener("readystatechange", listener));
+
+      const initial_ready_state = document.readyState;
+      const placeholder = document.getElementById("placeholder");
+      const writable = placeholder[method]({ runScripts: true });
+      const writer = writable.getWriter();
+      await writer.write("<p>content</p>");
+      await writer.close();
+
+      assert_equals(document.readyState, initial_ready_state);
+      assert_false(readystatechange_fired);
+    }, `element.${method} should not modify Document readyState`);
   }
 </script>

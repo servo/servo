@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<title>JPEG XL: ProPhoto RGB ICC color management</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl/issues/4">
+<link rel="match" href="wide-gamut-prophoto-rgb-ref.html">
+<meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-4096">
+<meta name="assert" content="A JPEG XL image with a ProPhoto RGB ICC profile is color managed to match an equivalent sRGB PNG.">
+<link rel="stylesheet" href="resources/jpegxl-reftest.css">
+
+<img src="resources/prophoto-rgb.jxl">
