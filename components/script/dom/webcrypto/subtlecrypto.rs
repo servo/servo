@@ -2624,8 +2624,11 @@ pub(crate) fn check_support_for_algorithm(
                         public_key.algorithm().name() == normalized_algorithm.name &&
                         length.is_none_or(|length| length <= maximum_length)
                 },
-                DeriveBitsAlgorithm::X25519(_) => {
-                    length.is_none_or(|length| x25519_operation::SECRET_LENGTH as u32 * 8 >= length)
+                DeriveBitsAlgorithm::X25519(normalized_algorithm) => {
+                    let public_key = normalized_algorithm.public.root();
+                    public_key.Type() == KeyType::Public &&
+                        public_key.algorithm().name() == normalized_algorithm.name &&
+                        length.is_none_or(|length| length <= 256)
                 },
                 DeriveBitsAlgorithm::X448(_) => {
                     length.is_none_or(|length| x448_operation::SECRET_LENGTH as u32 * 8 >= length)
