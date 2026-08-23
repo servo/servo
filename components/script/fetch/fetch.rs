@@ -754,7 +754,7 @@ pub(crate) fn load_whole_resource(
                 csp_violations_processor.process_csp_violations(cx, violations);
             },
             FetchResponseMsg::ProcessContentLength(_request_id, size) => {
-                buf.reserve(size - buf.len())
+                buf.reserve(size.saturating_sub(buf.len()))
             },
         }
     }
