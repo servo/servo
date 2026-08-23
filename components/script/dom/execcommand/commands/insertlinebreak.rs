@@ -44,8 +44,8 @@ pub(crate) fn execute_insert_line_break_command(
     //         it, return true.
     if active_range.start_container().is::<Element>() &&
         !is_allowed_child(
-            NodeOrString::Node(active_range.start_container()),
             NodeOrString::String("br".to_owned()),
+            NodeOrString::Node(active_range.start_container()),
         )
     {
         return false;
@@ -55,13 +55,13 @@ pub(crate) fn execute_insert_line_break_command(
     //         of the active range's start node's parent, return true.
     if !active_range.start_container().is::<Element>() &&
         !is_allowed_child(
+            NodeOrString::String("br".to_owned()),
             NodeOrString::Node(
                 active_range
                     .start_container()
                     .GetParentNode()
                     .expect("Must always have a parent."),
             ),
-            NodeOrString::String("br".to_owned()),
         )
     {
         return false;
