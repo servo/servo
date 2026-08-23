@@ -110,7 +110,7 @@ pub(crate) fn execute_insert_line_break_command(
     }
 
     // Step 7. Let br be the result of calling createElement("br") on the context object.
-    let br = document.create_element(cx, "hr");
+    let br = document.create_element(cx, "br");
 
     // Step 8. Call insertNode(br) on the active range.
     let br_node = DomRoot::upcast(br);
