@@ -2708,9 +2708,11 @@ pub(crate) fn check_support_for_algorithm(
             match normalized_algorithm {
                 ImportKeyAlgorithm::RsassaPkcs1V1_5(_) |
                 ImportKeyAlgorithm::RsaPss(_) |
-                ImportKeyAlgorithm::RsaOaep(_) |
-                ImportKeyAlgorithm::Ecdsa(_) |
-                ImportKeyAlgorithm::Ecdh(_) |
+                ImportKeyAlgorithm::RsaOaep(_) => true,
+                ImportKeyAlgorithm::Ecdsa(normalized_algorithm) |
+                ImportKeyAlgorithm::Ecdh(normalized_algorithm) => {
+                    SUPPORTED_CURVES.contains(&normalized_algorithm.named_curve.as_str())
+                },
                 ImportKeyAlgorithm::Ed25519(_) |
                 ImportKeyAlgorithm::X25519(_) |
                 ImportKeyAlgorithm::Ed448(_) |
