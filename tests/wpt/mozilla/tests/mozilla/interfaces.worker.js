@@ -9,6 +9,7 @@ importScripts("interfaces.js");
 test_interfaces([
   "AbortController",
   "AbortSignal",
+  "AsyncDisposableStack",
   "Blob",
   "BroadcastChannel",
   "ByteLengthQueuingStrategy",
@@ -19,6 +20,7 @@ test_interfaces([
   "CountQueuingStrategy",
   "CustomEvent",
   "DecompressionStream",
+  "DisposableStack",
   "DOMMatrix",
   "DOMMatrixReadOnly",
   "DOMPoint",
@@ -86,6 +88,7 @@ test_interfaces([
   "Response",
   "SecurityPolicyViolationEvent",
   "ServiceWorkerContainer",
+  "SuppressedError",
   "TextDecoder",
   "TextDecoderStream",
   "TextEncoder",
