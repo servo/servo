@@ -50,7 +50,6 @@ use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
     is_element_affected_by_legacy_background_presentational_hint,
 };
-use crate::dom::elementinternals::ElementInternals;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
@@ -62,6 +61,7 @@ use crate::dom::html::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::internals::elementinternals::ElementInternals;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
@@ -194,6 +194,17 @@ impl HTMLElement {
             .ensure_rare_data(no_gc)
             .previously_focused_element
             .set(element);
+    }
+
+    pub(crate) fn ensure_element_internals(&self, cx: &mut JSContext) -> DomRoot<ElementInternals> {
+        let element = self.upcast::<Element>();
+        let Some(element_internals) = element.get_element_internals() else {
+            let internals = ElementInternals::new(cx, self);
+            element.ensure_rare_data(cx.no_gc()).element_internals =
+                Some(Dom::from_ref(&*internals));
+            return internals;
+        };
+        element_internals
     }
 }
 
@@ -772,7 +783,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
 
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
-        let internals = self.element.ensure_element_internals(cx);
+        let internals = self.ensure_element_internals(cx);
         if internals.attached() {
             return Err(Error::NotSupported(Some(
                 "HTML element's internals are already attached".into(),
@@ -1506,9 +1517,7 @@ impl FormControl for HTMLElement {
 
     fn set_form_owner(&self, cx: &mut JSContext, form: Option<&HTMLFormElement>) {
         debug_assert!(self.is_form_associated_custom_element());
-        self.element
-            .ensure_element_internals(cx)
-            .set_form_owner(form);
+        self.ensure_element_internals(cx).set_form_owner(form);
     }
 
     fn to_html_element(&self) -> &HTMLElement {
