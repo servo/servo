@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-flex-tracks">
+<meta name="assert" content="When a grid with multiple flexible (fr) columns is sized under a definite length, the leading track (column index 0) can be treated as inflexible while a later track stays flexible, without crashing.">
+<style>
+  #grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100px;
+  }
+  #grid > div {
+    height: 50px;
+    background: green;
+  }
+  #grid > div > div {
+    height: 50px;
+  }
+  .wide { width: 80px; }
+  .narrow { width: 10px; }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="grid">
+  <div><div class="wide"></div></div>
+  <div><div class="narrow"></div></div>
+  <div></div>
+  <div></div>
+</div>

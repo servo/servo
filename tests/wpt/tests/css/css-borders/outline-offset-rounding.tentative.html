@@ -1,37 +1,60 @@
 <!doctype html>
 <title>outline-offset gets snapped like outline-width</title>
 <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12906">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#snap-as-a-line-width">
+<meta name="assert" content="The computed value of outline-offset is snapped to an integer number of device pixels, the same way outline-width and border-width are, with the sign preserved.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
 <script>
-  const values = [
-    { input: "0px", expected: "0px" },
-    { input: "0.1px", expected: "1px" },
-    { input: "0.25px", expected: "1px" },
-    { input: "0.5px", expected: "1px" },
-    { input: "0.9px", expected: "1px" },
-    { input: "1px", expected: "1px" },
-    { input: "1.25px", expected: "1px" },
-    { input: "1.5px", expected: "1px" },
-    { input: "2px", expected: "2px" },
-    { input: "2.75px", expected: "2px" },
-  ];
+  // https://drafts.csswg.org/css-values-4/#snap-as-a-line-width, extended to negative values:
+  // `outline-offset` snaps its magnitude and keeps its sign.
+  //
+  // Expectations are derived from `devicePixelRatio` rather than hard-coded, so that this test
+  // is also meaningful where 1 device pixel is not 1 CSS pixel.
+  function snapAsLineWidth(cssPixels) {
+    const dppx = window.devicePixelRatio;
+    const magnitude = Math.abs(cssPixels);
 
-  for (const {input, expected} of values) {
+    // 1. If the length is an integer number of device pixels, do nothing.
+    // 2. If the length is greater than zero, but less than 1 device pixel, round up to 1 device pixel.
+    // 3. Otherwise round down to the nearest integer number of device pixels.
+    // Steps 1 and 3 are both handled by the flooring below.
+    if (!magnitude)
+      return 0;
+    if (magnitude < 1 / dppx)
+      return Math.sign(cssPixels) / dppx;
+    return Math.sign(cssPixels) * Math.floor(magnitude * dppx) / dppx;
+  }
+
+  const magnitudes = ["0px", "0.1px", "0.25px", "0.5px", "0.9px", "1px", "1.25px", "1.5px", "2px", "2.75px"];
+
+  // A device pixel can be an unrepresentable fraction of a CSS pixel (e.g. 1/3 at 3dppx), so
+  // compare numbers rather than serializations. Serialization is covered separately.
+  const epsilon = 1 / 1024;
+
+  for (const magnitude of magnitudes) {
+    for (const input of [magnitude, "-" + magnitude]) {
+      test(function() {
+        const div = document.createElement("div");
+        div.style.outlineOffset = input;
+        document.body.appendChild(div);
+        const expected = snapAsLineWidth(parseFloat(input));
+        assert_approx_equals(parseFloat(getComputedStyle(div).outlineOffset), expected, epsilon,
+                             `${input} should snap to ${expected}px at ${window.devicePixelRatio}dppx`);
+      }, input);
+    }
+
+    // The CSSWG resolution is that `outline-offset` rounds the same way `outline-width` does, so
+    // cross-check the two against each other. This holds at any device pixel ratio and, unlike
+    // the subtests above, also covers the serialization of the computed value.
     test(function() {
       const div = document.createElement("div");
-      div.style.outlineOffset = input;
+      div.style.outline = `solid ${magnitude} blue`;
+      div.style.outlineOffset = magnitude;
       document.body.appendChild(div);
-      assert_equals(getComputedStyle(div).outlineOffset, expected);
-    }, input)
-
-    let negExpected = input == "0px" ? "0px" : "-" + expected;
-    test(function() {
-      const div = document.createElement("div");
-      div.style.outlineOffset = "-" + input;
-      document.body.appendChild(div);
-      assert_equals(getComputedStyle(div).outlineOffset, negExpected);
-    }, "-" + input)
+      const style = getComputedStyle(div);
+      assert_equals(style.outlineOffset, style.outlineWidth);
+    }, `${magnitude} snaps the same way as outline-width`);
   }
 </script>

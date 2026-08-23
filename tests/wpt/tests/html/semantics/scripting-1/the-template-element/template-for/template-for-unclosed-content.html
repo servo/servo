@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML partial updates: template for with unclosed content still removes markers</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// When the content of a <template for> leaves an element open, the current node
+// at </template> is that open element rather than the template. The marker
+// cleanup must still run: the <?start>/<?end> (or <?marker>) processing
+// instructions must be removed and the content patched into the target.
+async function parseToRoot(method, html) {
+  switch (method) {
+    case "iframe": {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      iframe.contentDocument.write(html);
+      iframe.contentDocument.close();
+      return iframe.contentDocument.body;
+    }
+    case "innerHTML": {
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      return div;
+    }
+    case "template": {
+      const template = document.createElement("template");
+      template.innerHTML = html;
+      return template.content;
+    }
+    case "DOMParser":
+      return new DOMParser().parseFromString(html, "text/html").body;
+    case "stream": {
+      const div = document.createElement("div");
+      const writer = div.streamAppendHTMLUnsafe().getWriter();
+      await writer.write(html);
+      await writer.close();
+      return div;
+    }
+  }
+}
+
+function processingInstructions(root) {
+  const walker = root.ownerDocument.createTreeWalker(
+    root, NodeFilter.SHOW_PROCESSING_INSTRUCTION);
+  const result = [];
+  while (walker.nextNode()) {
+    result.push(walker.currentNode);
+  }
+  return result;
+}
+
+const methods = ["iframe", "innerHTML", "template", "DOMParser", "stream"];
+
+for (const method of methods) {
+  promise_test(async () => {
+    const root = await parseToRoot(method,
+      `<div id="target"><?start name="p">Old<?end></div>` +
+      `<template for="p"><span>New</template>`);
+    const target = root.querySelector("#target");
+    assert_equals(processingInstructions(root).length, 0,
+      "no <?start>/<?end> processing instructions should remain");
+    assert_equals(target.innerHTML, "<span>New</span>");
+  }, `Unclosed element in <template for> with <?start>/<?end> still removes markers (${method})`);
+
+  promise_test(async () => {
+    const root = await parseToRoot(method,
+      `<div id="target">Old <?marker name="p"></div>` +
+      `<template for="p"><span>New</template>`);
+    const target = root.querySelector("#target");
+    assert_equals(processingInstructions(root).length, 0,
+      "no <?marker> processing instruction should remain");
+    assert_equals(target.innerHTML, "Old <span>New</span>");
+  }, `Unclosed element in <template for> with <?marker> still removes markers (${method})`);
+}
+</script>
+</body>

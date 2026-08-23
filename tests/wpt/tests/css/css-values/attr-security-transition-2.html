@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: attr() tainted value from a transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#dut {
+  --w: attr(data-leak type(<url>));
+  background-image: var(--w);
+  transition: --w 100s allow-discrete;
+}
+#dut.go {
+  --w: url("data:,harmless");
+}
+</style>
+<div id="dut" data-leak='url("private")'>poc</div>
+<script>
+  test(() => {
+    document.body.offsetTop;
+    dut.classList.add("go");
+    assert_equals(window.getComputedStyle(dut).backgroundImage, 'none');
+  });
+</script>

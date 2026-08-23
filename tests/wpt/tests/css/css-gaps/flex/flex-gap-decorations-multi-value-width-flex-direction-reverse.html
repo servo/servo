@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Flex gap decoration widths with multiple values are
+    assigned in placement order when flex-direction is row-reverse.
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gap-decorations">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14156">
+<link rel="match" href="flex-gap-decorations-multi-value-width-flex-direction-reverse-ref.html">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 10px;
+        width: 230px;
+        column-rule-color: black;
+        column-rule-style: solid;
+        column-rule-width: 2px, 6px, 10px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 50px;
+        height: 50px;
+    }
+</style>
+<div class="flex">
+    <div></div><div></div><div></div><div></div>
+</div>

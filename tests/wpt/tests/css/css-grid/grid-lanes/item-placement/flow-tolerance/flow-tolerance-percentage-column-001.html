@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Column flow-tolerance percentage basis</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#propdef-flow-tolerance">
+  <link rel="match" href="flow-tolerance-percentage-column-001-ref.html">
+  <meta name="assert" content="Flow-tolerance percentages use the grid-axis content box.">
+  <style>
+    .grid-lanes {
+      background: gray;
+      block-size: 150px;
+      box-sizing: content-box;
+      display: grid-lanes;
+      grid-template-columns: repeat(2, 50px);
+      inline-size: 100px;
+      padding-inline: 25px;
+    }
+
+    .percentage {
+      flow-tolerance: 20%;
+    }
+
+    .calculated {
+      flow-tolerance: calc(20% + 0px);
+      margin-block-start: 10px;
+    }
+
+    .item-one {
+      background: lightcoral;
+    }
+
+    .item-two {
+      background: lightgreen;
+    }
+
+    .item-three {
+      background: lightskyblue;
+    }
+
+    .percentage .item-one {
+      block-size: 50px;
+    }
+
+    .percentage .item-two,
+    .percentage .item-three {
+      block-size: 25px;
+    }
+
+    .calculated .item-one {
+      block-size: 40px;
+    }
+
+    .calculated .item-two,
+    .calculated .item-three {
+      block-size: 25px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lanes percentage">
+    <div class="item-one"></div>
+    <div class="item-two"></div>
+    <div class="item-three"></div>
+  </div>
+  <div class="grid-lanes calculated">
+    <div class="item-one"></div>
+    <div class="item-two"></div>
+    <div class="item-three"></div>
+  </div>
+</body>
+</html>

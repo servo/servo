@@ -1,0 +1,103 @@
+#data
+<b><i onclick="alert(1)"><div></b>x
+#document
+| <b>
+|   <i>
+| <i>
+|   <div>
+|     <b>
+|     "x"
+
+#data
+<b><div>Text</b></div>
+#config
+{ "replaceWithChildrenElements": ["b"] }
+#document
+| <div>
+|   "Text"
+
+#data
+<b><i><div>Text</b></div>
+#config
+{ "replaceWithChildrenElements": ["i"] }
+#document
+| <b>
+| <div>
+|   <b>
+|     "Text"
+
+#data
+<b><div>Text</b>
+#config
+{ "removeElements": ["div"] }
+#document
+| <b>
+
+#data
+<b><div><b>x
+#config
+{ "removeElements": ["div"] }
+#document
+| <b>
+
+#data
+<b>1<p>foo</b>bar
+#config
+{ "replaceWithChildrenElements": ["b"] }
+#document
+| "1"
+| <p>
+|   "foobar"
+
+#data
+<b><div>Text</b>
+#config
+{ "replaceWithChildrenElements": ["div"] }
+#document
+| <b>
+|   "Text"
+| <b>
+
+#data
+<a href="https://{{host}}/1"><div><a href="https://{{host}}/2">Click</a></div></a>
+#config
+{ "removeElements": ["div"] }
+#document
+| <a>
+|   href="https://{{host}}/1"
+
+#data
+<b><i><p>foo</b>bar</i>
+#config
+{ "removeElements": ["p"] }
+#document
+| <b>
+|   <i>
+| <i>
+
+#data
+<b><i><p>foo</b>bar</i>
+#config
+{ "removeElements": ["i"] }
+#document
+| <b>
+| <p>
+
+#data
+<b><i><div>Text</b></i>
+#config
+{ "removeElements": ["div"], "replaceWithChildrenElements": ["i"] }
+#document
+| <b>
+
+#data
+<b><i onclick="alert(1)"><u onclick="alert(2)"><div></b>x
+#document
+| <b>
+|   <i>
+|     <u>
+| <i>
+|   <u>
+|     <div>
+|       <b>
+|       "x"

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column-rule-break: none paints one continuous grid-axis rule through intersections and a spanner in column grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-040-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    column-gap: 20px;
+    row-gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    column-rule-break: none;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    background: #5b8def;
+  }
+  .lanes > div.a { grid-column: 1; height: 60px; }
+  .lanes > div.b { grid-column: 2; height: 60px; }
+  .lanes > div.s { grid-column: 1 / span 2; height: 40px; background: rgb(138 109 240 / 0.35); }
+  .lanes > div.c { grid-column: 1; height: 60px; }
+  .lanes > div.d { grid-column: 2; height: 100px; }
+  .lanes > div.e { grid-column: 1; height: 20px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="s"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="e"></div>
+</div>

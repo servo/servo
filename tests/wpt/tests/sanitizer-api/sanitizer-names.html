@@ -94,6 +94,62 @@
       assert_equals(sanitize(elem, probe), probe);
     }, `Mixed-case element names #${index}: "svg:${elem}"`);
   });
+
+  // A name whose case does not match the parsed name matches nothing.
+  // Configurations are never case-folded.
+  // https://html.spec.whatwg.org/#parsing-main-inforeign
+  [
+    [ "DIV", "<div>text</div>" ],
+    [ "feblend", "<svg><feBlend></feBlend></svg>" ],
+    [ "FEBLEND", "<svg><feBlend></feBlend></svg>" ],
+  ].forEach(([name, probe], index) => {
+    test(t => {
+      const options = {elements: [
+          { name: "svg", namespace: SVG_NS },
+          { name, namespace: SVG_NS },
+          { name }
+        ]};
+      const div = document.createElement("div");
+      div.setHTML(probe, {sanitizer: options});
+      assert_equals(div.querySelector("div, feBlend"), null);
+    }, `Non-matching element name case #${index}: "${name}"`);
+  });
+
+  // Attribute names are not case folded. The parser adjusts "viewbox" to
+  //  "viewBox" in foreign content, so only the adjusted name matches.
+  // https://html.spec.whatwg.org/#adjust-svg-attributes
+  [
+    [ "viewBox", "0 0 1 1" ],
+    [ "viewbox", null ],
+    [ "VIEWBOX", null ],
+  ].forEach(([name, expected], index) => {
+    test(t => {
+      const options = {
+        elements: [ { name: "svg", namespace: SVG_NS },
+                    { name: "marker", namespace: SVG_NS } ],
+        attributes: [ name ]
+      };
+      const div = document.createElement("div");
+      div.setHTML(`<svg><marker viewbox="0 0 1 1"></marker></svg>`,
+                  {sanitizer: options});
+      assert_equals(div.querySelector("marker").getAttribute("viewBox"),
+                    expected);
+    }, `Non-matching attribute name case #${index}: "${name}"`);
+  });
+
+  // The HTML parser adjusts the case of some SVG attribute names, e.g.
+  // "viewbox" becomes "viewBox". The default configuration lists the adjusted
+  // names, so the attributes survive.
+  test(t => {
+    const div = document.createElement("div");
+    div.setHTML(
+        `<svg><marker viewbox="0 0 1 1" refx="1" markerwidth="2"></marker></svg>`);
+    const marker = div.querySelector("marker");
+    assert_true(!!marker, "<marker> is in the default configuration");
+    assert_equals(marker.getAttribute("viewBox"), "0 0 1 1");
+    assert_equals(marker.getAttribute("refX"), "1");
+    assert_equals(marker.getAttribute("markerWidth"), "2");
+  }, "Default config keeps case-adjusted SVG attribute names");
 </script>
 </body>
 </html>

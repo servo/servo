@@ -99,6 +99,33 @@ test(t => {
   assert_false('removeAttributes' in before);
   assert_false('removeAttributes' in after);
 }, "removeUnsafe with default config")
+
+// https://wicg.github.io/sanitizer-api/#built-in-safe-baseline-configuration
+// The baseline remove list is namespace specific: only script in the HTML and
+// SVG namespaces and use in the SVG namespace are unsafe.
+const HTML_NS = "http://www.w3.org/1999/xhtml";
+const SVG_NS = "http://www.w3.org/2000/svg";
+const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+[
+  [ { name: "script", namespace: HTML_NS }, "<script><\/script>", "" ],
+  [ { name: "script", namespace: SVG_NS }, "<svg><script><\/script></svg>",
+    "<svg></svg>" ],
+  [ { name: "use", namespace: SVG_NS }, "<svg><use></use></svg>",
+    "<svg></svg>" ],
+  // An element named "use" in the HTML namespace is not in the baseline list.
+  [ { name: "use", namespace: HTML_NS }, "<use>text</use>" ],
+  // Neither is a MathML element named "script".
+  [ { name: "script", namespace: MATHML_NS },
+    "<math><script><\/script></math>" ],
+].forEach(([element, probe, expected], index) => {
+  test(t => {
+    const elements = [element, { name: "svg", namespace: SVG_NS },
+                      { name: "math", namespace: MATHML_NS }];
+    const div = document.createElement("div");
+    div.setHTML(probe, { sanitizer: { elements } });
+    assert_equals(div.innerHTML, expected ?? probe);
+  }, `Baseline remove list is namespace specific #${index}: ${JSON.stringify(element)}`);
+});
 </script>
 </body>
 </html>

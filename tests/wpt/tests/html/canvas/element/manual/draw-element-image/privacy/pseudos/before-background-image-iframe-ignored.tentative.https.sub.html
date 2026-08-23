@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin background images for before/after</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    iframe {
+      width: 100px;
+      height: 200px;
+      background-color: blue;
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id=child>
+      <iframe id=iframe src="../support/subframe-cross-origin-before-background-on-body.https.sub.html"></iframe>
+    </div>
+  </canvas>
+
+  <script>
+    iframe.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        let pixel = context.getImageData(20, 20, 1, 1).data;
+        assert_false(pixel[0] > 0, "The canvas should not paint cross origin content.");
+        assert_true(pixel[1] > 0, "The canvas should not paint cross origin content.");
+        assert_false(pixel[2] > 0, "The canvas should not paint cross origin content.");
+      });
+    };
+  </script>
+</body>
+</html>

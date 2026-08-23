@@ -518,3 +518,15 @@ function runUnsupportedPropertyTests(propertyName, testExamples) {
     testUnsupportedValue(propertyName, cssText);
   }
 }
+
+// Check that |propertyName| rejects each keyword in |keywords|. Unlike the
+// values in runUnsupportedPropertyTests, these are not valid for the property
+// at all - they are identifiers its grammar excludes - so set() must throw a
+// TypeError rather than normalize them to the base CSSStyleValue.
+function runInvalidKeywordTests(propertyName, keywords) {
+  for (const keyword of keywords) {
+    const keywordExample = createKeywordExample(keyword);
+    testPropertyInvalid(propertyName, keywordExample.examples,
+                        keywordExample.description);
+  }
+}

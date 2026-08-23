@@ -177,7 +177,21 @@
             assert_not_equals(root.querySelector("#allowed"), null);
           }, `${target}.${method}: createParserOptions can remove a sanitizer`);
 
-          for (const value of [null, undefined, 0, 123, "foo"]) {
+          for (const value of [null, undefined]) {
+            test((t) => {
+              const node = createTarget(target, t);
+              createParserOptions = (options) => value;
+              const root = get_root(
+                node,
+                method,
+                "<div id='allowed'><span id=forbidden></span></div>",
+              );
+              assert_not_equals(root.querySelector("#forbidden"), null);
+              assert_not_equals(root.querySelector("#allowed"), null);
+            }, `${target}.${method}: createParserOptions returning ${JSON.stringify(value)} succeeds and skips sanitization`);
+          }
+
+          for (const value of [0, 123, "foo"]) {
             test((t) => {
               const node = createTarget(target, t);
               createParserOptions = (options) => value;

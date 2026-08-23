@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+
+      const noSanitizerPolicy = trustedTypes.createPolicy("no-sanitizer", {
+        createHTML: (html) => html,
+        createParserOptions: (options) => null
+      });
+
+      trustedTypes.createPolicy("default", {
+        createHTML: (html) => html,
+        createParserOptions: (options) => options
+      });
+
+      test((t) => {
+        const options = noSanitizerPolicy.createParserOptions({});
+        assert_equals(options.sanitizer(), null, "sanitizer() method should return null when not provided");
+      }, "TrustedParserOptions.sanitizer() is null when createParserOptions returns empty object");
+
+      test((t) => {
+        const target = document.createElement("div");
+        target.setHTMLUnsafe(
+          "<span id='test-span'></span>",
+          noSanitizerPolicy.createParserOptions({})
+        );
+        assert_not_equals(target.querySelector("#test-span"), null);
+      }, "Element.setHTMLUnsafe: when TrustedParserOptions has null sanitizer, no sanitization occurs");
+    </script>
+  </body>
+</html>

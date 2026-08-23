@@ -62,6 +62,14 @@ test(_ => {
   document.body.appendChild(document.importNode(d.rootElement, true));
   assert_equals(window.mark, 0);
 }, "parseFromString as XML, svg script, append importNode result");
+
+test(_ => {
+  window.mark = 0;
+  const d = new DOMParser().parseFromString(
+    "<xx:svg xmlns:xx='http://www.w3.org/2000/svg'><xx:script>window.mark = 1;</xx:script></xx:svg>", "text/xml");
+  document.body.appendChild(document.importNode(d.rootElement, true));
+  assert_equals(window.mark, 0);
+}, "parseFromString as XML, svg script, append importNode result, but with namespace prefix");
 </script>
 </body>
 </html>

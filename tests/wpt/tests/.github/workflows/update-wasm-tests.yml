@@ -26,7 +26,7 @@ jobs:
         with:
           ocaml-compiler: 5.04.x
       - name: Setup OCaml tools
-        run: opam install --yes ocamlfind js_of_ocaml js_of_ocaml-ppx
+        run: opam install --yes ocamlfind js_of_ocaml js_of_ocaml-ppx stdint.0.7.2
       - name: Build interpreter
         run: cd wasm-spec/interpreter && opam exec make
       - name: Convert WAST tests to WPT

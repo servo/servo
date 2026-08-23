@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: 'grid-template-columns' and 'grid-template-rows' resolved values are the used track sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#resolved-track-list">
+<meta name="assert" content="The resolved value of grid-template-columns and grid-template-rows for a grid container is the used value, with each track serialized as a length in pixels, including for grids with explicitly placed items and fixed-length gaps.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 100px 200px 300px;
+    grid-template-rows: 40px 60px;
+  }
+  .withGaps {
+    gap: 10px 20px;
+  }
+  .a { grid-row: 1 / 2; grid-column: 1 / 2; }
+  .b { grid-row: 2 / 3; grid-column: 1 / 2; }
+</style>
+<div id="log"></div>
+
+<div class="grid" id="grid"><div class="a"></div><div class="b"></div></div>
+<div class="grid withGaps" id="gridWithGaps"><div class="a"></div><div class="b"></div></div>
+
+<script>
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("grid")).gridTemplateColumns, "100px 200px 300px");
+}, "Resolved grid-template-columns is the used track sizes");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("grid")).gridTemplateRows, "40px 60px");
+}, "Resolved grid-template-rows is the used track sizes");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("gridWithGaps")).gridTemplateColumns, "100px 200px 300px");
+}, "Resolved grid-template-columns is the used track sizes with fixed-length gaps");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("gridWithGaps")).gridTemplateRows, "40px 60px");
+}, "Resolved grid-template-rows is the used track sizes with fixed-length gaps");
+</script>

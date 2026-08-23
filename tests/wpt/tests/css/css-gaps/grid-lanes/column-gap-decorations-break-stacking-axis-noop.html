@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: stacking-axis rule-break none keeps one rule segment per lane, including across a spanner, in column grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14169">
+<link rel="match" href="column-gap-decorations-break-stacking-axis-noop-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 80px);
+    gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    row-rule: 4px solid gold;
+    row-rule-break: none;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 60px; }
+  .b { grid-column: 2; height: 100px; }
+  .c { grid-column: 1; height: 40px; }
+  .s { grid-column: 1 / -1; height: 40px; background: #8a6df0; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="s"></div>
+</div>

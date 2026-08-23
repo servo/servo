@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>
+      Custom Elements: XML parser must not double-append an element reparented
+      by its constructor
+    </title>
+    <link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+    <meta
+      name="help"
+      content="https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token"
+    />
+    <meta
+      name="help"
+      content="https://dom.spec.whatwg.org/#concept-node-pre-insert"
+    />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../resources/custom-elements-helpers.js"></script>
+  </head>
+  <body>
+    <script>
+      <![CDATA[
+
+      // Builds an XHTML document parsed by the XML content sink. The custom element
+      // constructor runs synchronously during parsing and moves the element into a
+      // detached holder before the parser appends it to its intended parent.
+      function make_doc(definition, html) {
+          return `<?xml version="1.0" encoding="utf-8"?>
+      <html xmlns="http://www.w3.org/1999/xhtml">
+      <head><script><` + `![CDATA[
+      window.holder = document.createElementNS("http://www.w3.org/1999/xhtml", "div");
+      window.holder.id = "holder";
+      ${definition}
+      ]]` + `></scr` + `ipt></head>
+      <body>
+      <div id="pp">${html}</div>
+      </body>
+      </html>`;
+      }
+
+      function assert_moved_to_parser_parent(contentWindow, victimSelector) {
+          const doc = contentWindow.document;
+          const root = doc.querySelector(victimSelector);
+          const pp = doc.getElementById("pp");
+          const holder = contentWindow.holder;
+
+          assert_true(!!root, "custom element instance exists");
+          assert_true(!!contentWindow.ctorRan, "constructor ran synchronously during parse");
+          assert_equals(root.parentNode, pp, "element is parented to the parser's parent");
+          assert_true(pp.contains(root), "parser's parent contains the element");
+          assert_false(holder.contains(root), "constructor's holder no longer contains the element");
+          assert_equals(pp.childElementCount, 1, "parser's parent has exactly one child element");
+      }
+
+      promise_test(async function (t) {
+          const definition = `
+      customElements.define("custom-btn", class extends HTMLButtonElement {
+          constructor() { super(); window.ctorRan = true; window.holder.appendChild(this); }
+      }, { extends: "button" });`;
+          const markup = make_doc(definition, '<button is="custom-btn" id="root">x</button>');
+          const contentWindow = await create_window_in_test_async(t, "application/xhtml+xml", markup);
+          assert_moved_to_parser_parent(contentWindow, '#root');
+      }, "Customized built-in reparented during synchronous XML parser construction is moved, not double-appended");
+
+      promise_test(async function (t) {
+          const definition = `
+      customElements.define("custom-el", class extends HTMLElement {
+          constructor() { super(); window.ctorRan = true; window.holder.appendChild(this); }
+      });`;
+          const markup = make_doc(definition, '<custom-el id="root"></custom-el>');
+          const contentWindow = await create_window_in_test_async(t, "application/xhtml+xml", markup);
+          assert_moved_to_parser_parent(contentWindow, '#root');
+      }, "Autonomous custom element reparented during synchronous XML parser construction is moved, not double-appended");
+
+      ]]>
+    </script>
+  </body>
+</html>

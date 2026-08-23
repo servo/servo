@@ -208,6 +208,10 @@ promise_test( t => {
   });
 }, "createImageBitmap with a broken image source.");
 
+// /images/undecodable.png is a valid signature and IHDR followed by a
+// zero-length IDAT. It has an intrinsic size, so the image becomes available,
+// but the zlib datastream formed by its IDAT chunks is empty, so there are no
+// filter bytes, no scanlines, and nothing that can be decoded.
 promise_test( t => {
   return makeAvailableButBrokenImage("/images/undecodable.png").then(image => {
     return promise_rejects_dom(t, "InvalidStateError",

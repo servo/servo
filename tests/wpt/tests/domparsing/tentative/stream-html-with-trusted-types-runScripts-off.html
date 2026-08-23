@@ -50,7 +50,7 @@
           t.add_cleanup(() => d.remove());
           const writer = d[method]({ runScripts: true, sanitizer: {removeElements: ["p"]} }).getWriter();
           window.did_run = false;
-          await writer.write("<script>window.did_run = true;<" + +"/script>");
+          await writer.write("<script>window.did_run = true;</" + "script>");
           await writer.close();
           assert_false(window.did_run);
         }, `The default TT policy can turn runScripts off for ${method}`);

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template src CSP script-src blocking</title>
+<!-- Restrict script sources to self and inline scripts -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+
+<div id="container-csp">
+  <div id="target-csp">
+    <?start name="marker-csp">Original CSP content<?end>
+  </div>
+  <!-- Even with CORS allowed (cors=1), script-src 'self' CSP should block this cross-origin load -->
+  <template for="marker-csp"
+            src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/dom/partial-updates/tentative/resources/chunked-html.py?cors=1&chunk1=CSP_BLOCKED"
+            id="tpl-csp"></template>
+</div>
+
+<script>
+promise_test(async () => {
+  const container = document.getElementById('target-csp');
+
+  // Wait 100ms to allow fetch to be blocked
+  await new Promise(resolve => step_timeout(resolve, 100));
+
+  assert_false(container.textContent.includes("CSP_BLOCKED"), "Target should NOT be updated with CSP-blocked cross-origin content");
+}, "Cross-origin template src load is blocked by script-src 'self' CSP");
+</script>
+</body>

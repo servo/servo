@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin background images for before/after when modified</title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    iframe {
+      width: 100px;
+      height: 200px;
+      background-color: blue;
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="100" height="200" layoutsubtree>
+    <div id=child>
+      <iframe id=iframe src="../support/subframe-cross-origin-before-background-on-body-modified.https.sub.html"></iframe>
+    </div>
+  </canvas>
+
+  <script>
+    iframe.onload = () => {
+      promise_test(async function(t) {
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        let pixel = context.getImageData(20, 20, 1, 1).data;
+        assert_false(pixel[0] > 0, "Initial draw: Red should not paint.");
+        assert_false(pixel[1] > 0, "Initial draw: Green should not paint before class is added.");
+        assert_true(pixel[2] > 0, "Initial draw: Blue iframe background should paint.");
+
+        // Add class to iframe body causing it to match the ::before rule.
+        iframe.contentDocument.body.classList.add('has-before');
+
+        await waitForCanvasPaint(canvas);
+        context.drawElementImage(child, 0, 0);
+
+        pixel = context.getImageData(20, 20, 1, 1).data;
+        assert_false(pixel[0] > 0, "The canvas should not paint cross origin content.");
+        assert_true(pixel[1] > 0, "The canvas should paint the ::before background color.");
+        assert_false(pixel[2] > 0, "The canvas should paint the ::before element over the iframe background.");
+      });
+    };
+  </script>
+</body>
+</html>

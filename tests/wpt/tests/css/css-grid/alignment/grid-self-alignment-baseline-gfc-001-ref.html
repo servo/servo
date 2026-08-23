@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid: a grid with baseline self-alignment participates in its flex parent's baseline alignment (reference)</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  body { margin: 0; }
+  .flex { display: flex; align-items: baseline; font: 100px/1 Ahem; color: black; }
+  .reference { font-size: 100px; }
+  .item { font-size: 50px; align-self: baseline; }
+</style>
+<div class="flex">
+  <span class="reference">X</span>
+  <div class="item">X</div>
+</div>

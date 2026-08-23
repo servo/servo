@@ -53,12 +53,12 @@ test(() => {
 
 test(() => {
   assert_equals(window.step1, "Before A");
-  assert_equals(window.step2, "BBefore A");
-  assert_equals(window.step3, "BBefore AC");
+  assert_equals(window.step2, undefined);
+  assert_equals(window.step3, undefined);
 
   const container = document.getElementById("container2");
-  assert_equals(getText("container2"), "BBefore AC After");
-  assert_equals(container.querySelector('template'), null);
+  assert_equals(getText("container2"), "Before A After");
+  assert_not_equals(container.querySelector('template'), null);
 }, "In-place template moving and removal during streaming");
 </script>
 </body>
