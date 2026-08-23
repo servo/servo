@@ -65,7 +65,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::comment::Comment;
 use crate::dom::csp::{Violation, parse_csp_list_from_metadata};
 use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElementRegistry};
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::domstringlist::DOMStringList;
@@ -257,7 +257,6 @@ impl ServoParser {
             None,
             None,
             DocumentActivity::Inactive,
-            DocumentSource::FromParser,
             loader,
             None,
             None,

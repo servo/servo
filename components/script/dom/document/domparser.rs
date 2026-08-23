@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
@@ -100,7 +100,6 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     Some(content_type),
                     None,
                     DocumentActivity::Inactive,
-                    DocumentSource::FromParser,
                     loader,
                     None,
                     None,
@@ -139,7 +138,6 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     Some(content_type),
                     None,
                     DocumentActivity::Inactive,
-                    DocumentSource::FromParser,
                     loader,
                     None,
                     None,

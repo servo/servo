@@ -91,7 +91,7 @@ use crate::dom::css::stylesheetlist::StyleSheetListOwner;
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementRegistry, try_upgrade_element,
 };
-use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
@@ -3124,7 +3124,6 @@ impl Node {
                     None,
                     None,
                     DocumentActivity::Inactive,
-                    DocumentSource::NotFromParser,
                     loader,
                     None,
                     document.status_code(),

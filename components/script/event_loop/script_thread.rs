@@ -129,9 +129,7 @@ use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
 use crate::dom::document::focus::FocusableArea;
-use crate::dom::document::{
-    Document, DocumentSource, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason,
-};
+use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason};
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
@@ -3592,12 +3590,6 @@ impl ScriptThread {
             .as_ref()
             .map(|referrer| referrer.clone().into_string());
 
-        let document_source = if incomplete.load_data.is_initial_about_blank {
-            DocumentSource::NotFromParser
-        } else {
-            DocumentSource::FromParser
-        };
-
         // Step 9. Let document be a new Document, with
         // - content type: contentType
         // - origin: navigationParams's origin
@@ -3617,7 +3609,6 @@ impl ScriptThread {
             content_type,
             last_modified,
             incomplete.activity,
-            document_source,
             loader,
             referrer,
             Some(metadata.status.raw_code()),
@@ -3632,7 +3623,12 @@ impl ScriptThread {
             image_cache,
         );
 
-        document.set_ready_state(cx, DocumentReadyState::Loading);
+        // https://html.spec.whatwg.org/multipage/document-lifecycle.html#initialise-the-document-object
+        // > such initial about:blank Document are never created by this algorithm
+        // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+        if !document.is_initial_about_blank() {
+            document.set_ready_state(cx, DocumentReadyState::Loading);
+        }
 
         // Step 8. Let loadTimingInfo be a new document load timing info with its
         //   navigation start time set to navigationParams's response's timing
