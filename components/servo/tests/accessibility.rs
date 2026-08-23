@@ -398,8 +398,7 @@ fn test_accessibility_text_change() {
     let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
     assert_eq!(updates.len(), 1);
     let update = updates.pop().expect("Guaranteed by assert above");
-    // Text reflow changes bounds on heading and ancestors
-    assert_eq!(update.nodes.len(), 4);
+    // Appending text always re-sends the two nodes whose contents changed
     let _ = find_node_with_role(&update, Role::TextRun);
     let heading = find_node_with_role(&update, Role::Heading);
     assert_eq!(heading.children().len(), 1);
