@@ -21,7 +21,7 @@ use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 
 // <https://w3c.github.io/editing/docs/execCommand/#indent>
-pub(crate) fn indent(cx: &mut JSContext, document: &Document, node_list: Vec<DomRoot<Node>>) {
+pub(crate) fn indent(cx: &mut JSContext, context_object: &Document, node_list: Vec<DomRoot<Node>>) {
     // Step 1. If node list is empty, do nothing and abort these steps.
     if node_list.is_empty() {
         return;
@@ -83,7 +83,7 @@ pub(crate) fn indent(cx: &mut JSContext, document: &Document, node_list: Vec<Dom
 
     // Step 5. Fix disallowed ancestors of new parent.
     if let Some(new_parent) = new_parent {
-        new_parent.fix_disallowed_ancestors(cx, document);
+        new_parent.fix_disallowed_ancestors(cx, context_object);
     }
 }
 

@@ -37,6 +37,7 @@ use crate::dom::execcommand::commands::insertlinebreak::execute_insert_line_brea
 use crate::dom::execcommand::commands::insertparagraph::execute_insert_paragraph_command;
 use crate::dom::execcommand::commands::inserttext::execute_insert_text_command;
 use crate::dom::execcommand::commands::italic::execute_italic_command;
+use crate::dom::execcommand::commands::outdent::execute_outdent_command;
 use crate::dom::execcommand::commands::removeformat::execute_removeformat_command;
 use crate::dom::execcommand::commands::strikethrough::execute_strikethrough_command;
 use crate::dom::execcommand::commands::stylewithcss::execute_style_with_css_command;
@@ -763,6 +764,7 @@ impl CommandName {
             },
             CommandName::InsertText => execute_insert_text_command(cx, document, selection, value),
             CommandName::Italic => execute_italic_command(cx, document, selection),
+            CommandName::Outdent => execute_outdent_command(cx, document, selection),
             CommandName::RemoveFormat => execute_removeformat_command(cx, document, selection),
             CommandName::Strikethrough => execute_strikethrough_command(cx, document, selection),
             CommandName::StyleWithCss => execute_style_with_css_command(document, value),
