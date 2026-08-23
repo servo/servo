@@ -113,9 +113,7 @@ use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
 
-use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
-    DocumentMethods, DocumentReadyState,
-};
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
@@ -3622,13 +3620,6 @@ impl ScriptThread {
             incomplete.pipeline_id,
             image_cache,
         );
-
-        // https://html.spec.whatwg.org/multipage/#initialise-the-document-object
-        // > such initial about:blank Document are never created by this algorithm
-        // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
-        if !document.is_initial_about_blank() {
-            document.update_the_current_document_readiness(cx, DocumentReadyState::Loading);
-        }
 
         // Step 8. Let loadTimingInfo be a new document load timing info with its
         //   navigation start time set to navigationParams's response's timing

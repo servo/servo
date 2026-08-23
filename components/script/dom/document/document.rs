@@ -1458,6 +1458,35 @@ impl Document {
         }
     }
 
+    /// Set the `readyState` of this [`Document`] to `loading` for the purposes of the
+    /// "initialize a document object" part of the specification.
+    ///
+    /// See <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>.
+    pub(crate) fn set_document_readiness_to_loading_for_initialization(&self) {
+        // https://html.spec.whatwg.org/multipage/#initialise-the-document-object
+        // > such initial about:blank Document are never created by this algorithm
+        // TODO(47417): Once "creating a new browsing context" properly exists, remove this check
+        if self.is_initial_about_blank() {
+            return;
+        }
+
+        // From <https://w3c.github.io/navigation-timing/#dom-performancetiming-domloading>:
+        // > This attribute must return the time immediately before the user agent sets the
+        // > current document readiness to "loading".
+        update_with_current_instant(&self.navigation_timing.dom_loading);
+
+        if self.window.is_top_level() {
+            let webview_id = self.webview_id();
+            self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
+                webview_id,
+                LoadStatus::Started,
+            ));
+            self.send_to_embedder(EmbedderMsg::Status(webview_id, None));
+        }
+
+        self.ready_state.set(DocumentReadyState::Loading);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-current-document-readiness>
     pub(crate) fn update_the_current_document_readiness(
         &self,
@@ -1477,21 +1506,7 @@ impl Document {
         // global object.
         // Note: Handled implicitly by update_with_current_instant.
         match state {
-            DocumentReadyState::Loading => {
-                // From <https://w3c.github.io/navigation-timing/#dom-performancetiming-domloading>:
-                // > This attribute must return the time immediately before the user agent sets the
-                // > current document readiness to "loading".
-                update_with_current_instant(&self.navigation_timing.dom_loading);
-
-                let webview_id = self.webview_id();
-                self.send_to_embedder(EmbedderMsg::NotifyLoadStatusChanged(
-                    webview_id,
-                    LoadStatus::Started,
-                ));
-                self.send_to_embedder(EmbedderMsg::Status(webview_id, None));
-                // We should not fire a `readystatechange` event for the initial loading state
-                return;
-            },
+            DocumentReadyState::Loading => {},
             DocumentReadyState::Complete => {
                 // This isn't part of the specification, but it's useful to have it here to
                 // avoid code duplication.
@@ -3939,8 +3954,6 @@ impl Document {
             QuirksMode::NoQuirks
         };
 
-        let navigation_timing = Rc::new(NavigationTiming::default());
-
         Document {
             node: Node::new_document_node(),
             document_or_shadow_root: DocumentOrShadowRoot::new(window),
@@ -4017,7 +4030,7 @@ impl Document {
             active_parser_was_aborted: Cell::new(false),
             fired_unload: Cell::new(false),
             responsive_images: Default::default(),
-            navigation_timing,
+            navigation_timing: Default::default(),
             resource_fetch_timing: RefCell::new(None),
             completely_loaded: Cell::new(false),
             script_and_layout_blockers: Cell::new(0),

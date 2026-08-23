@@ -1019,8 +1019,13 @@ impl ParserContext {
     /// <https://html.spec.whatwg.org/multipage/#initialise-the-document-object>
     fn initialize_document_object(&self, cx: &mut JSContext, document: &Document) {
         // Step 9. Let document be a new Document, with
+        // policy container: navigationParams's policy container
         document.set_policy_container(self.navigation_params.policy_container.clone());
+        // active sandboxing flag: set navigationParams's final sandboxing flag set
         document.set_active_sandboxing_flag_set(self.navigation_params.final_sandboxing_flag_set);
+        // current document readiness: "loading"
+        document.set_document_readiness_to_loading_for_initialization();
+        // about base URL: navigationParams's about base URL
         document.set_about_base_url(self.navigation_params.about_base_url.clone());
         // Step 11. Set document's internal ancestor origin objects list to the result of
         // running the internal ancestor origin objects list creation steps given
@@ -1314,7 +1319,6 @@ impl ParserContext {
         debug_assert_eq!(document.ReadyState(), DocumentReadyState::Complete);
 
         document.set_current_parser(None);
-        document.start_the_end_loading_phase();
         document.finish_load(LoadType::PageSource(self.url.clone()), cx);
 
         document.notify_embedder_of_load_completion();
