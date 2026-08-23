@@ -409,6 +409,7 @@ impl Handler {
         // including at least a keyDown event.
         self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
             keyboard_event,
+            None,
         )));
     }
 
@@ -444,6 +445,7 @@ impl Handler {
         };
         self.send_blocking_input_event_to_embedder(InputEvent::Keyboard(KeyboardEvent::new(
             keyboard_event,
+            None,
         )));
     }
 

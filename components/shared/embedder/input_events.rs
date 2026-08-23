@@ -106,12 +106,14 @@ impl InputEvent {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct KeyboardEvent {
     pub event: ::keyboard_types::KeyboardEvent,
+    pub raw_keycode: Option<u32>,
 }
 
 impl KeyboardEvent {
-    pub fn new(keyboard_event: ::keyboard_types::KeyboardEvent) -> Self {
+    pub fn new(keyboard_event: ::keyboard_types::KeyboardEvent, raw_keycode: Option<u32>) -> Self {
         Self {
             event: keyboard_event,
+            raw_keycode,
         }
     }
 
@@ -123,24 +125,31 @@ impl KeyboardEvent {
         modifiers: Modifiers,
         repeat: bool,
         is_composing: bool,
+        raw_keycode: Option<u32>,
     ) -> Self {
-        Self::new(::keyboard_types::KeyboardEvent {
-            state,
-            key,
-            code,
-            location,
-            modifiers,
-            repeat,
-            is_composing,
-        })
+        Self::new(
+            ::keyboard_types::KeyboardEvent {
+                state,
+                key,
+                code,
+                location,
+                modifiers,
+                repeat,
+                is_composing,
+            },
+            raw_keycode,
+        )
     }
 
-    pub fn from_state_and_key(state: KeyState, key: Key) -> Self {
-        Self::new(::keyboard_types::KeyboardEvent {
-            state,
-            key,
-            ..::keyboard_types::KeyboardEvent::default()
-        })
+    pub fn from_state_and_key(state: KeyState, key: Key, raw_keycode: Option<u32>) -> Self {
+        Self::new(
+            ::keyboard_types::KeyboardEvent {
+                state,
+                key,
+                ..::keyboard_types::KeyboardEvent::default()
+            },
+            raw_keycode,
+        )
     }
 }
 

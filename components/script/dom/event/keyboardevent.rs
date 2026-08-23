@@ -76,7 +76,19 @@ impl KeyboardEvent {
         window: &Window,
         event_type: Atom,
         keyboard_event: &keyboard_types::KeyboardEvent,
+        raw_keycode: Option<u32>,
     ) -> DomRoot<KeyboardEvent> {
+        let keycode = match raw_keycode {
+            Some(keycode) => {
+                if keycode == 0 {
+                    keyboard_event.key.legacy_keycode()
+                } else {
+                    keycode
+                }
+            },
+            None => keyboard_event.key.legacy_keycode(),
+        };
+
         Self::new_with_proto(
             cx,
             window,
@@ -94,7 +106,7 @@ impl KeyboardEvent {
             keyboard_event.is_composing,
             keyboard_event.modifiers,
             0, /* char_code */
-            keyboard_event.key.legacy_keycode(),
+            keycode,
         )
     }
 

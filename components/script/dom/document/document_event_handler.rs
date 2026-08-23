@@ -1580,6 +1580,7 @@ impl DocumentEventHandler {
             &self.window,
             keyboard_event.event.state.event_type().into(),
             &keyboard_event.event,
+            keyboard_event.raw_keycode,
         );
 
         let event = keyevent.upcast::<Event>();
@@ -1612,6 +1613,7 @@ impl DocumentEventHandler {
                 &self.window,
                 atom!("keypress"),
                 &keyboard_event.event,
+                keyboard_event.raw_keycode,
             );
             keypress_event.upcast::<Event>().set_composed(true);
             let event = keypress_event.upcast::<Event>();
