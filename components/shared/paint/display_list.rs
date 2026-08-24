@@ -38,7 +38,7 @@ bitflags! {
         /// This node can be scrolled by script events or script originated this scroll.
         const Script = 1 << 1;
         /// This node can be scrolled by touch direct manipulation, or a touch event
-        /// originated this scroll. Distinct from [`InputEvents`] so that `touch-action`
+        /// originated this scroll. Distinct from [`Self::InputEvents`] so that `touch-action`
         /// can restrict touch panning without affecting mouse wheel scrolling.
         const Touch = 1 << 2;
     }
