@@ -133,6 +133,24 @@ pub(crate) struct PanPolicyInput {
     pub scrollable_y: bool,
 }
 
+impl PanPolicyInput {
+    /// Decide the [`PanPolicy`] for a gesture with the given dominant axis.
+    /// See the policy table documented on [`PanPolicy`].
+    fn to_pan_policy(self, dominant: PanAxis) -> PanPolicy {
+        match self.touch_action {
+            TouchAction::None => PanPolicy::NoScroll,
+            TouchAction::PanX | TouchAction::PanY => PanPolicy::Lock(dominant),
+            TouchAction::Auto => {
+                if self.scrollable_x && self.scrollable_y {
+                    PanPolicy::Free
+                } else {
+                    PanPolicy::Lock(dominant)
+                }
+            },
+        }
+    }
+}
+
 /// A cached [`PaintHitTestResult`] to use during a touch sequence. This
 /// is kept so that the renderer doesn't have to constantly keep making hit tests
 /// while during panning and flinging actions.
@@ -569,7 +587,7 @@ impl TouchHandler {
                     };
                     let policy = touch_sequence
                         .pan_policy_input
-                        .map(|input| Self::decide_pan_policy(input, dominant))
+                        .map(|input| input.to_pan_policy(dominant))
                         .unwrap_or(PanPolicy::Undetermined);
                     // `NoScroll` is suppressed below.
                     let pan_delta = policy.pan_delta(delta);
@@ -776,23 +794,6 @@ impl TouchHandler {
     pub(crate) fn set_pan_policy_input(&mut self, input: PanPolicyInput) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&self.current_sequence_id) {
             sequence.pan_policy_input = Some(input);
-        }
-    }
-
-    /// Decide the [`PanPolicy`] from the hit node's `touch-action` and
-    /// scrollable axes plus the gesture's dominant axis. See the policy table
-    /// documented on [`PanPolicy`].
-    fn decide_pan_policy(input: PanPolicyInput, dominant: PanAxis) -> PanPolicy {
-        match input.touch_action {
-            TouchAction::None => PanPolicy::NoScroll,
-            TouchAction::PanX | TouchAction::PanY => PanPolicy::Lock(dominant),
-            TouchAction::Auto => {
-                if input.scrollable_x && input.scrollable_y {
-                    PanPolicy::Free
-                } else {
-                    PanPolicy::Lock(dominant)
-                }
-            },
         }
     }
 
