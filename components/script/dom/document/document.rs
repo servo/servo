@@ -995,12 +995,25 @@ impl Document {
         self.content_type.matches(APPLICATION, "xhtml+xml")
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#fully-active>
     pub(crate) fn is_fully_active(&self) -> bool {
-        !self.window_detached() && self.activity.get() == DocumentActivity::FullyActive
+        // > A Document d is said to be fully active when d is the active document of a
+        // > navigable navigable, and either navigable is a top-level traversable or
+        // > navigable's container document is fully active.
+        self.is_active() &&
+            (self.window.is_top_level() || self.activity.get() == DocumentActivity::FullyActive)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#nav-document>
     pub(crate) fn is_active(&self) -> bool {
-        !self.window_detached() && self.activity.get() != DocumentActivity::Inactive
+        // > A navigable's active document is its active session history entry's document.
+        //
+        // The first two checks stand in for when the document is not the active session history
+        // entry's document, as when that happens they will be false. The session history entry
+        // is not really implemented in script in the same way the specification says.
+        self.browsing_context().is_some() &&
+            !self.window_detached() &&
+            self.activity.get() != DocumentActivity::Inactive
     }
 
     #[inline]
