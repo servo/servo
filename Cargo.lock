@@ -6107,9 +6107,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-sys-opaque-types"
-version = "0.1.10"
+version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0135000ddab1491bd02a60e855c02e71be855845ca354162c1e189dea79d015"
+checksum = "709d9a23a7fd92c4c1f94c6772fd0e6607aa302c382601cc475000b68758cbbf"
 
 [[package]]
 name = "ohos-vsync"
