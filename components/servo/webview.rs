@@ -1057,6 +1057,13 @@ impl WebView {
         self.delegate()
             .notify_accessibility_tree_update(self.clone(), tree_update);
     }
+
+    pub fn clear_history(&self) {
+        self.inner()
+            .servo
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::ClearHistory(self.id()));
+    }
 }
 
 /// A structure used to expose a view of the [`WebView`] to the Servo
