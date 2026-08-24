@@ -734,20 +734,20 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
     ) {
-        let Some(sources) = font_face_rule.descriptors.src.clone() else {
+        let Some(sources) = font_face_rule.descriptors.src.as_ref() else {
             return;
         };
 
         let css_font_face_descriptors = CSSFontFaceDescriptors::from(&font_face_rule.descriptors);
 
         let initiator = FontFaceRuleInitiator {
-            font_face_rule,
+            font_face_rule: font_face_rule.clone(),
             callback: callback.clone(),
         };
 
         self.start_loading_one_web_font(
             Some(webview_id),
-            &sources,
+            sources,
             css_font_face_descriptors,
             WebFontLoadInitiator::Stylesheet(Box::new(initiator)),
             document_context,
