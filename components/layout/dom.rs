@@ -75,11 +75,15 @@ impl InnerDOMLayoutData {
     }
 
     fn fragments(&self) -> Vec<Fragment> {
-        self.self_box
-            .borrow()
-            .as_ref()
-            .and_then(|layout_box| layout_box.with_base(|base| base.fragments().clone()))
+        self.with_fragments(<[Fragment]>::to_vec)
             .unwrap_or_default()
+    }
+
+    /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
+    fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T> {
+        let self_box = self.self_box.borrow();
+        let layout_box = self_box.as_ref()?;
+        layout_box.with_base(|base| callback(&base.fragments()))
     }
 
     fn repair_style(&self, node: &ServoLayoutNode, context: &SharedStyleContext) {
@@ -360,6 +364,9 @@ pub(crate) trait NodeExt<'dom> {
     fn rendering_type(&self) -> NodeRenderingType;
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
+
+    /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
+    fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T>;
     fn with_layout_box_base(&self, callback: impl FnMut(&LayoutBoxBase));
     fn with_layout_box_base_including_pseudos(&self, callback: impl FnMut(&LayoutBoxBase));
 
@@ -598,6 +605,10 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
                 .unwrap_or_default(),
             None => layout_data.fragments(),
         }
+    }
+
+    fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T> {
+        self.inner_layout_data()?.with_fragments(callback)
     }
 
     fn repair_style(&self, context: &SharedStyleContext) {

@@ -40,5 +40,6 @@ interface LayoutResult {
 interface AccessibilityUpdateResult {
     readonly attribute unsigned long nodesUpdatedFromDom;
     readonly attribute unsigned long nodesUpdatedFromTree;
+    readonly attribute unsigned long nodesUpdatedBounds;
     readonly attribute unsigned long nodesInTreeUpdate;
 };

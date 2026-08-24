@@ -10,6 +10,7 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use accesskit::Affine;
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
@@ -589,11 +590,24 @@ impl Gui {
             let available_rect = ctx.available_rect_before_wrap();
 
             // Build a graft node for each WebView.
+            let affine = {
+                // The grafted WebView tree reports bounds in device pixels relative to the
+                // WebView's own origin, so this node supplies the offset of the WebView within
+                // the window, and scales it to the same scale as the rest of the nodes in egui's
+                // AccessKit tree.
+                let scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
+                let x = available_rect.min.x as f64;
+                let y = available_rect.min.y as f64;
+                Affine::new([scale, 0.0, 0.0, scale, x, y])
+            };
             for (webview_id, webview) in window.webviews() {
                 if let Some(tree_id) = webview.accesskit_tree_id() {
                     let id = egui::Id::new(webview_id);
                     ctx.accesskit_node_builder(id, |node| {
                         node.set_tree_id(tree_id);
+                        // Only the transform is set: AccessKit consumers exclude graft nodes from
+                        // the presented tree, so bounds on this node would never be read.
+                        node.set_transform(affine);
                     });
                 }
             }
