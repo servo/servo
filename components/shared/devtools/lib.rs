@@ -475,6 +475,7 @@ pub enum DevtoolScriptControlMsg {
         String,
         PipelineId,
         Option<String>,
+        bool,
         GenericSender<EvaluateJSReply>,
     ),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),

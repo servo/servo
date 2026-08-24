@@ -10,6 +10,7 @@ interface DebuggerEvalEvent : Event {
     readonly attribute PipelineId pipelineId;
     readonly attribute DOMString? workerId;
     readonly attribute DOMString? frameActorId;
+    readonly attribute boolean eager;
 };
 
 partial interface DebuggerGlobalScope {

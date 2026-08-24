@@ -8,6 +8,7 @@
 # except according to those terms.
 
 from concurrent.futures import Future
+from queue import Queue
 
 import pytest
 from geckordp.actors.events import Events
@@ -190,6 +191,52 @@ class TestConsoleTab:
             assert not result["result"]
             assert result["exception"]
             assert "Not enough arguments" in result["exceptionMessage"]
+
+    def test_eager_evaluation(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
+
+            def on_evaluation(data):
+                evaluation_result.set_result(data)
+
+            devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
+
+            console.evaluate_js_async("2 + 2", eager=True)
+            result = evaluation_result.result(1)
+
+            assert result["result"] == 4
+            assert not result["exception"]
+
+    def test_eager_evaluation_aborts_assignment(self, run_servoshell):
+        run_servoshell(url="data:text/html,<head><script>let value = 5;</script></head>")
+
+        with Devtools.connect() as devtools:
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            queue = Queue()
+
+            def on_evaluation(data):
+                queue.put_nowait(data)
+
+            devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
+
+            console.evaluate_js_async("value = 4; value", eager=True)
+            result1 = queue.get(timeout=1)
+
+            console.evaluate_js_async("let newValue = 6; newValue", eager=True)
+            result2 = queue.get(timeout=1)
+
+            console.evaluate_js_async("document.head.append('boo!'); document.head.childNodes", eager=True)
+            result3 = queue.get(timeout=1)
+
+            assert result1["result"]["type"] == "undefined"
+            assert not result1["exception"]
+            assert result2["result"]["type"] == "undefined"
+            assert not result2["exception"]
+            assert result3["result"]["type"] == "undefined"
+            assert not result3["exception"]
 
     def test_global_autocomplete(self, run_servoshell):
         script_tag = "<script>console_test_value = 5;</script>"

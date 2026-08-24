@@ -753,13 +753,14 @@ impl SharedWorkerGlobalScope {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, _bool_val) => {},
-                DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+                DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, eager, reply) => {
                     self.debugger_global.fire_eval(
                         cx,
                         code.into(),
                         id,
                         Some(self.upcast::<WorkerGlobalScope>().worker_id()),
                         frame_actor_id,
+                        eager,
                         reply,
                     );
                 },

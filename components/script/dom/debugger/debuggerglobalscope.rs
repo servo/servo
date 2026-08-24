@@ -184,6 +184,7 @@ impl DebuggerGlobalScope {
         );
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn fire_eval(
         &self,
         cx: &mut JSContext,
@@ -191,6 +192,7 @@ impl DebuggerGlobalScope {
         debuggee_pipeline_id: PipelineId,
         debuggee_worker_id: Option<WorkerId>,
         frame_actor_id: Option<String>,
+        eager: bool,
         result_sender: GenericSender<EvaluateJSReply>,
     ) {
         assert!(
@@ -209,6 +211,7 @@ impl DebuggerGlobalScope {
             &debuggee_pipeline_id,
             debuggee_worker_id.map(|id| id.to_string().into()),
             frame_actor_id.map(|id| id.into()),
+            eager,
         ));
         assert!(
             event.fire(cx, self.upcast()),
