@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use app_units::Au;
 use content_security_policy::Violation;
 use fonts_traits::{
-    CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleWithOrigin, FontIdentifier, FontTemplate,
+    CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleInfo, FontIdentifier, FontTemplate,
     FontTemplateRef, FontTemplateRefMethods, StylesheetWebFontLoadFinishedCallback,
     WebFontLoadEvent, WebFontSetDifference,
 };
@@ -44,7 +44,7 @@ use style::font_face::{
 use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::StylesheetGuards;
-use style::stylesheets::LockedFontFaceRule;
+use style::stylesheets::{FontFaceRule, LockedFontFaceRule, Origin};
 use style::stylist::Stylist;
 use style::values::computed::FontVariantAlternates;
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
@@ -325,7 +325,17 @@ impl FontContext {
             .read()
             .families
             .get(&family_name.name.clone().into())
-            .map(|templates| templates.find_for_descriptor(Some(descriptor_to_match)))
+            .map(|templates| {
+                let mut matching_templates =
+                    templates.find_for_descriptor(Some(descriptor_to_match));
+                matching_templates.sort_unstable_by_key(|template| {
+                    template
+                        .font_face_rule()
+                        .map(|rule| rule.cascade_index.load(Ordering::SeqCst))
+                        .unwrap_or(usize::MAX)
+                });
+                matching_templates
+            })
     }
 
     /// Try to find matching templates in this [`FontContext`], first looking in the list of web fonts and
@@ -582,16 +592,13 @@ impl FontContext {
     /// Returns true iff a `@font-face` rule is part of the active set.
     ///
     /// A font face rule might be removed from this set if its stylesheet is removed for example.
-    pub(crate) fn is_font_face_rule_active(
-        &self,
-        target_rule: &ServoArc<LockedFontFaceRule>,
-    ) -> bool {
+    pub(crate) fn is_font_active(&self, web_font: &ServoArc<FontFaceRuleInfo>) -> bool {
         self.known_font_face_rules
             .lock()
             .contents
             .values()
             .flat_map(|bucket| bucket.iter())
-            .any(|known_rule| ServoArc::ptr_eq(&known_rule.rule_with_origin.rule, target_rule))
+            .any(|known_web_font| ServoArc::ptr_eq(&known_web_font.font_face_rule_entry, web_font))
     }
 }
 
@@ -634,10 +641,7 @@ impl WebFontDownloadState {
         let family_name = self.css_font_face_descriptors.family_name.clone();
         match self.initiator {
             WebFontLoadInitiator::Stylesheet(initiator) => {
-                if !self
-                    .font_context
-                    .is_font_face_rule_active(&initiator.created_by)
-                {
+                if !self.font_context.is_font_active(&initiator.font_face_rule) {
                     // This font load was cancelled.
                     if self
                         .font_context
@@ -707,8 +711,7 @@ pub trait FontContextWebFontMethods {
     fn load_single_font_face_rule(
         &self,
         webview_id: WebViewId,
-        locked_font_face_rule: &FontFaceRuleWithOrigin,
-        guards: &StylesheetGuards<'_>,
+        font_face_rule: ServoArc<FontFaceRuleInfo>,
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
     );
@@ -727,21 +730,18 @@ impl FontContextWebFontMethods for Arc<FontContext> {
     fn load_single_font_face_rule(
         &self,
         webview_id: WebViewId,
-        locked_font_face_rule: &FontFaceRuleWithOrigin,
-        guards: &StylesheetGuards<'_>,
+        font_face_rule: ServoArc<FontFaceRuleInfo>,
         callback: StylesheetWebFontLoadFinishedCallback,
         document_context: &WebFontDocumentContext,
     ) {
-        let font_face_rule = locked_font_face_rule.read_with(guards);
-        let Some(ref sources) = font_face_rule.descriptors.src else {
+        let Some(sources) = font_face_rule.descriptors.src.as_ref() else {
             return;
         };
 
-        let css_font_face_descriptors = font_face_rule.into();
+        let css_font_face_descriptors = CSSFontFaceDescriptors::from(&font_face_rule.descriptors);
 
         let initiator = FontFaceRuleInitiator {
-            created_by: locked_font_face_rule.rule.clone(),
-            font_face_rule: font_face_rule.descriptors.clone(),
+            font_face_rule: font_face_rule.clone(),
             callback: callback.clone(),
         };
 
@@ -769,24 +769,22 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         for added_rule in &difference.added_font_faces {
             self.load_single_font_face_rule(
                 webview_id,
-                added_rule,
-                guards,
+                added_rule.clone(),
                 callback.clone(),
                 document_context,
             );
         }
         for removed_rule in &difference.removed_font_faces {
-            let removed_rule = removed_rule.read_with(guards);
-            self.remove_single_font_face_rule(
-                &removed_rule.descriptors,
-                &mut self.web_fonts.write(),
-            );
+            self.remove_single_font_face_rule(removed_rule, &mut self.web_fonts.write());
+        }
+
+        if !difference.removed_font_faces.is_empty() || difference.cascade_index_of_any_rule_changed
+        {
+            // Font matching may now yield different results, so invalidate resolved font groups.
+            self.resolved_font_groups.write().clear();
         }
 
         if !difference.removed_font_faces.is_empty() {
-            // We modified the list of available fonts, so invalidate resolved font groups.
-            self.resolved_font_groups.write().clear();
-
             // Ensure that we clean up any WebRender resources on the next display list update.
             self.have_removed_web_fonts.store(true, Ordering::Relaxed);
         }
@@ -821,7 +819,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
         for subscriber in subscribers {
             // See if the font load was cancelled in the meantime
             if let WebFontLoadInitiator::Stylesheet(stylesheet_initiator) = &subscriber.initiator &&
-                !self.is_font_face_rule_active(&stylesheet_initiator.created_by)
+                !self.is_font_active(&stylesheet_initiator.font_face_rule)
             {
                 // This font load was cancelled.
                 if self
@@ -833,7 +831,7 @@ impl FontContextWebFontMethods for Arc<FontContext> {
                     // has finished because this an opportunity to resolve document.fonts.ready.
                     (stylesheet_initiator.callback)(WebFontLoadEvent::UnblockedFontReadyPromise);
                 }
-                return;
+                continue;
             }
 
             self.process_next_web_font_source(subscriber);
@@ -912,10 +910,10 @@ impl FontContext {
     /// Returns `true` if any font templates were removed.
     fn remove_single_font_face_rule(
         &self,
-        font_face_rule: &FontFaceRuleDescriptors,
+        font_face_rule: &ServoArc<FontFaceRuleInfo>,
         font_store: &mut FontStore,
     ) -> bool {
-        let Some(family) = font_face_rule.font_family.as_ref() else {
+        let Some(family) = font_face_rule.descriptors.font_family.as_ref() else {
             return false;
         };
 
@@ -1239,14 +1237,8 @@ pub(crate) type ScriptWebFontLoadFinishedCallback =
 
 #[derive(MallocSizeOf)]
 pub(crate) struct FontFaceRuleInitiator {
-    /// A reference to the `@font-face` rule that created this web font load.
-    /// This is only used to identify the font in case it is
-    // TODO: It is awkward that we have to carry both the locked font face rule and the
-    // unlocked copy around. Perhaps the FontContext should have access to the shared
-    // lock in the future.
     #[conditional_malloc_size_of]
-    created_by: ServoArc<LockedFontFaceRule>,
-    font_face_rule: FontFaceRuleDescriptors,
+    font_face_rule: ServoArc<FontFaceRuleInfo>,
     #[ignore_malloc_size_of = "dyn Fn"]
     callback: StylesheetWebFontLoadFinishedCallback,
 }
@@ -1258,7 +1250,7 @@ pub(crate) enum WebFontLoadInitiator {
 }
 
 impl WebFontLoadInitiator {
-    pub(crate) fn font_face_rule(&self) -> Option<&FontFaceRuleDescriptors> {
+    pub(crate) fn font_face_rule(&self) -> Option<&ServoArc<FontFaceRuleInfo>> {
         match self {
             Self::Stylesheet(initiator) => Some(&initiator.font_face_rule),
             Self::Script(_) => None,
@@ -1470,8 +1462,29 @@ struct KnownFontFaceRules {
 
 #[derive(MallocSizeOf)]
 struct KnownFontFaceRule {
-    rule_with_origin: FontFaceRuleWithOrigin,
+    #[conditional_malloc_size_of]
+    font_face_rule_entry: ServoArc<FontFaceRuleInfo>,
     generation: bool,
+}
+
+#[derive(Clone, MallocSizeOf)]
+struct FontFaceRuleWithOrigin {
+    #[conditional_malloc_size_of]
+    rule: ServoArc<LockedFontFaceRule>,
+    origin: Origin,
+}
+
+impl FontFaceRuleWithOrigin {
+    fn new(rule: ServoArc<LockedFontFaceRule>, origin: Origin) -> Self {
+        Self { rule, origin }
+    }
+
+    fn read_with<'a>(&'a self, guards: &'a StylesheetGuards) -> &'a FontFaceRule {
+        match self.origin {
+            Origin::Author => self.rule.read_with(guards.author),
+            Origin::UserAgent | Origin::User => self.rule.read_with(guards.ua_or_user),
+        }
+    }
 }
 
 impl KnownFontFaceRules {
@@ -1500,7 +1513,7 @@ impl KnownFontFaceRules {
             .values()
             .map(|fonts_from_family| fonts_from_family.len())
             .sum();
-        for rule_with_origin in font_face_rules_in_cascade_order {
+        for (cascade_index, rule_with_origin) in font_face_rules_in_cascade_order.enumerate() {
             let borrowed_rule = rule_with_origin.read_with(guards);
 
             let Some(font_family) = borrowed_rule.descriptors.font_family.as_ref() else {
@@ -1522,9 +1535,9 @@ impl KnownFontFaceRules {
             let mut index_of_existing_entry_for_this_rule = None;
             for (index, known_font_face) in known_font_faces_for_family.iter().enumerate() {
                 // See if this is a entry for this @font-face that existed prior to the current update
-                if FontFaceRuleWithOrigin::ptr_eq(
-                    &known_font_face.rule_with_origin,
-                    &rule_with_origin,
+                if ServoArc::ptr_eq(
+                    &known_font_face.font_face_rule_entry.rule,
+                    &rule_with_origin.rule,
                 ) {
                     index_of_existing_entry_for_this_rule = Some(index);
                 }
@@ -1540,10 +1553,7 @@ impl KnownFontFaceRules {
                     continue;
                 }
                 if font_face_rules_conflict(
-                    &known_font_face
-                        .rule_with_origin
-                        .read_with(guards)
-                        .descriptors,
+                    &known_font_face.font_face_rule_entry.descriptors,
                     &borrowed_rule.descriptors,
                 ) {
                     conflicting_declaration_with_higher_priority_exists = true;
@@ -1561,9 +1571,17 @@ impl KnownFontFaceRules {
                         known_font_faces_for_family.remove(index_of_existing_entry_for_this_rule);
                     difference
                         .removed_font_faces
-                        .push(stale_rule.rule_with_origin);
+                        .push(stale_rule.font_face_rule_entry);
                 } else {
                     number_of_unchanged_rules += 1;
+
+                    let previous_cascade_index_of_this_rule = known_font_faces_for_family
+                        [index_of_existing_entry_for_this_rule]
+                        .font_face_rule_entry
+                        .cascade_index
+                        .swap(cascade_index, Ordering::SeqCst);
+                    difference.cascade_index_of_any_rule_changed |=
+                        previous_cascade_index_of_this_rule != cascade_index;
                     known_font_faces_for_family[index_of_existing_entry_for_this_rule].generation =
                         self.generation;
                 }
@@ -1573,9 +1591,16 @@ impl KnownFontFaceRules {
                 continue;
             } else {
                 // This is a new rule that does not conflict with anything that previously existed, so insert it.
-                difference.added_font_faces.push(rule_with_origin.clone());
+                let font_face_rule_entry = ServoArc::new(FontFaceRuleInfo {
+                    cascade_index: AtomicUsize::new(cascade_index),
+                    descriptors: borrowed_rule.descriptors.clone(),
+                    rule: rule_with_origin.rule,
+                });
+                difference
+                    .added_font_faces
+                    .push(font_face_rule_entry.clone());
                 known_font_faces_for_family.push(KnownFontFaceRule {
-                    rule_with_origin,
+                    font_face_rule_entry,
                     generation: self.generation,
                 });
             }
@@ -1595,7 +1620,7 @@ impl KnownFontFaceRules {
                 .for_each(|removed_rule| {
                     difference
                         .removed_font_faces
-                        .push(removed_rule.rule_with_origin);
+                        .push(removed_rule.font_face_rule_entry);
                 });
 
             !known_font_faces_for_family.is_empty()
