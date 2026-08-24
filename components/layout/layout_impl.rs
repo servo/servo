@@ -1347,7 +1347,7 @@ impl LayoutThread {
                 .all(|layout_root| layout_root.try_layout(&layout_context))
             {
                 if self.accessibility_active() {
-                    // TODO(#47162) Compute accessibility damage rather than forcing a full upate.
+                    // TODO(#47162) Compute accessibility damage rather than forcing a full update.
                     self.set_force_accessibility_update();
                 }
 

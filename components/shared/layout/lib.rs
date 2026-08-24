@@ -419,19 +419,16 @@ pub trait Layout {
     /// Returns whether accessibility is active for this Layout.
     fn accessibility_active(&self) -> bool;
 
-    /// Whether the accessibility tree needs updating. This is set to true when
+    /// Whether the accessibility tree must be updated. This is set to true when
     /// - accessibility is activated; or
     /// - a page is loaded after accesibility is activated.
     ///
-    /// In future, this should be set to true if DOM or style have changed in a way that
-    /// impacts the accessibility tree.
-    ///
     /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
-    /// should force a reflow, and handle_reflow() to determine whether to update the
-    /// accessibility tree during reflow.
+    /// should force a reflow, and handle_accessibility_tree_update() to determine whether to
+    /// update the accessibility tree during reflow.
     fn force_accessibility_update(&self) -> bool;
 
-    /// See [Self::needs_accessibility_update()].
+    /// See [Self::force_accessibility_update()].
     fn set_force_accessibility_update(&self);
 
     fn font_context(&self) -> &Arc<FontContext>;
