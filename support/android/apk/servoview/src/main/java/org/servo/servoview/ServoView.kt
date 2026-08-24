@@ -8,7 +8,6 @@ package org.servo.servoview
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.AttributeSet
 import android.util.Log
 import android.util.Size
 import android.view.Choreographer
@@ -17,7 +16,7 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
-class ServoView : SurfaceView, Servo.RunCallback, Choreographer.FrameCallback {
+class ServoView(context: Context) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
     private val surfaceHolderCallback: SurfaceHolderCallback
     private var servo: Servo? = null
@@ -26,9 +25,7 @@ class ServoView : SurfaceView, Servo.RunCallback, Choreographer.FrameCallback {
 
     private var experimentalMode = false
 
-    constructor(context: Context) : this(context, null)
-
-    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs) {
+    init {
         isFocusable = true
         isFocusableInTouchMode = true
         isClickable = true
