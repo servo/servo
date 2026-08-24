@@ -39,7 +39,7 @@ use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
-use crate::responders::GenericResponder;
+use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
@@ -252,7 +252,7 @@ impl WebView {
     ) {
         let request = CreateNewWebViewRequest {
             servo: self.inner().servo.clone(),
-            responder: GenericResponder::new(response_sender, None),
+            responder: AutomaticResponder::new(response_sender, None),
         };
         self.delegate().request_create_new(self.clone(), request);
     }
@@ -1096,7 +1096,7 @@ pub struct WebViewBuilder {
     delegate: Rc<dyn WebViewDelegate>,
     url: Option<Url>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
-    create_new_webview_responder: Option<GenericResponder<Option<NewWebViewDetails>>>,
+    create_new_webview_responder: Option<AutomaticResponder<Option<NewWebViewDetails>>>,
     user_content_manager: Option<Rc<UserContentManager>>,
     clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
     #[cfg(feature = "gamepad")]
@@ -1126,7 +1126,7 @@ impl WebViewBuilder {
     pub(crate) fn new_for_create_request(
         servo: &Servo,
         rendering_context: Rc<dyn RenderingContext>,
-        responder: GenericResponder<Option<NewWebViewDetails>>,
+        responder: AutomaticResponder<Option<NewWebViewDetails>>,
     ) -> Self {
         let mut builder = Self::new(servo, rendering_context);
         builder.create_new_webview_responder = Some(responder);
