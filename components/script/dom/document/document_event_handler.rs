@@ -1230,22 +1230,22 @@ impl DocumentEventHandler {
             input_event.active_keyboard_modifiers,
             MouseButton::Secondary,
             input_event.pressed_mouse_buttons,
-            None,                     // related_target
-            None,                     // point_in_target
-            PointerId::Mouse as i32,  // pointer_id
-            1,                        // width
-            1,                        // height
-            0.5,                      // pressure
-            0.0,                      // tangential_pressure
-            0,                        // tilt_x
-            0,                        // tilt_y
-            0,                        // twist
-            PI / 2.0,                 // altitude_angle
-            0.0,                      // azimuth_angle
-            DOMString::from("mouse"), // pointer_type
-            true,                     // is_primary
-            vec![],                   // coalesced_events
-            vec![],                   // predicted_events
+            None,                            // related_target
+            None,                            // point_in_target
+            PointerId::Mouse as i32,         // pointer_id
+            1,                               // width
+            1,                               // height
+            0.5,                             // pressure
+            0.0,                             // tangential_pressure
+            0,                               // tilt_x
+            0,                               // tilt_y
+            0,                               // twist
+            PI / 2.0,                        // altitude_angle
+            0.0,                             // azimuth_angle
+            DOMString::from_static("mouse"), // pointer_type
+            true,                            // is_primary
+            vec![],                          // coalesced_events
+            vec![],                          // predicted_events
         );
         menu_event.upcast::<Event>().set_composed(true);
 
@@ -2086,7 +2086,7 @@ impl DocumentEventHandler {
 
                     // Step 7.1.2.1.1 If clipboard-part contains plain text, then
                     let data = DOMString::from(text_contents);
-                    let type_ = DOMString::from("text/plain");
+                    let type_ = DOMString::from_static("text/plain");
                     let _ = drag_data_store.add(Kind::Text { data, type_ });
 
                     // Step 7.1.2.1.2 TODO If clipboard-part represents file references, then for each file reference

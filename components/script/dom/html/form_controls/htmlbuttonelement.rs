@@ -113,8 +113,8 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
             // Step 3. If command is in the Unknown state, then return the empty string.
             CommandState::Unknown => DOMString::default(),
             // Step 4. Return the keyword corresponding to the value of command.
-            CommandState::Close => DOMString::from("close"),
-            CommandState::ShowModal => DOMString::from("show-modal"),
+            CommandState::Close => DOMString::from_static("close"),
+            CommandState::ShowModal => DOMString::from_static("show-modal"),
         }
     }
 
@@ -135,9 +135,9 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-button-type>
     fn Type(&self) -> DOMString {
         match self.button_type.get() {
-            ButtonType::Submit => DOMString::from("submit"),
-            ButtonType::Button => DOMString::from("button"),
-            ButtonType::Reset => DOMString::from("reset"),
+            ButtonType::Submit => DOMString::from_static("submit"),
+            ButtonType::Button => DOMString::from_static("button"),
+            ButtonType::Reset => DOMString::from_static("reset"),
         }
     }
 

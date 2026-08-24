@@ -318,7 +318,7 @@ fn all_matching_links(
     // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
     // during the execution of the element location strategy, return error invalid selector.
     root_node
-        .query_selector_all(cx, DOMString::from("a"))
+        .query_selector_all(cx, DOMString::from_static("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
         .map(|nodes| matching_links(cx, &nodes, link_text, partial).collect())
 }

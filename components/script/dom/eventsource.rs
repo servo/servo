@@ -517,7 +517,7 @@ impl EventSource {
             eventtarget: EventTarget::new_inherited(),
             url,
             request: DomRefCell::new(None),
-            last_event_id: DomRefCell::new(DOMString::from("")),
+            last_event_id: DomRefCell::new(DOMString::new()),
             reconnection_time: Cell::new(DEFAULT_RECONNECTION_TIME),
             generation_id: Cell::new(GenerationId(0)),
 

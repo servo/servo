@@ -2416,7 +2416,7 @@ impl HTMLMediaElement {
 
             // Step 1. Create an AudioTrack object to represent the audio track.
             let kind = match i {
-                0 => DOMString::from("main"),
+                0 => DOMString::from_static("main"),
                 _ => DOMString::new(),
             };
 
@@ -2483,7 +2483,7 @@ impl HTMLMediaElement {
 
             // Step 1. Create a VideoTrack object to represent the video track.
             let kind = match i {
-                0 => DOMString::from("main"),
+                0 => DOMString::from_static("main"),
                 _ => DOMString::new(),
             };
 

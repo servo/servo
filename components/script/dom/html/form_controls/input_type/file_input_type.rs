@@ -266,7 +266,7 @@ impl FileInputShadowTree {
         selector_button
             .downcast::<HTMLButtonElement>()
             .expect("This should be guaranteed by the element type used above")
-            .SetType(cx, DOMString::from("button"));
+            .SetType(cx, DOMString::from_static("button"));
 
         selector_button
             .downcast::<HTMLElement>()
@@ -303,12 +303,15 @@ impl FileInputShadowTree {
                 .upcast::<Node>()
                 .set_text_content_for_element(
                     cx,
-                    Some(DOMString::from(SELECTOR_BUTTON_MULTIPLE_TEXT)),
+                    Some(DOMString::from_static(SELECTOR_BUTTON_MULTIPLE_TEXT)),
                 );
         } else {
             self.selector_button
                 .upcast::<Node>()
-                .set_text_content_for_element(cx, Some(DOMString::from(SELECTOR_BUTTON_TEXT)));
+                .set_text_content_for_element(
+                    cx,
+                    Some(DOMString::from_static(SELECTOR_BUTTON_TEXT)),
+                );
         }
 
         self.value_container

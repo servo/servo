@@ -416,7 +416,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-type>
     fn Type(&self) -> DOMString {
-        DOMString::from("textarea")
+        DOMString::from_static("textarea")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue>
@@ -577,7 +577,7 @@ impl HTMLTextAreaElement {
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
-        self.textinput.borrow_mut().set_content(DOMString::from(""));
+        self.textinput.borrow_mut().set_content(DOMString::new());
     }
 
     pub(crate) fn reset(&self, cx: &mut JSContext) {

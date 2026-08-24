@@ -1384,7 +1384,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         let value = TrustedScript::get_trusted_type_compliant_string(
             cx,
             &self.owner_global(),
-            value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
+            value.unwrap_or(TrustedScriptOrString::String(DOMString::new())),
             "HTMLScriptElement textContent",
         )?;
         // Step 2: Set this's script text value to value.

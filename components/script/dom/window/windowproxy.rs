@@ -535,7 +535,7 @@ impl WindowProxy {
         };
         // Step 5. If target is the empty string, then set target to "_blank".
         let non_empty_target = if target.is_empty() {
-            DOMString::from("_blank")
+            DOMString::from_static("_blank")
         } else {
             target
         };

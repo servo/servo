@@ -450,31 +450,31 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
             interface.local == local_name!("iframe") &&
             property == "srcdoc"
         {
-            expected_type = Some(DOMString::from("TrustedHTML"))
+            expected_type = Some(DOMString::from_static("TrustedHTML"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "innerText"
         {
-            expected_type = Some(DOMString::from("TrustedScript"))
+            expected_type = Some(DOMString::from_static("TrustedScript"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "src"
         {
-            expected_type = Some(DOMString::from("TrustedScriptURL"))
+            expected_type = Some(DOMString::from_static("TrustedScriptURL"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "text"
         {
-            expected_type = Some(DOMString::from("TrustedScript"))
+            expected_type = Some(DOMString::from_static("TrustedScript"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "textContent"
         {
-            expected_type = Some(DOMString::from("TrustedScript"))
+            expected_type = Some(DOMString::from_static("TrustedScript"))
         } else if property == "innerHTML" {
-            expected_type = Some(DOMString::from("TrustedHTML"))
+            expected_type = Some(DOMString::from_static("TrustedHTML"))
         } else if property == "outerHTML" {
-            expected_type = Some(DOMString::from("TrustedHTML"))
+            expected_type = Some(DOMString::from_static("TrustedHTML"))
         }
         // Step 6: Return expectedType.
         expected_type

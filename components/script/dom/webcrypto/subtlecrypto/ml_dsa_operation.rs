@@ -1075,7 +1075,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Set the kty attribute of jwk to "AKP".
-            jwk.kty = Some(DOMString::from("AKP"));
+            jwk.kty = Some(DOMString::from_static("AKP"));
 
             // Step 3.4. Set the alg attribute of jwk to the name member of normalizedAlgorithm.
             jwk.alg = Some(DOMString::from(key_algorithm.name.as_str()));

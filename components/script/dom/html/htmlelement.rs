@@ -687,8 +687,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             cx,
             &html5ever::local_name!("translate"),
             match yesno {
-                true => DOMString::from("yes"),
-                false => DOMString::from("no"),
+                true => DOMString::from_static("yes"),
+                false => DOMString::from_static("no"),
             },
         );
     }

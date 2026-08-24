@@ -96,9 +96,9 @@ impl From<DOMString> for SelectionDirection {
 impl From<SelectionDirection> for DOMString {
     fn from(direction: SelectionDirection) -> DOMString {
         match direction {
-            SelectionDirection::Forward => DOMString::from("forward"),
-            SelectionDirection::Backward => DOMString::from("backward"),
-            SelectionDirection::None => DOMString::from("none"),
+            SelectionDirection::Forward => DOMString::from_static("forward"),
+            SelectionDirection::Backward => DOMString::from_static("backward"),
+            SelectionDirection::None => DOMString::from_static("none"),
         }
     }
 }

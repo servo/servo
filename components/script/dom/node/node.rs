@@ -3651,18 +3651,20 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             NodeTypeId::Attr => self.downcast::<Attr>().unwrap().qualified_name(),
             NodeTypeId::Element(..) => self.downcast::<Element>().unwrap().TagName(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                DOMString::from("#text")
+                DOMString::from_static("#text")
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
-                DOMString::from("#cdata-section")
+                DOMString::from_static("#cdata-section")
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 self.downcast::<ProcessingInstruction>().unwrap().Target()
             },
-            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => DOMString::from("#comment"),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
+                DOMString::from_static("#comment")
+            },
             NodeTypeId::DocumentType => self.downcast::<DocumentType>().unwrap().name().clone(),
-            NodeTypeId::DocumentFragment(_) => DOMString::from("#document-fragment"),
-            NodeTypeId::Document(_) => DOMString::from("#document"),
+            NodeTypeId::DocumentFragment(_) => DOMString::from_static("#document-fragment"),
+            NodeTypeId::Document(_) => DOMString::from_static("#document"),
         }
     }
 

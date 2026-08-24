@@ -766,7 +766,7 @@ pub(crate) fn export_key(
             let mut jwk = JsonWebKey::default();
 
             // Step 3.2. Set the kty attribute of jwk to the string "RSA".
-            jwk.kty = Some(DOMString::from("RSA"));
+            jwk.kty = Some(DOMString::from_static("RSA"));
 
             // Step 3.3. Let hash be the name attribute of the hash attribute of the [[algorithm]]
             // internal slot of key.

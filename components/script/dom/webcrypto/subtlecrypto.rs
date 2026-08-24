@@ -2189,7 +2189,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // getPublicKey operation.
         let get_public_key_algorithm = match normalize_algorithm::<GetPublicKeyOperation>(
             cx,
-            &AlgorithmIdentifier::String(DOMString::from(algorithm.name().as_str())),
+            &AlgorithmIdentifier::String(DOMString::from_static(algorithm.name().as_str())),
         ) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
@@ -2435,7 +2435,9 @@ pub(crate) fn check_support_for_algorithm(
         // getPublicKey operation.
         return normalize_algorithm::<GetPublicKeyOperation>(
             cx,
-            &AlgorithmIdentifier::String(DOMString::from(normalized_algorithm.name().as_str())),
+            &AlgorithmIdentifier::String(DOMString::from_static(
+                normalized_algorithm.name().as_str(),
+            )),
         )
         .is_ok();
     }

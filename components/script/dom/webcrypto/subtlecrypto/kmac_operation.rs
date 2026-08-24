@@ -425,7 +425,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 4.2. Set the kty attribute of jwk to the string "oct".
-            jwk.kty = Some(DOMString::from("oct"));
+            jwk.kty = Some(DOMString::from_static("oct"));
 
             // Step 4.3. Set the k attribute of jwk to be a string containing data, encoded
             // according to Section 6.4 of JSON Web Algorithms [JWA].
@@ -443,10 +443,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // If the name member of keyAlgorithm is "KMAC256":
             //     Set the alg attribute of jwk to the string "K256".
             if key_algorithm.name == CryptoAlgorithm::Kmac128 {
-                jwk.alg = Some(DOMString::from("K128"));
+                jwk.alg = Some(DOMString::from_static("K128"));
             }
             if key_algorithm.name == CryptoAlgorithm::Kmac256 {
-                jwk.alg = Some(DOMString::from("K256"));
+                jwk.alg = Some(DOMString::from_static("K256"));
             }
 
             // Step 4.6. Set the key_ops attribute of jwk to equal the usages attribute of key.

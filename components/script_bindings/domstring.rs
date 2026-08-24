@@ -105,6 +105,8 @@ enum DOMStringType {
     /// This is used for testing of the bindings to give
     /// a raw u8 Latin1 encoded string without having a js engine.
     Latin1Vec(Vec<u8>),
+    #[zeroize(skip)] // static strings will never have secrets.
+    RustStatic(&'static str),
 }
 
 impl Default for DOMStringType {
@@ -126,6 +128,7 @@ impl DOMStringType {
             },
             #[cfg(test)]
             DOMStringType::Latin1Vec(items) => items,
+            DOMStringType::RustStatic(s) => s.as_bytes(),
         }
     }
 
@@ -148,6 +151,8 @@ impl DOMStringType {
                 // buffer is the size specified in the documentation, so this should be safe.
                 unsafe { String::from_utf8_unchecked(v) }
             },
+            // Currently because we return a `&mut String` we need to own the string.
+            DOMStringType::RustStatic(s) => s.to_owned(),
         };
         *self = DOMStringType::Rust(new_string);
         self.ensure_rust_string()
@@ -224,6 +229,7 @@ unsafe impl Trace for DOMStringType {
                 DOMStringType::JSString(rooted_traceable_box) => rooted_traceable_box.trace(tracer),
                 #[cfg(test)]
                 DOMStringType::Latin1Vec(_s) => {},
+                DOMStringType::RustStatic(_) => {},
             }
         }
     }
@@ -239,6 +245,7 @@ impl malloc_size_of::MallocSizeOf for DOMStringType {
             },
             #[cfg(test)]
             DOMStringType::Latin1Vec(s) => s.size_of(ops),
+            DOMStringType::RustStatic(_s) => 0,
         }
     }
 }
@@ -252,6 +259,10 @@ impl std::fmt::Debug for DOMStringType {
             DOMStringType::Latin1Vec(s) => f
                 .debug_struct("DOMString")
                 .field("latin1_string", s)
+                .finish(),
+            DOMStringType::RustStatic(s) => f
+                .debug_struct("DOMString")
+                .field("static_string", s)
                 .finish(),
         }
     }
@@ -337,6 +348,11 @@ impl DOMString {
         }
     }
 
+    /// Creates a DOMString from a `&'static str` reference. More efficient than allocating the string.
+    pub fn from_static(s: &'static str) -> DOMString {
+        DOMString(RefCell::new(DOMStringType::RustStatic(s)))
+    }
+
     /// Transforms the internal storage of this [`DOMString`] into a Rust string if it is not
     /// yet one. This will make a copy of the underlying string data.
     fn ensure_rust_string(&self) -> RefMut<'_, String> {
@@ -357,6 +373,7 @@ impl DOMString {
             },
             #[cfg(test)]
             DOMStringType::Latin1Vec(ref items) => info!("Latin1 string"),
+            DOMStringType::RustStatic(s) => info!("Static Rust String ({})", s),
         }
     }
 
@@ -799,6 +816,7 @@ impl ToJSValConvertible for DOMString {
                     .expect("Error in constructin test string")
                     .safe_to_jsval(cx, rval);
             },
+            DOMStringType::RustStatic(s) => s.safe_to_jsval(cx, rval),
         };
     }
 }
@@ -885,6 +903,7 @@ impl From<std::string::String> for DOMString {
     }
 }
 
+/// If you have a static str use the provided `DOMString::from_static`.
 impl From<&str> for DOMString {
     fn from(string: &str) -> Self {
         String::from(string).into()
@@ -924,6 +943,7 @@ impl From<DOMString> for String {
             DOMStringType::JSString(_) => unreachable!(),
             #[cfg(test)]
             DOMStringType::Latin1Vec(items) => String::from_utf8(items).expect("Not valid latin1"),
+            DOMStringType::RustStatic(s) => s.to_owned(),
         }
     }
 }
@@ -937,6 +957,7 @@ impl From<DOMString> for Vec<u8> {
             DOMStringType::JSString(_) => unreachable!(),
             #[cfg(test)]
             DOMStringType::Latin1Vec(items) => items,
+            DOMStringType::RustStatic(_) => unreachable!(),
         }
     }
 }

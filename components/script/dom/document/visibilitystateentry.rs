@@ -30,8 +30,8 @@ impl VisibilityStateEntry {
         timestamp: CrossProcessInstant,
     ) -> VisibilityStateEntry {
         let name = match state {
-            DocumentVisibilityState::Visible => DOMString::from("visible"),
-            DocumentVisibilityState::Hidden => DOMString::from("hidden"),
+            DocumentVisibilityState::Visible => DOMString::from_static("visible"),
+            DocumentVisibilityState::Hidden => DOMString::from_static("hidden"),
         };
         VisibilityStateEntry {
             entry: PerformanceEntry::new_inherited(

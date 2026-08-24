@@ -153,7 +153,7 @@ impl DragDataStore {
         // Step 2.2 If there are any items in the item list whose kind is File,
         // add an entry to L consisting of the string "Files".
         if has_files {
-            types.push(DOMString::from("Files"));
+            types.push(DOMString::from_static("Files"));
         }
         types
     }
@@ -284,9 +284,9 @@ fn normalize_mime(mut format: DOMString) -> DOMString {
 
     match &*format.str() {
         // If format equals "text", change it to "text/plain".
-        "text" => DOMString::from("text/plain"),
+        "text" => DOMString::from_static("text/plain"),
         // If format equals "url", change it to "text/uri-list".
-        "url" => DOMString::from("text/uri-list"),
+        "url" => DOMString::from_static("text/uri-list"),
         s => DOMString::from(s),
     }
 }

@@ -1322,7 +1322,7 @@ impl HTMLFormElement {
 
                 // Step: 5.11.3 Create an entry with dirname and dir, and append it to entry list.
                 data_set.push(FormDatum {
-                    ty: DOMString::from("string"),
+                    ty: DOMString::from_static("string"),
                     name: dirname,
                     value: FormDatumValue::String(dir),
                 });
