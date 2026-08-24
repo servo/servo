@@ -25,7 +25,7 @@ use crate::dom::node::Node;
 pub(crate) struct LargestContentfulPaint {
     entry: PerformanceEntry,
     #[no_trace]
-    load_time: CrossProcessInstant,
+    load_time: Option<CrossProcessInstant>,
     #[no_trace]
     render_time: CrossProcessInstant,
     size: usize,
@@ -47,7 +47,7 @@ impl LargestContentfulPaint {
                 Some(render_time),
                 Duration::ZERO,
             ),
-            load_time: CrossProcessInstant::epoch(),
+            load_time: None,
             render_time,
             size,
             url: url.map(|u| DOMString::from(u.as_str())).unwrap_or_default(),
@@ -83,7 +83,7 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
     fn LoadTime(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.global()
             .performance(cx)
-            .to_dom_high_res_time_stamp(self.load_time)
+            .maybe_to_dom_high_res_time_stamp(self.load_time)
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-rendertime>
