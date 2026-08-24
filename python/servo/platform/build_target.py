@@ -291,7 +291,9 @@ class OpenHarmonyTarget(CrossBuildTarget):
     # will bump the schema version in cargo-ohos.
     CARGO_OHOS_EXPECTED_SCHEMA_VERSION = 1
     # Pin a cargo-ohos semver version for bootstrap
-    REQUESTED_CARGO_OHOS_VERSION = "0.3"
+    REQUESTED_CARGO_OHOS_VERSION = "0.3.2"
+
+    cargo_ohos_info: Optional[dict[str, Any]] = None
 
     @classmethod
     def is_cargo_ohos_compatible(cls) -> Tuple[bool, Optional[str]]:
@@ -328,17 +330,24 @@ class OpenHarmonyTarget(CrossBuildTarget):
         return (True, None)
 
     def get_cargo_ohos_env(self, input_env: dict[str, str]) -> dict[str, Any]:
+        # `input_env` is mainly the environment from outside, and we won't be
+        # calling this with different input_envs.
+        if self.cargo_ohos_info is not None:
+            return self.cargo_ohos_info
         (compatible, error_msg) = self.is_cargo_ohos_compatible()
         if not compatible:
             print(f"Building for OpenHarmony requires `cargo-ohos`: {error_msg}", file=sys.stderr)
             print("Please rerun `./mach bootstrap --ohos`.", file=sys.stderr)
             sys.exit(1)
-        command = ["cargo", "ohos", "env", "--format", "json", "--target", self.triple()]
+        command = ["cargo", "ohos", "env", "--format", "json", "--download-prebuilt=19", "--target", self.triple()]
         try:
-            output = subprocess.run(command, check=True, capture_output=True, encoding="utf8", env=input_env).stdout
-        except subprocess.CalledProcessError as exception:
-            print(exception.stderr, end="", file=sys.stderr)
-            print("Failed to determine the OpenHarmony toolchain environment via `cargo ohos env`.", file=sys.stderr)
+            # `cargo-ohos` prints status information to `stderr`, so don't intercept that.
+            output = subprocess.run(command, check=True, stdout=subprocess.PIPE, encoding="utf8", env=input_env).stdout
+        except subprocess.CalledProcessError:
+            print(
+                "Error: Failed to determine the OpenHarmony toolchain environment via `cargo ohos env`.",
+                file=sys.stderr,
+            )
             sys.exit(1)
         try:
             ohos_env = json.loads(output)
@@ -350,7 +359,12 @@ class OpenHarmonyTarget(CrossBuildTarget):
             # This shouldn't happen if cargo-ohos releases follow semver, but still better
             # to check.
             raise RuntimeError("Unexpected schema-version mismatch.")
+        # Cargo prefers `CARGO_ENCODED_RUSTFLAGS` if set, but mach currently uses `RUSTFLAGS`
+        # instead, so we remove this from the environment. It probably would make sense to migrate
+        # mach towards also using the encoded form.
+        ohos_env["env"].pop("CARGO_ENCODED_RUSTFLAGS")
 
+        self.cargo_ohos_info = ohos_env
         return ohos_env
 
     def configure_build_environment(self, env: dict[str, str], config: dict[str, Any], topdir: pathlib.Path) -> None:
@@ -385,11 +399,6 @@ class OpenHarmonyTarget(CrossBuildTarget):
                 file=sys.stderr,
             )
             sys.exit(1)
-
-        # Cargo prefers `CARGO_ENCODED_RUSTFLAGS` if set, but mach currently uses `RUSTFLAGS`
-        # instead, so we remove this from the environment. It probably would make sense to migrate
-        # mach towards also using the encoded form.
-        del ohos_env["CARGO_ENCODED_RUSTFLAGS"]
 
         env.update(ohos_env)
         # `cargo ohos` currently doesn't set RUSTFLAGS in the environment (since it uses the encoded rustflags),
@@ -467,6 +476,13 @@ class OpenHarmonyTarget(CrossBuildTarget):
             # If a non-SDK LLVM is used with cargo-ohos, then these flags will not be set.
             env["TARGET_CFLAGS"] = env.get("TARGET_CFLAGS", "") + " " + " ".join(san_compile_flags)
             env["TARGET_CXXFLAGS"] = env.get("TARGET_CXXFLAGS", "") + " " + " ".join(san_compile_flags)
+
+    def runtime_libraries(self) -> List[pathlib.Path]:
+        if self.cargo_ohos_info is None:
+            # This shouldn't be possible, but if it does, then `build_env()` is not called on some path.
+            raise RuntimeError("Internal Error: cargo_ohos_info field not initialized yet")
+        required_libraries = self.cargo_ohos_info["runtime_libraries"]
+        return [pathlib.Path(lib["path"]) for lib in required_libraries]
 
     def binary_name(self) -> str:
         return "libservoshell.so"
