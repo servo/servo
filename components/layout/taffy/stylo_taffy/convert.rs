@@ -22,17 +22,27 @@ pub fn length_percentage(val: &stylo::LengthPercentage) -> taffy::LengthPercenta
 }
 
 #[inline]
+fn fit_content_function(limit: &stylo::LengthPercentage) -> taffy::Dimension {
+    match limit.unpack() {
+        stylo::UnpackedLengthPercentage::Length(len) => taffy::Dimension::fit_content_px(len.px()),
+        stylo::UnpackedLengthPercentage::Percentage(percentage) => {
+            taffy::Dimension::fit_content_percent(percentage.0)
+        },
+        // TODO: fit-content() with a calc() limit
+        stylo::UnpackedLengthPercentage::Calc(_) => taffy::Dimension::fit_content(),
+    }
+}
+
+#[inline]
 pub fn dimension(val: &stylo::Size) -> taffy::Dimension {
     match val {
         stylo::Size::LengthPercentage(val) => length_percentage(&val.0).into(),
         stylo::Size::Auto => taffy::Dimension::AUTO,
-
-        // TODO: implement other values in Taffy
-        stylo::Size::MaxContent => taffy::Dimension::AUTO,
-        stylo::Size::MinContent => taffy::Dimension::AUTO,
-        stylo::Size::FitContent => taffy::Dimension::AUTO,
-        stylo::Size::FitContentFunction(_) => taffy::Dimension::AUTO,
-        stylo::Size::Stretch | stylo::Size::WebkitFillAvailable => taffy::Dimension::AUTO,
+        stylo::Size::MaxContent => taffy::Dimension::max_content(),
+        stylo::Size::MinContent => taffy::Dimension::min_content(),
+        stylo::Size::FitContent => taffy::Dimension::fit_content(),
+        stylo::Size::FitContentFunction(limit) => fit_content_function(&limit.0),
+        stylo::Size::Stretch | stylo::Size::WebkitFillAvailable => taffy::Dimension::stretch(),
 
         // Anchor positioning will be flagged off for time being
         stylo::Size::AnchorSizeFunction(_) => unreachable!(),
@@ -41,17 +51,40 @@ pub fn dimension(val: &stylo::Size) -> taffy::Dimension {
 }
 
 #[inline]
-pub fn max_size_dimension(val: &stylo::MaxSize) -> taffy::Dimension {
+pub fn min_size(val: &stylo::Size) -> taffy::LengthPercentageAuto {
     match val {
-        stylo::MaxSize::LengthPercentage(val) => length_percentage(&val.0).into(),
-        stylo::MaxSize::None => taffy::Dimension::AUTO,
+        stylo::Size::LengthPercentage(val) => length_percentage(&val.0).into(),
+        stylo::Size::Auto => taffy::LengthPercentageAuto::AUTO,
 
         // TODO: implement other values in Taffy
-        stylo::MaxSize::MaxContent => taffy::Dimension::AUTO,
-        stylo::MaxSize::MinContent => taffy::Dimension::AUTO,
-        stylo::MaxSize::FitContent => taffy::Dimension::AUTO,
-        stylo::MaxSize::FitContentFunction(_) => taffy::Dimension::AUTO,
-        stylo::MaxSize::Stretch | stylo::MaxSize::WebkitFillAvailable => taffy::Dimension::AUTO,
+        stylo::Size::MaxContent => taffy::LengthPercentageAuto::AUTO,
+        stylo::Size::MinContent => taffy::LengthPercentageAuto::AUTO,
+        stylo::Size::FitContent => taffy::LengthPercentageAuto::AUTO,
+        stylo::Size::FitContentFunction(_) => taffy::LengthPercentageAuto::AUTO,
+        stylo::Size::Stretch | stylo::Size::WebkitFillAvailable => {
+            taffy::LengthPercentageAuto::AUTO
+        },
+
+        // Anchor positioning will be flagged off for time being
+        stylo::Size::AnchorSizeFunction(_) => unreachable!(),
+        stylo::Size::AnchorContainingCalcFunction(_) => unreachable!(),
+    }
+}
+
+#[inline]
+pub fn max_size(val: &stylo::MaxSize) -> taffy::LengthPercentageAuto {
+    match val {
+        stylo::MaxSize::LengthPercentage(val) => length_percentage(&val.0).into(),
+        stylo::MaxSize::None => taffy::LengthPercentageAuto::AUTO,
+
+        // TODO: implement other values in Taffy
+        stylo::MaxSize::MaxContent => taffy::LengthPercentageAuto::AUTO,
+        stylo::MaxSize::MinContent => taffy::LengthPercentageAuto::AUTO,
+        stylo::MaxSize::FitContent => taffy::LengthPercentageAuto::AUTO,
+        stylo::MaxSize::FitContentFunction(_) => taffy::LengthPercentageAuto::AUTO,
+        stylo::MaxSize::Stretch | stylo::MaxSize::WebkitFillAvailable => {
+            taffy::LengthPercentageAuto::AUTO
+        },
 
         // Anchor positioning will be flagged off for time being
         stylo::MaxSize::AnchorSizeFunction(_) => unreachable!(),
