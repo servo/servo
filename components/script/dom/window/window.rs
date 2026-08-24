@@ -1362,10 +1362,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // Step 2. If current is null, then return.
         //
-        // Note: This is equivalent to there being an active `Document` and the WindowProxy
-        // not being discarded due to the parent <iframe> being removed from its `Document`.
+        // Note: This is equivalent to there being an active `Document`.
         let document = self.Document();
-        if !document.is_active() || self.undiscarded_window_proxy().is_none() {
+        if !document.is_active() {
             return;
         }
 

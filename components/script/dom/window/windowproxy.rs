@@ -642,7 +642,7 @@ impl WindowProxy {
         Ok(target_document.browsing_context())
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
+    /// <https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-navigable>
     pub(crate) fn choose_browsing_context(
         &self,
         cx: &mut JSContext,

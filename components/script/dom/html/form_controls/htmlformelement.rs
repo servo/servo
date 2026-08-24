@@ -849,32 +849,34 @@ impl HTMLFormElement {
             // Step 18. Let formTarget be null.
             None
         };
-        // Step 20. Let target be the result of getting an element's target given submitter's form owner and formTarget.
+        // Step 20. Let target be the result of getting an element's target given
+        // submitter's form owner and formTarget.
         let form_owner = submitter.form_owner();
         let form = form_owner.as_deref().unwrap_or(self);
         let target = get_element_target(form.upcast::<Element>(), form_target);
 
-        // Step 21. Let noopener be the result of getting an element's noopener with form, parsed action, and target.
+        // Step 21. Let noopener be the result of getting an element's noopener with form,
+        // parsed action, and target.
         let noopener = self.relations.get().get_element_noopener(target.as_ref());
 
-        // Step 22. Let targetNavigable be the first return value of applying the rules for choosing a navigable given target,
-        // form's node navigable, and noopener.
-        let source = doc.browsing_context().unwrap();
-        let (maybe_chosen, _new) =
-            source.choose_browsing_context(cx, target.unwrap_or_default(), noopener);
-
-        let Some(chosen) = maybe_chosen else {
+        // Step 22. Let targetNavigable be the first return value of applying the rules
+        // for choosing a navigable given target, form's node navigable, and noopener.
+        let Some(chosen) = doc.browsing_context().and_then(|source| {
+            source
+                .choose_browsing_context(cx, target.unwrap_or_default(), noopener)
+                .0
+        }) else {
             // Step 23. If targetNavigable is null, then return.
             return;
         };
-        let target_document = match chosen.document() {
-            Some(doc) => doc,
-            None => return,
+
+        let Some(target_document) = chosen.document() else {
+            return;
         };
 
         // Step 24. Let historyHandling be "auto".
-        // Step 25. If form document equals targetNavigable's active document, and form document has not yet completely loaded,
-        // then set historyHandling to "replace".
+        // Step 25. If form document equals targetNavigable's active document, and form
+        // document has not yet completely loaded, then set historyHandling to "replace".
         let history_handling = if doc == target_document && !doc.completely_loaded() {
             NavigationHistoryBehavior::Replace
         } else {

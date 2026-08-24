@@ -775,7 +775,7 @@ impl HTMLImageElement {
         self.generation.set(self.generation.get() + 1);
 
         // Step 1. If the element's node document is not fully active, then:
-        if !self.owner_document().is_active() {
+        if !self.owner_document().is_fully_active() {
             // TODO Step 1.1. Continue running this algorithm in parallel.
             // TODO Step 1.2. Wait until the element's node document is fully active.
             // TODO Step 1.3. If another instance of this algorithm for this img element was started after
@@ -925,7 +925,7 @@ impl HTMLImageElement {
         // Step 2. If the img element does not use srcset or picture, its node document is not fully
         // active, it has image data whose resource type is multipart/x-mixed-replace, or its
         // pending request is not null, then return.
-        if !document.is_active() || !self.uses_srcset_or_picture() || has_pending_request {
+        if !document.is_fully_active() || !self.uses_srcset_or_picture() || has_pending_request {
             return;
         }
 
