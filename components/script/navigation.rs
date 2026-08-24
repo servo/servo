@@ -518,27 +518,42 @@ pub(crate) fn navigate(
         return;
     }
 
-    // Step 23. In parallel, run these steps:
+    // Step 23. If sourceDocument is navigable's container document, then reserve deferred
+    // fetch quota for navigable's container given url's origin.
+    // TODO: Implement this.
+
+    // Step 24. In parallel, run these steps:
     //
     // TODO: in parallel
 
-    // Step 23.1. Let unloadPromptCanceled be the result of checking if unloading
+    // Step 24.1. Let unloadPromptCanceled be the result of checking if unloading
     // is canceled for navigable's active document's inclusive descendant navigables.
     let unload_prompt_canceled = doc.check_if_unloading_is_cancelled(cx, false);
-    // Step 23.2. If unloadPromptCanceled is not "continue",
+    // Step 24.2. If unloadPromptCanceled is not "continue",
     // or navigable's ongoing navigation is no longer navigationId:
     //
     // TODO: Check for ongoing navigation
     if !unload_prompt_canceled {
-        // Step 23.2.1. Invoke WebDriver BiDi navigation failed with navigable
+        // Step 24.2.1. Invoke WebDriver BiDi navigation failed with navigable
         // and a new WebDriver BiDi navigation status whose id is navigationId,
         // status is "canceled", and url is url.
         // TODO
-        // Step 23.2.2. Abort these steps.
+        // Step 24.2.2. Abort these steps.
         return;
     }
 
-    // Step 23.9. Attempt to populate the history entry's document for historyEntry,
+    // Step 24.4. Queue a global task on the navigation and traversal task source given
+    // navigable's active window to abort a document and its descendants given navigable's
+    // active document.
+    let trusted_document = Trusted::new(&*window.Document());
+    window
+        .task_manager()
+        .navigation_and_traversal_task_source()
+        .queue(task!(abort_a_document_and_its_descendants: move |cx| {
+            trusted_document.root().abort_a_document_and_its_descendants(cx);
+        }));
+
+    // Step 24.9. Attempt to populate the history entry's document for historyEntry,
     // given navigable, "navigate", sourceSnapshotParams, targetSnapshotParams,
     // userInvolvement, navigationId, navigationParams, cspNavigationType,
     // with allowPOST set to true and completionSteps set to the following step:

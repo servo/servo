@@ -48,6 +48,7 @@ impl FetchLaterResultMethods<crate::DomTypeHolder> for FetchLaterResult {
     fn Activated(&self) -> bool {
         // The activated getter steps are to return the result of running this’s activated getter steps.
         self.global()
+            .fetch_group()
             .deferred_fetch_record_for_id(&self.deferred_record_id)
             .activated_getter_steps()
     }

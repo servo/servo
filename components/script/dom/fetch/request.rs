@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::Ref;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -585,8 +586,8 @@ impl Request {
         Ok(r_clone)
     }
 
-    pub(crate) fn get_request(&self) -> NetTraitsRequest {
-        self.request.borrow().clone()
+    pub(crate) fn request(&self) -> Ref<'_, NetTraitsRequest> {
+        self.request.borrow()
     }
 }
 

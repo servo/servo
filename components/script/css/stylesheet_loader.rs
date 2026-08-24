@@ -552,7 +552,7 @@ impl ElementStylesheetLoader<'_> {
         .referrer_policy(referrer_policy)
         .integrity_metadata(integrity_metadata);
 
-        document.fetch(LoadType::Stylesheet(url), request, context);
+        document.fetch_blocking(LoadType::Stylesheet(url), request, context);
     }
 
     fn parse(
