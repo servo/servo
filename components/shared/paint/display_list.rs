@@ -573,9 +573,8 @@ impl ScrollTree {
         external_id: ExternalScrollId,
     ) -> Option<(TouchAction, bool, bool)> {
         let node_id = self.node_with_external_scroll_node_id(external_id)?;
-        let info = match &self.get_node(node_id).info {
-            SpatialTreeNodeInfo::Scroll(info) => info,
-            _ => return None,
+        let SpatialTreeNodeInfo::Scroll(info) = &self.get_node(node_id).info else {
+            return None;
         };
         let scrollable_size = info.scrollable_size();
         Some((
