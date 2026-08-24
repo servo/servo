@@ -130,6 +130,20 @@ pub struct FullyActiveBrowsingContextsIterator<'a> {
     pub pipelines: &'a FxHashMap<PipelineId, Pipeline>,
 }
 
+impl<'a> FullyActiveBrowsingContextsIterator<'a> {
+    pub(crate) fn new(
+        browsing_context_id: BrowsingContextId,
+        browsing_contexts: &'a FxHashMap<BrowsingContextId, BrowsingContext>,
+        pipelines: &'a FxHashMap<PipelineId, Pipeline>,
+    ) -> Self {
+        FullyActiveBrowsingContextsIterator {
+            stack: vec![browsing_context_id],
+            pipelines,
+            browsing_contexts,
+        }
+    }
+}
+
 impl<'a> Iterator for FullyActiveBrowsingContextsIterator<'a> {
     type Item = &'a BrowsingContext;
     fn next(&mut self) -> Option<&'a BrowsingContext> {

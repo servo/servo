@@ -17,6 +17,7 @@ mod logging;
 mod pipeline;
 mod process_manager;
 mod sandboxing;
+mod screenshot_readiness_request;
 mod serviceworker;
 mod session_history;
 
