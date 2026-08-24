@@ -8505,9 +8505,9 @@ name = "servo-media-examples"
 version = "0.5.0"
 dependencies = [
  "euclid",
+ "freetype-sys",
  "rand 0.10.2",
  "serde",
- "servo",
  "servo-media",
  "servo-media-auto",
  "servo-media-dummy",
