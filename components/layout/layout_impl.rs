@@ -703,7 +703,7 @@ impl Layout for LayoutThread {
             return;
         };
 
-        stacking_context_tree
+        let offsets = stacking_context_tree
             .paint_info
             .scroll_tree
             .set_all_scroll_offsets(scroll_states);
@@ -714,6 +714,11 @@ impl Layout for LayoutThread {
         // allowing the bounds to be recomputed against the new scroll offsets. See #47161 for a
         // transform-based alternative to recomputing every node.
         if self.accessibility_active() {
+            let mut accessibility_tree = self.accessibility_tree.borrow_mut();
+            if let Some(accessibility_tree) = accessibility_tree.as_mut() {
+                accessibility_tree.add_pending_scroll_updates(&offsets);
+            };
+
             self.set_force_accessibility_update();
         }
     }
@@ -1600,6 +1605,10 @@ impl LayoutThread {
             // update lets the next "update the rendering" reflow recompute them, mirroring how
             // `set_scroll_offsets_from_renderer()` handles renderer scrolls.
             if self.accessibility_active() {
+                if let Some(accessibility_tree) = self.accessibility_tree.borrow_mut().as_mut() {
+                    let pending_updates = FxHashMap::from_iter([(external_scroll_id, offset)]);
+                    accessibility_tree.add_pending_scroll_updates(&pending_updates);
+                }
                 self.set_force_accessibility_update();
             }
             true

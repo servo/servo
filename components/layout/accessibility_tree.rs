@@ -8,12 +8,17 @@ use std::iter::repeat;
 use std::sync::atomic::AtomicU64;
 use std::sync::{LazyLock, atomic};
 
-use accesskit::{NodeId, Role};
+use accesskit::{Affine, NodeId, Role};
 use app_units::Au;
 use bitflags::bitflags;
 use euclid::Rect;
-use layout_api::{AccessibilityDamage, BoxAreaType, LayoutElement, LayoutNode, LayoutNodeType};
+use layout_api::{
+    AccessibilityDamage, BoxAreaType, LayoutElement, LayoutNode, LayoutNodeType,
+    node_id_from_scroll_id,
+};
 use log::trace;
+use num_traits::ToPrimitive;
+use paint_api::display_list::SpatialTreeNodeInfo;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script::layout_dom::{ServoLayoutElement, ServoLayoutNode};
 use servo_base::Epoch;
@@ -24,6 +29,8 @@ use style::Atom;
 use style::dom::OpaqueNode;
 use style_traits::CSSPixel;
 use web_atoms::{LocalName, local_name, ns};
+use webrender_api::ExternalScrollId;
+use webrender_api::units::LayoutVector2D;
 
 use crate::ArcRefCell;
 use crate::cell::WeakRefCell;
@@ -65,6 +72,13 @@ fn au_rect_to_accesskit_rect(rect: Rect<Au, CSSPixel>) -> accesskit::Rect {
         rect.max_x().to_f64_px(),
         rect.max_y().to_f64_px(),
     )
+}
+
+fn scroll_offset_to_affine(layout_vector: LayoutVector2D) -> Affine {
+    Affine::translate((
+        -layout_vector.x.to_f64().unwrap_or(0.),
+        -layout_vector.y.to_f64().unwrap_or(0.),
+    ))
 }
 
 /// Changes which have occurred during the current update, and data required to process the update.
@@ -126,6 +140,9 @@ struct AccessibilityNode {
     /// An accessibility node may not correspond to a DOM node if it corresponds to a
     /// pseudo-element, or in a test.
     opaque_node: Option<OpaqueNode>,
+    /// This node's scroll offset, if it is a scroll container which has scrolled. This is used to
+    /// translate this node's children.
+    scroll_offset: Option<LayoutVector2D>,
     /// Any dirty state for the current update.
     dirty_state: DirtyState,
 }
@@ -157,6 +174,9 @@ pub struct AccessibilityTree {
     /// Also used for any complete tree walk, such as in [`Self::assert_integrity()`] and
     /// [`Self::print()`].
     root_node: Option<ArcRefCell<AccessibilityNode>>,
+    /// If any nodes were scrolled since the last update, they are tracked here so that the next
+    /// update can update the tree accordingly.
+    pending_scroll_updates: Option<FxHashMap<ExternalScrollId, LayoutVector2D>>,
     /// Sent to the embedder alongside each [`accesskit::TreeUpdate`], so that the embedder can
     /// drop updates from documents which have been navigated away from.
     embedder_epoch: Epoch,
@@ -207,6 +227,7 @@ impl AccessibilityTree {
             id_to_opaque_node: FxHashMap::default(),
             tree_id,
             root_node: None,
+            pending_scroll_updates: None,
             embedder_epoch,
             debug: opts::get().debug.clone(),
         }
@@ -223,11 +244,24 @@ impl AccessibilityTree {
     ) -> (Option<accesskit::TreeUpdate>, UpdateCounters) {
         let mut update = AccessibilityUpdate::new(damage_from_dom, rooted_nodes, self);
 
-        self.ensure_root_node(root_dom_node, &mut update);
+        self.ensure_root_node(root_dom_node, &context, &mut update);
 
         self.apply_changes_from_dom_tree(&context, &mut update);
 
+        self.handle_pending_scroll_updates(&mut update);
+
         update.finalize(self)
+    }
+
+    pub(super) fn add_pending_scroll_updates(
+        &mut self,
+        scroll_states: &FxHashMap<ExternalScrollId, LayoutVector2D>,
+    ) {
+        if let Some(pending_scroll_updates) = self.pending_scroll_updates.as_mut() {
+            pending_scroll_updates.extend(scroll_states);
+        } else {
+            self.pending_scroll_updates = Some(scroll_states.clone());
+        }
     }
 
     /// Get the node corresponding to the root DOM node, and set it as this tree's root. If the root
@@ -236,6 +270,7 @@ impl AccessibilityTree {
     fn ensure_root_node<'update>(
         &mut self,
         root_dom_node: &ServoLayoutNode<'update>,
+        context: &AccessibilityContext<'update>,
         update: &mut AccessibilityUpdate<'update>,
     ) {
         let (root_id, root_node) = self.get_or_create_node(root_dom_node, update);
@@ -244,9 +279,10 @@ impl AccessibilityTree {
             update.clear_damage();
             update.insert_damage(root_id, AccessibilityDamage::Rebuild);
             update.insert_dom_node(root_id, *root_dom_node);
+            self.add_pending_scroll_updates_from_scroll_tree(context);
         } else {
-            // TODO(#47162, #47161) This hack is necessary because we don't collect accessibility damage
-            // from layout, and we don't handle scrolling properly.
+            // TODO(#47161) This hack is necessary because we don't collect accessibility damage
+            // from layout.
             update.insert_damage(root_id, AccessibilityDamage::Subtree);
             update.insert_dom_node(root_id, *root_dom_node);
         }
@@ -272,6 +308,53 @@ impl AccessibilityTree {
                 .update_subtree(damage_root.clone(), context, self, update);
 
         damage_root.borrow().update_ancestors(local_damage, update);
+    }
+
+    fn add_pending_scroll_updates_from_scroll_tree(&mut self, context: &AccessibilityContext) {
+        self.clear_pending_scroll_updates();
+        let scroll_tree = &context.stacking_context_tree.paint_info.scroll_tree;
+        let scroll_updates = scroll_tree
+            .nodes
+            .iter()
+            .filter_map(|n| match n.info {
+                SpatialTreeNodeInfo::Scroll(ref info) => {
+                    let offset = info.offset;
+                    Some((info.external_id, offset))
+                },
+                _ => None,
+            })
+            .collect();
+        self.add_pending_scroll_updates(&scroll_updates);
+    }
+
+    fn handle_pending_scroll_updates(&mut self, update: &mut AccessibilityUpdate) {
+        let Some(pending_scroll_updates) = std::mem::take(&mut self.pending_scroll_updates) else {
+            return;
+        };
+
+        for (opaque, offset) in
+            pending_scroll_updates
+                .into_iter()
+                .filter_map(|(scroll_id, translate)| {
+                    if scroll_id.is_root() {
+                        let root_node_opaque =
+                            self.root_node.as_ref()?.clone().borrow().opaque_node?;
+                        return Some((root_node_opaque, translate));
+                    }
+                    let node_id = node_id_from_scroll_id(scroll_id.0 as usize);
+                    let opaque = OpaqueNode(node_id);
+                    Some((opaque, translate))
+                })
+        {
+            let Some(node) = self.node_for_opaque(opaque) else {
+                continue;
+            };
+            node.borrow_mut().set_scroll_offset(offset, update);
+        }
+    }
+
+    fn clear_pending_scroll_updates(&mut self) {
+        self.pending_scroll_updates = None;
     }
 
     /// Given an iterator of `NodeId`s corresponding to nodes which have received some damage from
@@ -390,6 +473,12 @@ impl AccessibilityTree {
             panic!("{id:?} does not exist in tree");
         };
         node.clone()
+    }
+
+    fn node_for_opaque(&self, opaque: OpaqueNode) -> Option<ArcRefCell<AccessibilityNode>> {
+        self.nodes
+            .get(&self.existing_id_for_opaque(opaque)?)
+            .cloned()
     }
 
     /// Consume the [`AccessibilityUpdate`] by deleting all nodes it detected as being removed from
@@ -630,6 +719,7 @@ impl AccessibilityNode {
             parent_node: None,
             child_nodes: vec![],
             opaque_node: None,
+            scroll_offset: None,
             dirty_state: DirtyState::empty(),
         }
     }
@@ -663,6 +753,14 @@ impl AccessibilityNode {
                 ref_self, &dom_node, damage, tree, update,
             ));
             self.update_bounds_from_dom_node(&dom_node, context, update);
+
+            if local_damage.contains(LocalAccessibilityDamage::SubtreeChanged) &&
+                let Some(scroll_offset) = self.scroll_offset
+            {
+                // If children have changed, re-set the scroll transforms on all children.
+                self.set_scroll_offset(scroll_offset, update);
+            }
+
             self.dirty_state -= DirtyState::HasDamage;
         }
 
@@ -846,16 +944,18 @@ impl AccessibilityNode {
     ) {
         update.counters.nodes_updated_bounds += 1;
 
-        // Border box with transforms, matching getBoundingClientRect(). Bounds are in CSS pixels,
-        // relative to the viewport origin; the embedder's graft node carries the transform that
-        // composes them into AccessKit's coordinate space (see the "Coordinates" section of
+        // Border box without transforms. Bounds are in CSS pixels, relative to the document origin;
+        // scroll containers set translations on their child nodes, and the embedder's graft node
+        // carries the transform that composes them into AccessKit's coordinate space (see the
+        // "Coordinates" section of
         // <https://docs.rs/accesskit/latest/accesskit/struct.Node.html>).
+        // TODO(#47166): This doesn't take any CSS transforms into account.
         let bounds = process_box_area_request(
             context.layout_thread,
             context.stacking_context_tree,
             *dom_node,
             BoxAreaType::Border,
-            false, /* exclude_transform_and_inline */
+            true, /* exclude_transform_and_inline */
         )
         .map(au_rect_to_accesskit_rect);
 
@@ -863,15 +963,14 @@ impl AccessibilityNode {
         // `display: none` content, gets its bounds cleared. That leaves two kinds of nodes
         // without geometry which assistive technology would like to have some:
         //
-        // TODO(accessibility): A text node never has bounds of its own: `LayoutBox::Text` has no
+        // TODO(#47164): A text node never has bounds of its own: `LayoutBox::Text` has no
         // `LayoutBoxBase`, and `Fragment::Text` has no box area, so the query above always returns
         // `None` for one. Text nodes should get the union of the rectangles of their own
-        // `Fragment::Text` fragments, once `cumulative_box_area_rect()` can handle those. See
-        // #47164.
+        // `Fragment::Text` fragments, once `cumulative_box_area_rect()` can handle those.
         //
-        // TODO(accessibility): A `display: contents` element generates no box either. Other
+        // TODO(#47163): A `display: contents` element generates no box either. Other
         // engines (Blink, WebKit, Gecko) compute its bounds as the union of the bounding boxes of
-        // its rendered descendants. See #47163.
+        // its rendered descendants.
         match bounds {
             Some(bounds) => self.set_bounds(bounds),
             None => self.clear_bounds(),
@@ -962,6 +1061,20 @@ impl AccessibilityNode {
         self.accesskit_node.children()
     }
 
+    fn set_scroll_offset(&mut self, offset: LayoutVector2D, update: &mut AccessibilityUpdate) {
+        self.scroll_offset = Some(offset);
+        let transform = scroll_offset_to_affine(offset);
+        for child in self.children() {
+            let mut child = child.borrow_mut();
+            child.set_transform(transform);
+            if child.dirty_state.updated() {
+                update.add(&mut child);
+            }
+        }
+    }
+
+    // TODO: use macros to generate getter/setter methods.
+
     fn role(&self) -> Role {
         self.accesskit_node.role()
     }
@@ -1039,6 +1152,29 @@ impl AccessibilityNode {
             return;
         }
         self.accesskit_node.clear_bounds();
+        self.dirty_state |= DirtyState::Updated;
+    }
+
+    fn set_transform(&mut self, transform: Affine) {
+        // TODO(#47166): Right now a node will only ever have a single transform from a scroll
+        // container, if any. Once we correctly support CSS transforms, a node may have multiple
+        // transforms, which we'll need to be able to combine.
+        if self.accesskit_node.transform() == Some(&transform) {
+            return;
+        }
+        if transform == Affine::IDENTITY {
+            self.clear_transform();
+            return;
+        }
+        self.accesskit_node.set_transform(transform);
+        self.dirty_state |= DirtyState::Updated;
+    }
+
+    fn clear_transform(&mut self) {
+        if self.accesskit_node.transform().is_none() {
+            return;
+        }
+        self.accesskit_node.clear_transform();
         self.dirty_state |= DirtyState::Updated;
     }
 
