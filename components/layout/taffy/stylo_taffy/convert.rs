@@ -24,7 +24,9 @@ pub fn length_percentage(val: &stylo::LengthPercentage) -> taffy::LengthPercenta
 #[inline]
 fn fit_content_function(limit: &stylo::LengthPercentage) -> taffy::Dimension {
     match limit.unpack() {
-        stylo::UnpackedLengthPercentage::Length(len) => taffy::Dimension::fit_content_px(len.px()),
+        stylo::UnpackedLengthPercentage::Length(length) => {
+            taffy::Dimension::fit_content_px(length.px())
+        },
         stylo::UnpackedLengthPercentage::Percentage(percentage) => {
             taffy::Dimension::fit_content_percent(percentage.0)
         },
@@ -34,9 +36,9 @@ fn fit_content_function(limit: &stylo::LengthPercentage) -> taffy::Dimension {
 }
 
 #[inline]
-pub fn dimension(val: &stylo::Size) -> taffy::Dimension {
-    match val {
-        stylo::Size::LengthPercentage(val) => length_percentage(&val.0).into(),
+pub fn dimension(value: &stylo::Size) -> taffy::Dimension {
+    match value {
+        stylo::Size::LengthPercentage(value) => length_percentage(&value.0).into(),
         stylo::Size::Auto => taffy::Dimension::AUTO,
         stylo::Size::MaxContent => taffy::Dimension::max_content(),
         stylo::Size::MinContent => taffy::Dimension::min_content(),
@@ -51,9 +53,9 @@ pub fn dimension(val: &stylo::Size) -> taffy::Dimension {
 }
 
 #[inline]
-pub fn min_size(val: &stylo::Size) -> taffy::LengthPercentageAuto {
-    match val {
-        stylo::Size::LengthPercentage(val) => length_percentage(&val.0).into(),
+pub fn min_size(value: &stylo::Size) -> taffy::LengthPercentageAuto {
+    match value {
+        stylo::Size::LengthPercentage(value) => length_percentage(&value.0).into(),
         stylo::Size::Auto => taffy::LengthPercentageAuto::AUTO,
 
         // TODO: implement other values in Taffy
@@ -72,9 +74,9 @@ pub fn min_size(val: &stylo::Size) -> taffy::LengthPercentageAuto {
 }
 
 #[inline]
-pub fn max_size(val: &stylo::MaxSize) -> taffy::LengthPercentageAuto {
-    match val {
-        stylo::MaxSize::LengthPercentage(val) => length_percentage(&val.0).into(),
+pub fn max_size(value: &stylo::MaxSize) -> taffy::LengthPercentageAuto {
+    match value {
+        stylo::MaxSize::LengthPercentage(value) => length_percentage(&value.0).into(),
         stylo::MaxSize::None => taffy::LengthPercentageAuto::AUTO,
 
         // TODO: implement other values in Taffy
