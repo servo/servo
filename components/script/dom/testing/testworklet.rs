@@ -89,7 +89,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
             let test_worklet_global_scope = global_scope
                 .downcast::<TestWorkletGlobalScope>()
                 .expect("TestWorklet's task should be run only on TestWorkletGlobalScope.");
-            let value = test_worklet_global_scope.lookup_value(key.as_str());
+            let value = test_worklet_global_scope.lookup_value(&key);
             let _ = sender.send(value);
         };
 
