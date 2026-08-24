@@ -5379,12 +5379,12 @@ pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMStr
     element
         .get_attribute_string_value(&local_name!("crossorigin"))
         .map(|value| {
-            let value = value.to_ascii_lowercase();
-            if value == "anonymous" || value == "use-credentials" {
-                DOMString::from(value)
-            } else {
-                DOMString::from("anonymous")
-            }
+            DOMString::from(
+                ["anonymous", "use-credentials"]
+                    .into_iter()
+                    .find(|keyword| value.eq_ignore_ascii_case(keyword))
+                    .unwrap_or("anonymous"),
+            )
         })
 }
 
@@ -5406,20 +5406,21 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
     element
         .get_attribute_string_value(&local_name!("referrerpolicy"))
         .map(|value| {
-            let value = value.to_ascii_lowercase();
-            if value == "no-referrer" ||
-                value == "no-referrer-when-downgrade" ||
-                value == "same-origin" ||
-                value == "origin" ||
-                value == "strict-origin" ||
-                value == "origin-when-cross-origin" ||
-                value == "strict-origin-when-cross-origin" ||
-                value == "unsafe-url"
-            {
-                DOMString::from(value)
-            } else {
-                DOMString::new()
-            }
+            DOMString::from(
+                [
+                    "no-referrer",
+                    "no-referrer-when-downgrade",
+                    "same-origin",
+                    "origin",
+                    "strict-origin",
+                    "origin-when-cross-origin",
+                    "strict-origin-when-cross-origin",
+                    "unsafe-url",
+                ]
+                .into_iter()
+                .find(|keyword| value.eq_ignore_ascii_case(keyword))
+                .unwrap_or(""),
+            )
         })
         .unwrap_or_default()
 }
