@@ -619,12 +619,12 @@ impl TaskOnce for MessageReceivedTask {
         let cx = &mut *realm;
         rooted!(&in(cx) let mut message = UndefinedValue());
         match self.message {
-            MessageData::Text(text) => text.safe_to_jsval(cx, message.handle_mut()),
+            MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
             MessageData::Binary(data) => match ws.binary_type.get() {
                 BinaryType::Blob => {
                     let blob =
                         Blob::new(cx, &global, BlobImpl::new_from_bytes(data, "".to_owned()));
-                    blob.safe_to_jsval(cx, message.handle_mut());
+                    blob.to_jsval(cx, message.handle_mut());
                 },
                 BinaryType::Arraybuffer => {
                     rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
@@ -639,7 +639,7 @@ impl TaskOnce for MessageReceivedTask {
                         )
                     };
 
-                    (*array_buffer).safe_to_jsval(cx, message.handle_mut());
+                    (*array_buffer).to_jsval(cx, message.handle_mut());
                 },
             },
         }

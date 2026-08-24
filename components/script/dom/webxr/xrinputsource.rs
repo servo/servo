@@ -83,10 +83,7 @@ impl XRInputSource {
         let mut realm = enter_auto_realm(cx, window);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut profiles = UndefinedValue());
-        source
-            .info
-            .profiles
-            .safe_to_jsval(cx, profiles.handle_mut());
+        source.info.profiles.to_jsval(cx, profiles.handle_mut());
         source.profiles.set(profiles.get());
         source
     }

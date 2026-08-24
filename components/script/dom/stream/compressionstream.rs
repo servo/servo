@@ -166,7 +166,7 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
         .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx, rval.handle_mut());
+    buffer_source.to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())
@@ -203,7 +203,7 @@ pub(crate) fn compress_flush_and_enqueue(
     let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
         .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx, rval.handle_mut());
+    buffer_source.to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())
@@ -335,7 +335,7 @@ pub(crate) fn convert_chunk_to_vec(
     chunk: SafeHandleValue,
 ) -> Result<Vec<u8>, Error> {
     let conversion_result =
-        ArrayBufferViewOrArrayBuffer::safe_from_jsval(cx, chunk, ()).map_err(|_| {
+        ArrayBufferViewOrArrayBuffer::from_jsval(cx, chunk, ()).map_err(|_| {
             Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
         })?;
     let buffer_source = conversion_result.get_success_value().ok_or_else(|| {

@@ -3953,7 +3953,7 @@ impl ScriptThread {
             return false;
         }
         let Ok(ConversionResult::Success(body)) =
-            DOMString::safe_from_jsval(cx, return_value.handle(), StringificationBehavior::Empty)
+            DOMString::from_jsval(cx, return_value.handle(), StringificationBehavior::Empty)
         else {
             return false;
         };

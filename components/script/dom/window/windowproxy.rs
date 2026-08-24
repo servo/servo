@@ -488,7 +488,7 @@ impl WindowProxy {
         if opener_proxy.is_browsing_context_discarded() {
             return retval.set(NullValue());
         }
-        opener_proxy.safe_to_jsval(cx, retval);
+        opener_proxy.to_jsval(cx, retval);
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps
@@ -1236,7 +1236,7 @@ unsafe extern "C" fn get_own_property_descriptor(
     let desc = unsafe { MutableHandle::from_raw(desc) };
     if let Some((window, attrs)) = window {
         rooted!(&in(cx) let mut val = UndefinedValue());
-        window.safe_to_jsval(cx, val.handle_mut());
+        window.to_jsval(cx, val.handle_mut());
         set_property_descriptor(desc, val.handle(), attrs, unsafe { &mut *is_none });
         return true;
     }
@@ -1320,7 +1320,7 @@ unsafe extern "C" fn get(
     let window = unsafe { GetSubframeWindowProxy(cx, proxy, id) };
     let vp = unsafe { MutableHandle::from_raw(vp) };
     if let Some((window, _attrs)) = window {
-        window.safe_to_jsval(cx, vp);
+        window.to_jsval(cx, vp);
         return true;
     }
 

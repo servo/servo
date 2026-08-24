@@ -148,10 +148,10 @@ impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
     fn KeyPath(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         match &self.key_path {
             KeyPath::String(string) => {
-                string.safe_to_jsval(cx, retval);
+                string.to_jsval(cx, retval);
             },
             KeyPath::StringSequence(sequence) => {
-                sequence.safe_to_jsval(cx, retval);
+                sequence.to_jsval(cx, retval);
             },
         }
     }

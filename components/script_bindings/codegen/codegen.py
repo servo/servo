@@ -484,7 +484,7 @@ class CGMethodCall(CGThing):
             if requiredArgs > 0:
                 code = (
                     f"if argc < {requiredArgs} {{\n"
-                    f"    throw_type_error_safe(cx, c\"Not enough arguments to {methodName}.\");\n"
+                    f"    throw_type_error(cx, c\"Not enough arguments to {methodName}.\");\n"
                     "    return false;\n"
                     "}")
                 self.cgRoot.prepend(
@@ -663,7 +663,7 @@ class CGMethodCall(CGThing):
             else:
                 # Just throw; we have no idea what we're supposed to
                 # do with this.
-                caseBody.append(CGGeneric("throw_type_error_safe(cx, c\"Could not convert JavaScript argument\");\n"
+                caseBody.append(CGGeneric("throw_type_error(cx, c\"Could not convert JavaScript argument\");\n"
                                           "return false;"))
 
             argCountCases.append(CGCase(str(argCount),
@@ -675,7 +675,7 @@ class CGMethodCall(CGThing):
         overloadCGThings.append(
             CGSwitch("argcount",
                      argCountCases,
-                     CGGeneric(f"throw_type_error_safe(cx, c\"Not enough arguments to {methodName}.\");\n"
+                     CGGeneric(f"throw_type_error(cx, c\"Not enough arguments to {methodName}.\");\n"
                                "return false;")))
         # XXXjdm Avoid unreachable statement warnings
         # overloadCGThings.append(
@@ -823,7 +823,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         exceptionCode = "return false;\n"
 
     if failureCode is None:
-        failOrPropagate = f"throw_type_error_safe(cx, error.as_ref());\n{exceptionCode}"
+        failOrPropagate = f"throw_type_error(cx, error.as_ref());\n{exceptionCode}"
     else:
         failOrPropagate = failureCode
 
@@ -837,14 +837,14 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         return CGWrapper(
             CGGeneric(
                 failureCode
-                or (f'throw_type_error_safe(cx, c"{firstCap(sourceDescription)} is not an object.");\n'
+                or (f'throw_type_error(cx, c"{firstCap(sourceDescription)} is not an object.");\n'
                     f'{exceptionCode}')),
             post="\n")
 
     def onFailureNotCallable(failureCode: str | None) -> CGGeneric:
         return CGGeneric(
             failureCode
-            or (f'throw_type_error_safe(cx, c"{firstCap(sourceDescription)} is not callable.");\n'
+            or (f'throw_type_error(cx, c"{firstCap(sourceDescription)} is not callable.");\n'
                 f'{exceptionCode}'))
 
     # A helper function for handling default values.
@@ -886,7 +886,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
     # A helper function for types that implement FromJSValConvertible trait
     def fromJSValTemplate(config: str, errorHandler: str, exceptionCode: str) -> str:
-        return f"""match FromJSValConvertible::safe_from_jsval(cx, ${{val}}, {config}) {{
+        return f"""match FromJSValConvertible::from_jsval(cx, ${{val}}, {config}) {{
     Ok(ConversionResult::Success(value)) => value,
     Ok(ConversionResult::Failure(error)) => {{
         {errorHandler}
@@ -1025,7 +1025,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
 
         if failureCode is None:
             unwrapFailureCode = (
-                f'throw_type_error_safe(cx, c"{sourceDescription} does not '
+                f'throw_type_error(cx, c"{sourceDescription} does not '
                 f'implement interface {descriptor.interface.identifier.name}.");\n'
                 f'{exceptionCode}')
         else:
@@ -1058,7 +1058,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
     if is_typed_array(type):
         if failureCode is None:
             unwrapFailureCode = (
-                f'throw_type_error_safe(cx, c"{sourceDescription} is not a typed array.");\n'
+                f'throw_type_error(cx, c"{sourceDescription} is not a typed array.");\n'
                 f'{exceptionCode}'
             )
         else:
@@ -1185,7 +1185,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
         # pyrefly: ignore  # missing-attribute
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = failureCode or f"throw_type_error_safe(cx, error.as_ref()); {exceptionCode}"
+            handleInvalidEnumValueCode = failureCode or f"throw_type_error(cx, error.as_ref()); {exceptionCode}"
         else:
             handleInvalidEnumValueCode = "return true;"
 
@@ -1516,7 +1516,7 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
       * 'successCode': the code to run once we have done the conversion.
       * 'pre': code to run before the conversion if rooting is necessary
     """
-    wrap = f"{pre}\n({result}).safe_to_jsval(cx, {jsvalRef});"
+    wrap = f"{pre}\n({result}).to_jsval(cx, {jsvalRef});"
     if successCode:
         wrap += f"\n{successCode}"
     return wrap
@@ -4880,7 +4880,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
         checkForArg = CGGeneric(
             "let args = CallArgs::from_vp(vp, argc);\n"
             "if argc == 0 {\n"
-            f'    throw_type_error_safe(cx, c"Not enough arguments to {self.attr.identifier.name} setter.");\n'
+            f'    throw_type_error(cx, c"Not enough arguments to {self.attr.identifier.name} setter.");\n'
             "    return false;\n"
             "}")
         call = CGSetterCall(["&global"], self.attr.type, nativeName, self.descriptor,
@@ -4911,7 +4911,7 @@ if !JS_GetProperty(cx, HandleObject::from_raw(obj), {str_to_cstr_ptr(attrName)},
     return false;
 }}
 if !v.is_object() {{
-    throw_type_error_safe(cx, c"Value.{attrName} is not an object.");
+    throw_type_error(cx, c"Value.{attrName} is not an object.");
     return false;
 }}
 rooted!(&in(cx) let target_obj = v.to_object());
@@ -5431,15 +5431,15 @@ impl std::str::FromStr for super::{ident} {{
 }}
 
 impl ToJSValConvertible for super::{ident} {{
-    fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
-        pairs[*self as usize].0.safe_to_jsval(cx, rval);
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
+        pairs[*self as usize].0.to_jsval(cx, rval);
     }}
 }}
 
 impl FromJSValConvertible for super::{ident} {{
     type Config = ();
 
-    fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())
+    fn from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())
                          -> Result<ConversionResult<super::{ident}>, ()> {{
         match find_enum_value(cx, value, pairs) {{
             Err(_) => Err(()),
@@ -5630,7 +5630,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
             for (v, wrapper) in templateVars
         ]
         enumConversions = [
-            f"            {self.type}::{v['name']}(ref inner) => inner.safe_to_jsval(cx, rval),"
+            f"            {self.type}::{v['name']}(ref inner) => inner.to_jsval(cx, rval),"
             for (v, _) in templateVars
         ]
         joinedEnumValues = "\n".join(enumValues)
@@ -5644,7 +5644,7 @@ pub enum {self.type}{self.generic} {{
 }}
 
 impl{self.generic} ToJSValConvertible for {self.type}{self.genericSuffix} {{
-    fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
         match *self {{
 {joinedEnumConversions}
         }}
@@ -5817,7 +5817,7 @@ class CGUnionConversionStruct(CGThing):
         generic, genericSuffix = genericsForType(self.type)
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
-            pre="fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
+            pre="fn from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
                 f"                     -> Result<ConversionResult<{self.type}{genericSuffix}>, ()> {{\n",
             post="\n}")
         return CGWrapper(
@@ -6342,7 +6342,7 @@ class CGProxyNamedDeleter(CGProxyNamedOperation):
                 f'    let {argName} = match jsid_to_string(cx, id) {{\n'
                 "        Some(val) => val,\n"
                 "        None => {\n"
-                "            throw_type_error_safe(cx, c\"Not a string-convertible JSID\");\n"
+                "            throw_type_error(cx, c\"Not a string-convertible JSID\");\n"
                 "            return false;\n"
                 "        }\n"
                 "    };\n"
@@ -7734,7 +7734,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
                 f"    match {self.makeModuleName(d.parent)}::{self.makeClassName(d.parent)}::new(cx, val)? {{\n"
                 "        ConversionResult::Success(v) => v,\n"
                 "        ConversionResult::Failure(error) => {\n"
-                "            throw_type_error_safe(cx, error.as_ref());\n"
+                "            throw_type_error(cx, error.as_ref());\n"
                 "            return Err(());\n"
                 "        }\n"
                 "    }\n"
@@ -7752,7 +7752,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         def varInsert(varName: str, dictionaryName: str) -> CGThing:
             insertion = (
                 f"rooted!(&in(cx) let mut {varName}_js = UndefinedValue());\n"
-                f"{varName}.safe_to_jsval(cx, {varName}_js.handle_mut());\n"
+                f"{varName}.to_jsval(cx, {varName}_js.handle_mut());\n"
                 f'set_dictionary_property(cx, obj.handle(), c"{dictionaryName}", {varName}_js.handle()).unwrap();')
             return CGGeneric(insertion)
 
@@ -7807,7 +7807,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} FromJSValConvertible for {actualType} {{\n"
             "    type Config = ();\n"
-            "    fn safe_from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
+            "    fn from_jsval(cx: &mut JSContext, value: HandleValue, _option: ())\n"
             f"                         -> Result<ConversionResult<{actualType}>, ()> {{\n"
             f"        {selfName}::new(cx, value)\n"
             "    }\n"
@@ -7820,7 +7820,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "}\n"
             "\n"
             f"impl{self.generic} ToJSValConvertible for {selfName}{self.genericSuffix} {{\n"
-            "    fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {\n"
+            "    fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {\n"
             "        rooted!(&in(cx) let mut obj = unsafe { JS_NewObject(cx, ptr::null()) });\n"
             "        self.to_jsobject(cx, obj.handle_mut());\n"
             "        rval.set(ObjectOrNullValue(obj.get()))\n"
@@ -7867,7 +7867,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
         assert (member.defaultValue is None) == (default is None)
         if not member.optional:
             assert default is None
-            default = (f'throw_type_error_safe(cx, c"Missing required member \\"{member.identifier.name}\\".");\n'
+            default = (f'throw_type_error(cx, c"Missing required member \\"{member.identifier.name}\\".");\n'
                        "return Err(());")
         elif not default:
             default = "None"
@@ -8635,8 +8635,8 @@ impl<D: DomTypes> CallbackContainer<D> for {type} {{
 }}
 
 impl<D: DomTypes> ToJSValConvertible for {type} {{
-    fn safe_to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
-        self.callback().safe_to_jsval(cx, rval);
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {{
+        self.callback().to_jsval(cx, rval);
     }}
 }}
 """)
@@ -9051,7 +9051,7 @@ class CGIterableMethodGenerator(CGGeneric):
             CGGeneric.__init__(self, fill(
                 """
                 if !IsCallable(arg0) {
-                  throw_type_error_safe(cx, c"Argument 1 of ${ifaceName}.forEach is not callable.");
+                  throw_type_error(cx, c"Argument 1 of ${ifaceName}.forEach is not callable.");
                   return false;
                 }
                 rooted!(&in(cx) let arg0 = ObjectValue(arg0));
@@ -9072,8 +9072,8 @@ class CGIterableMethodGenerator(CGGeneric):
                 // https://heycam.github.io/webidl/#es-forEach
                 let mut i = 0;
                 while i < (*this).get_iterable_length(cx) {
-                  (*this).get_value_at_index(cx, i).safe_to_jsval(cx, call_arg1.handle_mut());
-                  (*this).get_key_at_index(cx, i).safe_to_jsval(cx, call_arg2.handle_mut());
+                  (*this).get_value_at_index(cx, i).to_jsval(cx, call_arg1.handle_mut());
+                  (*this).get_key_at_index(cx, i).to_jsval(cx, call_arg2.handle_mut());
                   call_args.set_index(0, call_arg1.handle().get());
                   call_args.set_index(1, call_arg2.handle().get());
                   let call_args_handle = HandleValueArray::from(&call_args);

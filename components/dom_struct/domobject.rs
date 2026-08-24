@@ -38,9 +38,9 @@ pub(crate) fn expand_dom_object(
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let items = quote! {
         impl #impl_generics ::js::conversions::ToJSValConvertible for #name #ty_generics #where_clause {
-            fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: js::rust::MutableHandleValue) {
+            fn to_jsval(&self, cx: &mut js::context::JSContext, rval: js::rust::MutableHandleValue) {
                 let object = crate::DomObject::reflector(self).get_jsobject();
-                object.safe_to_jsval(cx, rval);
+                object.to_jsval(cx, rval);
             }
         }
 

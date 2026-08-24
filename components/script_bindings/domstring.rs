@@ -806,10 +806,10 @@ impl Extend<char> for DOMString {
 }
 
 impl ToJSValConvertible for DOMString {
-    fn safe_to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
+    fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         let val = self.0.borrow();
         match *val {
-            DOMStringType::Rust(ref s) => s.safe_to_jsval(cx, rval),
+            DOMStringType::Rust(ref s) => s.to_jsval(cx, rval),
             DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
                 rval.set(StringValue(&*rooted_traceable_box.get()));
             },
@@ -822,9 +822,9 @@ impl ToJSValConvertible for DOMString {
 
                 String::from_utf8(v)
                     .expect("Error in constructin test string")
-                    .safe_to_jsval(cx, rval);
+                    .to_jsval(cx, rval);
             },
-            DOMStringType::RustStatic(s) => s.safe_to_jsval(cx, rval),
+            DOMStringType::RustStatic(s) => s.to_jsval(cx, rval),
         };
     }
 }

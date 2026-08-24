@@ -182,7 +182,7 @@ impl XRViewerPose {
         );
 
         rooted!(&in(cx) let mut jsval = UndefinedValue());
-        views.safe_to_jsval(cx, jsval.handle_mut());
+        views.to_jsval(cx, jsval.handle_mut());
         pose.views.set(jsval.get());
 
         pose

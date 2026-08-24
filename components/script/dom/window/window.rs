@@ -2290,7 +2290,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://dom.spec.whatwg.org/#dom-window-event>
     fn Event(&self, cx: &mut JSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
-            event.reflector().get_jsobject().safe_to_jsval(cx, rval);
+            event.reflector().get_jsobject().to_jsval(cx, rval);
         }
     }
 

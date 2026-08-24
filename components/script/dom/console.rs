@@ -26,7 +26,7 @@ use js::rust::wrappers2::{
 };
 use js::rust::{
     CapturedJSStack, HandleObject, HandleValue, IdVector, ToNumber, ToString,
-    describe_scripted_caller_safe, for_of,
+    describe_scripted_caller, for_of,
 };
 use script_bindings::conversions::get_dom_class;
 
@@ -53,7 +53,7 @@ impl Console {
         arguments: Vec<DebuggerValue>,
         stacktrace: Option<Vec<StackFrame>>,
     ) -> ConsoleMessage {
-        let caller = describe_scripted_caller_safe(cx).unwrap_or_default();
+        let caller = describe_scripted_caller(cx).unwrap_or_default();
 
         ConsoleMessage {
             fields: ConsoleMessageFields {
