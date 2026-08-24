@@ -48,6 +48,8 @@ pub(crate) struct ClassicScript {
     url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#muted-errors>
     muted_errors: ErrorReporting,
+    /// Whether or not this script was compiled to return a value or not.
+    returns_a_value: bool,
 }
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
@@ -85,6 +87,7 @@ impl GlobalScope {
         introduction_type: Option<&'static CStr>,
         line_number: u32,
         external: bool,
+        returns_a_value: bool,
     ) -> ClassicScript {
         let mut source = if let Some(unminified_js_dir) = self.unminified_js_dir() {
             let mut script_source = ScriptSource {
@@ -111,7 +114,7 @@ impl GlobalScope {
             url.as_str(),
             introduction_type,
             muted_errors,
-            true, // noScriptRval
+            !returns_a_value,
             line_number,
         );
 
@@ -140,6 +143,7 @@ impl GlobalScope {
             url,
             fetch_options,
             muted_errors,
+            returns_a_value,
         }
     }
 
@@ -150,10 +154,18 @@ impl GlobalScope {
         cx: &mut JSContext,
         script: ClassicScript,
         rethrow_errors: RethrowErrors,
+        return_value: Option<MutableHandleValue>,
     ) -> ErrorResult {
+        assert_eq!(
+            return_value.is_some(),
+            script.returns_a_value,
+            "Classic script compiled to not return a value, but a return value was requested."
+        );
+
         // TODO Step 1. Let settings be the settings object of script.
 
-        // Step 2. Check if we can run script with settings. If this returns "do not run", then return NormalCompletion(empty).
+        // Step 2. Check if we can run script with settings. If this returns "do not run", then
+        // return NormalCompletion(empty).
         if !self.can_run_script() {
             return Ok(());
         }
@@ -170,7 +182,8 @@ impl GlobalScope {
             let mut result = false;
 
             match script.record {
-                // Step 6. If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
+                // Step 6. If script's error to rethrow is not null, then set evaluationStatus
+                // to ThrowCompletion(script's error to rethrow).
                 Err(error_to_rethrow) => unsafe {
                     JS_SetPendingException(
                         cx,
@@ -180,7 +193,8 @@ impl GlobalScope {
                 },
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
-                    rooted!(&in(cx) let mut rval = UndefinedValue());
+                    rooted!(&in(cx) let mut fallback_value = UndefinedValue());
+                    let return_value = return_value.unwrap_or_else(|| fallback_value.handle_mut());
                     let script_ptr = NonNull::new(compiled_script.get())
                         .expect("Compiled script must not be null");
                     result = evaluate_script(
@@ -188,7 +202,7 @@ impl GlobalScope {
                         script_ptr,
                         script.url,
                         script.fetch_options,
-                        rval.handle_mut(),
+                        return_value,
                     );
                 },
             }

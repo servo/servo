@@ -406,7 +406,8 @@ impl FetchResponseListener for ClassicContext {
             ErrorReporting::from(muted_errors),
             Some(IntroductionType::SRC_SCRIPT),
             1,
-            true,
+            true,  /* external */
+            false, /* returns_a_value */
         );
 
         /*
@@ -872,7 +873,8 @@ impl HTMLScriptElement {
                         ErrorReporting::Unmuted,
                         introduction_type,
                         self.line_number as u32,
-                        false,
+                        false, /* external */
+                        false, /* returns_a_value */
                     );
                     let result = Ok(Script::Classic(script));
 
@@ -1012,9 +1014,12 @@ impl HTMLScriptElement {
                 }
 
                 // Step 6."classic".3. Run the classic script given by el's result.
-                _ = self
-                    .owner_global()
-                    .run_a_classic_script(cx, script, RethrowErrors::No);
+                _ = self.owner_global().run_a_classic_script(
+                    cx,
+                    script,
+                    RethrowErrors::No,
+                    None, /* return_value */
+                );
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
                 document.set_current_script(old_script.as_deref());
