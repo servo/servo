@@ -11,6 +11,7 @@ mod system_font_service_proxy;
 
 use std::ops::{Deref, Range};
 use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 
 pub use font_descriptor::*;
 pub use font_identifier::*;
@@ -183,6 +184,10 @@ pub struct WebFontSetDifference {
     pub added_font_faces: Vec<ServoArc<FontFaceRuleInfo>>,
     /// A list of `@font-face` rules that were removed in this update.
     pub removed_font_faces: Vec<ServoArc<FontFaceRuleInfo>>,
+    /// Whether the cascade index of any `@font-face` rule changed during this update.
+    ///
+    /// This can cause different fonts to be selected during font matching.
+    pub cascade_index_of_any_rule_changed: bool,
 }
 
 impl WebFontSetDifference {
@@ -192,11 +197,11 @@ impl WebFontSetDifference {
     }
 }
 
-#[derive(Clone, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 pub struct FontFaceRuleInfo {
     /// The index of this `@font-face` in the cascade, relative to all
     /// other `@font-face` rules.
-    pub cascade_index: usize,
+    pub cascade_index: AtomicUsize,
     /// The descriptors on the `@font-face` rule.
     pub descriptors: Descriptors,
     /// The CSS rule that created this `@font-face`.

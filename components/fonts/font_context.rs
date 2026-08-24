@@ -331,7 +331,7 @@ impl FontContext {
                 matching_templates.sort_unstable_by_key(|template| {
                     template
                         .font_face_rule()
-                        .map(|rule| rule.cascade_index)
+                        .map(|rule| rule.cascade_index.load(Ordering::SeqCst))
                         .unwrap_or(usize::MAX)
                 });
                 matching_templates
@@ -778,10 +778,13 @@ impl FontContextWebFontMethods for Arc<FontContext> {
             self.remove_single_font_face_rule(removed_rule, &mut self.web_fonts.write());
         }
 
-        if !difference.removed_font_faces.is_empty() {
-            // We modified the list of available fonts, so invalidate resolved font groups.
+        if !difference.removed_font_faces.is_empty() || difference.cascade_index_of_any_rule_changed
+        {
+            // Font matching may now yield different results, so invalidate resolved font groups.
             self.resolved_font_groups.write().clear();
+        }
 
+        if !difference.removed_font_faces.is_empty() {
             // Ensure that we clean up any WebRender resources on the next display list update.
             self.have_removed_web_fonts.store(true, Ordering::Relaxed);
         }
@@ -1572,8 +1575,13 @@ impl KnownFontFaceRules {
                 } else {
                     number_of_unchanged_rules += 1;
 
-                    // FIXME: We need to update the cascade index of this entry and potentially trigger a reflow
-                    // if it changed.
+                    let previous_cascade_index_of_this_rule = known_font_faces_for_family
+                        [index_of_existing_entry_for_this_rule]
+                        .font_face_rule_entry
+                        .cascade_index
+                        .swap(cascade_index, Ordering::SeqCst);
+                    difference.cascade_index_of_any_rule_changed |=
+                        previous_cascade_index_of_this_rule != cascade_index;
                     known_font_faces_for_family[index_of_existing_entry_for_this_rule].generation =
                         self.generation;
                 }
@@ -1584,7 +1592,7 @@ impl KnownFontFaceRules {
             } else {
                 // This is a new rule that does not conflict with anything that previously existed, so insert it.
                 let font_face_rule_entry = ServoArc::new(FontFaceRuleInfo {
-                    cascade_index,
+                    cascade_index: AtomicUsize::new(cascade_index),
                     descriptors: borrowed_rule.descriptors.clone(),
                     rule: rule_with_origin.rule,
                 });
