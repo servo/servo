@@ -217,7 +217,7 @@ impl HttpCache {
             size,
             size as u64,
             UnitWeighter,
-            DefaultHashBuilder::new(),
+            DefaultHashBuilder::default(),
             lifecycle,
         );
 
@@ -243,8 +243,6 @@ impl MemoryCacheLifecycle {
 
 impl Lifecycle<CacheKey, CacheEntry> for MemoryCacheLifecycle {
     type RequestState = ();
-
-    fn begin_request(&self) -> Self::RequestState {}
 
     fn on_evict(&self, _state: &mut Self::RequestState, key: CacheKey, value: CacheEntry) {
         if let Some(disk_cache_data) = &self.disk_cache {
