@@ -390,7 +390,7 @@ impl WindowProxy {
 
         let new_window_proxy = ScriptThread::find_document(response.new_pipeline_id)
             .and_then(|doc| doc.browsing_context())?;
-        if name.to_lowercase() != "_blank" {
+        if !name.eq_ignore_ascii_case("_blank") {
             new_window_proxy.set_name(name);
         }
         if noopener {
@@ -649,39 +649,35 @@ impl WindowProxy {
         name: DOMString,
         noopener: bool,
     ) -> (Option<DomRoot<WindowProxy>>, bool) {
-        match name.to_lowercase().as_ref() {
-            "" | "_self" => {
-                // Step 3.
-                (Some(DomRoot::from_ref(self)), false)
-            },
-            "_parent" => {
-                // Step 4
-                if let Some(parent) = self.parent() {
-                    return (Some(DomRoot::from_ref(parent)), false);
-                }
-                (None, false)
-            },
-            "_top" => {
-                // Step 5
-                (Some(DomRoot::from_ref(self.top())), false)
-            },
-            "_blank" => (
+        if name.is_empty() || name.eq_ignore_ascii_case("_self") {
+            // Step 3.
+            (Some(DomRoot::from_ref(self)), false)
+        } else if name.eq_ignore_ascii_case("_parent") {
+            // Step 4
+            if let Some(parent) = self.parent() {
+                return (Some(DomRoot::from_ref(parent)), false);
+            }
+            (None, false)
+        } else if name.eq_ignore_ascii_case("_top") {
+            // Step 5
+            (Some(DomRoot::from_ref(self.top())), false)
+        } else if name.eq_ignore_ascii_case("_blank") {
+            (
                 self.create_auxiliary_browsing_context(cx, name, noopener),
                 true,
-            ),
-            _ => {
-                // Step 6.
-                // TODO: expand the search to all 'familiar' bc,
-                // including auxiliaries familiar by way of their opener.
-                // See https://html.spec.whatwg.org/multipage/#familiar-with
-                match ScriptThread::find_window_proxy_by_name(&name) {
-                    Some(proxy) => (Some(proxy), false),
-                    None => (
-                        self.create_auxiliary_browsing_context(cx, name, noopener),
-                        true,
-                    ),
-                }
-            },
+            )
+        } else {
+            // Step 6.
+            // TODO: expand the search to all 'familiar' bc,
+            // including auxiliaries familiar by way of their opener.
+            // See https://html.spec.whatwg.org/multipage/#familiar-with
+            match ScriptThread::find_window_proxy_by_name(&name) {
+                Some(proxy) => (Some(proxy), false),
+                None => (
+                    self.create_auxiliary_browsing_context(cx, name, noopener),
+                    true,
+                ),
+            }
         }
     }
 

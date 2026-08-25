@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cssparser::match_ignore_ascii_case;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
@@ -150,7 +151,7 @@ impl Document {
     fn command_if_command_is_supported(&self, command_id: &DOMString) -> Option<CommandName> {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
-        Some(match &*command_id.str().to_lowercase() {
+        Some(match_ignore_ascii_case! { &command_id.str(),
             "backcolor" => CommandName::BackColor,
             "bold" => CommandName::Bold,
             "createlink" => CommandName::CreateLink,
