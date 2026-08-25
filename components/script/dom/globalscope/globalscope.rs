@@ -119,9 +119,7 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::globalscope::broadcastchannel::BroadcastChannel;
-use crate::dom::globalscope::script_execution::{
-    ErrorReporting, evaluate_script, fill_compile_options,
-};
+use crate::dom::globalscope::script_execution::{evaluate_script, fill_compile_options};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -129,6 +127,7 @@ use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
+use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -2968,13 +2967,15 @@ impl GlobalScope {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script();
 
+            let mut script_options = ScriptOptions::empty();
+            script_options.set(ScriptOptions::ReturnsAValue, rval.is_some());
+
             let options = fill_compile_options(
                 cx,
                 filename,
+                script_options,
                 introduction_type,
-                ErrorReporting::Unmuted,
-                rval.is_none(), // noScriptRval
-                1,              // lineno
+                1, // line_number
             );
 
             let mut source = transform_str_to_source_text(&code);

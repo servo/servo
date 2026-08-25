@@ -71,7 +71,7 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::RethrowErrors;
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -79,6 +79,7 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
+use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
@@ -248,12 +249,10 @@ impl FetchResponseListener for ScriptFetchContext {
             cx,
             source,
             scope.worker_url.borrow().clone(),
+            ScriptOptions::External,
             ScriptFetchOptions::default_classic_script(),
-            ErrorReporting::Unmuted,
             Some(IntroductionType::WORKER),
             1,
-            true,  /* external */
-            false, /* returns_a_value */
         );
 
         // Step 6 Run onComplete given script.
@@ -692,7 +691,7 @@ impl WorkerGlobalScope {
                         cx,
                         script,
                         RethrowErrors::No,
-                        None, /* return_value */
+                        None, // return_value
                     );
                 },
                 Script::Module(module_tree) => {
@@ -842,16 +841,16 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
             // Step 10. Let script be the result of creating a classic script
             // given sourceText, settingsObject, response's URL, the default script fetch options, and mutedErrors.
+            let mut script_options = ScriptOptions::External;
+            script_options.set(ScriptOptions::MutedErrors, muted_errors);
             let script = self.globalscope.create_a_classic_script(
                 cx,
                 source,
                 url,
+                script_options,
                 ScriptFetchOptions::default_classic_script(),
-                ErrorReporting::from(muted_errors),
                 Some(IntroductionType::WORKER),
                 1,
-                true,  /* external */
-                false, /* returns_a_value */
             );
 
             // Run the classic script script, with rethrow errors set to true.
@@ -859,7 +858,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 cx,
                 script,
                 RethrowErrors::Yes,
-                None, /* return_value */
+                None, // return_value
             );
 
             if let Err(error) = result {

@@ -36,7 +36,8 @@ use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::script_execution::RethrowErrors;
+use crate::dom::script_execution::ScriptOptions;
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
@@ -808,12 +809,10 @@ impl JsTimerTask {
                     cx,
                     (*code_str.str()).into(),
                     base_url,
+                    ScriptOptions::empty(),
                     fetch_options,
-                    ErrorReporting::Unmuted,
                     Some(IntroductionType::DOM_TIMER),
                     1,
-                    false, /* external */
-                    false, /* returns_a_value */
                 );
 
                 // Step 9.6.9. Run the classic script script.
@@ -821,7 +820,7 @@ impl JsTimerTask {
                     cx,
                     script,
                     RethrowErrors::No,
-                    None, /* return_value */
+                    None, // return_value
                 );
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and

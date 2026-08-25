@@ -137,7 +137,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::script_execution::{ErrorReporting, RethrowErrors};
+use crate::dom::script_execution::{RethrowErrors, ScriptOptions};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
@@ -3895,7 +3895,7 @@ impl ScriptThread {
     /// <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>
     ///
     /// This fills the provided [`LoadData`] with the result of evaluating the given
-    /// JavaScript URL. Return `true` if a result is produced and `false` otherwise.
+    /// JavaScript URL. Returns `true` if a result is produced and `false` otherwise.
     fn evaluate_a_javascript_url(
         cx: &mut js::context::JSContext,
         global_scope: &GlobalScope,
@@ -3923,12 +3923,10 @@ impl ScriptThread {
             cx,
             script_source,
             base_url,
+            ScriptOptions::ReturnsAValue,
             ScriptFetchOptions::default_classic_script(),
-            ErrorReporting::Unmuted,
             Some(IntroductionType::JAVASCRIPT_URL),
-            1,     /* line_number */
-            false, /* external */
-            true,  /* returns_a_value */
+            1, // line_number
         );
 
         // Step 7. Let evaluationStatus be the result of running the classic script script.
@@ -3966,24 +3964,19 @@ impl ScriptThread {
         // Step 12. Let policyContainer be targetNavigable's active document's policy
         // container.
         let policy_container = global_scope.policy_container();
-        let sandbox_flags = policy_container
-            .csp_list
-            .as_ref()
-            .and_then(|csp_list| csp_list.get_sandboxing_flag_set_for_document())
-            .unwrap_or_default();
         load_data.policy_container = Some(policy_container);
 
         // Step 13. Let finalSandboxFlags be policyContainer's CSP list's CSP-derived
         // sandboxing flags.
-        load_data.creation_sandboxing_flag_set |= sandbox_flags;
+        // TODO: Implement this.
 
         // Step 14. Let coop be targetNavigable's active document's opener policy.
         // TODO: Implement this.
 
         // Step 15. Let coopEnforcementResult be a new opener policy enforcement result with
-        // -url: url
-        // -origin: newDocumentOrigin
-        // -opener policy: coop
+        // - url: url
+        // - origin: newDocumentOrigin
+        // - opener policy: coop
         // TODO Implement this.
 
         // Step 16. Let navigationParams be a new navigation params, with
@@ -3997,14 +3990,14 @@ impl ScriptThread {
         // - reserved environment: null
         // - origin: newDocumentOrigin
         // - policy container: policyContainer
-        // - final sandboxing flag: set finalSandboxFlags
+        // - final sandboxing flag set: finalSandboxFlags
         // - iframe element referrer policy: targetSnapshotParams's iframe element referrer policy
         // - opener policy: coop
         // - navigation timing type: "navigate"
         // - about base URL: targetNavigable's active document's about base URL
-        // -  user involvement: userInvolvement
+        // - user involvement: userInvolvement
         //
-        // TODO: Implement the rest of these once Servo supports navigations params.
+        // TODO: Implement the rest of these once Servo supports navigation params.
         load_data.about_base_url = global_scope.as_window().Document().about_base_url();
         true
     }

@@ -65,11 +65,12 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ErrorReporting, fill_compile_options};
+use crate::dom::globalscope::script_execution::fill_compile_options;
 use crate::dom::html::htmlscriptelement::{SCRIPT_JS_MIMES, substitute_with_local_script};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::script_execution::ScriptOptions;
 use crate::dom::types::{
     DedicatedWorkerGlobalScope, SharedWorkerGlobalScope, WorkerGlobalScope, WorkletGlobalScope,
 };
@@ -281,9 +282,8 @@ impl ModuleTree {
         let compile_options = fill_compile_options(
             cx,
             url.as_str(),
+            ScriptOptions::empty(),
             introduction_type,
-            ErrorReporting::Unmuted,
-            true, // noScriptRval
             line_number,
         );
 
@@ -367,10 +367,9 @@ impl ModuleTree {
         let compile_options = fill_compile_options(
             cx,
             url.as_str(),
+            ScriptOptions::empty(),
             introduction_type,
-            ErrorReporting::Unmuted,
-            true, // noScriptRval
-            1,    // lineno
+            1, // line_number
         );
 
         rooted!(&in(cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
