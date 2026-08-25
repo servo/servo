@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        servoView = ServoView(this)
+        servoView = ServoView(this, this)
 
         historyManager = HistoryManager(this)
 
@@ -197,7 +197,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
             }
         }
 
-        servoView.setClient(this)
         servoView.requestFocus()
 
         val sdcard = getExternalFilesDir("")

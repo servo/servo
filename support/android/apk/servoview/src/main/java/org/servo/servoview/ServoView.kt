@@ -5,6 +5,7 @@
  */
 package org.servo.servoview
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -16,7 +17,11 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
-class ServoView(context: Context) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
+@SuppressLint("ViewConstructor")
+class ServoView(
+    context: Context,
+    client: Servo.Client,
+) : SurfaceView(context), Servo.RunCallback, Choreographer.FrameCallback {
     private val glThread: GLThread
     private val surfaceHolderCallback: SurfaceHolderCallback
     private var servo: Servo? = null
@@ -31,13 +36,9 @@ class ServoView(context: Context) : SurfaceView(context), Servo.RunCallback, Cho
         isClickable = true
         addTouchables(arrayListOf(this))
         glThread = GLThread()
-        surfaceHolderCallback = SurfaceHolderCallback(this)
+        surfaceHolderCallback = SurfaceHolderCallback(this, client)
         holder.addCallback(surfaceHolderCallback)
         glThread.start()
-    }
-
-    fun setClient(client: Servo.Client) {
-        surfaceHolderCallback.client = client
     }
 
     fun setServoArgs(args: String?, log: String?, experimentalMode: Boolean) {
@@ -147,8 +148,10 @@ class ServoView(context: Context) : SurfaceView(context), Servo.RunCallback, Cho
         }
     }
 
-    private class SurfaceHolderCallback(private val servoView: ServoView) : SurfaceHolder.Callback {
-        var client: Servo.Client? = null
+    private class SurfaceHolderCallback(
+        private val servoView: ServoView,
+        private val client: Servo.Client,
+    ) : SurfaceHolder.Callback {
         var servoLog: String? = null
         private var paused = false
 
@@ -169,7 +172,7 @@ class ServoView(context: Context) : SurfaceView(context), Servo.RunCallback, Cho
                     true,
                     servoView.experimentalMode,
                     servoView,
-                    client!!,
+                    client,
                     servoView.context,
                     surface,
                 )
