@@ -220,6 +220,27 @@ skip = [
     "wgpu-hal",
     "wgpu-naga-bridge",
     "wgpu-types",
+
+    # duplicated by mozjs which brings in new versions
+    "anstream",
+    "anstyle-parse",
+    "icu_collections",
+    "icu_properties",
+    "icu_properties_data",
+    "icu_provider",
+    "icu_segmenter",
+    "icu_segmenter_data",
+    "litemap",
+    "syn",
+    "tinystr",
+    "toml",
+    "toml_datetime",
+    "winnow",
+    "writeable",
+    "yoke",
+    "yoke-derive",
+    "zerovec",
+    "zerovec-derive",
 ]
 
 # github.com organizations to allow git sources for
