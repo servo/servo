@@ -570,7 +570,9 @@ impl LocationMethods<crate::DomTypeHolder> for Location {
             .origin()
             .same_origin_domain(&self.entry_settings_object().origin())
         {
-            return Err(Error::Security("Location's relevant Document is not same origin-domain with the entry settings object's origin".to_string().into()));
+            return Err(Error::Security("Location's relevant Document is not \
+                                                            same origin-domain with the entry settings object's \
+                                                            origin".to_string().into()));
         }
         // Step 3. Assert: this's relevant Document's ancestor origins list is not null.
         // Step 4. Otherwise, return this's relevant Document's ancestor origins list.

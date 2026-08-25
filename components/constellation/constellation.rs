@@ -1897,10 +1897,10 @@ where
                 }
             },
             ScriptToConstellationMessage::IsCurrentlyFullyActive(pipeline_id, response_sender) => {
-                if let Err(e) = response_sender
+                if let Err(error) = response_sender
                     .send(self.get_activity(pipeline_id) == DocumentActivity::FullyActive)
                 {
-                    warn!("Sending reply to get document activity failed ({:?}).", e);
+                    warn!("Sending reply to get document activity failed ({error:?}).");
                 }
             },
             ScriptToConstellationMessage::GetDocumentOrigin(pipeline_id, response_sender) => {
