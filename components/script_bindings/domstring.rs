@@ -398,10 +398,16 @@ impl DOMString {
     pub fn encoded_bytes(&self) -> EncodedBytes<'_> {
         let inner = self.0.borrow();
         match &*inner {
-            DOMStringType::Rust(..) => {
+            DOMStringType::Rust(..) | DOMStringType::RustStatic(..) => {
                 EncodedBytes::Utf8(Ref::map(inner, |inner| inner.as_raw_bytes()))
             },
-            _ => EncodedBytes::Latin1(Ref::map(inner, |inner| inner.as_raw_bytes())),
+            DOMStringType::JSString(..) => {
+                EncodedBytes::Latin1(Ref::map(inner, |inner| inner.as_raw_bytes()))
+            },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(items) => {
+                EncodedBytes::Latin1(Ref::map(inner, |inner| inner.as_raw_bytes()))
+            },
         }
     }
 
