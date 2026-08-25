@@ -4,6 +4,7 @@
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use bytes::Bytes;
 use crossbeam_channel::Sender;
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
@@ -12,10 +13,10 @@ use devtools_traits::{
 use http::{HeaderMap, Method};
 use hyper_serde::Serde;
 use log::error;
+use net_traits::FetchMetadata;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{Destination, Request};
 use net_traits::response::{CacheState, Response};
-use net_traits::{DebugVec, FetchMetadata};
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 
@@ -40,7 +41,7 @@ pub(crate) fn prepare_devtools_request(
         url,
         method,
         headers,
-        body: body.map(DebugVec::from),
+        body: body.map(Bytes::from),
         pipeline_id,
         started_date_time,
         time_stamp: started_date_time
@@ -115,7 +116,7 @@ pub(crate) fn send_response_values_to_devtools(
         let devtoolsresponse = DevtoolsHttpResponse {
             headers,
             status,
-            body: body.map(DebugVec::from),
+            body: body.map(Bytes::from),
             from_cache,
             pipeline_id,
             browsing_context_id,

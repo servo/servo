@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use bytes::Bytes;
 use content_security_policy as csp;
 use headers::{ContentType, HeaderMap, HeaderMapExt};
 use js::context::JSContext;
@@ -192,7 +193,7 @@ impl FetchResponseListener for CSPReportUriFetchListener {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
         _ = chunk;
     }
 

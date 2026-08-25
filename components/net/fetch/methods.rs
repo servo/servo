@@ -8,6 +8,7 @@ use std::{io, mem, str};
 
 use base64::Engine as _;
 use base64::engine::general_purpose;
+use bytes::Bytes;
 use content_security_policy as csp;
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
@@ -63,7 +64,7 @@ pub type Target<'a> = &'a mut (dyn FetchTaskTarget + Send);
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum Data {
-    Payload(Vec<u8>),
+    Payload(bytes::Bytes),
     ContentLength(usize),
     Done,
     Cancelled,
@@ -904,11 +905,11 @@ async fn wait_for_response(
                 Some(Data::ContentLength(length)) => {
                     target.process_response_length_hint(request, length);
                 },
-                Some(Data::Payload(vec)) => {
+                Some(Data::Payload(bytes)) => {
                     if let Some(body) = devtools_body.as_mut() {
-                        body.extend(&vec);
+                        body.extend(&bytes);
                     }
-                    target.process_response_chunk(request, vec);
+                    target.process_response_chunk(request, bytes);
                 },
                 Some(Data::Error(network_error)) => {
                     if network_error == NetworkError::DecompressionError {
@@ -938,7 +939,7 @@ async fn wait_for_response(
                 // in case there was no channel to wait for, the body was
                 // obtained synchronously via scheme_fetch for data/file/about/etc
                 // We should still send the body across as a chunk
-                target.process_response_chunk(request, vec.clone());
+                target.process_response_chunk(request, Bytes::copy_from_slice(vec));
                 if context.devtools_chan.is_some() {
                     // Now that we've replayed the entire cached body,
                     // notify the DevTools server with the full Response.

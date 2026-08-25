@@ -1393,7 +1393,7 @@ impl RemoteWebFontDownloader {
                     self.web_font_family_name, new_bytes
                 );
                 if self.response_valid {
-                    self.response_data.extend(new_bytes.0)
+                    self.response_data.extend(new_bytes)
                 }
                 DownloaderResponseResult::InProcess
             },

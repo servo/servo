@@ -7,6 +7,7 @@ use std::cell::Cell;
 use std::default::Default;
 use std::str::FromStr;
 
+use bytes::{Bytes, BytesMut};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
@@ -674,7 +675,7 @@ impl HTMLLinkElement {
             link: Some(Trusted::new(self)),
             global: Trusted::new(&document.global()),
             type_: LinkFetchContextType::Prefetch,
-            response_body: vec![],
+            response_body: BytesMut::new(),
         };
 
         document.fetch_background(request, fetch_context);
@@ -1313,11 +1314,11 @@ impl FetchResponseListener for FaviconFetchContext {
         &mut self,
         _: &mut js::context::JSContext,
         request_id: RequestId,
-        chunk: Vec<u8>,
+        chunk: Bytes,
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseChunk(request_id, chunk.into()),
+            FetchResponseMsg::ProcessResponseChunk(request_id, chunk),
         );
     }
 

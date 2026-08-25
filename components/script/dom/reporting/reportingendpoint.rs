@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use headers::{ContentType, HeaderMapExt};
 use http::HeaderMap;
 use hyper_serde::Serde;
@@ -328,7 +329,7 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
         &mut self,
         _: &mut js::context::JSContext,
         _: RequestId,
-        chunk: Vec<u8>,
+        chunk: Bytes,
     ) {
         _ = chunk;
     }

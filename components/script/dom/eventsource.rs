@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::str::{Chars, FromStr};
 use std::time::Duration;
 
+use bytes::Bytes;
 use dom_struct::dom_struct;
 use encoding_rs::{Decoder, UTF_8};
 use headers::ContentType;
@@ -435,7 +436,7 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {
         let mut output = String::with_capacity(chunk.len());
         let mut input = &chunk[..];
 

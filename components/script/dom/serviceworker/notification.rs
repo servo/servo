@@ -6,6 +6,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use bytes::Bytes;
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderMsg, Notification as EmbedderNotification,
@@ -785,12 +786,12 @@ impl FetchResponseListener for ResourceFetchListener {
         &mut self,
         _: &mut js::context::JSContext,
         request_id: RequestId,
-        payload: Vec<u8>,
+        payload: Bytes,
     ) {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.pending_image_id,
-                FetchResponseMsg::ProcessResponseChunk(request_id, payload.into()),
+                FetchResponseMsg::ProcessResponseChunk(request_id, payload),
             );
         }
     }

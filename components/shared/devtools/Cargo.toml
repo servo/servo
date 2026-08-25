@@ -14,6 +14,7 @@ name = "devtools_traits"
 path = "lib.rs"
 
 [dependencies]
+bytes = { workspace = true }
 embedder_traits = { workspace = true }
 http = { workspace = true }
 malloc_size_of = { workspace = true }
