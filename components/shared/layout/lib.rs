@@ -729,6 +729,10 @@ pub struct ReflowRequest {
     pub animating_images: Arc<RwLock<AnimatingImages>>,
     /// The node highlighted by the devtools, if any
     pub highlighted_dom_node: Option<OpaqueNode>,
+    /// Whether LCP computation should be halted for this reflow.
+    /// From <https://www.w3.org/TR/largest-contentful-paint/#limitations>:
+    /// > The LargestContentfulPaint ... algorithm halts ... inputs.
+    pub halt_lcp: bool,
     /// The current font context.
     pub document_context: WebFontDocumentContext,
     /// Damage to the accessibility tree from DOM mutations.

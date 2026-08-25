@@ -54,7 +54,6 @@ mod from_constellation {
                 Self::DelayNewFrameForCanvas(..) => target!("DelayFramesForCanvas"),
                 Self::ScreenshotReadinessReponse(..) => target!("ScreenshotReadinessResponse"),
                 Self::SendLCPCandidate(..) => target!("SendLCPCandidate"),
-                Self::EnableLCPCalculation(..) => target!("EnableLCPCalculation"),
             }
         }
     }
