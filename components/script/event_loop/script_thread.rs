@@ -1960,6 +1960,25 @@ impl ScriptThread {
                     );
                 }
             },
+            ScriptThreadMessage::UpdatePlaceholderCanvas(
+                pipeline_id,
+                placeholder_id,
+                width,
+                height,
+                bitmap,
+                origin_clean,
+            ) => {
+                if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+                    document.update_placeholder_canvas(
+                        cx,
+                        placeholder_id,
+                        width,
+                        height,
+                        bitmap,
+                        origin_clean,
+                    );
+                }
+            },
             ScriptThreadMessage::RefreshCursor(pipeline_id) => {
                 self.handle_refresh_cursor(pipeline_id);
             },

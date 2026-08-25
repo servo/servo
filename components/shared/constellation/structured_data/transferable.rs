@@ -10,8 +10,9 @@ use std::collections::VecDeque;
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use servo_base::id::MessagePortId;
+use servo_base::id::{MessagePortId, PipelineId, PlaceholderCanvasId};
 use strum::EnumIter;
+use webrender_api::ImageKey;
 
 use crate::PortMessageTask;
 
@@ -188,11 +189,20 @@ impl MessagePortImpl {
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/canvas.html#the-offscreencanvas-interface:transfer-steps>
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
-/// A struct supporting the transfer of OffscreenCanvas, which loosely
-/// corresponds to the dataHolder in
-/// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:offscreencanvas-16>
 pub struct TransferableOffscreenCanvas {
     pub width: u64,
     pub height: u64,
+    pub inherited_language: String,
+    pub inherited_direction: String,
+    pub placeholder: Option<TransferablePlaceholderCanvas>,
+}
+
+/// <https://html.spec.whatwg.org/multipage/canvas.html#the-offscreencanvas-interface:transfer-steps>
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct TransferablePlaceholderCanvas {
+    pub id: PlaceholderCanvasId,
+    pub pipeline_id: PipelineId,
+    pub image_key: Option<ImageKey>,
 }

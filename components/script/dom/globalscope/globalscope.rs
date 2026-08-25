@@ -113,6 +113,7 @@ use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
 };
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
+use crate::dom::document::RenderingUpdateReason;
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
@@ -124,6 +125,7 @@ use crate::dom::globalscope::script_execution::{
 };
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
+use crate::dom::offscreencanvas::OffscreenCanvas;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
@@ -217,6 +219,9 @@ impl Drop for AutoCloseWorker {
 #[dom_struct]
 pub(crate) struct GlobalScope {
     eventtarget: EventTarget,
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pending_offscreen_canvas_updates: DomRefCell<Vec<Dom<OffscreenCanvas>>>,
 
     /// The message-port router id for this global, if it is managing ports.
     message_port_state: DomRefCell<MessagePortState>,
@@ -770,6 +775,51 @@ impl GlobalScope {
         None
     }
 
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pub(crate) fn request_offscreen_canvas_update(&self, canvas: &OffscreenCanvas) {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        let worker = self.downcast::<DedicatedWorkerGlobalScope>();
+        let window = self.downcast::<Window>();
+        if worker.is_none() && window.is_none() {
+            return;
+        }
+
+        self.pending_offscreen_canvas_updates
+            .borrow_mut()
+            .push(Dom::from_ref(canvas));
+
+        if let Some(worker) = worker {
+            worker.request_offscreen_canvas_rendering_update();
+        } else if let Some(window) = window {
+            window
+                .Document()
+                .add_rendering_update_reason(RenderingUpdateReason::OffscreenCanvasUpdate);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pub(crate) fn update_offscreen_canvases(&self) {
+        // The bitmap of the OffscreenCanvas object is pushed to the placeholder canvas element as
+        // part of the OffscreenCanvas's relevant agent's event loop's update the rendering steps.
+        rooted_vec!(let canvases <- std::mem::take(
+            &mut *self.pending_offscreen_canvas_updates.borrow_mut()
+        ).into_iter());
+        for canvas in canvases.iter() {
+            canvas.update_the_rendering();
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pub(crate) fn has_pending_offscreen_canvas_updates(&self) -> bool {
+        !self.pending_offscreen_canvas_updates.borrow().is_empty()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/canvas.html#offscreencanvas-placeholder>
+    pub(crate) fn clear_pending_offscreen_canvas_updates(&self) {
+        self.pending_offscreen_canvas_updates.borrow_mut().clear();
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_inherited(
         devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
@@ -786,6 +836,7 @@ impl GlobalScope {
         unminify_js: bool,
     ) -> Self {
         Self {
+            pending_offscreen_canvas_updates: Default::default(),
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
             constellation_interest_counts: RefCell::new(HashMap::new()),

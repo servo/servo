@@ -101,6 +101,7 @@ impl MixedMessage {
                 ScriptThreadMessage::SetScrollStates(id, ..) => Some(*id),
                 ScriptThreadMessage::EvaluateJavaScript(_, id, _, _) => Some(*id),
                 ScriptThreadMessage::SendImageKeysBatch(..) => None,
+                ScriptThreadMessage::UpdatePlaceholderCanvas(id, ..) => Some(*id),
                 ScriptThreadMessage::PreferencesUpdated(..) => None,
                 ScriptThreadMessage::NoLongerWaitingOnAsychronousImageUpdates(_) => None,
                 ScriptThreadMessage::ForwardKeyboardScroll(id, _) => Some(*id),
