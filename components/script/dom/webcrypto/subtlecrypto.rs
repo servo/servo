@@ -2640,7 +2640,16 @@ pub(crate) fn check_support_for_algorithm(
                 DeriveBitsAlgorithm::X448(_) => {
                     length.is_none_or(|length| x448_operation::SECRET_LENGTH as u32 * 8 >= length)
                 },
-                DeriveBitsAlgorithm::Hkdf(_) => length.is_some_and(|length| length % 8 == 0),
+                DeriveBitsAlgorithm::Hkdf(normalized_algorithm) => {
+                    let hash_length = match normalized_algorithm.hash.name() {
+                        CryptoAlgorithm::Sha1 => 160,
+                        CryptoAlgorithm::Sha256 => 256,
+                        CryptoAlgorithm::Sha384 => 384,
+                        CryptoAlgorithm::Sha512 => 512,
+                        _ => return false,
+                    };
+                    length.is_some_and(|length| length % 8 == 0 && length <= 255 * hash_length)
+                },
                 DeriveBitsAlgorithm::Pbkdf2(normalized_algorithm) => {
                     length.is_some_and(|length| length % 8 == 0) &&
                         normalized_algorithm.iterations != 0
