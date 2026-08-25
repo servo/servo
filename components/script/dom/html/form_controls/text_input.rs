@@ -1201,6 +1201,9 @@ impl TextInputSelectionDragHandler {
         self.0.is_connected()
     }
 
+    /// Process a mouse move event on this [`TextInputSelectionDragHandler`].
+    ///
+    /// Returns `true` if the drag should continue and `false` otherwise.
     pub(crate) fn moved(&self, hit_test_result: &HitTestResult) -> bool {
         if !self.0.is_connected() {
             return false;

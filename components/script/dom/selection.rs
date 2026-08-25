@@ -335,7 +335,11 @@ impl Selection {
         container: &Node,
         offset: Utf32CodeUnitsOrNodeOffset,
     ) {
-        let _ = self.Collapse(cx, Some(container), container.offset(offset));
+        let _ = self.Collapse(
+            cx,
+            Some(container),
+            container.to_sibling_or_utf16_offset(offset),
+        );
     }
 
     pub(crate) fn collapse_or_extend_to_dom_position(
@@ -344,7 +348,7 @@ impl Selection {
         container: &Node,
         offset: Utf32CodeUnitsOrNodeOffset,
     ) {
-        let offset = container.offset(offset);
+        let offset = container.to_sibling_or_utf16_offset(offset);
         let is_anchor = self
             .anchor_node()
             .is_some_and(|anchor| &*anchor == container) &&
@@ -935,7 +939,7 @@ fn position_in_flat_tree_for_selection(
 impl Node {
     /// Get the `Utf16CodeUnits` offset for the given offset if `self` is a
     /// `CharacterData` or else return the offset in the child list.
-    fn offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
+    fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
         if let Some(character_data) = self.downcast::<CharacterData>() {
             offset.to_utf16_code_units_in(&character_data.data()).0 as u32
         } else {

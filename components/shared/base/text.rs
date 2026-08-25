@@ -195,8 +195,8 @@ unicode_length_type! {
 }
 
 unicode_length_type! {
-    /// A length or offset counted in 32-bit code units in UTF-32 or a node offset if the container
-    /// node is not text content.
+    /// A length or offset counted in 32-bit code units in UTF-32 or a node offset in a container
+    /// node counted in previous siblings.
     Utf32CodeUnitsOrNodeOffset
 }
 

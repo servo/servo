@@ -16,6 +16,9 @@ impl DocumentSelectionDragHandler {
         true
     }
 
+    /// Process a mouse move event on this [`DocumentSelectionDragHandler`].
+    ///
+    /// Returns `true` if the drag should continue and `false` otherwise.
     pub(crate) fn moved(&self, cx: &mut JSContext, hit_test_result: &HitTestResult) -> bool {
         let Some((container, offset)) = hit_test_result.dom_position_for_selection.as_ref() else {
             return true;

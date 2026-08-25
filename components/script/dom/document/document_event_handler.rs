@@ -1050,9 +1050,9 @@ impl DocumentEventHandler {
                     .upcast::<Event>()
                     .dispatch(cx, node.upcast(), false);
 
-                // If neither the `mousedown` nor the `pointerdown` event had
-                // `preventDefault()` called on them, call the default mousdown handler on
-                // retargeted node (`target` is mutated by `dispatch` above).
+                // If neither the `mousedown` nor the `pointerdown` event had `preventDefault()`
+                // called on them, call the default mousdown handler on retargeted node
+                // (`mouse_event.target` is mutated by `dispatch` above).
                 if result &&
                     pointer_event_result &&
                     let Some(node) = mouse_event

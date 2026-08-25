@@ -29,6 +29,9 @@ impl DragGesture {
             }
     }
 
+    /// Handle the a mouse move event.
+    ///
+    /// Returns `true` if the `DragGesture` should continue and `false` otherwise.
     pub(crate) fn handle_mouse_move_event(
         &self,
         cx: &mut JSContext,
