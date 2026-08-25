@@ -1407,26 +1407,26 @@ pub(crate) fn live_range_insert_steps(parent: &Node, child: &Node, count: u32) {
 /// having to iterate through those nodes twice, they are run when the inclusive
 /// descendants themselves are unbound from the tree.
 pub(crate) fn live_range_pre_remove_steps_for_removed_subtree(
-    node: &Node,
-    parent: &Node,
-    index: &dyn Fn() -> u32,
+    inclusive_descendant_of_removed_node: &Node, // "node" in the specification
+    parent_of_removed_node: &Node,               // "parent" in the specification
+    index_of_removed_node: &dyn Fn() -> u32,     // "index" in the specification
 ) {
     // The steps are only supposed to run on DOM tree inclusive descendants of the removal
     // root and elements in shadow trees are not, so they shouldn't run for them.
-    if node.is_in_a_shadow_tree() {
+    if inclusive_descendant_of_removed_node.is_in_a_shadow_tree() {
         return;
     }
-    for range in node.live_ranges() {
-        let index = index();
+    for range in inclusive_descendant_of_removed_node.live_ranges() {
+        let index = index_of_removed_node();
         // Step 4: For each live range whose start node is an inclusive descendant of
         // node, set its start to (parent, index).
-        if &*range.start_container() == node {
-            range.set_start(parent, index);
+        if &*range.start_container() == inclusive_descendant_of_removed_node {
+            range.set_start(parent_of_removed_node, index);
         }
         // Step 5: For each live range whose end node is an inclusive descendant of node,
         // set its end to (parent, index).
-        if &*range.end_container() == node {
-            range.set_end(parent, index);
+        if &*range.end_container() == inclusive_descendant_of_removed_node {
+            range.set_end(parent_of_removed_node, index);
         }
     }
 }
@@ -1458,12 +1458,15 @@ pub(crate) fn live_range_pre_remove_steps_for_parent(
 /// - `node`: The node that text is being merged into.
 /// - `current_node`: The node which has text being merged into `node` and will be
 ///   removed from the DOM.
-/// - `length`: The length of the text content that was merged into `node` from
-///   siblings before `current_node`.
+/// - `current_node_index`: The index of `current_node` in `parent`.
+/// - `length`: The length of the text content in `node`, its orginal length plus
+///   the length of all content that has already been merged from siblings before
+///   `current_node`.
 pub(crate) fn live_range_normalization_steps(
     parent: &Node,
     node: &Node,
     current_node: &Node,
+    current_node_index: &dyn Fn() -> u32,
     length: u32,
 ) {
     for range in current_node.live_ranges() {
@@ -1479,18 +1482,17 @@ pub(crate) fn live_range_normalization_steps(
         }
     }
 
-    let current_node_index = LazyCell::new(|| current_node.index());
     for range in parent.live_ranges() {
         // Step 6.3: For each live range whose start node is currentNode’s parent and
         // start offset is currentNode’s index: set its start node to node and its start
         // offset to length.
-        if &*range.start_container() == parent && range.start_offset() == *current_node_index {
+        if &*range.start_container() == parent && range.start_offset() == current_node_index() {
             range.set_start(node, length);
         }
         // Step 6.4: For each live range whose end node is currentNode’s parent and end
         // offset is currentNode’s index: set its end node to node and its end offset to
         // length.
-        if &*range.end_container() == parent && range.end_offset() == *current_node_index {
+        if &*range.end_container() == parent && range.end_offset() == current_node_index() {
             range.set_end(node, length);
         }
     }
@@ -1541,7 +1543,7 @@ pub(crate) fn live_range_replace_data_steps(
     }
 }
 
-/// <https://dom.spec.whatwg.org/#concept-text-split> steps 7.2-7.3.
+/// <https://dom.spec.whatwg.org/#concept-text-split> steps 7.2-7.5.
 pub(crate) fn live_range_text_split_steps(
     parent: &Node,
     node: &Node,

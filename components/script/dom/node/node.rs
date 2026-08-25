@@ -4053,10 +4053,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 if !sibling.is::<Text>() || sibling.is::<CDATASection>() {
                     break;
                 }
+
                 let sibling: DomRoot<CharacterData> =
                     DomRoot::downcast(children.next().expect("Guaranteed by the peek above"))
                         .expect("Guaranteed by check above");
-                new_data_length += sibling.Length();
+                new_data_length += sibling.data().len();
                 siblings_to_merge.push(sibling);
             }
 
@@ -4066,13 +4067,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
             // Step 3: Let data be the concatenation of the data of node’s contiguous
             // exclusive Text nodes (excluding itself), in tree order.
-            let data = siblings_to_merge.iter().fold(
-                String::with_capacity(new_data_length as usize),
-                |mut data, character_data| {
-                    data.push_str(character_data.data().as_str());
-                    data
-                },
-            );
+            let mut data = String::with_capacity(new_data_length);
+            for sibling in &siblings_to_merge {
+                data.push_str(sibling.data().as_str());
+            }
 
             // Step 4: Replace data of node with length, 0, and data.
             cdata.append_data(cx, &data);
@@ -4080,9 +4078,16 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             // Step 5: Let currentNode be node’s next sibling.
             // Step 6: While currentNode is an exclusive Text node:
             // Note: Condition guaranteed by collection loop above.
-            for current_node in siblings_to_merge.iter() {
+            let first_sibling_index = LazyCell::new(|| node.index() + 1);
+            for (current_node_index, current_node) in siblings_to_merge.iter().enumerate() {
                 // Steps 6.1-6.4: The live range update steps.
-                live_range_normalization_steps(self, &node, current_node.upcast(), length);
+                live_range_normalization_steps(
+                    self,
+                    &node,
+                    current_node.upcast(),
+                    &|| *first_sibling_index + current_node_index as u32,
+                    length,
+                );
                 // Step 6.5:  Add currentNode’s length to length.
                 length += current_node.Length();
                 // Step 6.6 Set currentNode to its next sibling.
