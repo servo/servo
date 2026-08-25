@@ -12,10 +12,10 @@ use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_constellation_traits::ScriptToConstellationMessage;
 
 use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::{GlobalScope, Window};
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
-use crate::event_loop::document_collection::DocumentCollection;
 use crate::messaging::ScriptThreadSenders;
 
 #[derive(JSTraceable, Default, MallocSizeOf)]
@@ -109,11 +109,11 @@ impl ScriptWindowProxies {
         &self,
         cx: &mut js::context::JSContext,
         senders: &ScriptThreadSenders,
-        documents: &DomRefCell<DocumentCollection>,
         window: &Window,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
         parent_info: Option<PipelineId>,
+        iframe: Option<DomRoot<HTMLIFrameElement>>,
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
         if let Some(window_proxy) = self.find_window_proxy(browsing_context_id) {
@@ -121,11 +121,6 @@ impl ScriptWindowProxies {
             // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
             return window_proxy;
         }
-        let iframe = parent_info.and_then(|parent_id| {
-            documents
-                .borrow()
-                .find_iframe(parent_id, browsing_context_id)
-        });
         let parent_browsing_context = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(iframe.owner_window().window_proxy()),
             (Some(parent_id), _) => self.remote_window_proxy(

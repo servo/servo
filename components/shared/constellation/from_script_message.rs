@@ -724,7 +724,11 @@ pub enum ScriptToConstellationMessage {
         GenericSender<Option<BrowsingContextId>>,
     ),
     /// Get the origin of the document corresponding to the given pipeline
-    GetDocumentOrigin(PipelineId, GenericSender<Option<String>>),
+    GetDocumentOrigin(PipelineId, GenericSender<Option<OriginSnapshot>>),
+    /// If the document corresponding to the given pipeline is fully active
+    IsCurrentlyFullyActive(PipelineId, GenericSender<bool>),
+    /// Get the internal ancestor origin objects list of the document corresponding to the given pipeline
+    GetInternalAncestorOriginObjectsList(PipelineId, GenericSender<Option<Vec<ImmutableOrigin>>>),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete,

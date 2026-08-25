@@ -1896,11 +1896,31 @@ where
                     );
                 }
             },
+            ScriptToConstellationMessage::IsCurrentlyFullyActive(pipeline_id, response_sender) => {
+                if let Err(error) = response_sender
+                    .send(self.get_activity(pipeline_id) == DocumentActivity::FullyActive)
+                {
+                    warn!("Sending reply to get document activity failed ({error:?}).");
+                }
+            },
             ScriptToConstellationMessage::GetDocumentOrigin(pipeline_id, response_sender) => {
                 self.send_message_to_pipeline(
                     pipeline_id,
                     ScriptThreadMessage::GetDocumentOrigin(pipeline_id, response_sender),
                     "Document origin retrieval after closure",
+                );
+            },
+            ScriptToConstellationMessage::GetInternalAncestorOriginObjectsList(
+                pipeline_id,
+                response_sender,
+            ) => {
+                self.send_message_to_pipeline(
+                    pipeline_id,
+                    ScriptThreadMessage::GetInternalAncestorOriginObjectsList(
+                        pipeline_id,
+                        response_sender,
+                    ),
+                    "Document ancestor origin objects list retrieval after closure",
                 );
             },
             ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
