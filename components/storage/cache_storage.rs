@@ -29,6 +29,9 @@ trait CacheStorageEngine {
         cache_name: String,
         proxy_map: &StorageProxyMap,
     ) -> Result<bool, CacheStorageError<Self::Error>>;
+
+    /// <https://w3c.github.io/ServiceWorker/#cache-keys>
+    fn keys(&mut self, cache_name: &str) -> Result<Vec<String>, CacheStorageError<Self::Error>>;
 }
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-request-response-list>
@@ -95,6 +98,28 @@ impl CacheStorageEngine for MemCacheStorageEngine {
         // Step 2.4: Resolve promise with a new Cache object that represents cache.
         // Note: promise resolved in script.
         Ok(true)
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#cache-keys>
+    /// The parallel steps.
+    fn keys(&mut self, cache_name: &str) -> Result<Vec<String>, CacheStorageError<Self::Error>> {
+        // Step 5.1: Let requests be an empty list.
+        let mut requests: Vec<String> = Vec::new();
+
+        // Step 5.2: If the optional argument request is omitted, then:
+        // Step 5.2.1: For each requestResponse of the relevant request response list:
+        let Some(relevant_cache) = self.name_to_cache_map.get(cache_name) else {
+            return Err(CacheStorageError::Internal(()));
+        };
+        // Step 5.2.2: Add requestResponse’s request to requests.
+        for (request, _response) in &relevant_cache.list {
+            requests.push(request.url().to_string());
+        }
+
+        // Step 5.3: Else:
+        // Note: implementing this steps depends on Query Cache; todo.
+
+        Ok(requests)
     }
 }
 
@@ -198,6 +223,21 @@ where
                         .is_err()
                     {
                         error!("Failed to send response to script for OpenCache message.");
+                    }
+                },
+                CacheStorageThreadMessage::Keys {
+                    cache_name,
+                    callback,
+                    origin: _,
+                } => {
+                    let result = self.engine.keys(&cache_name);
+                    if callback
+                        .send(CacheStorageThreadResponse::KeysResult(
+                            result.map_err(|e| format!("{:?}", e)),
+                        ))
+                        .is_err()
+                    {
+                        error!("Failed to send response to script for Keys message.");
                     }
                 },
                 CacheStorageThreadMessage::Exit(sender) => {

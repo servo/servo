@@ -62,7 +62,7 @@ impl CacheStorage {
 
         let task_source = global
             .task_manager()
-            .database_access_task_source()
+            .dom_manipulation_task_source()
             .to_sendable();
         let callback = GenericCallback::new(move |message| {
             let response_listener = response_listener.clone();
@@ -129,6 +129,10 @@ impl CacheStorage {
                 let cache = Cache::new(cx, &self.global(), DOMString::from(cache_name));
                 promise.resolve_native(cx, &cache);
             },
+            CacheStorageThreadResponse::KeysResult(_) => debug_assert!(
+                false,
+                "Unexpected KeysResult response in CacheStorage handle_response."
+            ),
         }
     }
 }

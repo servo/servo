@@ -5,6 +5,7 @@
 use std::ops::{Deref, DerefMut};
 
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::request::Request;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{GenericCallback, GenericSender};
 use servo_url::ImmutableOrigin;
@@ -69,6 +70,12 @@ pub enum CacheStorageThreadMessage {
         proxy: StorageProxyMap,
         origin: ImmutableOrigin,
     },
+    /// <https://w3c.github.io/ServiceWorker/#cache-keys>
+    Keys {
+        cache_name: String,
+        callback: GenericCallback<CacheStorageThreadResponse>,
+        origin: ImmutableOrigin,
+    },
     Exit(GenericSender<()>),
 }
 
@@ -79,4 +86,5 @@ pub enum CacheStorageThreadResponse {
         opened: Result<bool, String>,
         cache_name: String,
     },
+    KeysResult(Result<Vec<String>, String>),
 }
