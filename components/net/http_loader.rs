@@ -2267,12 +2267,12 @@ async fn http_network_fetch(
             .is_some_and(|host| context.state.hsts_list.read().is_host_secure(host));
 
         if url.scheme() == "https" &&
-            let Some(sts) = response_stream
+            let Some(strict_transport_security) = response_stream
                 .headers()
                 .typed_get::<StrictTransportSecurity>()
         {
             // max-age > 0 enables HSTS, max-age = 0 disables it (RFC 6797 Section 6.1.1)
-            hsts_enabled = sts.max_age().as_secs() > 0;
+            hsts_enabled = strict_transport_security.max_age().as_secs() > 0;
         }
         response.tls_security_info = Some(build_tls_security_info(handshake_info, hsts_enabled));
     }
