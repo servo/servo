@@ -137,6 +137,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::script_execution::{RethrowErrors, ScriptOptions};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
 #[cfg(feature = "webgpu")]
@@ -157,6 +158,7 @@ use crate::messaging::{
     ScriptThreadReceivers, ScriptThreadSenders,
 };
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
+use crate::modules::script_module::ScriptFetchOptions;
 use crate::navigation::{InProgressLoad, NavigationListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::microtask::{MicrotaskQueue, MicrotaskRunnable};
@@ -672,7 +674,8 @@ impl ScriptThread {
         container: Option<&Element>,
         initial_insertion: Option<bool>,
     ) -> bool {
-        // Step 6. If the result of should navigation request of type be blocked by Content Security Policy? given request and cspNavigationType is "Blocked", then return.
+        // Step 6. If the result of should navigation request of type be blocked by Content
+        // Security Policy? given request and cspNavigationType is "Blocked", then return.
         if !Self::can_navigate_to_javascript_url(
             cx,
             initiator_global,
@@ -685,32 +688,24 @@ impl ScriptThread {
 
         // Step 7. Let newDocument be the result of evaluating a javascript: URL given targetNavigable,
         // url, initiatorOrigin, and userInvolvement.
-        let Some(body) = Self::eval_js_url(cx, target_global, &load_data.url) else {
+        if !Self::evaluate_a_javascript_url(cx, target_global, load_data) {
             // Step 8. If newDocument is null:
             let window_proxy = target_global.as_window().window_proxy();
             if let Some(frame_element) = window_proxy
                 .frame_element()
                 .and_then(Castable::downcast::<HTMLIFrameElement>)
             {
-                // Step 8.1 If initialInsertion is true and targetNavigable's active document's is initial about:blank is true, then run the iframe load event steps given targetNavigable's container.
+                // Step 8.1 If initialInsertion is true and targetNavigable's active document's
+                // is initial about:blank is true, then run the iframe load event steps given
+                // targetNavigable's container.
                 if initial_insertion == Some(true) && frame_element.is_initial_blank_document() {
                     frame_element.run_iframe_load_event_steps(cx);
                 }
             }
             // Step 8.2. Return.
             return false;
-        };
+        }
 
-        // Step 11. of <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>.
-        // Let response be a new response with
-        // URL         targetNavigable's active document's URL
-        // header list « (`Content-Type`, `text/html;charset=utf-8`) »
-        // body        the UTF-8 encoding of result, as a body
-        load_data.js_eval_result = Some(body);
-        load_data.url = target_global.get_url();
-        load_data
-            .headers
-            .typed_insert(headers::ContentType::from(mime::TEXT_HTML_UTF_8));
         true
     }
 
@@ -3897,54 +3892,114 @@ impl ScriptThread {
         }
     }
 
-    /// Turn javascript: URL into JS code to eval, according to the steps in
     /// <https://html.spec.whatwg.org/multipage/#evaluate-a-javascript:-url>
-    /// Returns the evaluated body, if available.
-    fn eval_js_url(
+    ///
+    /// This fills the provided [`LoadData`] with the result of evaluating the given
+    /// JavaScript URL. Returns `true` if a result is produced and `false` otherwise.
+    fn evaluate_a_javascript_url(
         cx: &mut js::context::JSContext,
         global_scope: &GlobalScope,
-        url: &ServoUrl,
-    ) -> Option<String> {
+        load_data: &mut LoadData,
+    ) -> bool {
         // Step 1. Let urlString be the result of running the URL serializer on url.
-        // Step 2. Let encodedScriptSource be the result of removing the leading "javascript:" from urlString.
-        let encoded = &url[Position::AfterScheme..][1..];
+        // Step 2. Let encodedScriptSource be the result of removing the leading "javascript:"
+        // from urlString.
+        let encoded = &load_data.url[Position::AfterScheme..][1..];
 
-        // // Step 3. Let scriptSource be the UTF-8 decoding of the percent-decoding of encodedScriptSource.
+        // Step 3. Let scriptSource be the UTF-8 decoding of the percent-decoding of
+        // encodedScriptSource.
         let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
-        // Step 4. Let settings be targetNavigable's active document's relevant settings object.
+        // Step 4. Let settings be targetNavigable's active document's relevant settings
+        // object.
         // Step 5. Let baseURL be settings's API base URL.
-        // Step 6. Let script be the result of creating a classic script given scriptSource, settings, baseURL, and the default script fetch options.
-        // Note: these steps are handled by `evaluate_js_on_global`.
+        let base_url = global_scope.api_base_url();
+
+        // Step 6. Let script be the result of creating a classic script given scriptSource,
+        // settings, baseURL, and the default script fetch options.
         let mut realm = enter_auto_realm(cx, global_scope);
         let cx = &mut realm.current_realm();
-
-        rooted!(&in(cx) let mut jsval = UndefinedValue());
-        // Step 7. Let evaluationStatus be the result of running the classic script script.
-        let evaluation_status = global_scope.evaluate_js_on_global(
+        let classic_script = global_scope.create_a_classic_script(
             cx,
             script_source,
-            "",
+            base_url,
+            ScriptOptions::ReturnsAValue,
+            ScriptFetchOptions::default_classic_script(),
             Some(IntroductionType::JAVASCRIPT_URL),
-            Some(jsval.handle_mut()),
+            1, // line_number
         );
 
-        // Step 9. If evaluationStatus is a normal completion, and evaluationStatus.[[Value]]
-        //   is a String, then set result to evaluationStatus.[[Value]].
-        // Step 10. Otherwise, return null.
-        if evaluation_status.is_err() || !jsval.get().is_string() {
-            return None;
-        }
+        // Step 7. Let evaluationStatus be the result of running the classic script script.
+        rooted!(&in(cx) let mut return_value = UndefinedValue());
+        let evaluation_status = global_scope.run_a_classic_script(
+            cx,
+            classic_script,
+            RethrowErrors::No,
+            Some(return_value.handle_mut()),
+        );
 
-        let strval = DOMString::safe_from_jsval(cx, jsval.handle(), StringificationBehavior::Empty);
-        match strval {
-            Ok(ConversionResult::Success(s)) => {
-                // Step 11. Let response be a new response with
-                // the UTF-8 encoding of result, as a body.
-                Some(String::from(s))
-            },
-            _ => unreachable!("Couldn't get a string from a JS string??"),
+        // Step 8. Let result be null.
+        // Step 9. If evaluationStatus is a normal completion, and evaluationStatus.
+        // is a String, then set result to evaluationStatus.
+        // Step 10. Otherwise, return null.
+        if evaluation_status.is_err() || !return_value.get().is_string() {
+            return false;
         }
+        let Ok(ConversionResult::Success(body)) =
+            DOMString::safe_from_jsval(cx, return_value.handle(), StringificationBehavior::Empty)
+        else {
+            return false;
+        };
+
+        // Step 11. Let response be a new response with
+        // - URL: targetNavigable's active document's URL
+        // - header list: (`Content-Type`, `text/html;charset=utf-8`)
+        // - body the UTF-8 encoding of result, as a body
+        load_data.url = global_scope.get_url();
+        load_data
+            .headers
+            .typed_insert(headers::ContentType::from(mime::TEXT_HTML_UTF_8));
+        load_data.js_eval_result = Some(body.into());
+
+        // Step 12. Let policyContainer be targetNavigable's active document's policy
+        // container.
+        let policy_container = global_scope.policy_container();
+        load_data.policy_container = Some(policy_container);
+
+        // Step 13. Let finalSandboxFlags be policyContainer's CSP list's CSP-derived
+        // sandboxing flags.
+        // TODO: Implement this.
+
+        // Step 14. Let coop be targetNavigable's active document's opener policy.
+        // TODO: Implement this.
+
+        // Step 15. Let coopEnforcementResult be a new opener policy enforcement result with
+        // - url: url
+        // - origin: newDocumentOrigin
+        // - opener policy: coop
+        // TODO Implement this.
+
+        // Step 16. Let navigationParams be a new navigation params, with
+        // - id: navigationId
+        // - navigable: targetNavigable
+        // - request: null
+        // - response: response
+        // - fetch: controller null
+        // - commit early hints: null
+        // - COOP enforcement result: coopEnforcementResult
+        // - reserved environment: null
+        // - origin: newDocumentOrigin
+        // - policy container: policyContainer
+        // - final sandboxing flag set: finalSandboxFlags
+        // - iframe element referrer policy: targetSnapshotParams's iframe element referrer policy
+        // - opener policy: coop
+        // - navigation timing type: "navigate"
+        // - about base URL: targetNavigable's active document's about base URL
+        // - user involvement: userInvolvement
+        //
+        // TODO: Implement the rest of these once Servo supports navigation params.
+        load_data.about_base_url = global_scope.as_window().Document().about_base_url();
+        true
     }
 
     /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad

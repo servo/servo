@@ -7,6 +7,7 @@ use std::ffi::CStr;
 use std::ptr::NonNull;
 use std::rc::Rc;
 
+use bitflags::bitflags;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
 use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
@@ -34,6 +35,21 @@ use crate::modules::script_module::{ModuleScript, ModuleTree, RethrowError, Scri
 use crate::realms::enter_auto_realm;
 use crate::unminify::{ScriptSource, unminify_js};
 
+/// Options that were used when creating a script.
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
+pub(crate) struct ScriptOptions(u8);
+
+bitflags! {
+    impl ScriptOptions: u8 {
+        /// <https://html.spec.whatwg.org/multipage/#muted-errors>
+        const MutedErrors = 1 << 0;
+        /// Whether or not this script was compiled to return a value.
+        const ReturnsAValue = 1 << 1;
+        /// Whether or not this script was external.
+        const External = 1 << 2;
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ClassicScript {
@@ -46,24 +62,8 @@ pub(crate) struct ClassicScript {
     /// <https://html.spec.whatwg.org/multipage/#concept-script-base-url>
     #[no_trace]
     url: ServoUrl,
-    /// <https://html.spec.whatwg.org/multipage/#muted-errors>
-    muted_errors: ErrorReporting,
-}
-
-#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-pub(crate) enum ErrorReporting {
-    Muted,
-    Unmuted,
-}
-
-impl From<bool> for ErrorReporting {
-    fn from(boolean: bool) -> Self {
-        if boolean {
-            ErrorReporting::Muted
-        } else {
-            ErrorReporting::Unmuted
-        }
-    }
+    /// The options that were used when compiling this script.
+    options: ScriptOptions,
 }
 
 pub(crate) enum RethrowErrors {
@@ -80,16 +80,15 @@ impl GlobalScope {
         cx: &mut JSContext,
         source: Cow<'_, str>,
         url: ServoUrl,
+        options: ScriptOptions,
         fetch_options: ScriptFetchOptions,
-        muted_errors: ErrorReporting,
         introduction_type: Option<&'static CStr>,
         line_number: u32,
-        external: bool,
     ) -> ClassicScript {
         let mut source = if let Some(unminified_js_dir) = self.unminified_js_dir() {
             let mut script_source = ScriptSource {
                 source,
-                external,
+                external: options.contains(ScriptOptions::External),
                 url: &url,
             };
             unminify_js(&mut script_source, unminified_js_dir);
@@ -106,17 +105,11 @@ impl GlobalScope {
 
         // TODO Step 9. Record classic script creation time given script and sourceURLForWindowScripts.
 
-        let options = fill_compile_options(
-            cx,
-            url.as_str(),
-            introduction_type,
-            muted_errors,
-            true, // noScriptRval
-            line_number,
-        );
+        let compilation_options =
+            fill_compile_options(cx, url.as_str(), options, introduction_type, line_number);
 
         // Step 10. Let result be ParseScript(source, settings's realm, script).
-        rooted!(&in(cx) let compiled_script = unsafe { Compile1(cx, options.ptr, &mut source) });
+        rooted!(&in(cx) let compiled_script = unsafe { Compile1(cx, compilation_options.ptr, &mut source) });
 
         // Step 11. If result is a list of errors, then:
         let record = if compiled_script.get().is_null() {
@@ -139,7 +132,7 @@ impl GlobalScope {
             record,
             url,
             fetch_options,
-            muted_errors,
+            options,
         }
     }
 
@@ -150,10 +143,18 @@ impl GlobalScope {
         cx: &mut JSContext,
         script: ClassicScript,
         rethrow_errors: RethrowErrors,
+        return_value: Option<MutableHandleValue>,
     ) -> ErrorResult {
+        assert_eq!(
+            return_value.is_some(),
+            script.options.contains(ScriptOptions::ReturnsAValue),
+            "Classic script returns a value option does not match `return_value` argument"
+        );
+
         // TODO Step 1. Let settings be the settings object of script.
 
-        // Step 2. Check if we can run script with settings. If this returns "do not run", then return NormalCompletion(empty).
+        // Step 2. Check if we can run script with settings. If this returns "do not run", then
+        // return NormalCompletion(empty).
         if !self.can_run_script() {
             return Ok(());
         }
@@ -170,7 +171,8 @@ impl GlobalScope {
             let mut result = false;
 
             match script.record {
-                // Step 6. If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
+                // Step 6. If script's error to rethrow is not null, then set evaluationStatus
+                // to ThrowCompletion(script's error to rethrow).
                 Err(error_to_rethrow) => unsafe {
                     JS_SetPendingException(
                         cx,
@@ -180,7 +182,8 @@ impl GlobalScope {
                 },
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
-                    rooted!(&in(cx) let mut rval = UndefinedValue());
+                    rooted!(&in(cx) let mut fallback_value = UndefinedValue());
+                    let return_value = return_value.unwrap_or_else(|| fallback_value.handle_mut());
                     let script_ptr = NonNull::new(compiled_script.get())
                         .expect("Compiled script must not be null");
                     result = evaluate_script(
@@ -188,7 +191,7 @@ impl GlobalScope {
                         script_ptr,
                         script.url,
                         script.fetch_options,
-                        rval.handle_mut(),
+                        return_value,
                     );
                 },
             }
@@ -197,40 +200,38 @@ impl GlobalScope {
             if unsafe { JS_IsExceptionPending(cx) } {
                 warn!("Error evaluating script");
 
-                match rethrow_errors {
-                    RethrowErrors::Yes => {
-                        match script.muted_errors {
-                            // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
-                            // Rethrow evaluationStatus.[[Value]].
-                            ErrorReporting::Unmuted => return Err(Error::JSFailed),
-                            // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-                            ErrorReporting::Muted => {
-                                unsafe { JS_ClearPendingException(cx) };
-                                // Throw a "NetworkError" DOMException.
-                                return Err(Error::Network(None));
-                            },
-                        }
+                match (
+                    rethrow_errors,
+                    script.options.contains(ScriptOptions::MutedErrors),
+                ) {
+                    (RethrowErrors::Yes, false) => {
+                        // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
+                        // Rethrow evaluationStatus.[[Value]].
+                        return Err(Error::JSFailed);
+                    },
+                    (RethrowErrors::Yes, true) => {
+                        // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
+                        unsafe { JS_ClearPendingException(cx) };
+                        // Throw a "NetworkError" DOMException.
+                        return Err(Error::Network(None));
                     },
                     // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
-                    RethrowErrors::No => {
-                        // Report an exception given by evaluationStatus.[[Value]] for script's
-                        // settings object's global object.
-                        match script.muted_errors {
-                            ErrorReporting::Unmuted => {
-                                report_pending_exception(cx);
+                    // Report an exception given by evaluationStatus.[[Value]] for script's
+                    // settings object's global object.
+                    (RethrowErrors::No, false) => {
+                        report_pending_exception(cx);
+                        return Err(Error::JSFailed);
+                    },
+                    (RethrowErrors::No, true) => {
+                        unsafe { JS_ClearPendingException(cx) };
+                        self.report_an_error(
+                            cx,
+                            ErrorInfo {
+                                message: String::from("Script error."),
+                                ..Default::default()
                             },
-                            ErrorReporting::Muted => {
-                                unsafe { JS_ClearPendingException(cx) };
-                                self.report_an_error(
-                                    cx,
-                                    ErrorInfo {
-                                        message: String::from("Script error."),
-                                        ..Default::default()
-                                    },
-                                    HandleValue::null(),
-                                );
-                            },
-                        }
+                            HandleValue::null(),
+                        );
                         return Err(Error::JSFailed);
                     },
                 }
@@ -329,16 +330,10 @@ impl GlobalScope {
 pub(crate) fn fill_compile_options(
     cx: &mut JSContext,
     filename: &str,
+    script_options: ScriptOptions,
     introduction_type: Option<&'static CStr>,
-    muted_errors: ErrorReporting,
-    no_script_rval: bool,
     line_number: u32,
 ) -> CompileOptionsWrapper {
-    let muted_errors = match muted_errors {
-        ErrorReporting::Muted => true,
-        ErrorReporting::Unmuted => false,
-    };
-
     // TODO: pass filename as CString to avoid allocation
     // See https://github.com/servo/servo/issues/42126
     let mut options = CompileOptionsWrapper::new(cx, cformat!("{filename}"), line_number);
@@ -347,11 +342,11 @@ pub(crate) fn fill_compile_options(
     }
 
     // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#284
-    options.set_muted_errors(muted_errors);
+    options.set_muted_errors(script_options.contains(ScriptOptions::MutedErrors));
 
     // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#518
     options.set_is_run_once(true);
-    options.set_no_script_rval(no_script_rval);
+    options.set_no_script_rval(!script_options.contains(ScriptOptions::ReturnsAValue));
 
     options
 }
