@@ -10,7 +10,6 @@ use std::ops::Range;
 use app_units::Au;
 use bitflags::bitflags;
 use embedder_traits::{EmbedderMsg, MouseButton, ScriptToEmbedderChan};
-use euclid::Point2D;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
@@ -21,7 +20,6 @@ use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
 use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
 use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
-use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -31,7 +29,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::inputevent::InputEvent;
+use crate::dom::inputevent::{HitTestResult, InputEvent};
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::text_control::TextControlElement;
@@ -893,10 +891,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         )
     }
 
-    fn edit_point_for_mouse_event(&self, event: &MouseEvent) -> RopeIndex {
-        event
-            .dom_offset_for_selection()
-            .map(|character_offset| {
+    fn edit_point_for_hit_test_result(&self, hit_test_result: &HitTestResult) -> RopeIndex {
+        hit_test_result
+            .dom_position_for_selection
+            .as_ref()
+            .map(|(_, character_offset)| {
                 self.rope.move_by(
                     Default::default(),
                     RopeMovement::Character,
@@ -906,11 +905,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             .unwrap_or_else(|| self.rope.last_index())
     }
 
-    fn drag_moved(
-        &mut self,
-        element: &impl TextControlElement,
-        point_in_viewport: Point2D<Au, CSSPixel>,
-    ) {
+    fn drag_moved(&mut self, element: &impl TextControlElement, hit_test_result: &HitTestResult) {
+        let point_in_viewport = hit_test_result.point_in_frame.map(Au::from_f32_px);
         self.edit_point = element
             .owner_window()
             .text_index_query_on_node_for_event(element.upcast(), point_in_viewport)
@@ -934,6 +930,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         &mut self,
         element: &Element,
         mouse_event: &MouseEvent,
+        hit_test_result: &HitTestResult,
     ) -> bool {
         assert_eq!(mouse_event.upcast::<Event>().type_(), atom!("mousedown"));
 
@@ -955,7 +952,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
             1 if matches!(button, MouseButton::Primary | MouseButton::Auxiliary) => {
                 self.clear_selection();
-                self.edit_point = self.edit_point_for_mouse_event(mouse_event);
+                self.edit_point = self.edit_point_for_hit_test_result(hit_test_result);
                 self.selection_origin = Some(self.edit_point);
                 self.update_selection_direction();
                 true
@@ -972,8 +969,8 @@ impl<T: ClipboardProvider> TextInput<T> {
             element
                 .owner_document()
                 .event_handler()
-                .install_drag_gesture(DragGesture::new(DragHandler::TextInput(
-                    TextInputDragHandler(Dom::from_ref(element)),
+                .install_drag_gesture(DragGesture::new(DragHandler::TextInputSelection(
+                    TextInputSelectionDragHandler(Dom::from_ref(element)),
                 )));
         }
 
@@ -1197,26 +1194,29 @@ impl<T: ClipboardProvider> TextInput<T> {
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
-pub(crate) struct TextInputDragHandler(Dom<Element>);
+pub(crate) struct TextInputSelectionDragHandler(Dom<Element>);
 
-impl TextInputDragHandler {
+impl TextInputSelectionDragHandler {
     pub(crate) fn still_connected(&self) -> bool {
         self.0.is_connected()
     }
 
-    pub(crate) fn moved(&self, point_in_viewport: Point2D<Au, CSSPixel>) -> bool {
+    /// Process a mouse move event on this [`TextInputSelectionDragHandler`].
+    ///
+    /// Returns `true` if the drag should continue and `false` otherwise.
+    pub(crate) fn moved(&self, hit_test_result: &HitTestResult) -> bool {
         if !self.0.is_connected() {
             return false;
         }
 
         if let Some(input) = self.0.downcast::<HTMLInputElement>() {
-            input.textinput_mut().drag_moved(input, point_in_viewport);
+            input.textinput_mut().drag_moved(input, hit_test_result);
             input.maybe_update_shared_selection();
             true
         } else if let Some(text_area) = self.0.downcast::<HTMLTextAreaElement>() {
             text_area
                 .textinput_mut()
-                .drag_moved(text_area, point_in_viewport);
+                .drag_moved(text_area, hit_test_result);
             text_area.maybe_update_shared_selection();
             true
         } else {

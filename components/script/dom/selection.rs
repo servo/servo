@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use servo_base::text::Utf32CodeUnitsOrNodeOffset;
 
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -326,6 +327,37 @@ impl Selection {
                 _ => range.start_offset(),
             })
             .unwrap_or(0)
+    }
+
+    pub(crate) fn collapse_to_dom_position(
+        &self,
+        cx: &mut JSContext,
+        container: &Node,
+        offset: Utf32CodeUnitsOrNodeOffset,
+    ) {
+        let _ = self.Collapse(
+            cx,
+            Some(container),
+            container.to_sibling_or_utf16_offset(offset),
+        );
+    }
+
+    pub(crate) fn collapse_or_extend_to_dom_position(
+        &self,
+        cx: &mut JSContext,
+        container: &Node,
+        offset: Utf32CodeUnitsOrNodeOffset,
+    ) {
+        let offset = container.to_sibling_or_utf16_offset(offset);
+        let is_anchor = self
+            .anchor_node()
+            .is_some_and(|anchor| &*anchor == container) &&
+            self.anchor_offset() == offset;
+        if self.range.get().is_none() || is_anchor {
+            let _ = self.Collapse(cx, Some(container), offset);
+        } else {
+            let _ = self.Extend(cx, container, offset);
+        }
     }
 }
 
@@ -902,4 +934,16 @@ fn position_in_flat_tree_for_selection(
     // The container has no child in the flat tree or the child indicated by the index
     // isn't in the flat tree, so just return a position inside that container.
     FlatTreeNodePosition::Inside(shadow_host_or_node(&container))
+}
+
+impl Node {
+    /// Get the `Utf16CodeUnits` offset for the given offset if `self` is a
+    /// `CharacterData` or else return the offset in the child list.
+    fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
+        if let Some(character_data) = self.downcast::<CharacterData>() {
+            offset.to_utf16_code_units_in(&character_data.data()).0 as u32
+        } else {
+            offset.0 as u32
+        }
+    }
 }
