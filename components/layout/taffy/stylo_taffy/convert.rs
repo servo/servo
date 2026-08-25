@@ -68,8 +68,9 @@ pub fn min_size(value: &stylo::Size) -> taffy::LengthPercentageAuto {
         },
 
         // Anchor positioning will be flagged off for time being
-        stylo::Size::AnchorSizeFunction(_) => unreachable!(),
-        stylo::Size::AnchorContainingCalcFunction(_) => unreachable!(),
+        stylo::Size::AnchorSizeFunction(_) | stylo::Size::AnchorContainingCalcFunction(_) => {
+            unreachable!("Anchor positioning is disabled in stylo")
+        },
     }
 }
 
@@ -89,8 +90,9 @@ pub fn max_size(value: &stylo::MaxSize) -> taffy::LengthPercentageAuto {
         },
 
         // Anchor positioning will be flagged off for time being
-        stylo::MaxSize::AnchorSizeFunction(_) => unreachable!(),
-        stylo::MaxSize::AnchorContainingCalcFunction(_) => unreachable!(),
+        stylo::MaxSize::AnchorSizeFunction(_) | stylo::MaxSize::AnchorContainingCalcFunction(_) => {
+            unreachable!("Anchor positioning is disabled in stylo")
+        },
     }
 }
 
@@ -101,8 +103,10 @@ pub fn margin(val: &stylo::MarginVal) -> taffy::LengthPercentageAuto {
         stylo::MarginVal::LengthPercentage(val) => length_percentage(val).into(),
 
         // Anchor positioning will be flagged off for time being
-        stylo::MarginVal::AnchorSizeFunction(_) => unreachable!(),
-        stylo::MarginVal::AnchorContainingCalcFunction(_) => unreachable!(),
+        stylo::MarginVal::AnchorSizeFunction(_) |
+        stylo::MarginVal::AnchorContainingCalcFunction(_) => {
+            unreachable!("Anchor positioning is disabled in stylo")
+        },
     }
 }
 
@@ -113,9 +117,11 @@ pub fn inset(val: &stylo::InsetVal) -> taffy::LengthPercentageAuto {
         stylo::InsetVal::LengthPercentage(val) => length_percentage(val).into(),
 
         // Anchor positioning will be flagged off for time being
-        stylo::InsetVal::AnchorSizeFunction(_) => unreachable!(),
-        stylo::InsetVal::AnchorFunction(_) => unreachable!(),
-        stylo::InsetVal::AnchorContainingCalcFunction(_) => unreachable!(),
+        stylo::InsetVal::AnchorSizeFunction(_) |
+        stylo::InsetVal::AnchorFunction(_) |
+        stylo::InsetVal::AnchorContainingCalcFunction(_) => {
+            unreachable!("Anchor positioning is disabled in stylo")
+        },
     }
 }
 
