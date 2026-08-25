@@ -1058,6 +1058,7 @@ impl WebView {
             .notify_accessibility_tree_update(self.clone(), tree_update);
     }
 
+    /// Clears the history of the current webview, making the current url the only one ever navigated by this webview.
     pub fn clear_history(&self) {
         self.inner()
             .servo
