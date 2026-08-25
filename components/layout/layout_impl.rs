@@ -5,7 +5,7 @@
 #![expect(unsafe_code)]
 
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::ffi::c_void;
 use std::fmt::Debug;
 use std::rc::Rc;
@@ -82,7 +82,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
-use crate::accessibility_tree::{AccessibilityContext, AccessibilityTree};
+use crate::accessibility_tree::{AccessibilityContext, AccessibilityDamageMap, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::dom::NodeExt;
@@ -949,8 +949,6 @@ impl LayoutThread {
             return false;
         }
 
-        // Bounds can become stale without any `AccessibilityDamage` from the DOM. Every geometry
-        // change is committed by an "update the rendering" reflow, so refresh bounds on each one.
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         let Some(accessibility_tree) = accessibility_tree.as_mut() else {
             return false;
@@ -970,9 +968,12 @@ impl LayoutThread {
         let rooted_nodes =
             std::mem::take(&mut reflow_request.rooted_nodes_for_accessibility_integrity_check);
 
-        let damage: VecDeque<_> = accessibility_damage
-            .iter()
-            .map(|(address, damage)| unsafe { (ServoLayoutNode::new(address), *damage) })
+        let damage: AccessibilityDamageMap = accessibility_damage
+            .into_iter()
+            .map(|(address, damage)| {
+                let node = unsafe { ServoLayoutNode::new(&address) };
+                (node.opaque(), (node, damage))
+            })
             .collect();
 
         let accessibility_context = AccessibilityContext {
