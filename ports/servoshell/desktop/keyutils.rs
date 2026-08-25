@@ -589,12 +589,10 @@ fn keyboard_modifiers_from_winit_modifiers(mods: ModifiersState) -> Modifiers {
 }
 
 pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) -> KeyboardEvent {
-    let code_from_winit = Code::from_winit_key_event(key_event);
-
     KeyboardEvent::new_without_event(
         KeyState::from_winit_key_event(key_event),
         Key::from_winit_key_event(key_event),
-        code_from_winit,
+        Code::from_winit_key_event(key_event),
         Location::from_winit_key_event(key_event),
         keyboard_modifiers_from_winit_modifiers(state),
         false,
