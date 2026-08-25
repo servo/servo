@@ -79,11 +79,6 @@ jobs:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - uses: thejerrybao/setup-swap-space@v1
-        if: ${{ runner.environment != 'self-hosted' }}
-        with:
-          swap-space-path: /swapfile
-          swap-size-gb: 12
       - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
       - uses: actions/download-artifact@v8
         with:
