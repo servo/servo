@@ -591,11 +591,6 @@ fn keyboard_modifiers_from_winit_modifiers(mods: ModifiersState) -> Modifiers {
 pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) -> KeyboardEvent {
     let code_from_winit = Code::from_winit_key_event(key_event);
 
-    let mut raw_keycode = None;
-    if additional_virtual_keycodes(code_from_winit).is_some() {
-        raw_keycode = additional_virtual_keycodes(code_from_winit);
-    }
-
     KeyboardEvent::new_without_event(
         KeyState::from_winit_key_event(key_event),
         Key::from_winit_key_event(key_event),
@@ -604,44 +599,5 @@ pub fn keyboard_event_from_winit(key_event: &KeyEvent, state: ModifiersState) ->
         keyboard_modifiers_from_winit_modifiers(state),
         false,
         false,
-        raw_keycode,
     )
-}
-
-fn additional_virtual_keycodes(code: Code) -> Option<u32> {
-    match code {
-        Code::Backquote => Some(192),
-        Code::MetaLeft | Code::MetaRight => Some(224),
-        Code::ContextMenu => Some(93),
-        Code::Insert => Some(45),
-        Code::NumLock => Some(144),
-        Code::PrintScreen => Some(4),
-        Code::ScrollLock => Some(145),
-        Code::Pause => Some(19),
-        Code::F1 => Some(112),
-        Code::F2 => Some(113),
-        Code::F3 => Some(114),
-        Code::F4 => Some(115),
-        Code::F5 => Some(116),
-        Code::F6 => Some(117),
-        Code::F7 => Some(118),
-        Code::F8 => Some(119),
-        Code::F9 => Some(120),
-        Code::F10 => Some(121),
-        Code::F11 => Some(122),
-        Code::F12 => Some(123),
-        Code::F13 => Some(124),
-        Code::F14 => Some(125),
-        Code::F15 => Some(126),
-        Code::F16 => Some(127),
-        Code::F17 => Some(128),
-        Code::F18 => Some(129),
-        Code::F19 => Some(130),
-        Code::F20 => Some(131),
-        Code::F21 => Some(132),
-        Code::F22 => Some(133),
-        Code::F23 => Some(134),
-        Code::F24 => Some(135),
-        _ => None,
-    }
 }
