@@ -2467,14 +2467,21 @@ pub(crate) fn check_support_for_algorithm(
     //
     // NOTE:
     // - Step 8 can be interpreted as executing the specified operation of the specified algorithm
-    //   in "dry-run" mode in which it validates the algorithm parameters, length, and usages but
-    //   does not execute the computation-demanding cryptographic calculation. It returns true if
-    //   the validation passes, and returns false otherwise.
-    // - In Step 8, we apply all validation to the parameters in normalizedAlgorithms and length,
-    //   as described in the specified operation of the specified algorithm. Since usages is an
-    //   empty list, it should pass the validation described in the specified operation of the
-    //   specified algorithm. So, we sipmly ignore it here.
+    //   in "dry-run" mode in which it validates the normalizedAlgorithm, length and usages but does
+    //   not execute the computation-demanding cryptographic calculation.
+    //
+    // - Usually, the parameter validations are executed at the beginning of the operation.
+    //   Therefore, Step 8 can be done by running the operation with the following changes:
+    //   - Replace "throw an DataError/OperationError/NotSupportedError" with "return false".
+    //   - When we reach any step that requires unavailable parameters or does the cryptographic
+    //     calculation, return true, instead of running the step, and skip the remaining steps as
+    //     well.
+    //
+    // - Since usages is an empty list, it should pass the validation described in the specified
+    //   operation of the specified algorithm. So, we sipmly ignore it here.
+    //
     // - The "getPublicKey" operation is not included here, since it is handled in Step 3.
+    //
     // - We explicitly list all patterns in the inner `match` blocks so that the Rust compiler will
     //   remind the implementer to add the necessary parameter validation here when a new operation
     //   of an algorithm is added.
