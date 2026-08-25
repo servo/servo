@@ -173,7 +173,7 @@ pub(crate) fn execute_delete_command(
         // set the tag name of node to the default single-line container name
         // and let node be the result.
         if node_matches_local_name!(node, local_name!("dd") | local_name!("dt")) &&
-            node.is_no_allowed_child_in_same_editing_host()
+            node.is_no_allowed_child_in_same_editing_host(cx.no_gc())
         {
             node = node
                 .downcast::<Element>()

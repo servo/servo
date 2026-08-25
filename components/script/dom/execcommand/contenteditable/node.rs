@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAncho
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::root::{DomRoot, DomSlice};
+use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
@@ -35,29 +35,38 @@ use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::text::Text;
 
-pub(crate) enum NodeOrString {
+pub(crate) enum NodeOrString<'a> {
     String(String),
-    Node(DomRoot<Node>),
+    Node(UnrootedDom<'a, Node>),
 }
 
-impl NodeOrString {
-    fn name(&self) -> &str {
-        match self {
-            NodeOrString::String(str_) => str_,
-            NodeOrString::Node(node) => node
-                .downcast::<Element>()
-                .map(|element| element.local_name().as_ref())
-                .unwrap_or_default(),
-        }
+impl<'a> NodeOrString<'a> {
+    pub(crate) fn from_node(node: &Node, no_gc: &'a NoGC) -> NodeOrString<'a> {
+        NodeOrString::Node(UnrootedDom::from_dom(Dom::from_ref(node), no_gc))
     }
 
-    fn as_node(&self) -> Option<DomRoot<Node>> {
+    fn as_node(&self) -> Option<UnrootedDom<'a, Node>> {
         match self {
             NodeOrString::String(_) => None,
             NodeOrString::Node(node) => Some(node.clone()),
         }
     }
 }
+
+// This is a macro instead of a method on `NodeOrString` since `UnrootedDom::downcast`
+// would result in `element` being a temporary referenced value. Therefore, it wouldn't
+// be possible to return its localname as `&str`. Instead, we need to compare immediately
+// when we have the element referenced, which is why we have to duplicate the `matches!`.
+macro_rules! node_or_string_matches_name(
+    ( $node_or_string:ident, $pattern:pat $(if $guard:expr)? $(,)? ) => (
+        match $node_or_string {
+            NodeOrString::String(ref str_) => matches!(str_.as_ref(), $pattern),
+            NodeOrString::Node(ref node) => UnrootedDom::downcast::<Element>(node.clone())
+                .map(|element| matches!(element.local_name().as_ref(), $pattern))
+                .unwrap_or_default(),
+        }
+    );
+);
 
 macro_rules! node_matches_local_name(
     ( $node:ident, $pattern:pat $(if $guard:expr)? $(,)? ) => (
@@ -231,8 +240,8 @@ pub(crate) fn is_allowed_child(child: NodeOrString, parent: NodeOrString) -> boo
     // Step 1. If parent is "colgroup", "table", "tbody", "tfoot", "thead", "tr",
     // or an HTML element with local name equal to one of those,
     // and child is a Text node whose data does not consist solely of space characters, return false.
-    if matches!(
-        parent.name(),
+    if node_or_string_matches_name!(
+        parent,
         "colgroup" | "table" | "tbody" | "tfoot" | "thead" | "tr"
     ) && child.as_node().is_some_and(|node| {
         // Note: cannot use `.and_then` here, since `downcast` would outlive its reference
@@ -243,7 +252,7 @@ pub(crate) fn is_allowed_child(child: NodeOrString, parent: NodeOrString) -> boo
     }
     // Step 2. If parent is "script", "style", "plaintext", or "xmp",
     // or an HTML element with local name equal to one of those, and child is not a Text node, return false.
-    if matches!(parent.name(), "script" | "style" | "plaintext" | "xmp") &&
+    if node_or_string_matches_name!(parent, "script" | "style" | "plaintext" | "xmp") &&
         child.as_node().is_none_or(|node| !node.is::<Text>())
     {
         return false;
@@ -1144,7 +1153,7 @@ impl Node {
         };
         // Step 4. If node is an allowed child of "span":
         if is_allowed_child(
-            NodeOrString::Node(DomRoot::from_ref(self)),
+            NodeOrString::from_node(self, cx.no_gc()),
             NodeOrString::String("span".to_owned()),
         ) {
             // Step 4.1. Reorder modifiable descendants of node's previousSibling.
@@ -1194,7 +1203,7 @@ impl Node {
         }
         // Step 7. If node is not an allowed child of "span":
         if !is_allowed_child(
-            NodeOrString::Node(DomRoot::from_ref(self)),
+            NodeOrString::from_node(self, cx.no_gc()),
             NodeOrString::String("span".to_owned()),
         ) {
             // Step 7.1. Let children be all children of node, omitting any that are Elements whose
@@ -1607,7 +1616,7 @@ impl Node {
         self.is_block_start_point(no_gc, offset as usize) || self.is_block_end_point(offset, no_gc)
     }
 
-    pub(crate) fn is_no_allowed_child_in_same_editing_host(&self) -> bool {
+    pub(crate) fn is_no_allowed_child_in_same_editing_host(&self, no_gc: &NoGC) -> bool {
         // > If node is not an allowed child of any of its ancestors in the same editing host
         let Some(editing_host) = self.editing_host_of() else {
             return false;
@@ -1616,8 +1625,8 @@ impl Node {
             .take_while(|ancestor| ancestor.editing_host_of().as_ref() == Some(&editing_host))
             .all(|ancestor| {
                 !is_allowed_child(
-                    NodeOrString::Node(DomRoot::from_ref(self)),
-                    NodeOrString::Node(ancestor),
+                    NodeOrString::from_node(self, no_gc),
+                    NodeOrString::from_node(&ancestor, no_gc),
                 )
             })
     }
@@ -1638,7 +1647,7 @@ impl Node {
             return;
         }
         // Step 2. If node is not an allowed child of any of its ancestors in the same editing host:
-        if self.is_no_allowed_child_in_same_editing_host() {
+        if self.is_no_allowed_child_in_same_editing_host(cx.no_gc()) {
             // Step 2.1. If node is a dd or dt, wrap the one-node list consisting of node,
             // with sibling criteria returning true for any dl with no attributes and false otherwise,
             // and new parent instructions returning
@@ -1666,7 +1675,7 @@ impl Node {
             if let Some(editing_host) = self.editing_host_of() &&
                 !is_allowed_child(
                     NodeOrString::String("p".to_owned()),
-                    NodeOrString::Node(editing_host),
+                    NodeOrString::from_node(&editing_host, cx.no_gc()),
                 )
             {
                 return;
@@ -1719,8 +1728,8 @@ impl Node {
                 break;
             };
             if is_allowed_child(
-                NodeOrString::Node(DomRoot::from_ref(self)),
-                NodeOrString::Node(parent),
+                NodeOrString::from_node(self, cx.no_gc()),
+                NodeOrString::from_node(&parent, cx.no_gc()),
             ) {
                 break;
             }

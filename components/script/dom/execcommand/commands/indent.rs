@@ -200,10 +200,10 @@ pub(crate) fn execute_indent_command(
     for node in new_range.contained_nodes() {
         if node.is_editable() &&
             (is_allowed_child(
-                NodeOrString::Node(node.clone()),
+                NodeOrString::from_node(&node, cx.no_gc()),
                 NodeOrString::String("div".to_owned()),
             ) || is_allowed_child(
-                NodeOrString::Node(node.clone()),
+                NodeOrString::from_node(&node, cx.no_gc()),
                 NodeOrString::String("ol".to_owned()),
             )) &&
             node_list

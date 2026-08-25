@@ -263,7 +263,7 @@ impl Selection {
         let start_block = if (!start_block.is_block_node() && !start_block.is_editing_host()) ||
             !is_allowed_child(
                 NodeOrString::String("span".to_owned()),
-                NodeOrString::Node(start_block.clone()),
+                NodeOrString::from_node(&start_block, cx.no_gc()),
             ) ||
             start_block.is::<HTMLTableCellElement>()
         {
@@ -292,7 +292,7 @@ impl Selection {
         let end_block = if (!end_block.is_block_node() && !end_block.is_editing_host()) ||
             !is_allowed_child(
                 NodeOrString::String("span".to_owned()),
-                NodeOrString::Node(end_block.clone()),
+                NodeOrString::from_node(&end_block, cx.no_gc()),
             ) ||
             end_block.is::<HTMLTableCellElement>()
         {
@@ -861,7 +861,7 @@ impl Selection {
                 child.push_down_values(cx, &command, new_value.clone());
                 // Step 8.2. If node is an allowed child of "span", force the value of node.
                 if is_allowed_child(
-                    NodeOrString::Node(DomRoot::from_ref(child)),
+                    NodeOrString::from_node(child, cx.no_gc()),
                     NodeOrString::String("span".to_owned()),
                 ) {
                     child.force_the_value(cx, &command, new_value.as_ref());
