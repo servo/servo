@@ -1621,12 +1621,13 @@ impl Node {
         let Some(editing_host) = self.editing_host_of() else {
             return false;
         };
-        self.ancestors()
+        let self_unrooted = UnrootedDom::from_dom(Dom::from_ref(self), no_gc);
+        self.ancestors_unrooted(no_gc)
             .take_while(|ancestor| ancestor.editing_host_of().as_ref() == Some(&editing_host))
             .all(|ancestor| {
                 !is_allowed_child(
-                    NodeOrString::from_node(self, no_gc),
-                    NodeOrString::from_node(&ancestor, no_gc),
+                    NodeOrString::Node(self_unrooted.clone()),
+                    NodeOrString::Node(ancestor),
                 )
             })
     }

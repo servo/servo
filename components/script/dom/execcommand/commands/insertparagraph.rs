@@ -351,7 +351,10 @@ pub(crate) fn execute_insert_paragraph_command(
         unreachable!("Must always be able to insert");
     }
     // Step 26. Let contained nodes be all nodes contained in new line range.
-    let contained_nodes: Vec<DomRoot<Node>> = new_line_range.contained_nodes().collect();
+    let contained_nodes: Vec<DomRoot<Node>> = new_line_range
+        .contained_nodes(cx.no_gc())
+        .map(|node| node.as_rooted())
+        .collect();
     // Step 27. Let frag be the result of calling extractContents() on new line range.
     let Ok(frag) = new_line_range.ExtractContents(cx) else {
         unreachable!("Must always be able to extract");
