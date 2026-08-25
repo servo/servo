@@ -251,7 +251,7 @@ pub trait WorkletThreadPool: JSTraceable {
     /// If all of the threads load successfully, the promise is resolved.
     /// If any of the threads fails to load, the promise is rejected.
     /// NOTE: The method implements the Step 6 of AddModule
-    /// <https://html.spec.whatwg.org/multipage/worklets.html#dom-worklet-addmodule>
+    /// <https://html.spec.whatwg.org/multipage/#dom-worklet-addmodule>
     #[allow(clippy::too_many_arguments)]
     fn fetch_and_invoke_a_worklet_script(
         &self,
